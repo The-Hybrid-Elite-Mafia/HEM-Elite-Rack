@@ -18,6 +18,7 @@
 #include "hem/rack/Tape.hpp"
 #include "hem/rack/TubeEq.hpp"
 #include "hem/rack/EliteEq.hpp"
+#include "hem/rack/Limiter.hpp"
 #include "hem/rack/Plugins.hpp"
 #include "hem/rack/Restorer.hpp"
 #include "hem/rack/Spectrum.hpp"
@@ -114,6 +115,7 @@ enum class WKind : std::uint8_t {
     CurveDisplay,  // CONSOLE EQ: spectrum + the EQ's curve (display only)
     GrMeter,       // compressors: gain-reduction needle (display only)
     VuMeter,       // TAPE: VU needle for meter `choice` (display only)
+    Readout,       // a big number: meter `choice` of the effect, with `caption` and the meter's unit (display only)
 };
 
 struct Widget {
@@ -230,6 +232,7 @@ private:
     void consoleCurve(const Ctx& c, const Widget& w) const;
     void grMeter(const Ctx& c, const Widget& w) const;
     void vuMeter(const Ctx& c, const Widget& w) const;
+    void readout(const Ctx& c, const Widget& w) const;
     void spectrumBehind(const Ctx& c, Rect plot, float alpha) const;
     void grid(const Ctx& c, Rect plot, float dbTop, float dbBottom, float dbStep, bool signedLabels) const;
     [[nodiscard]] float plain(const PanelHost& host, int param) const;

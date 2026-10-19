@@ -29,6 +29,7 @@ void testTubeEq();
 void testVariMu();
 void testOpto();
 void testFet();
+void testLimiter();
 void testSpectrum();
 void testFaces();
 void testChain();

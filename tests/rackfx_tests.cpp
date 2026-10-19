@@ -10,6 +10,8 @@
 #include "hem/rack/Tape.hpp"
 #include "hem/rack/TubeEq.hpp"
 #include "hem/rack/EliteEq.hpp"
+#include "hem/rack/Limiter.hpp"
+#include "hybrid/media/Loudness.hpp"
 #include "hem/rack/Plugins.hpp"
 #include "hem/rack/Restorer.hpp"
 #include "hem/rack/Spectrum.hpp"
@@ -959,6 +961,137 @@ void testFet() {
     }
     Stereo in = noise(1.0, 0.5f, 14);
     const double d = blockSizeDifference(*info, [](hc::fx::Effect& x) { x.set(Input, 25); x.set(Ratio, 4); x.set(Attack, 6); x.set(Mix, 70); }, in);
+    std::printf("  block size 1 vs 512: max difference %.2e\n", d);
+    CHECK(d < 1e-5);
+}
+
+} // namespace hem::test
+
+// ---- LIMITER --------------------------------------------------------------------------------------
+namespace hem::test {
+namespace {
+// Largest true peak (dBTP) of a signal: 4x oversampled with a flat-to-20-kHz filter.
+double truePeakDb(const Stereo& s, std::size_t from) {
+    hc::fx::Oversampler4 os[2] = {hc::fx::Oversampler4(1.0), hc::fx::Oversampler4(1.0)};
+    std::vector<float> up(s.size() * 4);
+    double pk = 0;
+    const std::vector<float>* ch[2] = {&s.l, &s.r};
+    for (int c = 0; c < 2; ++c) {
+        os[c].up(ch[c]->data(), up.data(), static_cast<std::uint32_t>(s.size()));
+        for (std::size_t i = (from + 12) * 4; i < up.size(); ++i) pk = std::max(pk, static_cast<double>(std::fabs(up[i])));
+    }
+    return db(pk);
+}
+double samplePeakDb(const Stereo& s, std::size_t from) {
+    double pk = 0;
+    for (std::size_t i = from; i < s.size(); ++i) pk = std::max({pk, static_cast<double>(std::fabs(s.l[i])), static_cast<double>(std::fabs(s.r[i]))});
+    return db(pk);
+}
+// A loud, dense "master": noise + bass + bright transients, peaks near full scale.
+Stereo hotMix(double seconds) {
+    Stereo s = noise(seconds, 0.25f, 21);
+    for (std::size_t i = 0; i < s.size(); ++i) {
+        const double t = static_cast<double>(i) / kFs, beat = std::fmod(t, 0.5);
+        const float kick = 0.6f * static_cast<float>(std::exp(-beat * 25.0) * std::sin(2 * std::numbers::pi * 60 * beat));
+        const float hat = (std::fmod(t, 0.125) < 0.004 ? 0.7f : 0.0f) * static_cast<float>(std::sin(2 * std::numbers::pi * 9000 * t));
+        s.l[i] += kick + hat;
+        s.r[i] += kick - hat;
+    }
+    return s;
+}
+} // namespace
+
+void testLimiter() {
+    using namespace limiter;
+    std::printf("[limiter] LIMITER: ceiling, true peak, look-ahead, release, link, loudness\n");
+    const PluginInfo* info = findPlugin("LIMITER");
+    CHECK(info != nullptr);
+    if (!info) return;
+    commonRules(*info);
+    {   // under the ceiling: untouched, just delayed
+        auto e = fresh("LIMITER", {});
+        CHECK(e->latency() == kLatency);
+        Stereo s = sine(700, 1.0, 0.1f), ref = s;
+        run(*e, s);
+        const double d = maxDelayedDiff(s, ref, kLatency, 0);
+        std::printf("  -20 dBFS through it: output = input delayed %u samples (%.2f ms), max difference %.2e\n", kLatency, kLatency / 48.0, d);
+        CHECK(d < 1e-6);
+    }
+    {   // pushed hard: never a sample over the ceiling; with TRUE PEAK on, not between samples either
+        for (float push : {6.0f, 12.0f, 18.0f}) {
+            auto on = fresh("LIMITER", {{Input, push}, {Ceiling, -1.0f}}), off = fresh("LIMITER", {{Input, push}, {Ceiling, -1.0f}, {TruePeak, 0}});
+            Stereo a = hotMix(4.0), b = a;
+            run(*on, a);
+            run(*off, b);
+            const double sp = samplePeakDb(a, 4800), tpOn = truePeakDb(a, 4800), tpOff = truePeakDb(b, 4800);
+            const double clipped = [&] {
+                std::size_t k = 0;
+                for (std::size_t i = 4800; i < a.size(); ++i) k += std::fabs(a.l[i]) >= 0.8912f || std::fabs(a.r[i]) >= 0.8912f;
+                return 100.0 * static_cast<double>(k) / static_cast<double>(2 * (a.size() - 4800));
+            }();
+            std::printf("  +%2.0f dB into a -1 dB ceiling: sample peak %.2f dBFS, true peak %.2f dBTP (TRUE PEAK off: %.2f), at the safety clip %.3f %% of samples\n",
+                        push, sp, tpOn, tpOff, clipped);
+            CHECK(sp <= -1.0 + 1e-4);
+            CHECK(tpOn <= -1.0 + 0.3);
+            CHECK(clipped < 0.5);
+        }
+    }
+    {   // INPUT makes it louder (that's the point)
+        auto e0 = fresh("LIMITER", {{Input, 0}}), e8 = fresh("LIMITER", {{Input, 8}});
+        Stereo a = hotMix(4.0);
+        for (std::size_t i = 0; i < a.size(); ++i) { a.l[i] *= 0.25f; a.r[i] *= 0.25f; }   // a mix with headroom left
+        Stereo b = a;
+        run(*e0, a);
+        run(*e8, b);
+        const double l0 = hc::media::integratedLufs(a.l.data(), a.r.data(), a.size(), kFs), l8 = hc::media::integratedLufs(b.l.data(), b.r.data(), b.size(), kFs);
+        std::printf("  loudness: input 0 -> %.1f LUFS (meter %.1f), input +8 -> %.1f LUFS (meter %.1f)\n", l0, e0->meter(0), l8, e8->meter(0));
+        CHECK(l8 > l0 + 4.0);
+        CHECK(std::fabs(e8->meter(0) - l8) < 0.5);
+    }
+    {   // a steady tone 3 dB over the ceiling comes out clean (the gain sits still)
+        auto e = fresh("LIMITER", {{Ceiling, -6.0f}});
+        Stereo s = sine(1000, 1.5, static_cast<float>(std::pow(10.0, -3.0 / 20.0)));
+        run(*e, s);
+        const double f = toneAmp(s.l, 1000, 36000, 24000), h3 = toneAmp(s.l, 3000, 36000, 24000);
+        std::printf("  steady 1 kHz 3 dB over: out %.2f dBFS, 3rd harmonic %.1f dB below it\n", db(f), db(h3) - db(f));
+        CHECK(std::fabs(db(f) + 6.0) < 0.3);
+        CHECK(db(h3) - db(f) < -50.0);
+    }
+    {   // release: 30 ms comes back faster than 600 ms
+        auto back = [&](float ms) {
+            auto e = fresh("LIMITER", {{AutoRelease, 0}, {Release, ms}, {Ceiling, -6}});
+            Stereo loud = sine(1000, 0.5, 1.0f);
+            run(*e, loud);
+            Stereo quiet = sine(1000, 3.0, 0.2f);
+            for (std::size_t i = 0; i < quiet.size(); i += 48) {
+                e->process(quiet.l.data() + i, quiet.r.data() + i, 48);
+                if (e->reductionDb() > -0.5f) return static_cast<double>(i) / 48.0;
+            }
+            return 3000.0;
+        };
+        const double fast = back(30), slow = back(600);
+        std::printf("  back within 0.5 dB: release 30 ms -> %.0f ms, 600 ms -> %.0f ms\n", fast, slow);
+        CHECK(slow > 5.0 * fast);
+    }
+    {   // LINK: 100 % turns the quiet side down with the loud one; 0 % leaves it alone
+        auto side = [&](float link) {
+            auto e = fresh("LIMITER", {{Link, link}, {Ceiling, -6}});
+            Stereo s(72000);
+            for (std::size_t i = 0; i < s.size(); ++i) {
+                const double t = static_cast<double>(i) / kFs;
+                s.l[i] = 0.9f * static_cast<float>(std::sin(2 * std::numbers::pi * 1000 * t));
+                s.r[i] = 0.05f * static_cast<float>(std::sin(2 * std::numbers::pi * 300 * t));
+            }
+            run(*e, s);
+            return db(toneAmp(s.r, 300, 48000, 12000) / 0.05);
+        };
+        const double l100 = side(100), l0 = side(0);
+        std::printf("  quiet right side while the left is limited: link 100 %% %.2f dB, link 0 %% %.2f dB\n", l100, l0);
+        CHECK(l100 < -4.0);
+        CHECK(std::fabs(l0) < 0.1);
+    }
+    Stereo in = hotMix(1.0);
+    const double d = blockSizeDifference(*info, [](hc::fx::Effect& x) { x.set(Input, 10); x.set(Link, 60); }, in);
     std::printf("  block size 1 vs 512: max difference %.2e\n", d);
     CHECK(d < 1e-5);
 }

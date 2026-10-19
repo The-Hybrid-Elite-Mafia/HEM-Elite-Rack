@@ -3,7 +3,7 @@ HEM-ELITE-RACK — HOW TO USE
 1. Start HEM-Elite-Rack (desktop shortcut).
 2. OPEN SONG (top) — or drag a WAV / MP3 / FLAC onto the window.
    Songs at other sample rates are converted to 48 kHz when they load.
-3. + ADD PLUG-IN (left) — pick any of the nine plug-ins. Up to 8 plug-ins, top to bottom.
+3. + ADD PLUG-IN (left) — pick any of the ten plug-ins. Up to 8 plug-ins, top to bottom.
    Each slot: ON / OFF, UP / DOWN (order), DEL (remove). Click a slot to show its faceplate.
 4. PLAY (or the SPACE bar). Click the song strip to jump; LEFT / RIGHT arrows jump 5 s.
 5. A PROCESSED / B ORIGINAL (or the A and B keys) — compare with and without the chain.
@@ -61,13 +61,19 @@ FET
   Turn INPUT up for more compression, OUTPUT down to match. ATTACK and RELEASE: 7 is fastest.
   RATIO 4, 8, 12, 20 or ALL (all buttons in: aggressive and gritty).
 
+LIMITER (put it last in the chain)
+  INPUT pushes the song into it: louder. CEILING is the most that ever comes out (-1 dB is a
+  safe choice for streaming). TRUE PEAK on keeps the peaks *between* samples under the ceiling
+  too. RELEASE (or AUTO), LINK. The readouts show the loudness (LUFS) and the true peak of what
+  comes out; the true peak turns red if it is over the ceiling.
+
 Knobs: drag up / down (hold Shift for fine), mouse wheel, double-click = back to default.
 
 OUTPUT (top right) picks the sound card. HEM-Elite-Rack uses it in exclusive mode
 (lowest latency) — other programs go quiet while it plays.
 
 Your chain, output and folders are remembered in %APPDATA%\HEM-Elite-Rack.
-The VST3 plug-ins (all nine, named HEM ...) are in Common Files\VST3\HEM-Elite-Rack.vst3
+The VST3 plug-ins (all ten, named HEM ...) are in Common Files\VST3\HEM-Elite-Rack.vst3
 for any DAW that loads VST3.
 
 Needs: Windows 10 / 11 64-bit, a processor with AVX2 (Intel 2013+, AMD 2015+), OpenGL 3.3.

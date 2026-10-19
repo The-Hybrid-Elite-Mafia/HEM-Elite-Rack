@@ -608,6 +608,23 @@ void FaceView::vuMeter(const Ctx& c, const Widget& w) const {
     r.text(c.ts(TextStyle::Caption), calText, d.x + 24 * z, d.bottom() - 18 * z, th_.dim, Align::Left, TextFx::Shadowed);
 }
 
+// A big number in a glass window: one of the effect's meters (LIMITER: loudness, true peak).
+void FaceView::readout(const Ctx& c, const Widget& w) const {
+    Renderer& r = c.r;
+    const float z = c.z;
+    const Rect b = c.T(w.r);
+    const float v = c.feed.meterDb(w.choice);
+    const TextStyle cs = c.ts(TextStyle::Caption);
+    r.text(cs, w.caption, b.x + 18 * z, b.y + 30 * z, th_.label, Align::Left, TextFx::Shadowed);
+    r.text(cs, w.lo, b.right() - 18 * z, b.y + 30 * z, th_.dim, Align::Right, TextFx::Shadowed);   // the unit
+    char t[24];
+    if (v > -99.0f) std::snprintf(t, sizeof t, "%.1f", static_cast<double>(v));
+    else std::snprintf(t, sizeof t, "--");
+    const bool over = w.choice == 1 && v > plain(c.host, rack::limiter::Ceiling) + 0.05f;   // true peak above the ceiling
+    const TextStyle big = c.fit(TextStyle::Display, t, b.w - 36 * z);
+    r.text(big, t, b.right() - 18 * z, b.bottom() - 18 * z, over ? th_.red : th_.teal, Align::Right, TextFx::Neon);
+}
+
 // Compressors: a gain-reduction needle with a console-meter scale (0 on the right, -20 on the left).
 void FaceView::grMeter(const Ctx& c, const Widget& w) const {
     Renderer& r = c.r;
@@ -688,6 +705,7 @@ void FaceView::draw(Renderer& r, const PanelHost& host, const FaceFeed& feed, co
         case WKind::CurveDisplay: consoleCurve(c, w); break;
         case WKind::GrMeter: grMeter(c, w); break;
         case WKind::VuMeter: vuMeter(c, w); break;
+        case WKind::Readout: readout(c, w); break;
         case WKind::GraphRange: {
             const std::string t = fmt("%.0f dB", kGraphRanges[static_cast<std::size_t>(w.choice)]);
             button(c, c.T(w.r), t, st.graphRange == w.choice, hot, false, th_.teal);

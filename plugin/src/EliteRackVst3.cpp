@@ -1,6 +1,6 @@
 // =============================================================================
 //  HEM-Elite-Rack.vst3 — every HEM-Elite-Rack plug-in (ELITE EQ, RESTORER, CONSOLE EQ, BUS GLUE, TAPE,
-//  TUBE EQ, VARI-MU, OPTO, FET) as VST3 plug-ins (one bundle, one plug-in each),
+//  TUBE EQ, VARI-MU, OPTO, FET, LIMITER) as VST3 plug-ins (one bundle, one plug-in each),
 //  with the same teal / gunmetal faceplates as the rack app (hem::ui::FaceWindow, OpenGL, inside
 //  the host's window).
 //
@@ -66,7 +66,7 @@ float dbToNorm(float db, float lo, float hi) { return std::clamp((db - lo) / (hi
 float normToDb(double n, float lo, float hi) { return lo + static_cast<float>(n) * (hi - lo); }
 constexpr float kSpecLo = -120.0f, kSpecHi = 0.0f;
 bool isCompressor(rack::Face f) {
-    return f == rack::Face::BusGlue || f == rack::Face::VariMu || f == rack::Face::Opto || f == rack::Face::Fet;
+    return f == rack::Face::BusGlue || f == rack::Face::VariMu || f == rack::Face::Opto || f == rack::Face::Fet || f == rack::Face::Limiter;
 }
 
 // <bundle>/Contents/x86_64-win/<dll> -> <bundle>/Contents/Resources (fonts/, faceplates/, brand/).

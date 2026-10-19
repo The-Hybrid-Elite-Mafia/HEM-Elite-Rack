@@ -6,6 +6,7 @@
 #include "hem/rack/Tape.hpp"
 #include "hem/rack/TubeEq.hpp"
 #include "hem/rack/EliteEq.hpp"
+#include "hem/rack/Limiter.hpp"
 #include "hem/rack/Restorer.hpp"
 
 #include <cmath>
@@ -472,6 +473,33 @@ FaceLayout fetFace(const rack::PluginInfo& info) {
     return L;
 }
 
+FaceLayout limiterFace(const rack::PluginInfo& info) {
+    using namespace rack::limiter;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"LOUD AND CLEAN", "NEVER OVER THE TOP"};
+    L.title = {60, 190, 330, 110};
+    needleDisplay(L);
+    // Right: what comes out, in big numbers.
+    for (int m = 0; m < 2; ++m) {
+        Widget ro;
+        ro.kind = WKind::Readout;
+        ro.choice = m;
+        ro.caption = m == 0 ? "LOUDNESS (3 s)" : "TRUE PEAK";
+        ro.lo = m == 0 ? "LUFS" : "dBTP";
+        ro.r = {1150, 190 + static_cast<float>(m) * 112, 486, 100};
+        L.widgets.push_back(ro);
+        L.recesses.push_back({ro.r, 12, 8, false, true});
+    }
+    L.widgets.push_back(toggle({1150, 430, 238, 44}, TruePeak, "TRUE PEAK"));
+    L.widgets.push_back(toggle({1398, 430, 238, 44}, AutoRelease, "AUTO REL"));
+    knobRow(L, {{Input, "INPUT", 128, "0", "+24", false}, {Ceiling, "CEILING", 128, "-6", "0", false}, {Release, "RELEASE", 100, "FAST", "SLOW", false},
+                {Link, "LINK", 100, "0", "100", false}}, 568);
+    buttonSeats(L);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
 } // namespace
 
 FaceLayout faceLayout(const rack::PluginInfo& info) {
@@ -484,6 +512,7 @@ FaceLayout faceLayout(const rack::PluginInfo& info) {
     case rack::Face::VariMu: return variMu(info);
     case rack::Face::Opto: return optoFace(info);
     case rack::Face::Fet: return fetFace(info);
+    case rack::Face::Limiter: return limiterFace(info);
     case rack::Face::Restorer: break;
     }
     return restorer(info);

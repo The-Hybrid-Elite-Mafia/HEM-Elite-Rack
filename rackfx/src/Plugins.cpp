@@ -6,6 +6,7 @@
 #include "hem/rack/Tape.hpp"
 #include "hem/rack/TubeEq.hpp"
 #include "hem/rack/EliteEq.hpp"
+#include "hem/rack/Limiter.hpp"
 #include "hem/rack/Restorer.hpp"
 
 #include <cstring>
@@ -49,6 +50,10 @@ const PluginInfo kPlugins[] = {
      "Fast FET compressor: attack, punch and grit, ratios up to ALL",
      {0x1C21C92Bu, 0x92DD4FC3u, 0x84EF7CE6u, 0x153913B0u}, {0x55FC9BFBu, 0xBEBB4626u, 0x89CC8A79u, 0x4D90FC5Bu},
      Face::Fet, &makeFet},
+    {"LIMITER", "MASTERING LIMITER", "FINISH WHAT MATTERS", "Fx|Dynamics",
+     "True-peak mastering limiter: loud, clean, never over the ceiling",
+     {0xFD6E565Fu, 0x14E04E14u, 0x9E86898Cu, 0x56C20F12u}, {0x04E63B1Eu, 0x87E94A5Cu, 0xAA51530Du, 0x42655297u},
+     Face::Limiter, &makeLimiter},
 };
 } // namespace
 

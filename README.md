@@ -17,6 +17,7 @@ C++23 audio framework, as a library.
 | **VARI-MU** | Variable-mu tube compressor: ratio grows with level, six time constants, stereo or mid / side, tube |
 | **OPTO** | Optical leveler: peak reduction and gain, compress / limit, two-stage release, sidechain emphasis |
 | **FET** | Fast FET limiting amplifier: input / output, attack and release 1–7, ratios 4 / 8 / 12 / 20 / ALL |
+| **LIMITER** | True-peak mastering limiter: input push, ceiling, look-ahead, auto release, stereo link, LUFS and true-peak readouts |
 
 Our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 

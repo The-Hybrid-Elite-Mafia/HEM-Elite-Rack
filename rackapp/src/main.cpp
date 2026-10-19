@@ -490,6 +490,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
             if (auto* e = a.rack().effect(3)) e->set(rack::opto::PeakReduction, 55);
             a.addPlugin("FET", 4);
             if (auto* e = a.rack().effect(4)) { e->set(rack::fet::Input, 20); e->set(rack::fet::Output, -10); }
+            a.addPlugin("LIMITER", 5);
+            if (auto* e = a.rack().effect(5)) e->set(rack::limiter::Input, 6);
         } else {
             a.addPlugin("RESTORER", 0);
             if (auto* e = a.rack().effect(0)) e->set(rack::restorer::Reduction, 6.0f);

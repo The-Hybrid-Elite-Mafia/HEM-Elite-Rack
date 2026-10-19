@@ -9,6 +9,7 @@
 #include "hem/rack/Tape.hpp"
 #include "hem/rack/TubeEq.hpp"
 #include "hem/rack/EliteEq.hpp"
+#include "hem/rack/Limiter.hpp"
 #include "hem/rack/Plugins.hpp"
 #include "hem/rack/Restorer.hpp"
 #include "hem/ui/FaceWindow.hpp"
@@ -132,6 +133,8 @@ int main(int argc, char** argv) {
             fx->set(hem::rack::opto::PeakReduction, 60); fx->set(hem::rack::opto::Gain, 4);
         } else if (info.face == hem::rack::Face::Fet) {
             fx->set(hem::rack::fet::Input, 24);
+        } else if (info.face == hem::rack::Face::Limiter) {
+            fx->set(hem::rack::limiter::Input, 8);
         } else {
             fx->set(hem::rack::restorer::Reduction, 6.0f);
         }

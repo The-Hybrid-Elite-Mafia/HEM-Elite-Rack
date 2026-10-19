@@ -1,3 +1,12 @@
+# HEM-Elite-Rack 0.4.0
+
+**New: LIMITER** — the mastering limiter for the end of the chain (in the rack and as VST3):
+- INPUT pushes the song louder; nothing ever comes out above the CEILING.
+- TRUE PEAK: peaks are found 4x oversampled, so the ones *between* samples stay under the ceiling too
+  (those are the ones that clip in MP3 / streaming encoders).
+- 1.5 ms look-ahead (the gain is already down when a peak arrives), RELEASE or AUTO, stereo LINK.
+- Readouts: the output loudness in LUFS (the same measurement streaming services use) and the true peak.
+
 # HEM-Elite-Rack 0.3.0
 
 **Five new plug-ins** — nine in all, in the rack and as VST3:
