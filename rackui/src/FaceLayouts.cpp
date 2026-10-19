@@ -830,8 +830,8 @@ FaceLayout focusFace(const rack::PluginInfo& info) {
     needleDisplay(L);
     buttonRow(L, "RATIO", 236, Ratio, 6);
     buttonRow(L, "LOW FOCUS", 330, LowFocus, 3);
-    buttonGroup(L, "KNEE", 1150, 290, 424, Knee, 3);
-    buttonGroup(L, "STYLE", 1450, 186, 424, Style, 2);
+    buttonGroup(L, "KNEE", 1150, 210, 424, Knee, 3);
+    buttonGroup(L, "STYLE", 1372, 264, 424, Style, 2);
     knobRow(L, {{Threshold, "THRESHOLD", 120, "-40", "0", false}, {Attack, "ATTACK", 96, "FAST", "SLOW", false}, {Release, "RELEASE", 96, "FAST", "SLOW", false},
                 {Link, "LINK", 86, "0", "100", true}, {Makeup, "MAKEUP", 96, "0", "+20", false}, {Mix, "MIX", 86, "DRY", "WET", true},
                 {Output, "OUTPUT", 86, "", "", true}}, 568);

@@ -1,3 +1,7 @@
+# HEM-Elite-Rack 0.11.1
+
+FOCUS BUS: the MODERN / VINTAGE buttons are wider so their names fit.
+
 # HEM-Elite-Rack 0.11.0
 
 **New names**, so nothing borrows another company's product names or trademarks (the sound is
