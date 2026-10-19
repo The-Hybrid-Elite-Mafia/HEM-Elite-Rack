@@ -40,6 +40,8 @@ void testClassicEqs();
 void testMoreDynamics();
 void testColorFx();
 void testSpace();
+void testMovement();
+void testSpecialty();
 void testSpectrum();
 void testFaces();
 void testChain();

@@ -17,6 +17,8 @@
 #include "hem/rack/MoreDynamics.hpp"
 #include "hem/rack/ColorFx.hpp"
 #include "hem/rack/Space.hpp"
+#include "hem/rack/Movement.hpp"
+#include "hem/rack/Specialty.hpp"
 #include "hem/ui/FaceWindow.hpp"
 
 #include <windows.h>
@@ -192,6 +194,12 @@ int main(int argc, char** argv) {
             fx->set(hem::rack::crusher::Bits, 6);
         } else if (info.face == hem::rack::Face::Transformer) {
             fx->set(hem::rack::transformer::Drive, 80);
+        } else if (info.face == hem::rack::Face::Sub) {
+            fx->set(hem::rack::sub::Amount, 60);
+        } else if (info.face == hem::rack::Face::BassTightener) {
+            fx->set(hem::rack::tightener::Tighten, 70);
+        } else if (info.face == hem::rack::Face::VocalStrip) {
+            fx->set(hem::rack::vocal::Compress, 70); fx->set(hem::rack::vocal::Hpf, 2);
         } else if (info.face == hem::rack::Face::Restorer) {
             fx->set(hem::rack::restorer::Reduction, 6.0f);
         }

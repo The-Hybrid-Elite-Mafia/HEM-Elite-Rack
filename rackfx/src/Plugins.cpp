@@ -13,6 +13,8 @@
 #include "hem/rack/MoreDynamics.hpp"
 #include "hem/rack/ColorFx.hpp"
 #include "hem/rack/Space.hpp"
+#include "hem/rack/Movement.hpp"
+#include "hem/rack/Specialty.hpp"
 
 #include <cstring>
 
@@ -179,6 +181,42 @@ const PluginInfo kPlugins[] = {
      "Clean stereo delay: note values at a BPM, ping-pong, filters in the repeats",
      {0x72B3AE16u, 0x72E34303u, 0xBD88785Fu, 0x7CFF75D3u}, {0x0D7A0C5Bu, 0x2A184EE2u, 0xB500AA8Du, 0x0D36A023u},
      Face::DigitalDelay, Group::Space, &makeDigitalDelay},
+    {"CHORUS", "STEREO CHORUS", "THICKEN WHAT MATTERS", "Fx|Modulation",
+     "Lush stereo chorus: one to three voices, rate, depth, width",
+     {0x48350A57u, 0xB56744A0u, 0xB738E358u, 0x9B71D740u}, {0x14845463u, 0x22734602u, 0x90F751E2u, 0x212E7234u},
+     Face::Chorus, Group::Movement, &makeChorus},
+    {"FLANGER", "JET FLANGER", "SWEEP WHAT MATTERS", "Fx|Modulation",
+     "Jet-sweep flanger: manual, depth, positive or negative feedback",
+     {0x53032564u, 0xED2D4397u, 0x92AB2CE1u, 0xBA4B4F0Fu}, {0x0DE8CBF5u, 0xDA764B82u, 0x9979AE24u, 0xE9E9C89Du},
+     Face::Flanger, Group::Movement, &makeFlanger},
+    {"PHASER", "STAGE PHASER", "SWIRL WHAT MATTERS", "Fx|Modulation",
+     "Phaser: 4 to 12 stages swept around a center, feedback",
+     {0x97487206u, 0xF5E54729u, 0xB0810E54u, 0xE3ED0A51u}, {0x427A7AA9u, 0x8258496Du, 0xBCA3A26Au, 0xE2CC7DA4u},
+     Face::Phaser, Group::Movement, &makePhaser},
+    {"TREMOLO", "TREMOLO / AUTO PAN", "PULSE WHAT MATTERS", "Fx|Modulation",
+     "Tremolo or auto pan: sine, triangle or square",
+     {0xF4DD0E25u, 0x58814A73u, 0xACE4F6C9u, 0xEE99C36Bu}, {0xCDA68B31u, 0x5CB2472Cu, 0x8F966234u, 0xA654200Du},
+     Face::Tremolo, Group::Movement, &makeTremolo},
+    {"ROTARY", "ROTATING SPEAKER", "SPIN THE SOUND", "Fx|Modulation",
+     "Rotating speaker: slow / fast with real spin-up, drive, horn and drum",
+     {0xA46F700Fu, 0x6F954377u, 0xB3860B04u, 0x7662B910u}, {0xDE2F1818u, 0xFAF9455Fu, 0x8CA8643Eu, 0x63AE488Au},
+     Face::Rotary, Group::Movement, &makeRotary},
+    {"AUTO FILTER", "ENVELOPE FILTER", "MOVE WHAT MATTERS", "Fx|Filter",
+     "Resonant filter that follows the music or an LFO: low, band or high-pass",
+     {0x8AE47DD6u, 0xE4214FCDu, 0xB41EE0B9u, 0x52D638C9u}, {0x5E10F011u, 0xEA344B32u, 0xB87C53EFu, 0xF056BF17u},
+     Face::AutoFilter, Group::Movement, &makeAutoFilter},
+    {"SUB", "SUB ENHANCER", "DEEPEN WHAT MATTERS", "Fx|Tools",
+     "More low end: a new sub an octave down, or harmonics phones can hear",
+     {0xBEBC94ACu, 0xFA844612u, 0xA7B73D4Au, 0xE5A8AE97u}, {0x9AC67CF1u, 0x69904D0Du, 0x9BF19F3Bu, 0xB405C9E6u},
+     Face::Sub, Group::Tools, &makeSub},
+    {"BASS TIGHTENER", "LOW-END CONTROL", "TIGHTEN THE LOWS", "Fx|Dynamics",
+     "Low-end control: hold boomy notes, bring kick attacks forward, mono lows",
+     {0x3F701B46u, 0x37024453u, 0xAAC2139Au, 0xB9C19176u}, {0x3EC5ABBCu, 0x4B06447Bu, 0xA9739ABBu, 0x9A12A893u},
+     Face::BassTightener, Group::Dynamics, &makeBassTightener},
+    {"VOCAL STRIP", "VOCAL CHANNEL", "LEAD WHAT MATTERS", "Fx|Tools",
+     "Vocal chain on one plate: high-pass, body, compress, de-ess, presence, air",
+     {0x5402C843u, 0x92874D3Au, 0xA6C4FC1Au, 0x5A305B03u}, {0x9460E821u, 0x92FA46E0u, 0x8C435F35u, 0x8287A4EDu},
+     Face::VocalStrip, Group::Tools, &makeVocalStrip},
 };
 } // namespace
 

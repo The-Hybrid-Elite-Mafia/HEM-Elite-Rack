@@ -18,7 +18,9 @@ enum class Face : std::uint8_t { EliteEq, Restorer, ConsoleEq, BusGlue, Tape, Tu
                                 BritPre, AmericanEq, MidEq, AirEq, GraphicEq, Tilt,
                                 VcaComp, Punch160, ThrustBus, BritBus, Gate, Multiband,
                                 TubeSat, Preamp, Cassette, Vinyl, BitCrusher, Transformer,
-                                Hall, Room, Plate, Spring, TapeEcho, DigitalDelay };
+                                Hall, Room, Plate, Spring, TapeEcho, DigitalDelay,
+                                Chorus, Flanger, Phaser, Tremolo, Rotary, AutoFilter,
+                                Sub, BassTightener, VocalStrip };
 
 // Where a plug-in sits in the rack's picker.
 enum class Group : std::uint8_t { Eq, Dynamics, Color, Space, Movement, Tools, kCount };

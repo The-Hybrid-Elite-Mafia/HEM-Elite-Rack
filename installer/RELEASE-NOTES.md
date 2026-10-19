@@ -1,3 +1,15 @@
+# HEM-Elite-Rack 0.10.0
+
+**Nine more — forty-nine plug-ins in all**, in the rack and as VST3. This finishes the planned
+collection:
+- **Movement:** CHORUS, FLANGER, PHASER, TREMOLO (with auto pan), ROTARY (horn and drum speed up at
+  their own pace), AUTO FILTER (envelope or LFO).
+- **SUB** — a new sub an octave down, or harmonics for small speakers.
+- **BASS TIGHTENER** — tighten, punch and mono for the low end; at rest it adds back up flat.
+- **VOCAL STRIP** — high-pass, body, one-knob compressor, one-knob de-esser, presence, air.
+
+The picker has six tabs now: EQ, DYNAMICS, COLOR, SPACE, MOVEMENT, TOOLS.
+
 # HEM-Elite-Rack 0.9.0
 
 **Space: six reverbs and delays — forty plug-ins in all**, in the rack and as VST3:

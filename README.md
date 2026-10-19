@@ -48,8 +48,17 @@ C++23 audio framework, as a library.
 | **SPRING** | Spring tank: decay, tension, drip, tone |
 | **TAPE ECHO** | Tape delay: three heads, feedback to 110 % (saturates, never blows up), wobble, tone |
 | **DIGITAL DELAY** | Clean stereo delay: note values at a BPM or ms, ping-pong, stereo offset, filtered repeats |
+| **CHORUS** | Stereo chorus: one to three voices, rate, depth, delay, width |
+| **FLANGER** | Jet flanger: manual, depth, positive or negative feedback |
+| **PHASER** | 4 / 6 / 8 / 12-stage phaser: center, depth, feedback |
+| **TREMOLO** | Tremolo or auto pan: sine, triangle, soft square |
+| **ROTARY** | Rotating speaker: slow / fast with real spin-up, drive, horn / drum balance, mic spread |
+| **AUTO FILTER** | Resonant low / band / high-pass following the music (envelope) or an LFO |
+| **SUB** | More low end: a new sub an octave down, or harmonics small speakers can hear |
+| **BASS TIGHTENER** | Low-end control: tighten boomy notes, punch kick attacks, mono lows |
+| **VOCAL STRIP** | Vocal chain: high-pass, body, one-knob compressor, one-knob de-esser, presence, air |
 
-Our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
+Forty-nine plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 
 ## Install
 Download `HEM-Elite-Rack-Setup-x.y.z.exe` from **Releases** and run it. Needs Windows 10 / 11

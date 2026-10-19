@@ -3,7 +3,7 @@ HEM-ELITE-RACK — HOW TO USE
 1. Start HEM-Elite-Rack (desktop shortcut).
 2. OPEN SONG (top) — or drag a WAV / MP3 / FLAC onto the window.
    Songs at other sample rates are converted to 48 kHz when they load.
-3. + ADD PLUG-IN (left) — pick any plug-in (tabs: EQ, DYNAMICS, COLOR, TOOLS). Up to 8 plug-ins, top to bottom.
+3. + ADD PLUG-IN (left) — pick any plug-in (tabs: EQ, DYNAMICS, COLOR, SPACE, MOVEMENT, TOOLS). Up to 8 plug-ins, top to bottom.
    Each slot: ON / OFF, UP / DOWN (order), DEL (remove). Click a slot to show its faceplate.
 4. PLAY (or the SPACE bar). Click the song strip to jump; LEFT / RIGHT arrows jump 5 s.
 5. A PROCESSED / B ORIGINAL (or the A and B keys) — compare with and without the chain.
@@ -148,6 +148,23 @@ TAPE ECHO
 DIGITAL DELAY
   Pick a NOTE (1/4, 1/8, dotted, triplets) and set BPM to your song's tempo, or FREE and TIME in
   ms. PING-PONG bounces the repeats left and right. LOW / HIGH CUT shape the repeats.
+
+CHORUS, FLANGER, PHASER, TREMOLO, ROTARY, AUTO FILTER
+  RATE = how fast, DEPTH = how much. MIX 50 % gives FLANGER and PHASER their deepest sweep.
+  ROTARY: switch SLOW / FAST and listen to it speed up - the horn gets there before the drum.
+  AUTO FILTER: ENVELOPE + opens the filter when the music gets louder (funk), - closes it.
+
+SUB
+  OCTAVE: a new sub an octave under the bass. HARMONICS: the bass's overtones, so the low end
+  comes through on phones and laptops. Start with AMOUNT low - it adds up fast.
+
+BASS TIGHTENER
+  FREQUENCY = where "low end" stops. TIGHTEN holds boomy notes down, PUNCH brings the attack
+  of kicks forward, MONO LOWS keeps the bottom centred.
+
+VOCAL STRIP
+  Top to bottom of a vocal chain: HIGH-PASS, BODY, COMPRESS (one knob, with makeup), DE-ESS
+  (one knob), PRESENCE, AIR. Everything at 0 = untouched.
 
 LOUDNESS METER (measures only, changes nothing)
   INTEGRATED = the whole song since RESET (play it all the way through). SHORT-TERM = the last

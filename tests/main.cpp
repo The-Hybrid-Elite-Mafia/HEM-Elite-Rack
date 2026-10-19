@@ -40,6 +40,8 @@ int main(int argc, char** argv) {
     testMoreDynamics();
     testColorFx();
     testSpace();
+    testMovement();
+    testSpecialty();
     testFaces();
     testChain();
     testRackSession();

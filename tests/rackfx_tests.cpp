@@ -20,6 +20,8 @@
 #include "hem/rack/MoreDynamics.hpp"
 #include "hem/rack/ColorFx.hpp"
 #include "hem/rack/Space.hpp"
+#include "hem/rack/Movement.hpp"
+#include "hem/rack/Specialty.hpp"
 #include "hybrid/fx/Dsp.hpp"
 
 #include <algorithm>
@@ -1882,6 +1884,171 @@ void testSpace() {
     for (const char* n : {"HALL", "ROOM", "PLATE", "SPRING", "TAPE ECHO", "DIGITAL DELAY"}) {
         Stereo in = hotMix(1.0);
         const double d = blockSizeDifference(*findPlugin(n), [](hc::fx::Effect&) {}, in);
+        std::printf("  %s block size 1 vs 512: max difference %.2e\n", n, d);
+        CHECK(d < 1e-5);
+    }
+}
+
+} // namespace hem::test
+
+// ---- WAVE 10: CHORUS, FLANGER, PHASER, TREMOLO, ROTARY, AUTO FILTER ------------------------------
+namespace hem::test {
+
+void testMovement() {
+    std::printf("[movement] CHORUS, FLANGER, PHASER, TREMOLO, ROTARY, AUTO FILTER\n");
+    for (const char* n : {"CHORUS", "FLANGER", "PHASER", "TREMOLO", "ROTARY", "AUTO FILTER"}) {
+        const PluginInfo* info = findPlugin(n);
+        CHECK(info != nullptr);
+        if (info) commonRules(*info);
+    }
+    {   // CHORUS: MIX 0 = dry; it wobbles the pitch and spreads a mono source
+        using namespace chorus;
+        auto dry = fresh("CHORUS", {{Mix, 0}});
+        Stereo s = noise(0.5, 0.3f), ref = s;
+        run(*dry, s);
+        CHECK(maxDelayedDiff(s, ref, 0, 0) == 0.0);
+        auto e = fresh("CHORUS", {{Mix, 100}, {Depth, 100}, {Rate, 1}});
+        Stereo t = noise(2.0, 0.3f);
+        for (std::size_t i = 0; i < t.size(); ++i) t.r[i] = t.l[i];
+        run(*e, t);
+        const double corr = correlation(t, 9600);
+        auto w = fresh("CHORUS", {{Mix, 100}, {Depth, 100}, {Rate, 1}, {Voices, 0}});
+        Stereo u = sine(1000, 3.0, 0.3f);
+        run(*w, u);
+        std::printf("  CHORUS: mono noise in, left / right correlation %.2f; 1 kHz period spread %.3f samples\n", corr, periodSpread(u.l, 4800));
+        CHECK(corr < 0.8 && periodSpread(u.l, 4800) > 0.05);
+    }
+    {   // FLANGER: still (depth 0) at 1 ms, the comb: 500 Hz cancels, 1 kHz passes
+        using namespace flanger;
+        auto f = [](double hz) { auto e = fresh("FLANGER", {{Depth, 0}, {Manual, 1.0f}, {Feedback, 0}, {Mix, 50}}); return toneOut(*e, hz, 0.2f); };
+        const double n500 = f(500), p1k = f(1000);
+        std::printf("  FLANGER at 1 ms, mix 50 %%: 500 Hz %.1f dB (notch), 1 kHz %.2f dB\n", n500, p1k);
+        CHECK(n500 < -30.0 && std::fabs(p1k) < 0.2);
+    }
+    {   // PHASER: still, the stages make a deep notch somewhere; MIX 0 = dry
+        using namespace phaser;
+        double lowest = 0;
+        for (double hz = 100; hz < 10000; hz *= 1.03) {
+            auto e = fresh("PHASER", {{Depth, 0}, {Center, 1000}, {Stages, 0}, {Feedback, 0}, {Mix, 50}});
+            lowest = std::min(lowest, toneOut(*e, hz, 0.2f, 0.5));
+        }
+        std::printf("  PHASER 4 stages, still at 1 kHz: deepest notch %.1f dB\n", lowest);
+        CHECK(lowest < -20.0);
+    }
+    {   // TREMOLO: depth 100 swings the level all the way; AUTO PAN moves left against right
+        using namespace tremolo;
+        auto e = fresh("TREMOLO", {{Depth, 100}, {Rate, 4}, {Pan, 1}});
+        Stereo s = sine(1000, 2.0, 0.3f);
+        run(*e, s);
+        double lo = 1e9, hi = 0, envCorr = 0;
+        for (std::size_t w = 4800; w + 480 < s.size(); w += 480) {
+            const double l = rms(s.l, w, 480), r = rms(s.r, w, 480);
+            lo = std::min(lo, l);
+            hi = std::max(hi, l);
+            envCorr += (l - 0.106) * (r - 0.106);
+        }
+        std::printf("  TREMOLO depth 100: level swings %.1f dB; auto pan left / right envelopes move %s\n", db(hi / std::max(lo, 1e-9)), envCorr < 0 ? "opposite" : "together");
+        CHECK(db(hi / std::max(lo, 1e-9)) > 20.0 && envCorr < 0);
+    }
+    {   // ROTARY: FAST spins the level and pitch faster than SLOW, and the horn gets there first
+        using namespace rotary;
+        auto swing = [](float speed) {
+            auto e = fresh("ROTARY", {{Speed, speed}, {Drive, 0}});
+            Stereo s = sine(3000, 3.0, 0.2f);
+            run(*e, s);
+            int crossings = 0;
+            double prev = 0;
+            const double mean = rms(s.l, 48000, 96000);
+            for (std::size_t w = 48000; w + 240 < s.size(); w += 240) {
+                const double v = rms(s.l, w, 240) - mean;
+                crossings += (prev < 0 && v >= 0);
+                prev = v;
+            }
+            return crossings / 2.0;   // level cycles per second (over 2 s)
+        };
+        const double slow = swing(0), fast = swing(1);
+        std::printf("  ROTARY horn level cycles per second: SLOW %.1f, FAST %.1f\n", slow, fast);
+        CHECK(fast > 3.0 * std::max(slow, 0.5) && fast < 9.0);
+    }
+    {   // AUTO FILTER: still, low-pass at 500 Hz: 100 Hz through, 5 kHz far down; ENVELOPE opens it on loud input
+        using namespace autofilter;
+        auto lp = [](double hz, float env, float amp) { auto e = fresh("AUTO FILTER", {{Type, 0}, {Cutoff, 500}, {Resonance, 0.7071f}, {Envelope, env}, {Depth, 0}}); return toneOut(*e, hz, amp); };
+        const double pass = lp(100, 0, 0.3f), stop = lp(5000, 0, 0.3f), open = lp(5000, 100, 0.3f);
+        std::printf("  AUTO FILTER low-pass 500 Hz: 100 Hz %.2f dB, 5 kHz %.1f dB; with ENVELOPE 100 on a -10 dBFS tone 5 kHz %.1f dB\n", pass, stop, open);
+        CHECK(std::fabs(pass) < 0.3 && stop < -30.0 && open > stop + 20.0);
+    }
+    for (const char* n : {"CHORUS", "FLANGER", "PHASER", "TREMOLO", "ROTARY", "AUTO FILTER"}) {
+        Stereo in = hotMix(1.0);
+        const double d = blockSizeDifference(*findPlugin(n), [](hc::fx::Effect&) {}, in);
+        std::printf("  %s block size 1 vs 512: max difference %.2e\n", n, d);
+        CHECK(d < 1e-5);
+    }
+}
+
+} // namespace hem::test
+
+// ---- WAVE 11: SUB, BASS TIGHTENER, VOCAL STRIP ---------------------------------------------------
+namespace hem::test {
+
+void testSpecialty() {
+    std::printf("[specialty] SUB, BASS TIGHTENER, VOCAL STRIP\n");
+    for (const char* n : {"SUB", "BASS TIGHTENER", "VOCAL STRIP"}) {
+        const PluginInfo* info = findPlugin(n);
+        CHECK(info != nullptr);
+        if (info) commonRules(*info);
+    }
+    {   // SUB: AMOUNT 0 = the input exactly; OCTAVE puts 40 Hz under an 80 Hz bass; HARMONICS adds 100 / 150 Hz to 50 Hz
+        using namespace sub;
+        auto off = fresh("SUB", {{Amount, 0}});
+        Stereo s = noise(0.5, 0.3f), ref = s;
+        run(*off, s);
+        CHECK(maxDelayedDiff(s, ref, 0, 0) == 0.0);
+        auto oct = fresh("SUB", {{Mode, 0}, {Amount, 80}, {Freq, 100}});
+        Stereo b = sine(80, 2.0, 0.3f);
+        run(*oct, b);
+        const double sub40 = db(toneAmp(b.l, 40, 48000, 48000) / 0.3);
+        auto har = fresh("SUB", {{Mode, 1}, {Amount, 80}, {Freq, 80}});
+        Stereo c = sine(50, 2.0, 0.3f);
+        run(*har, c);
+        const double h2 = db(toneAmp(c.l, 100, 48000, 48000) / 0.3), h3 = db(toneAmp(c.l, 150, 48000, 48000) / 0.3);
+        std::printf("  SUB: OCTAVE on 80 Hz adds 40 Hz at %.1f dB; HARMONICS on 50 Hz adds 100 Hz %.1f dB, 150 Hz %.1f dB\n", sub40, h2, h3);
+        CHECK(sub40 > -20.0 && h2 > -25.0 && h3 > -25.0);
+    }
+    {   // BASS TIGHTENER: at rest flat; TIGHTEN holds a loud 50 Hz down and leaves 1 kHz; MONO takes the low sides out
+        using namespace tightener;
+        double worst = 0;
+        for (double hz : {40.0, 120.0, 400.0, 3000.0}) { auto e = fresh("BASS TIGHTENER", {}); worst = std::max(worst, std::fabs(toneOut(*e, hz, 0.2f))); }
+        auto t = fresh("BASS TIGHTENER", {{Tighten, 100}});
+        Stereo s = sine(50, 1.5, 0.5f);
+        add(s, sine(1000, 1.5, 0.05f));
+        run(*t, s);
+        const double lo = db(toneAmp(s.l, 50, 48000, 12000) / 0.5), mid = db(toneAmp(s.l, 1000, 48000, 12000) / 0.05);
+        auto m = fresh("BASS TIGHTENER", {{Mono, 1}});
+        Stereo u = sine(50, 1.5, 0.3f, kFs, true);
+        run(*m, u);
+        const double side = db(toneAmp(u.l, 50, 48000, 12000) / 0.3);
+        std::printf("  BASS TIGHTENER: at rest within %.3f dB; TIGHTEN 100 on -6 dBFS 50 Hz %.1f dB, 1 kHz %.2f dB; MONO, 50 Hz sides %.1f dB\n", worst, lo, mid, side);
+        CHECK(worst < 0.05 && lo < -8.0 && std::fabs(mid) < 0.3 && side < -20.0);
+    }
+    {   // VOCAL STRIP: all at 0 = exactly the input; HIGH-PASS, PRESENCE and COMPRESS do what they say
+        using namespace vocal;
+        auto e = fresh("VOCAL STRIP", {});
+        Stereo s = noise(0.5, 0.3f), ref = s;
+        run(*e, s);
+        const double d = maxDelayedDiff(s, ref, 0, 0);
+        auto hp = fresh("VOCAL STRIP", {{Hpf, 4}});
+        const double cut = toneOut(*hp, 40, 0.1f, 1.5);
+        auto pr = fresh("VOCAL STRIP", {{Presence, 6}});
+        const double pres = toneOut(*pr, 4000, 0.05f);
+        auto cp = fresh("VOCAL STRIP", {{Compress, 100}});
+        const double loud = toneOut(*cp, 1000, 0.5f), quiet = toneOut(*cp, 1000, 0.005f);
+        std::printf("  VOCAL STRIP: neutral max difference %.2e; 120 Hz high-pass at 40 Hz %.1f dB; presence +6 at 4 kHz %.2f dB; compress 100: -6 dBFS %+.1f dB, -46 dBFS %+.1f dB\n",
+                    d, cut, pres, loud, quiet);
+        CHECK(d == 0.0 && cut < -15.0 && std::fabs(pres - 6.0) < 0.2 && quiet - loud > 10.0);
+    }
+    for (const char* n : {"SUB", "BASS TIGHTENER", "VOCAL STRIP"}) {
+        Stereo in = hotMix(1.0);
+        const double d = blockSizeDifference(*findPlugin(n), [](hc::fx::Effect& x) { if (x.params().size() > 2) x.set(2, 50); }, in);
         std::printf("  %s block size 1 vs 512: max difference %.2e\n", n, d);
         CHECK(d < 1e-5);
     }

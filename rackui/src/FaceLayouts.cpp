@@ -13,6 +13,8 @@
 #include "hem/rack/MoreDynamics.hpp"
 #include "hem/rack/ColorFx.hpp"
 #include "hem/rack/Space.hpp"
+#include "hem/rack/Movement.hpp"
+#include "hem/rack/Specialty.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -1075,6 +1077,120 @@ FaceLayout digitalDelayFace(const rack::PluginInfo& info) {
     return L;
 }
 
+// ---- wave 10 movement: one row of knobs in the middle, switches on the left
+FaceLayout movementFace(const rack::PluginInfo& info) {
+    FaceLayout L;
+    common(L, info);
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 182, 1226, 330};
+    switch (info.face) {
+    case rack::Face::Chorus: {
+        using namespace rack::chorus;
+        L.leftNotes = {"WIDE AND LUSH", "ONE TO THREE VOICES"};
+        leftChoices(L, "VOICES", Voices, 3, 420);
+        knobRow(L, {{Rate, "RATE", 110, "SLOW", "FAST", false}, {Depth, "DEPTH", 110, "0", "100", false}, {Delay, "DELAY", 100, "5", "30", false},
+                    {Width, "WIDTH", 100, "MONO", "WIDE", false}, {Mix, "MIX", 110, "DRY", "WET", false}}, 380);
+        break;
+    }
+    case rack::Face::Flanger: {
+        using namespace rack::flanger;
+        L.leftNotes = {"THE JET SWEEP", "+ OR - FEEDBACK"};
+        knobRow(L, {{Rate, "RATE", 110, "SLOW", "FAST", false}, {Depth, "DEPTH", 110, "0", "100", false}, {Manual, "MANUAL", 110, "0.1", "10", false},
+                    {Feedback, "FEEDBACK", 110, "-95", "+95", false}, {Mix, "MIX", 110, "DRY", "WET", false}}, 380);
+        break;
+    }
+    case rack::Face::Phaser: {
+        using namespace rack::phaser;
+        L.leftNotes = {"SWIRL AND SWEEP", "4 TO 12 STAGES"};
+        leftChoices(L, "STAGES", Stages, 4, 400);
+        knobRow(L, {{Rate, "RATE", 110, "SLOW", "FAST", false}, {Depth, "DEPTH", 110, "0", "100", false}, {Center, "CENTER", 110, "200", "4k", false},
+                    {Feedback, "FEEDBACK", 110, "-90", "+90", false}, {Mix, "MIX", 110, "DRY", "WET", false}}, 380);
+        break;
+    }
+    case rack::Face::Tremolo: {
+        using namespace rack::tremolo;
+        L.leftNotes = {"PULSE AND MOVE", "OR PAN LEFT-RIGHT"};
+        leftChoices(L, "SHAPE", Shape, 3, 400);
+        L.widgets.push_back(toggle({70, 560, 270, 40}, Pan, "AUTO PAN"));
+        knobRow(L, {{Rate, "RATE", 128, "0.1", "20", false}, {Depth, "DEPTH", 128, "0", "100", false}}, 380);
+        break;
+    }
+    case rack::Face::Rotary: {
+        using namespace rack::rotary;
+        L.leftNotes = {"HORN AND DRUM", "SPIN UP, SPIN DOWN"};
+        leftChoices(L, "SPEED", Speed, 2, 420);
+        knobRow(L, {{Drive, "DRIVE", 110, "0", "100", false}, {Balance, "BALANCE", 110, "DRUM", "HORN", false}, {Spread, "SPREAD", 110, "0", "100", false},
+                    {Mix, "MIX", 110, "DRY", "WET", false}}, 380);
+        break;
+    }
+    default: {
+        using namespace rack::autofilter;
+        L.leftNotes = {"FOLLOWS THE MUSIC", "OR THE LFO"};
+        leftChoices(L, "FILTER", Type, 3, 400);
+        L.sections.push_back({{410, 190, 1226, 30}, "THE FILTER"});
+        knobRow(L, {{Cutoff, "CUTOFF", 128, "40", "16k", false}, {Resonance, "RESONANCE", 110, "0.5", "10", false},
+                    {Envelope, "ENVELOPE", 110, "-", "+", false}, {Mix, "MIX", 100, "DRY", "WET", false}}, 240);
+        L.grooves.push_back({410, 524, 1636, 524});
+        L.sections.push_back({{410, 532, 1226, 30}, "THE LFO"});
+        knobRow(L, {{Rate, "RATE", 100, "SLOW", "FAST", false}, {Depth, "DEPTH", 100, "0", "4 OCT", false}}, 590);
+        break;
+    }
+    }
+    buttonSeats(L);
+    bypassAt(L, {160, 680, 90, 90});
+    return L;
+}
+
+// ---- wave 11
+FaceLayout subFace(const rack::PluginInfo& info) {
+    using namespace rack::sub;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"MORE LOW END", "ON ANY SPEAKER"};
+    spectrumOnTop(L);
+    leftChoices(L, "MODE", Mode, 2);
+    knobRow(L, {{Freq, "FREQUENCY", 110, "40", "150", false}, {Amount, "AMOUNT", 128, "0", "100", false}, {Tone, "TONE", 100, "BRIGHT", "DARK", false},
+                {Output, "OUTPUT", 86, "", "", true}}, 568);
+    buttonSeats(L);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
+FaceLayout tightenerFace(const rack::PluginInfo& info) {
+    using namespace rack::tightener;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"TIGHT, PUNCHY LOWS", "NO MORE BOOM"};
+    L.title = {60, 190, 330, 110};
+    needleDisplay(L);
+    L.widgets.push_back(toggle({1150, 236, 486, 44}, Mono, "MONO LOWS"));
+    L.sections.push_back({{1150, 196, 486, 30}, "BELOW FREQUENCY"});
+    L.sections.push_back({{1150, 316, 486, 30}, "TIGHTEN: HOLDS BOOMY NOTES DOWN"});
+    L.sections.push_back({{1150, 356, 486, 30}, "PUNCH: KICK ATTACKS FORWARD"});
+    knobRow(L, {{Freq, "FREQUENCY", 100, "60", "250", false}, {Tighten, "TIGHTEN", 128, "0", "100", false}, {Punch, "PUNCH", 128, "0", "100", false},
+                {LowGain, "LOW GAIN", 100, "-6", "+6", false}, {Output, "OUTPUT", 86, "", "", true}}, 568);
+    buttonSeats(L);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
+FaceLayout vocalFace(const rack::PluginInfo& info) {
+    using namespace rack::vocal;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"THE VOCAL CHAIN", "ON ONE PLATE"};
+    L.title = {60, 190, 330, 110};
+    needleDisplay(L);
+    buttonRow(L, "HIGH-PASS", 236, Hpf, 5);
+    L.sections.push_back({{1150, 316, 486, 30}, "HIGH-PASS, BODY, COMPRESS,"});
+    L.sections.push_back({{1150, 356, 486, 30}, "DE-ESS, PRESENCE, AIR"});
+    knobRow(L, {{Body, "BODY", 96, "-6", "+6", false}, {Compress, "COMPRESS", 128, "0", "100", false}, {DeEss, "DE-ESS", 110, "0", "100", false},
+                {Presence, "PRESENCE", 96, "-6", "+6", false}, {Air, "AIR", 96, "0", "+8", false}, {Output, "OUTPUT", 86, "", "", true}}, 568);
+    buttonSeats(L);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
 } // namespace
 
 FaceLayout faceLayout(const rack::PluginInfo& info) {
@@ -1118,6 +1234,15 @@ FaceLayout faceLayout(const rack::PluginInfo& info) {
     case rack::Face::Spring: return springFace(info);
     case rack::Face::TapeEcho: return tapeEchoFace(info);
     case rack::Face::DigitalDelay: return digitalDelayFace(info);
+    case rack::Face::Chorus:
+    case rack::Face::Flanger:
+    case rack::Face::Phaser:
+    case rack::Face::Tremolo:
+    case rack::Face::Rotary:
+    case rack::Face::AutoFilter: return movementFace(info);
+    case rack::Face::Sub: return subFace(info);
+    case rack::Face::BassTightener: return tightenerFace(info);
+    case rack::Face::VocalStrip: return vocalFace(info);
     case rack::Face::Restorer: break;
     }
     return restorer(info);
