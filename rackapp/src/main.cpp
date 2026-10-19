@@ -247,6 +247,7 @@ struct App {
     int selected = -1;
     bool picker = false;
     int pickerAt = -1;
+    int pickerTab = 0;
     FaceUi face;
     std::string savedChain;
 
@@ -563,8 +564,14 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     if (!opts.song.empty()) a.loadSong(opts.song);
     else if (!opts.demo) a.say("Open a song (OPEN SONG, or drop a WAV / MP3 / FLAC on the window), then add plug-ins on the left");
 
-    std::vector<std::pair<std::string, std::string>> pickerItems;
-    for (const auto& p : rack::plugins()) pickerItems.emplace_back(p.name, std::string(p.suite) + "  -  " + p.blurb);
+    std::vector<RackViewState::PickerItem> pickerItems;
+    std::vector<std::string> pickerTabs;
+    for (int g = 0; g < static_cast<int>(rack::Group::kCount); ++g) pickerTabs.emplace_back(rack::groupName(static_cast<rack::Group>(g)));
+    {
+        const auto list = rack::plugins();
+        for (std::size_t i = 0; i < list.size(); ++i)
+            pickerItems.push_back({list[i].name, list[i].blurb, static_cast<int>(list[i].group), static_cast<int>(i)});
+    }
 
     hc::ui::Canvas canvas;
     int fbW = 0, fbH = 0;
@@ -615,6 +622,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
             RackViewState probe;
             probe.picker = a.picker;
             probe.pickerItems = pickerItems;
+            probe.pickerTabs = pickerTabs;
+            probe.pickerTab = a.pickerTab;
             for (int s = 0; s < kMaxSlots; ++s) probe.slots[static_cast<std::size_t>(s)].used = a.rack().effect(s) != nullptr;
             switch (e.type) {
             case hc::ui::InputEvent::Type::MouseDown: {
@@ -659,6 +668,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
                     a.addPlugin(rack::plugins()[static_cast<std::size_t>(hh.index)].name, a.pickerAt);
                     break;
                 case Action::PickerClose: a.picker = false; break;
+                case Action::PickerTab: a.pickerTab = hh.index; break;
                 case Action::Face:
                     if (a.face.controller) {
                         float px, py;
@@ -794,6 +804,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
         vs.selected = a.selected;
         vs.picker = a.picker;
         vs.pickerItems = pickerItems;
+        vs.pickerTabs = pickerTabs;
+        vs.pickerTab = a.pickerTab;
         vs.device = a.host.running() ? a.host.deviceName() : std::string("none - click to choose");
         const bool fresh = !a.notice.empty() && now - a.noticeAt < std::chrono::seconds(a.noticeAlert ? 15 : 8);
         vs.status = fresh ? a.notice : a.host.running() ? "Playing through " + a.host.deviceName() + "  (" + a.host.format() + ")" : a.host.problem();

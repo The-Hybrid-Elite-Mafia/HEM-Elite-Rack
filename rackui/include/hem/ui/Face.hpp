@@ -22,6 +22,7 @@
 #include "hem/rack/Plugins.hpp"
 #include "hem/rack/Restorer.hpp"
 #include "hem/rack/Spectrum.hpp"
+#include "hem/rack/Tools.hpp"
 #include "hybrid/ui/FxPanel.hpp"
 #include "hybrid/ui/Geometry.hpp"
 #include "hybrid/ui/Image.hpp"

@@ -30,6 +30,12 @@ int main(int argc, char** argv) {
     testOpto();
     testFet();
     testLimiter();
+    testDeEsser();
+    testWidth();
+    testClipper();
+    testExciter();
+    testTransient();
+    testLoudnessMeter();
     testFaces();
     testChain();
     testRackSession();

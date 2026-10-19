@@ -66,7 +66,8 @@ float dbToNorm(float db, float lo, float hi) { return std::clamp((db - lo) / (hi
 float normToDb(double n, float lo, float hi) { return lo + static_cast<float>(n) * (hi - lo); }
 constexpr float kSpecLo = -120.0f, kSpecHi = 0.0f;
 bool isCompressor(rack::Face f) {
-    return f == rack::Face::BusGlue || f == rack::Face::VariMu || f == rack::Face::Opto || f == rack::Face::Fet || f == rack::Face::Limiter;
+    return f == rack::Face::BusGlue || f == rack::Face::VariMu || f == rack::Face::Opto || f == rack::Face::Fet || f == rack::Face::Limiter ||
+           f == rack::Face::DeEsser || f == rack::Face::Clipper;
 }
 
 // <bundle>/Contents/x86_64-win/<dll> -> <bundle>/Contents/Resources (fonts/, faceplates/, brand/).

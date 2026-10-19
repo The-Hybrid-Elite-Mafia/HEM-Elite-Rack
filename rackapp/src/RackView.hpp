@@ -42,7 +42,10 @@ struct RackViewState {
     std::array<SlotView, 8> slots{};
     int  selected = -1;
     bool picker = false;
-    std::vector<std::pair<std::string, std::string>> pickerItems;   // name, blurb
+    struct PickerItem { std::string name, blurb; int group = 0; int plugin = 0; };
+    std::vector<PickerItem> pickerItems;     // every plug-in; the picker shows the chosen tab's
+    std::vector<std::string> pickerTabs;     // "EQ", "DYNAMICS", ...
+    int pickerTab = 0;
     // status
     std::string device, status;
     bool  alert = false;
@@ -51,11 +54,11 @@ struct RackViewState {
 
 enum class Action : std::uint8_t {
     None, OpenSong, Export, Device, Play, Stop, Seek, PlayA, PlayB, Match, Loop,
-    SlotSelect, SlotOn, SlotUp, SlotDown, SlotRemove, AddOpen, AddPlugin, PickerClose, Face,
+    SlotSelect, SlotOn, SlotUp, SlotDown, SlotRemove, AddOpen, AddPlugin, PickerClose, PickerTab, Face,
 };
 struct Hit {
     Action action = Action::None;
-    int    index = -1;      // slot / picker item
+    int    index = -1;      // slot / plug-in (AddPlugin: index into rack::plugins()) / picker tab
     float  value = 0.0f;    // Seek: 0..1
     [[nodiscard]] bool operator==(const Hit& o) const noexcept { return action == o.action && index == o.index; }
 };

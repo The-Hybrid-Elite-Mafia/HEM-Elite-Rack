@@ -41,7 +41,7 @@ CloseApplications=yes
 [Tasks]
 Name: "desktopicon"; Description: "Desktop shortcut"; GroupDescription: "Shortcuts:"
 #ifdef Vst3Bundle
-Name: "vst3"; Description: "Install the VST3 plug-ins (all ten HEM-Elite-Rack plug-ins) into Common Files\VST3"; GroupDescription: "Plug-ins:"
+Name: "vst3"; Description: "Install the VST3 plug-ins (all HEM-Elite-Rack plug-ins) into Common Files\VST3"; GroupDescription: "Plug-ins:"
 #endif
 
 [Files]

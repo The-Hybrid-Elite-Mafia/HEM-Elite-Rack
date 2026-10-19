@@ -8,6 +8,7 @@
 #include "hem/rack/EliteEq.hpp"
 #include "hem/rack/Limiter.hpp"
 #include "hem/rack/Restorer.hpp"
+#include "hem/rack/Tools.hpp"
 
 #include <cmath>
 #include <tuple>
@@ -487,6 +488,7 @@ FaceLayout limiterFace(const rack::PluginInfo& info) {
         ro.choice = m;
         ro.caption = m == 0 ? "LOUDNESS (3 s)" : "TRUE PEAK";
         ro.lo = m == 0 ? "LUFS" : "dBTP";
+        ro.hi = m == 1 ? "CEIL" : "";
         ro.r = {1150, 190 + static_cast<float>(m) * 112, 486, 100};
         L.widgets.push_back(ro);
         L.recesses.push_back({ro.r, 12, 8, false, true});
@@ -495,6 +497,140 @@ FaceLayout limiterFace(const rack::PluginInfo& info) {
     L.widgets.push_back(toggle({1398, 430, 238, 44}, AutoRelease, "AUTO REL"));
     knobRow(L, {{Input, "INPUT", 128, "0", "+24", false}, {Ceiling, "CEILING", 128, "-6", "0", false}, {Release, "RELEASE", 100, "FAST", "SLOW", false},
                 {Link, "LINK", 100, "0", "100", false}}, 568);
+    buttonSeats(L);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
+
+// A big-number window. fmt (Widget::hi): "" = 0.0, "+" = signed, "+2" = signed with 2 decimals,
+// "CEIL" = red when above the LIMITER's ceiling.
+void readoutAt(FaceLayout& L, Rect r, int meter, const char* caption, const char* unit, const char* fmt = "") {
+    Widget ro;
+    ro.kind = WKind::Readout;
+    ro.choice = meter;
+    ro.caption = caption;
+    ro.lo = unit;
+    ro.hi = fmt;
+    ro.r = r;
+    L.widgets.push_back(ro);
+    L.recesses.push_back({ro.r, 12, 8, false, true});
+}
+
+FaceLayout deEsserFace(const rack::PluginInfo& info) {
+    using namespace rack::deesser;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"SMOOTH THE ESSES", "KEEP THE CLARITY"};
+    L.title = {60, 190, 330, 110};
+    needleDisplay(L);
+    buttonRow(L, "MODE", 236, Mode, 2);
+    L.widgets.push_back(toggle({1150, 330, 486, 44}, Listen, "LISTEN TO THE ESSES"));
+    L.sections.push_back({{1150, 420, 486, 30}, "SPLIT: ONLY THE ESSES GO DOWN"});
+    knobRow(L, {{Freq, "FREQUENCY", 128, "3k", "12k", false}, {Threshold, "THRESHOLD", 128, "-50", "0", false},
+                {Range, "RANGE", 100, "0", "20", false}}, 568);
+    buttonSeats(L);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
+FaceLayout widthFace(const rack::PluginInfo& info) {
+    using namespace rack::width;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"WIDE ON TOP", "MONO DOWN LOW"};
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 182, 1226, 140};
+    readoutAt(L, {410, 182, 600, 120}, 0, "CORRELATION", "+1 MONO  -1 OUT OF PHASE", "+2");
+    readoutAt(L, {1036, 182, 600, 120}, 1, "SIDE VS MID", "dB", "+");
+    buttonRow(L, "MONO BASS", 392, MonoBass, 5);
+    L.sections.push_back({{410, 352, 700, 30}, "BELOW THIS THE LOW END STAYS IN THE CENTRE"});
+    L.grooves.push_back({410, 524, 1636, 524});
+    knobRow(L, {{Width, "WIDTH", 128, "MONO", "200%", false}, {Balance, "BALANCE", 100, "L", "R", false},
+                {Output, "OUTPUT", 86, "", "", true}}, 568);
+    buttonSeats(L);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
+FaceLayout clipperFace(const rack::PluginInfo& info) {
+    using namespace rack::clipper;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"SHAVE THE PEAKS", "BEFORE THE LIMITER"};
+    L.title = {60, 190, 330, 110};
+    needleDisplay(L);
+    L.sections.push_back({{1150, 196, 486, 30}, "THE NEEDLE: HOW MUCH IS SHAVED"});
+    L.sections.push_back({{1150, 256, 486, 30}, "A FEW dB IS CLEAN"});
+    L.sections.push_back({{1150, 316, 486, 30}, "SHAPE: HARD .. SOFT"});
+    knobRow(L, {{Input, "INPUT", 128, "0", "+24", false}, {Ceiling, "CEILING", 128, "-12", "0", false},
+                {Shape, "SHAPE", 100, "HARD", "SOFT", false}, {Output, "OUTPUT", 86, "", "", true}}, 568);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
+FaceLayout exciterFace(const rack::PluginInfo& info) {
+    using namespace rack::exciter;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"AIR AND PRESENCE", "WITHOUT EQ BOOST"};
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 182, 1226, 330};
+    L.recesses.push_back({L.display, 14, 9, false, true});
+    Widget spec;
+    spec.kind = WKind::Spectrum;
+    spec.r = L.display;
+    L.widgets.push_back(spec);
+    L.grooves.push_back({410, 524, 1636, 524});
+    L.widgets.push_back(choiceButton({70, 434, 270, 40}, Mode, 0, "HARMONICS"));
+    L.widgets.push_back(choiceButton({70, 480, 270, 40}, Mode, 1));
+    knobRow(L, {{Freq, "FREQUENCY", 128, "1k", "10k", false}, {Drive, "DRIVE", 128, "0", "100", false},
+                {Mix, "MIX", 100, "0", "100", false}}, 568);
+    buttonSeats(L);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
+FaceLayout transientFace(const rack::PluginInfo& info) {
+    using namespace rack::transient;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"MORE PUNCH", "OR MORE ROOM"};
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 182, 1226, 330};
+    readoutAt(L, {410, 182, 1226, 150}, 0, "WHAT IT IS DOING NOW", "dB", "+");
+    L.sections.push_back({{410, 372, 1226, 30}, "ATTACK: THE HIT OF EVERY NOTE    SUSTAIN: ITS TAIL AND ROOM"});
+    L.sections.push_back({{410, 420, 1226, 30}, "WORKS THE SAME LOUD OR QUIET"});
+    L.grooves.push_back({410, 524, 1636, 524});
+    knobRow(L, {{Attack, "ATTACK", 128, "-100", "+100", false}, {Sustain, "SUSTAIN", 128, "-100", "+100", false},
+                {Output, "OUTPUT", 86, "", "", true}}, 568);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
+FaceLayout meterFace(const rack::PluginInfo& info) {
+    using namespace rack::meter;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"MEASURES ONLY", "THE SOUND IS UNTOUCHED"};
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 182, 1226, 600};
+    // the big one, then two rows of three
+    readoutAt(L, {410, 182, 800, 170}, Integrated, "INTEGRATED", "LUFS");
+    readoutAt(L, {1226, 182, 410, 170}, ToTarget, "TO TARGET", "LU", "+");
+    const int rest[5] = {Momentary, ShortTerm, Range, TruePeak, Correlation};
+    const char* caps[5] = {"MOMENTARY", "SHORT-TERM", "LOUDNESS RANGE", "TRUE PEAK MAX", "CORRELATION"};
+    const char* units[5] = {"LUFS", "LUFS", "LU", "dBTP", "PHASE"};
+    for (int i = 0; i < 5; ++i) {
+        const float x = 410 + static_cast<float>(i % 3) * 412, y = 376 + static_cast<float>(i / 3) * 160;
+        readoutAt(L, {x, y, 402, 146}, rest[i], caps[i], units[i], i == 4 ? "+2" : "");
+    }
+    // the last cell: TARGET
+    L.sections.push_back({{1234, 546, 402, 30}, "TARGET (LUFS)"});
+    for (int i = 0; i < 4; ++i) L.widgets.push_back(choiceButton({1234 + static_cast<float>(i) * 102, 600, 96, 44}, Target, i));
+    L.sections.push_back({{410, 720, 1226, 30}, "-14 SPOTIFY / YOUTUBE    -16 APPLE MUSIC    -11 / -9 LOUD"});
+    L.widgets.push_back(toggle({70, 434, 270, 44}, Reset, "RESET"));
+    L.sections.push_back({{60, 490, 300, 30}, "CLICK TO START OVER"});
     buttonSeats(L);
     bypassAt(L, {160, 640, 90, 90});
     return L;
@@ -513,6 +649,12 @@ FaceLayout faceLayout(const rack::PluginInfo& info) {
     case rack::Face::Opto: return optoFace(info);
     case rack::Face::Fet: return fetFace(info);
     case rack::Face::Limiter: return limiterFace(info);
+    case rack::Face::DeEsser: return deEsserFace(info);
+    case rack::Face::Width: return widthFace(info);
+    case rack::Face::Clipper: return clipperFace(info);
+    case rack::Face::Exciter: return exciterFace(info);
+    case rack::Face::Transient: return transientFace(info);
+    case rack::Face::Meter: return meterFace(info);
     case rack::Face::Restorer: break;
     }
     return restorer(info);

@@ -49,12 +49,17 @@ Rect slotDel(int i) { const Rect r = slotRow(i); return {r.x + 282, r.y + 8, 72,
 Rect slotUp(int i) { const Rect r = slotRow(i); return {r.x + 206, r.y + 48, 72, 34}; }
 Rect slotDown(int i) { const Rect r = slotRow(i); return {r.x + 282, r.y + 48, 72, 34}; }
 
-Rect pickerPanel() { return RackView::faceArea().inset(80, 40); }
-// Two columns of cards, top to bottom then left to right.
+Rect pickerPanel() { return RackView::faceArea().inset(60, 30); }
+// Category tabs across the top, then up to 15 cards (3 columns × 5 rows).
+Rect pickerTabRect(int i, int count) {
+    const Rect p = pickerPanel();
+    const float w = (p.w - 80 - 8.0f * static_cast<float>(count - 1)) / static_cast<float>(count);
+    return {p.x + 40 + static_cast<float>(i) * (w + 8), p.y + 92, w, 48};
+}
 Rect pickerItem(int i) {
     const Rect p = pickerPanel();
-    const float w = (p.w - 100) * 0.5f;
-    return {p.x + 40 + static_cast<float>(i / 5) * (w + 20), p.y + 110 + static_cast<float>(i % 5) * 136, w, 124};
+    const float w = (p.w - 80 - 2 * 16) / 3.0f;
+    return {p.x + 40 + static_cast<float>(i % 3) * (w + 16), p.y + 160 + static_cast<float>(i / 3) * 140, w, 126};
 }
 Rect pickerClose() { const Rect p = pickerPanel(); return {p.right() - 200, p.y + 30, 160, 50}; }
 
@@ -96,8 +101,14 @@ void RackView::facePlacement(float& ox, float& oy, float& zoom) noexcept {
 Hit RackView::hit(float x, float y, const RackViewState& s) const noexcept {
     if (s.picker) {
         if (pickerClose().contains(x, y)) return {Action::PickerClose};
-        for (int i = 0; i < static_cast<int>(s.pickerItems.size()); ++i)
-            if (pickerItem(i).contains(x, y)) return {Action::AddPlugin, i};
+        const int tabs = static_cast<int>(s.pickerTabs.size());
+        for (int t = 0; t < tabs; ++t)
+            if (pickerTabRect(t, tabs).contains(x, y)) return {Action::PickerTab, t};
+        int k = 0;
+        for (const auto& it : s.pickerItems) {
+            if (it.group != s.pickerTab) continue;
+            if (pickerItem(k++).contains(x, y)) return {Action::AddPlugin, it.plugin};
+        }
         if (faceArea().contains(x, y)) return {Action::None};
     }
     if (kOpen.contains(x, y)) return {Action::OpenSong};
@@ -308,16 +319,33 @@ void RackView::drawFront(Renderer& r, const RackViewState& s, const Hit& hv) con
     r.fillRound(p, 16, kPanel, Blend::Over);
     r.text(TextStyle::Panel, "ADD A PLUG-IN", p.x + 40, p.y + 70, kTh.teal, Align::Left, TextFx::Neon);
     button(r, pickerClose(), "CLOSE", false, hv.action == Action::PickerClose);
-    for (int i = 0; i < static_cast<int>(s.pickerItems.size()); ++i) {
-        const Rect it = pickerItem(i);
-        const bool hot = hv.action == Action::AddPlugin && hv.index == i;
+    const int tabs = static_cast<int>(s.pickerTabs.size());
+    for (int t = 0; t < tabs; ++t) {
+        int count = 0;
+        for (const auto& it : s.pickerItems) count += it.group == t ? 1 : 0;
+        const std::string label = s.pickerTabs[static_cast<std::size_t>(t)] + "  " + std::to_string(count);
+        button(r, pickerTabRect(t, tabs), label, t == s.pickerTab, hv.action == Action::PickerTab && hv.index == t);
+    }
+    int k = 0;
+    for (const auto& item : s.pickerItems) {
+        if (item.group != s.pickerTab) continue;
+        const Rect it = pickerItem(k++);
+        const bool hot = hv.action == Action::AddPlugin && hv.index == item.plugin;
         if (hot) r.glow(it.inset(4), 12, 14.0f, kTh.teal.withAlpha(0.35f), true);
         r.fillRound(it, 12, hot ? rgb8(0x0F2427) : rgb8(0x0D1113), Blend::Over);
-        r.text(TextStyle::Panel, s.pickerItems[static_cast<std::size_t>(i)].first, it.x + 30, it.y + 58, hot ? kTh.teal : kTh.silver, Align::Left,
-               hot ? TextFx::Neon : TextFx::Shadowed);
-        const std::string& blurb = s.pickerItems[static_cast<std::size_t>(i)].second;
-        const TextStyle bs = fit(r, TextStyle::Label, blurb, it.w - 60);
-        r.text(bs, clip(r, bs, blurb, it.w - 60), it.x + 30, it.y + 104, kTh.label, Align::Left, TextFx::Shadowed);
+        const TextStyle ns = fit(r, TextStyle::Panel, item.name, it.w - 40);
+        r.text(ns, item.name, it.x + 20, it.y + 54, hot ? kTh.teal : kTh.silver, Align::Left, hot ? TextFx::Neon : TextFx::Shadowed);
+        const TextStyle bs = TextStyle::Caption;
+        // the description on two lines
+        std::string a = item.blurb, b;
+        if (r.textWidth(bs, a) > it.w - 40) {
+            std::size_t cut = std::string::npos;
+            for (std::size_t p2 = a.find(' '); p2 != std::string::npos; p2 = a.find(' ', p2 + 1))
+                if (r.textWidth(bs, std::string_view(a).substr(0, p2)) <= it.w - 40) cut = p2;
+            if (cut != std::string::npos) { b = a.substr(cut + 1); a = a.substr(0, cut); }
+        }
+        r.text(bs, clip(r, bs, a, it.w - 40), it.x + 20, it.y + 88, kTh.label, Align::Left, TextFx::Shadowed);
+        if (!b.empty()) r.text(bs, clip(r, bs, b, it.w - 40), it.x + 20, it.y + 112, kTh.label, Align::Left, TextFx::Shadowed);
     }
 }
 

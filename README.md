@@ -18,6 +18,12 @@ C++23 audio framework, as a library.
 | **OPTO** | Optical leveler: peak reduction and gain, compress / limit, two-stage release, sidechain emphasis |
 | **FET** | Fast FET limiting amplifier: input / output, attack and release 1–7, ratios 4 / 8 / 12 / 20 / ALL |
 | **LIMITER** | True-peak mastering limiter: input push, ceiling, look-ahead, auto release, stereo link, LUFS and true-peak readouts |
+| **DE-ESSER** | Tames harsh S / T sounds: frequency, threshold, range; SPLIT (only the ess band) or WIDE; LISTEN |
+| **STEREO WIDTH** | Mono to 200 % width, MONO BASS (80–250 Hz), balance; correlation and width readouts |
+| **CLIPPER** | 4x oversampled clipper with a hard-to-soft SHAPE: shave peaks before the limiter |
+| **EXCITER** | Adds fresh harmonics above a frequency: TUBE (even) or TAPE (odd), drive, mix |
+| **TRANSIENT** | Transient shaper: more or less ATTACK and SUSTAIN, the same at any level |
+| **LOUDNESS METER** | EBU R128 / BS.1770: momentary, short-term, integrated LUFS, loudness range, true peak, correlation, distance to a target |
 
 Our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 

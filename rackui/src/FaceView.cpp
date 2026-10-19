@@ -313,6 +313,10 @@ void FaceView::spectrum(const Ctx& c, const Widget& w) const {
     auto yOf = [&](float db) { return p.y + std::clamp((kTop - db) / (kTop - kBottom), 0.0f, 1.0f) * p.h; };
     const bool isRestorer = L_.face == rack::Face::Restorer;
     // Outside FREQUENCY RANGE: shaded (nothing is touched there).
+    if (L_.face == rack::Face::Exciter) {   // below FREQUENCY nothing is added
+        const float x1 = c.X(freqToX(plot, plain(c.host, rack::exciter::Freq)));
+        if (x1 > p.x + 0.5f) r.fillRound({p.x, p.y, x1 - p.x, p.h}, 0, rgb8(0x000000, 0.45f), Blend::Over);
+    }
     if (isRestorer) {
         const float x0 = c.X(freqToX(plot, plain(c.host, rack::restorer::LowHz)));
         const float x1 = c.X(freqToX(plot, plain(c.host, rack::restorer::HighHz)));
@@ -618,9 +622,10 @@ void FaceView::readout(const Ctx& c, const Widget& w) const {
     r.text(cs, w.caption, b.x + 18 * z, b.y + 30 * z, th_.label, Align::Left, TextFx::Shadowed);
     r.text(cs, w.lo, b.x + 18 * z, b.y + 60 * z, th_.teal, Align::Left, TextFx::NeonCrisp);   // the unit, under the name
     char t[24];
-    if (v > -99.0f) std::snprintf(t, sizeof t, "%.1f", static_cast<double>(v));
+    const char* f = w.hi == "+2" ? "%+.2f" : w.hi == "+" ? "%+.1f" : "%.1f";
+    if (v > -99.0f) std::snprintf(t, sizeof t, f, static_cast<double>(v));
     else std::snprintf(t, sizeof t, "--");
-    const bool over = w.choice == 1 && v > plain(c.host, rack::limiter::Ceiling) + 0.05f;   // true peak above the ceiling
+    const bool over = w.hi == "CEIL" && v > plain(c.host, rack::limiter::Ceiling) + 0.05f;   // true peak above the ceiling
     const TextStyle big = c.fit(TextStyle::Display, t, b.w * 0.55f);   // the left side keeps the name and unit
     r.text(big, t, b.right() - 18 * z, b.bottom() - 18 * z, over ? th_.red : th_.teal, Align::Right, TextFx::Neon);
 }

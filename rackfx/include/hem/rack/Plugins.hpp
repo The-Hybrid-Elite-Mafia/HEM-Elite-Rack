@@ -13,7 +13,12 @@
 
 namespace hem::rack {
 
-enum class Face : std::uint8_t { EliteEq, Restorer, ConsoleEq, BusGlue, Tape, TubeEq, VariMu, Opto, Fet, Limiter };
+enum class Face : std::uint8_t { EliteEq, Restorer, ConsoleEq, BusGlue, Tape, TubeEq, VariMu, Opto, Fet, Limiter,
+                                DeEsser, Width, Clipper, Exciter, Transient, Meter };
+
+// Where a plug-in sits in the rack's picker.
+enum class Group : std::uint8_t { Eq, Dynamics, Color, Space, Movement, Tools, kCount };
+[[nodiscard]] const char* groupName(Group g) noexcept;   // "EQ", "DYNAMICS", ...
 
 struct PluginInfo {
     const char*   name;          // "ELITE EQ"
@@ -24,6 +29,7 @@ struct PluginInfo {
     std::uint32_t processorUid[4];
     std::uint32_t controllerUid[4];
     Face          face;
+    Group         group;
     std::unique_ptr<hc::fx::Effect> (*create)();
 };
 

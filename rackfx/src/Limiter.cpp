@@ -1,5 +1,7 @@
 #include "hem/rack/Limiter.hpp"
 
+#include "hem/rack/KWeight.hpp"
+
 #include "hybrid/fx/Dsp.hpp"
 
 #include <algorithm>
@@ -45,23 +47,11 @@ public:
         for (auto& b : box_) b.assign(kWin, 1.0f);
         peak_[0].assign(mb, 0.0f);
         peak_[1].assign(mb, 0.0f);
-        // The loudness meter's K-weighting: exactly the ITU-R BS.1770 filters (the same design The Hybrid
-        // Core's export loudness uses), so the readout agrees with what streaming services measure.
-        {
-            const double f0 = 1681.974450955533, G = 3.999843853973347, Q = 0.7071752369554196;
-            const double K = std::tan(std::numbers::pi * f0 / fs), Vh = std::pow(10.0, G / 20.0), Vb = std::pow(Vh, 0.4996667741545416);
-            const double a0 = 1.0 + K / Q + K * K;
-            hc::fx::BiquadCoefs c;
-            c.b0 = (Vh + Vb * K / Q + K * K) / a0; c.b1 = 2.0 * (K * K - Vh) / a0; c.b2 = (Vh - Vb * K / Q + K * K) / a0;
-            c.a1 = 2.0 * (K * K - 1.0) / a0; c.a2 = (1.0 - K / Q + K * K) / a0;
-            kShelf_.set(c);
-        }
-        {
-            const double f0 = 38.13547087602444, Q = 0.5003270373238773;
-            const double K = std::tan(std::numbers::pi * f0 / fs), a0 = 1.0 + K / Q + K * K;
-            hc::fx::BiquadCoefs c;
-            c.b0 = 1.0; c.b1 = -2.0; c.b2 = 1.0; c.a1 = 2.0 * (K * K - 1.0) / a0; c.a2 = (1.0 - K / Q + K * K) / a0;
-            kHp_.set(c);
+        {   // the loudness meter: exactly BS.1770 (KWeight.hpp)
+            hc::fx::BiquadCoefs sh, hp;
+            kWeighting(fs, sh, hp);
+            kShelf_.set(sh);
+            kHp_.set(hp);
         }
         reset();
     }

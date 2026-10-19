@@ -3,7 +3,7 @@ HEM-ELITE-RACK — HOW TO USE
 1. Start HEM-Elite-Rack (desktop shortcut).
 2. OPEN SONG (top) — or drag a WAV / MP3 / FLAC onto the window.
    Songs at other sample rates are converted to 48 kHz when they load.
-3. + ADD PLUG-IN (left) — pick any of the ten plug-ins. Up to 8 plug-ins, top to bottom.
+3. + ADD PLUG-IN (left) — pick any plug-in (tabs: EQ, DYNAMICS, COLOR, TOOLS). Up to 8 plug-ins, top to bottom.
    Each slot: ON / OFF, UP / DOWN (order), DEL (remove). Click a slot to show its faceplate.
 4. PLAY (or the SPACE bar). Click the song strip to jump; LEFT / RIGHT arrows jump 5 s.
 5. A PROCESSED / B ORIGINAL (or the A and B keys) — compare with and without the chain.
@@ -67,13 +67,41 @@ LIMITER (put it last in the chain)
   too. RELEASE (or AUTO), LINK. The readouts show the loudness (LUFS) and the true peak of what
   comes out; the true peak turns red if it is over the ceiling.
 
+DE-ESSER (on vocals)
+  FREQUENCY = where the esses are (5 - 8 kHz for most voices; LISTEN on helps you find them).
+  THRESHOLD down until the needle moves on the esses only. RANGE = the most it turns down.
+  SPLIT turns down only the ess band; WIDE turns the whole voice down a little (gentler).
+
+STEREO WIDTH
+  WIDTH 100 % = as it was, 0 % = mono, up to 200 %. MONO BASS keeps the low end in the centre
+  (punchier, safe on club systems and phones). CORRELATION: +1 = mono, 0 = wide,
+  below 0 = parts cancel in mono (be careful).
+
+CLIPPER (just before the LIMITER)
+  INPUT pushes, CEILING is the top. A few dB of shaving makes a mix louder with less pumping
+  from the limiter. SHAPE: HARD (cleaner on transients) to SOFT (rounder).
+
+EXCITER
+  FREQUENCY = above where new harmonics are added; nothing below it changes. TUBE is warmer,
+  TAPE edgier. DRIVE = how much grit, MIX = how much is added. A little goes a long way.
+
+TRANSIENT
+  ATTACK + = more punch on every hit, - = softer. SUSTAIN + = more ring and room, - = drier.
+  It follows the notes, not the level, so quiet and loud parts are treated the same.
+
+LOUDNESS METER (measures only, changes nothing)
+  INTEGRATED = the whole song since RESET (play it all the way through). SHORT-TERM = the last
+  3 seconds, MOMENTARY = the last 0.4 s. LOUDNESS RANGE = how much it moves (LU).
+  TRUE PEAK MAX = the highest peak so far. TARGET: -14 (Spotify / YouTube), -16 (Apple Music),
+  -11 / -9 (loud); TO TARGET shows how far off you are (+ = louder than the target).
+
 Knobs: drag up / down (hold Shift for fine), mouse wheel, double-click = back to default.
 
 OUTPUT (top right) picks the sound card. HEM-Elite-Rack uses it in exclusive mode
 (lowest latency) — other programs go quiet while it plays.
 
 Your chain, output and folders are remembered in %APPDATA%\HEM-Elite-Rack.
-The VST3 plug-ins (all ten, named HEM ...) are in Common Files\VST3\HEM-Elite-Rack.vst3
+The VST3 plug-ins (all of them, named HEM ...) are in Common Files\VST3\HEM-Elite-Rack.vst3
 for any DAW that loads VST3.
 
 Needs: Windows 10 / 11 64-bit, a processor with AVX2 (Intel 2013+, AMD 2015+), OpenGL 3.3.

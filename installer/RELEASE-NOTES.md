@@ -1,3 +1,22 @@
+# HEM-Elite-Rack 0.5.0
+
+**Six new plug-ins — sixteen in all**, in the rack and as VST3:
+- **DE-ESSER** — tames harsh S / T sounds. SPLIT turns down only the ess band, WIDE the whole
+  signal; LISTEN plays what the detector hears; a needle shows how much it takes off.
+- **STEREO WIDTH** — mono to 200 %, MONO BASS (below 80 / 120 / 160 / 250 Hz the low end stays
+  in the centre), BALANCE; CORRELATION and SIDE VS MID readouts.
+- **CLIPPER** — 4x oversampled peak shaving with a HARD-to-SOFT shape; nothing comes out above
+  the CEILING; the needle shows how much the peaks are shaved.
+- **EXCITER** — new TUBE (even) or TAPE (odd) harmonics above a frequency: brightness and air
+  without boosting EQ. The display shows before / after.
+- **TRANSIENT** — more or less ATTACK (punch) and SUSTAIN (ring, room), whatever the level.
+- **LOUDNESS METER** — EBU R128: momentary, short-term and integrated LUFS (gated like the
+  standard), loudness range, true peak max, correlation, and how far you are from a target
+  (-14 / -16 / -11 / -9). The sound passes through untouched.
+
+**Also:** the plug-in picker has tabs (EQ, DYNAMICS, COLOR, TOOLS) so the growing list stays easy
+to browse.
+
 # HEM-Elite-Rack 0.4.0
 
 **New: LIMITER** — the mastering limiter for the end of the chain (in the rack and as VST3):

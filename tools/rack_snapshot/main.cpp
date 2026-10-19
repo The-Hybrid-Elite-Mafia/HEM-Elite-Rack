@@ -12,6 +12,7 @@
 #include "hem/rack/Limiter.hpp"
 #include "hem/rack/Plugins.hpp"
 #include "hem/rack/Restorer.hpp"
+#include "hem/rack/Tools.hpp"
 #include "hem/ui/FaceWindow.hpp"
 
 #include <windows.h>
@@ -135,7 +136,17 @@ int main(int argc, char** argv) {
             fx->set(hem::rack::fet::Input, 24);
         } else if (info.face == hem::rack::Face::Limiter) {
             fx->set(hem::rack::limiter::Input, 8);
-        } else {
+        } else if (info.face == hem::rack::Face::DeEsser) {
+            fx->set(hem::rack::deesser::Threshold, -44);
+        } else if (info.face == hem::rack::Face::Width) {
+            fx->set(hem::rack::width::Width, 140); fx->set(hem::rack::width::MonoBass, 2);
+        } else if (info.face == hem::rack::Face::Clipper) {
+            fx->set(hem::rack::clipper::Input, 6);
+        } else if (info.face == hem::rack::Face::Exciter) {
+            fx->set(hem::rack::exciter::Drive, 60); fx->set(hem::rack::exciter::Mix, 35);
+        } else if (info.face == hem::rack::Face::Transient) {
+            fx->set(hem::rack::transient::Attack, 60);
+        } else if (info.face == hem::rack::Face::Restorer) {
             fx->set(hem::rack::restorer::Reduction, 6.0f);
         }
         hem::ui::EffectFeed feedSrc(*fx);
