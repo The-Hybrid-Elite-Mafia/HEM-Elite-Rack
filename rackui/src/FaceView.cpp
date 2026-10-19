@@ -570,7 +570,7 @@ void FaceView::grMeter(const Ctx& c, const Widget& w) const {
         const float xs[2] = {px + sx * (R - 14 * z), px + sx * (R + 8 * z)}, ys[2] = {py + sy * (R - 14 * z), py + sy * (R + 8 * z)};
         r.polyline(xs, ys, 2, 2.2f * z, th_.silver.withAlpha(0.8f), Blend::Over, false);
         char b[8];
-        std::snprintf(b, sizeof b, "%.0f", static_cast<double>(-db));
+        std::snprintf(b, sizeof b, "%.0f", static_cast<double>(std::fabs(db)));
         r.text(ts, b, px + sx * (R + 30 * z), py + sy * (R + 30 * z) + r.capHeight(ts) * 0.5f, th_.label, Align::Center, TextFx::Shadowed);
     }
     // the needle and its pivot
@@ -582,7 +582,7 @@ void FaceView::grMeter(const Ctx& c, const Widget& w) const {
     r.fillRound({px - 6 * z, py - 6 * z, 12 * z, 12 * z}, 6 * z, th_.tealDeep, Blend::Over, true);
     // labels and the number
     const TextStyle ls = c.ts(TextStyle::Label);
-    r.text(ls, "GAIN REDUCTION  dB", d.x + 24 * z, d.y + 40 * z, th_.label, Align::Left, TextFx::Shadowed);
+    r.text(ls, "GAIN REDUCTION  dB", d.x + 24 * z, d.bottom() - 22 * z, th_.label, Align::Left, TextFx::Shadowed);
     char b[32];
     std::snprintf(b, sizeof b, "%.1f", static_cast<double>(target));
     const TextStyle big = c.ts(TextStyle::Panel);

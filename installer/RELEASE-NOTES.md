@@ -1,3 +1,10 @@
+# HEM-Elite-Rack 0.2.1
+
+**Looks only (the sound is unchanged):** CONSOLE EQ's section names no longer sit on the GAIN
+labels and the filter scale numbers no longer pile up; BUS GLUE's meter title moved off the
+scale, the needle scale reads "0" (not "-0"), the ATTACK / RELEASE labels no longer collide;
+the chain's UP / DOWN buttons are arrows now (the word DOWN didn't fit).
+
 # HEM-Elite-Rack 0.2.0
 
 **Two new plug-ins** (in the rack and as VST3):

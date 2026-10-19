@@ -226,10 +226,10 @@ FaceLayout consoleEq(const rack::PluginInfo& info) {
     }
     const std::size_t firstKnob = L.widgets.size();
     auto cx = [&](int i) { return L.display.x + (static_cast<float>(i) + 0.5f) * pitch; };
-    const float gy = 500, gd = 92, ry = 664, rd = 72;
+    const float gy = 516, gd = 92, ry = 680, rd = 72;
     // FILTERS
-    L.widgets.push_back(knob({cx(0) - 90, gy + 10, rd, rd}, HpfHz, "HPF", "16", "350", true));
-    L.widgets.push_back(knob({cx(0) + 18, gy + 10, rd, rd}, LpfHz, "LPF", "3k", "22k", true));
+    L.widgets.push_back(knob({cx(0) - 90, gy + 10, rd, rd}, HpfHz, "HPF", "", "", true));
+    L.widgets.push_back(knob({cx(0) + 18, gy + 10, rd, rd}, LpfHz, "LPF", "", "", true));
     L.widgets.push_back(toggle({cx(0) - 110, ry + 14, 104, 36}, HpfOn, "HPF"));
     L.widgets.push_back(toggle({cx(0) + 6, ry + 14, 104, 36}, LpfOn, "LPF"));
     // LF / HF: gain, frequency and the BELL switch
@@ -245,16 +245,16 @@ FaceLayout consoleEq(const rack::PluginInfo& info) {
         L.widgets.push_back(knob({cx(i) + 18, ry, rd, rd}, q, "Q", "", "", true));
     }
     // Left column: CURVE, DRIVE, OUTPUT, ON / BYPASS.
-    L.widgets.push_back(choiceButton({70, 420, 270, 40}, Curve, 0, "CURVE"));
-    L.widgets.push_back(choiceButton({70, 466, 270, 40}, Curve, 1));
-    L.widgets.push_back(knob({92, 572, 86, 86}, Drive, "DRIVE", "", "", true));
-    L.widgets.push_back(knob({232, 572, 86, 86}, Output, "OUTPUT", "", "", true));
+    L.widgets.push_back(choiceButton({70, 434, 270, 40}, Curve, 0, "CURVE"));
+    L.widgets.push_back(choiceButton({70, 480, 270, 40}, Curve, 1));
+    L.widgets.push_back(knob({92, 586, 86, 86}, Drive, "DRIVE", "", "", true));
+    L.widgets.push_back(knob({232, 586, 86, 86}, Output, "OUTPUT", "", "", true));
     seatKnobs(L, firstKnob, 12);
     for (const Widget& w : L.widgets)
         if (w.kind == WKind::ChoiceButton || w.kind == WKind::Toggle) L.recesses.push_back({w.r.inset(-4), 10, 4, false, false});
     Widget byp;
     byp.kind = WKind::Bypass;
-    byp.r = {160, 712, 90, 90};
+    byp.r = {160, 722, 90, 90};
     L.widgets.push_back(byp);
     L.recesses.push_back({byp.r.inset(-10), 55, 4, true, false});
     return L;
@@ -283,15 +283,15 @@ FaceLayout busGlue(const rack::PluginInfo& info) {
     const float pitch = 1226.0f / 6.0f;
     auto cx = [&](int i) { return 410 + (static_cast<float>(i) + 0.5f) * pitch; };
     L.widgets.push_back(knob({cx(0) - 64, 568, 128, 128}, Threshold, "THRESHOLD", "-40", "0"));
-    L.widgets.push_back(knob({cx(1) - 50, 582, 100, 100}, Attack, "ATTACK", "FAST", "SLOW"));
-    L.widgets.push_back(knob({cx(2) - 50, 582, 100, 100}, Release, "RELEASE", "FAST", "AUTO"));
+    L.widgets.push_back(knob({cx(1) - 50, 582, 100, 100}, Attack, "ATTACK"));
+    L.widgets.push_back(knob({cx(2) - 50, 582, 100, 100}, Release, "RELEASE"));
     L.widgets.push_back(knob({cx(3) - 50, 582, 100, 100}, Makeup, "MAKEUP", "0", "+20"));
     L.widgets.push_back(knob({cx(4) - 50, 582, 100, 100}, Mix, "MIX", "DRY", "WET"));
     L.widgets.push_back(knob({cx(5) - 43, 589, 86, 86}, Output, "OUTPUT", "", "", true));
     seatKnobs(L, firstKnob, 14);
     for (const Widget& w : L.widgets)
         if (w.kind == WKind::ChoiceButton) L.recesses.push_back({w.r.inset(-4), 10, 4, false, false});
-    L.grooves.push_back({410, 540, 1636, 540});
+    L.grooves.push_back({410, 524, 1636, 524});
     Widget byp;
     byp.kind = WKind::Bypass;
     byp.r = {160, 640, 90, 90};

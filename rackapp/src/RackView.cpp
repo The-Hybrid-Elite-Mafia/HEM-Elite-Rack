@@ -253,8 +253,16 @@ void RackView::drawBack(Renderer& r, const RackViewState& s, const Hit& hv) cons
         r.text(ss, clip(r, ss, sv.suite, 152), row.x + 46, row.y + 74, sv.on ? kTh.teal : kTh.dim, Align::Left, sv.on ? TextFx::NeonCrisp : TextFx::Shadowed);
         button(r, slotOn(i), sv.on ? "ON" : "OFF", sv.on, hv.action == Action::SlotOn && hv.index == i);
         button(r, slotDel(i), "DEL", false, hv.action == Action::SlotRemove && hv.index == i);
-        button(r, slotUp(i), "UP", false, hv.action == Action::SlotUp && hv.index == i, i == 0);
-        button(r, slotDown(i), "DOWN", false, hv.action == Action::SlotDown && hv.index == i, i == 7);
+        // UP / DOWN: arrows (no word fits these little buttons at every window size)
+        for (int k = 0; k < 2; ++k) {
+            const Rect b = k == 0 ? slotUp(i) : slotDown(i);
+            const bool hot = hv.index == i && hv.action == (k == 0 ? Action::SlotUp : Action::SlotDown);
+            const bool dim = k == 0 ? i == 0 : i == 7;
+            button(r, b, "", false, hot, dim);
+            const float sz = b.h * 0.62f;
+            r.spriteRotated(k == 0 ? Sprite::IconPrev : Sprite::IconNext, b.cx(), b.cy(), sz, sz, kPi * 0.5f,
+                            dim ? kTh.dim : hot ? kTh.silver : kTh.teal, Blend::Over, !dim);
+        }
     }
     button(r, kAdd, "+  ADD PLUG-IN", false, hv.action == Action::AddOpen && hv.index < 0);
 
