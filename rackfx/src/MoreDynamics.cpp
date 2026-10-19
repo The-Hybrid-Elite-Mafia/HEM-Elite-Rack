@@ -521,7 +521,7 @@ public:
                 const double in = io[c][i];
                 // LR4 split at f1, the upper part split again at f2; the low band goes through the
                 // f2 all-pass so all three line up in phase and add back to a flat response
-                const double lo = x[1].tick(x[0].tick(in)), up = x[3].tick(x[2].tick(in));
+                const float lo = static_cast<float>(x[1].tick(x[0].tick(in))), up = static_cast<float>(x[3].tick(x[2].tick(in)));
                 band[c][0] = static_cast<float>(x[8].tick(lo));
                 band[c][1] = static_cast<float>(x[5].tick(x[4].tick(up)));
                 band[c][2] = static_cast<float>(x[7].tick(x[6].tick(up)));

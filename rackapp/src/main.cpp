@@ -516,9 +516,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
             }
             a.addPlugin("VELVET", 2);
             if (auto* e = a.rack().effect(2)) {
-                using namespace rack::console;
-                e->set(HpfOn, 1); e->set(HpfHz, 60); e->set(LfGain, 3); e->set(LfHz, 90); e->set(LmfGain, -4); e->set(LmfHz, 350);
-                e->set(LmfQ, 1.4f); e->set(HmfGain, 2.5f); e->set(HmfHz, 3500); e->set(HfGain, 4); e->set(HfHz, 10000); e->set(Curve, 1);
+                using namespace rack::tubeeq;
+                e->set(LowBoost, 4); e->set(LowAtten, 2); e->set(HighBoost, 3); e->set(Bandwidth, 6);
             }
             a.addPlugin("THE FAMILY", 3);
             if (auto* e = a.rack().effect(3)) { e->set(rack::glue::Threshold, -22); e->set(rack::glue::Makeup, 2); }
