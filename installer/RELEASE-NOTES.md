@@ -1,3 +1,10 @@
+# HEM-Elite-Rack 0.1.1
+
+**Fixed (looks only, the sound is unchanged):** labels that ran into each other on the rack
+screen and on ELITE EQ — slot names under the UP / DOWN buttons, DYNAMIC over THRESHOLD, the
+cut-off "12 dB" graph button, the crowded A / B and MATCH LOUDNESS buttons, the meter line.
+Text that is still too long for its spot now ends in "..." instead of running over.
+
 # HEM-Elite-Rack 0.1.0 — first release
 
 Hybrid Elite Mafia's plug-in rack: load a song, stack HEM plug-ins, hear them live, compare

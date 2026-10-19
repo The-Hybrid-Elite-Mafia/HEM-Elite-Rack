@@ -34,10 +34,10 @@ constexpr Rect kTop{0, 0, RackView::kW, 86};
 constexpr Rect kOpen{980, 18, 220, 52}, kExport{1214, 18, 220, 52}, kDevice{1448, 18, 516, 52};
 constexpr Rect kTransport{16, 96, 1968, 150};
 constexpr Rect kPlay{36, 116, 110, 110}, kStop{160, 128, 86, 86};
-constexpr Rect kSongLine{268, 108, 1022, 34}, kOverview{268, 150, 1022, 76};
-constexpr Rect kA{1310, 116, 170, 52}, kB{1310, 174, 170, 52};
-constexpr Rect kMatch{1492, 116, 200, 52}, kLoop{1492, 174, 200, 52};
-constexpr Rect kMeter{1706, 112, 262, 118};
+constexpr Rect kSongLine{268, 108, 912, 34}, kOverview{268, 150, 912, 76};
+constexpr Rect kA{1196, 116, 204, 52}, kB{1196, 174, 204, 52};
+constexpr Rect kMatch{1410, 116, 236, 52}, kLoop{1410, 174, 236, 52};
+constexpr Rect kMeter{1656, 112, 312, 118};
 constexpr Rect kChain{16, 262, 388, 950};
 constexpr float kRow0 = 330, kRowPitch = 98, kRowH = 90;
 constexpr Rect kAdd{32, 1124, 356, 72};
@@ -61,6 +61,14 @@ TextStyle fit(const Renderer& r, TextStyle base, std::string_view t, float width
     for (int k = 0; k < 7; ++k) if (ladder[k] == base) i = k;
     while (i > 0 && r.textWidth(ladder[i], t) > width) --i;
     return ladder[i];
+}
+
+// The text itself, shortened with "..." when even the smallest style is too wide.
+std::string clip(const Renderer& r, TextStyle s, std::string t, float width) {
+    if (r.textWidth(s, t) <= width) return t;
+    while (t.size() > 1 && r.textWidth(s, t + "...") > width) t.pop_back();
+    while (!t.empty() && t.back() == ' ') t.pop_back();
+    return t + "...";
 }
 
 std::string clock(double s) {
@@ -117,6 +125,8 @@ Hit RackView::hit(float x, float y, const RackViewState& s) const noexcept {
 
 void RackView::button(Renderer& r, Rect b, std::string_view text, bool lit, bool hot, bool dim) const {
     const TextStyle s = fit(r, TextStyle::Label, text, b.w - 16);
+    const std::string shown = clip(r, s, std::string(text), b.w - 16);
+    text = shown;
     if (lit && !dim) {
         r.glow(b.inset(4), 9, 12.0f, kTh.teal.withAlpha(0.35f), true);
         r.fillRound(b.inset(2), 9, kTh.teal.withAlpha(0.92f), Blend::Over, false);
@@ -170,7 +180,7 @@ void RackView::drawBack(Renderer& r, const RackViewState& s, const Hit& hv) cons
         const std::string time = s.songName.empty() ? std::string() : clock(s.position) + " / " + clock(s.length);
         const float timeW = time.empty() ? 0.0f : r.textWidth(TextStyle::Title, time) + 30;
         const TextStyle ns = fit(r, TextStyle::Title, name, kSongLine.w - timeW);
-        r.text(ns, name, kSongLine.x, kSongLine.bottom() - 6, s.songName.empty() ? kTh.label : kTh.silver, Align::Left, TextFx::Shadowed);
+        r.text(ns, clip(r, ns, name, kSongLine.w - timeW), kSongLine.x, kSongLine.bottom() - 6, s.songName.empty() ? kTh.label : kTh.silver, Align::Left, TextFx::Shadowed);
         if (!time.empty()) r.text(TextStyle::Title, time, kSongLine.right(), kSongLine.bottom() - 6, kTh.teal, Align::Right, TextFx::NeonCrisp);
         const Rect o = kOverview;
         r.fillRound(o, 8, kGlass, Blend::Over);
@@ -215,8 +225,8 @@ void RackView::drawBack(Renderer& r, const RackViewState& s, const Hit& hv) cons
         r.text(TextStyle::Value, b, m.x + 34, m.y + 82, kTh.teal, Align::Left, TextFx::NeonCrisp);
         if (s.match) std::snprintf(b, sizeof b, "B MATCHED %+.1f dB  -  DELAY %.0f ms", s.matchDb, s.latencyMs);
         else std::snprintf(b, sizeof b, "B NOT MATCHED  -  DELAY %.0f ms", s.latencyMs);
-        const TextStyle cs = fit(r, TextStyle::Caption, b, m.w - 34);
-        r.text(cs, b, m.x + 34, m.y + 110, kTh.label, Align::Left, TextFx::Shadowed);
+        const TextStyle cs = fit(r, TextStyle::Caption, b, m.w - 40);
+        r.text(cs, clip(r, cs, b, m.w - 40), m.x + 34, m.y + 110, kTh.label, Align::Left, TextFx::Shadowed);
     }
 
     // Chain.
@@ -236,10 +246,10 @@ void RackView::drawBack(Renderer& r, const RackViewState& s, const Hit& hv) cons
                    TextFx::Shadowed);
             continue;
         }
-        const TextStyle ns = fit(r, TextStyle::Title, sv.name, 170);
-        r.text(ns, sv.name, row.x + 46, row.y + 42, sv.on ? kTh.silver : kTh.dim, Align::Left, TextFx::Shadowed);
-        const TextStyle ss = fit(r, TextStyle::Caption, sv.suite, 170);
-        r.text(ss, sv.suite, row.x + 46, row.y + 74, sv.on ? kTh.teal : kTh.dim, Align::Left, sv.on ? TextFx::NeonCrisp : TextFx::Shadowed);
+        const TextStyle ns = fit(r, TextStyle::Title, sv.name, 166);
+        r.text(ns, clip(r, ns, sv.name, 166), row.x + 46, row.y + 42, sv.on ? kTh.silver : kTh.dim, Align::Left, TextFx::Shadowed);
+        const TextStyle ss = fit(r, TextStyle::Caption, sv.suite, 166);
+        r.text(ss, clip(r, ss, sv.suite, 166), row.x + 46, row.y + 74, sv.on ? kTh.teal : kTh.dim, Align::Left, sv.on ? TextFx::NeonCrisp : TextFx::Shadowed);
         button(r, slotOn(i), sv.on ? "ON" : "OFF", sv.on, hv.action == Action::SlotOn && hv.index == i);
         button(r, slotDel(i), "DEL", false, hv.action == Action::SlotRemove && hv.index == i);
         button(r, slotUp(i), "UP", false, hv.action == Action::SlotUp && hv.index == i, i == 0);
@@ -270,8 +280,8 @@ void RackView::drawBack(Renderer& r, const RackViewState& s, const Hit& hv) cons
             r.text(TextStyle::Caption, b, right, kStatus.y + 24, kTh.dim, Align::Right, TextFx::Shadowed);
             right -= r.textWidth(TextStyle::Caption, b) + 30;
         }
-        const TextStyle st = fit(r, TextStyle::Caption, s.status, right - 20);
-        r.text(st, s.status, 20, kStatus.y + 24, c, Align::Left, TextFx::Shadowed);
+        const TextStyle st = fit(r, TextStyle::Caption, s.status, right - 40);
+        r.text(st, clip(r, st, s.status, right - 40), 20, kStatus.y + 24, c, Align::Left, TextFx::Shadowed);
     }
 }
 
@@ -293,7 +303,7 @@ void RackView::drawFront(Renderer& r, const RackViewState& s, const Hit& hv) con
                hot ? TextFx::Neon : TextFx::Shadowed);
         const std::string& blurb = s.pickerItems[static_cast<std::size_t>(i)].second;
         const TextStyle bs = fit(r, TextStyle::Label, blurb, it.w - 60);
-        r.text(bs, blurb, it.x + 30, it.y + 116, kTh.label, Align::Left, TextFx::Shadowed);
+        r.text(bs, clip(r, bs, blurb, it.w - 60), it.x + 30, it.y + 116, kTh.label, Align::Left, TextFx::Shadowed);
     }
 }
 

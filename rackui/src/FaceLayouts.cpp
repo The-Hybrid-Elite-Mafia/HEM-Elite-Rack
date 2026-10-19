@@ -111,7 +111,7 @@ FaceLayout eliteEq(const rack::PluginInfo& info) {
         Widget b;
         b.kind = WKind::GraphRange;
         b.choice = i;
-        b.r = {L.display.right() - 20 - static_cast<float>(4 - i) * 62, L.display.y + 14, 56, 30};
+        b.r = {L.display.right() - 20 - static_cast<float>(4 - i) * 76, L.display.y + 14, 70, 30};
         L.widgets.push_back(b);
     }
     // Band selectors 1..16 under the graph.
@@ -137,13 +137,13 @@ FaceLayout eliteEq(const rack::PluginInfo& info) {
     bon.kind = WKind::Toggle;
     bon.control = On;
     bon.caption = "BAND";
-    bon.r = {500, 622, 150, 40};
+    bon.r = {500, 620, 150, 36};
     L.widgets.push_back(bon);
     L.recesses.push_back({bon.r.inset(-4), 9, 4, false, false});
-    stepper(672, TypeC, "TYPE");
-    stepper(722, StereoC, "STEREO");
-    stepper(772, Slope, "SLOPE");
-    const float ky = 668, kd = 86;
+    stepper(668, TypeC, "TYPE");
+    stepper(718, StereoC, "STEREO");
+    stepper(768, Slope, "SLOPE");
+    const float ky = 694, kd = 80;
     L.widgets.push_back(bandKnob({690, ky, kd, kd}, Freq, "FREQ"));
     L.widgets.push_back(bandKnob({805, ky, kd, kd}, Gain, "GAIN"));
     L.widgets.push_back(bandKnob({920, ky, kd, kd}, Q, "Q"));
@@ -151,7 +151,7 @@ FaceLayout eliteEq(const rack::PluginInfo& info) {
     dyn.kind = WKind::Toggle;
     dyn.control = Dyn;
     dyn.caption = "DYNAMIC";
-    dyn.r = {1050, 622, 200, 40};
+    dyn.r = {1050, 620, 220, 36};
     L.widgets.push_back(dyn);
     L.recesses.push_back({dyn.r.inset(-4), 10, 4, false, false});
     const float dynPitch = 146;
