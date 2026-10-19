@@ -1,0 +1,19 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 28, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "rack",
+      "displayName": "HEM-Elite-Rack — Windows x64 / MSVC, WASAPI + VST3, no ASIO",
+      "generator": "Visual Studio 17 2022",
+      "architecture": { "value": "x64", "strategy": "set" },
+      "toolset": { "value": "host=x64", "strategy": "set" },
+      "binaryDir": "${sourceDir}/build/rack",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "rack-release", "configurePreset": "rack", "configuration": "Release" },
+    { "name": "rack-debug", "configurePreset": "rack", "configuration": "Debug" }
+  ]
+}
