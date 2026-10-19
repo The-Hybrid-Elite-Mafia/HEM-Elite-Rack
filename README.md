@@ -26,7 +26,7 @@ cmake --preset rack
 cmake --build --preset rack-release
 ctest --test-dir build/rack -C Release
 ```
-CI (`.github/workflows/windows-build.yml`, manual run) builds, runs the tests and Steinberg's VST3
+CI (`.github/workflows/windows-build.yml`, started by hand from the Actions tab) builds, runs the tests and Steinberg's VST3
 validator, renders screenshots with software OpenGL, builds and verifies the installer and
 publishes the release.
 
