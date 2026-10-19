@@ -1,3 +1,21 @@
+# HEM-Elite-Rack 0.3.0
+
+**Five new plug-ins** — nine in all, in the rack and as VST3:
+- **TAPE** — a two-track tape machine: INPUT drive (highs saturate first, like real tape),
+  15 / 30 IPS, HEAD BUMP, WOW & FLUTTER, HISS, AUTO TRIM, a pair of VU meters.
+- **TUBE EQ** — a passive tube program EQ: LOW boost and atten (together: more weight at the bottom,
+  less mud above), HIGH boost with WIDTH, HIGH ATTENUATION, tube DRIVE. Its display shows the curve.
+- **VARI-MU** — a variable-mu tube compressor: the ratio grows the harder you push, six TIME
+  CONSTANTs (5 and 6 release by themselves), STEREO or MID / SIDE, TUBE, MAKEUP, MIX.
+- **OPTO** — an optical leveler: PEAK REDUCTION and GAIN, COMPRESS / LIMIT, a two-stage release
+  (fast, then slow), EMPHASIS for the highs, MIX.
+- **FET** — a fast FET limiting amplifier: INPUT / OUTPUT, ATTACK and RELEASE 1–7, RATIO 4 / 8 /
+  12 / 20 / ALL (all buttons in: aggressive and gritty), MIX.
+
+**Also:** the compressor needles show the real value from the first moment (they used to swing in
+from zero); BUS GLUE's meter title no longer touches the needle; the plug-in picker shows nine in
+two columns.
+
 # HEM-Elite-Rack 0.2.1
 
 **Looks only (the sound is unchanged):** CONSOLE EQ's section names no longer sit on the GAIN

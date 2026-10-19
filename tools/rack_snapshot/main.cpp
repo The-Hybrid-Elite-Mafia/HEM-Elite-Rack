@@ -5,6 +5,9 @@
 // Exit 3 when a faceplate fails to open or comes out blank.
 #include "hem/rack/BusGlue.hpp"
 #include "hem/rack/ConsoleEq.hpp"
+#include "hem/rack/Dynamics.hpp"
+#include "hem/rack/Tape.hpp"
+#include "hem/rack/TubeEq.hpp"
 #include "hem/rack/EliteEq.hpp"
 #include "hem/rack/Plugins.hpp"
 #include "hem/rack/Restorer.hpp"
@@ -117,6 +120,18 @@ int main(int argc, char** argv) {
         } else if (info.face == hem::rack::Face::BusGlue) {     // 4:1, 3 ms, AUTO, working a few dB
             using namespace hem::rack::glue;
             fx->set(Threshold, -18); fx->set(ScHpf, 2); fx->set(Makeup, 2);
+        } else if (info.face == hem::rack::Face::Tape) {
+            using namespace hem::rack::tape;
+            fx->set(Input, 6); fx->set(Bump, 60); fx->set(Wow, 15);
+        } else if (info.face == hem::rack::Face::TubeEq) {
+            using namespace hem::rack::tubeeq;
+            fx->set(LowBoost, 6); fx->set(LowAtten, 4); fx->set(HighBoost, 5); fx->set(Bandwidth, 4); fx->set(HighAtten, 2); fx->set(Drive, 30);
+        } else if (info.face == hem::rack::Face::VariMu) {
+            fx->set(hem::rack::varimu::Threshold, -26);
+        } else if (info.face == hem::rack::Face::Opto) {
+            fx->set(hem::rack::opto::PeakReduction, 60); fx->set(hem::rack::opto::Gain, 4);
+        } else if (info.face == hem::rack::Face::Fet) {
+            fx->set(hem::rack::fet::Input, 24);
         } else {
             fx->set(hem::rack::restorer::Reduction, 6.0f);
         }

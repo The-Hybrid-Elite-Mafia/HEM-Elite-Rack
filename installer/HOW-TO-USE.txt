@@ -3,7 +3,7 @@ HEM-ELITE-RACK — HOW TO USE
 1. Start HEM-Elite-Rack (desktop shortcut).
 2. OPEN SONG (top) — or drag a WAV / MP3 / FLAC onto the window.
    Songs at other sample rates are converted to 48 kHz when they load.
-3. + ADD PLUG-IN (left) — pick ELITE EQ, RESTORER, CONSOLE EQ or BUS GLUE. Up to 8 plug-ins, top to bottom.
+3. + ADD PLUG-IN (left) — pick any of the nine plug-ins. Up to 8 plug-ins, top to bottom.
    Each slot: ON / OFF, UP / DOWN (order), DEL (remove). Click a slot to show its faceplate.
 4. PLAY (or the SPACE bar). Click the song strip to jump; LEFT / RIGHT arrows jump 5 s.
 5. A PROCESSED / B ORIGINAL (or the A and B keys) — compare with and without the chain.
@@ -37,13 +37,36 @@ BUS GLUE
   MIX (lower it for parallel compression), SIDECHAIN HPF (60 / 90 / 150 Hz: the kick and bass
   stop making the whole mix duck).
 
+TAPE
+  INPUT drives the tape (AUTO TRIM keeps the level the same, so you hear the colour, not the
+  volume). SPEED 15 IPS = more low-end bump and a softer top, 30 IPS = tighter and brighter.
+  HEAD BUMP, WOW (pitch drift), HISS. The VU meters read 0 at -18 dBFS.
+
+TUBE EQ
+  LOW: pick a frequency, BOOST and/or ATTEN. Both together = the classic trick: more weight at
+  the very bottom and less mud just above. HIGH: frequency, BOOST, WIDTH (sharp .. broad).
+  HIGH ATTENUATION: SELECT 5 / 10 / 20 kHz and ATTEN to soften the top. TUBE: DRIVE, OUTPUT.
+
+VARI-MU
+  THRESHOLD and INPUT set how hard it works; the ratio grows by itself the harder you push.
+  TIME CONSTANT 1-6 (5 and 6 release by themselves). MODE: STEREO or MID / SIDE (the middle and
+  the sides compressed separately). TUBE, MAKEUP, MIX.
+
+OPTO
+  PEAK REDUCTION = how much, GAIN = how loud. COMPRESS or LIMIT. EMPHASIS makes it react more
+  to the highs (esses, cymbals). Lets go quickly at first, then slowly - very smooth.
+
+FET
+  Turn INPUT up for more compression, OUTPUT down to match. ATTACK and RELEASE: 7 is fastest.
+  RATIO 4, 8, 12, 20 or ALL (all buttons in: aggressive and gritty).
+
 Knobs: drag up / down (hold Shift for fine), mouse wheel, double-click = back to default.
 
 OUTPUT (top right) picks the sound card. HEM-Elite-Rack uses it in exclusive mode
 (lowest latency) — other programs go quiet while it plays.
 
 Your chain, output and folders are remembered in %APPDATA%\HEM-Elite-Rack.
-The VST3 plug-ins (HEM ELITE EQ, HEM RESTORER, HEM CONSOLE EQ, HEM BUS GLUE) are in Common Files\VST3\HEM-Elite-Rack.vst3
+The VST3 plug-ins (all nine, named HEM ...) are in Common Files\VST3\HEM-Elite-Rack.vst3
 for any DAW that loads VST3.
 
 Needs: Windows 10 / 11 64-bit, a processor with AVX2 (Intel 2013+, AMD 2015+), OpenGL 3.3.

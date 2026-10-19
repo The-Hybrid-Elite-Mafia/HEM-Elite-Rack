@@ -12,6 +12,11 @@ C++23 audio framework, as a library.
 | **RESTORER** | Adaptive hiss and noise reduction that keeps the air and the attacks |
 | **CONSOLE EQ** | Big-console channel EQ: HPF / LPF, LF, LMF, HMF, HF; classic or modern curves; drive |
 | **BUS GLUE** | Console-style mix-bus compressor: 2 / 4 / 10:1, stepped attack and release (+ AUTO), sidechain HPF, mix |
+| **TAPE** | Two-track tape machine: input drive, 15 / 30 IPS, head bump, wow & flutter, hiss, auto trim, VU meters |
+| **TUBE EQ** | Passive tube program EQ: low boost / atten (the low-end trick), high boost with bandwidth, high atten, tube drive |
+| **VARI-MU** | Variable-mu tube compressor: ratio grows with level, six time constants, stereo or mid / side, tube |
+| **OPTO** | Optical leveler: peak reduction and gain, compress / limit, two-stage release, sidechain emphasis |
+| **FET** | Fast FET limiting amplifier: input / output, attack and release 1–7, ratios 4 / 8 / 12 / 20 / ALL |
 
 Our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 

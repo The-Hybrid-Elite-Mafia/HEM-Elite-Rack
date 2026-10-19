@@ -24,6 +24,11 @@ int main(int argc, char** argv) {
     testRestorer();
     testConsoleEq();
     testBusGlue();
+    testTape();
+    testTubeEq();
+    testVariMu();
+    testOpto();
+    testFet();
     testFaces();
     testChain();
     testRackSession();

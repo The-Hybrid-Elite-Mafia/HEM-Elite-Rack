@@ -14,6 +14,9 @@
 // =============================================================================
 #include "hem/rack/BusGlue.hpp"
 #include "hem/rack/ConsoleEq.hpp"
+#include "hem/rack/Dynamics.hpp"
+#include "hem/rack/Tape.hpp"
+#include "hem/rack/TubeEq.hpp"
 #include "hem/rack/EliteEq.hpp"
 #include "hem/rack/Plugins.hpp"
 #include "hem/rack/Restorer.hpp"
@@ -66,6 +69,7 @@ public:
     [[nodiscard]] virtual float dynamicGainDb(int) const { return 0.0f; }
     [[nodiscard]] virtual float autoGainDb() const { return 0.0f; }
     [[nodiscard]] virtual float reductionDb() const { return 0.0f; }    // compressors: gain reduction now (<= 0)
+    [[nodiscard]] virtual float meterDb(int) const { return -100.0f; }  // the effect's own meters (TAPE: VU L / R)
     [[nodiscard]] virtual double sampleRate() const { return 48000.0; }
 };
 
@@ -83,6 +87,7 @@ public:
     float dynamicGainDb(int band) const override;
     float autoGainDb() const override;
     float reductionDb() const override { return fx_->reductionDb(); }
+    float meterDb(int i) const override { return fx_->meter(i); }
     double sampleRate() const override { return rate_; }
     void setSampleRate(double fs) noexcept { rate_ = fs; }
 
@@ -107,7 +112,8 @@ enum class WKind : std::uint8_t {
     GraphRange,    // ELITE EQ: ±3 / ±6 / ±12 / ±30 dB buttons (choice = index)
     BandButton,    // ELITE EQ: band 1..16 selector (choice = band)
     CurveDisplay,  // CONSOLE EQ: spectrum + the EQ's curve (display only)
-    GrMeter,       // BUS GLUE: gain-reduction needle (display only)
+    GrMeter,       // compressors: gain-reduction needle (display only)
+    VuMeter,       // TAPE: VU needle for meter `choice` (display only)
 };
 
 struct Widget {
@@ -223,6 +229,7 @@ private:
     void eqGraph(const Ctx& c, const Widget& w) const;
     void consoleCurve(const Ctx& c, const Widget& w) const;
     void grMeter(const Ctx& c, const Widget& w) const;
+    void vuMeter(const Ctx& c, const Widget& w) const;
     void spectrumBehind(const Ctx& c, Rect plot, float alpha) const;
     void grid(const Ctx& c, Rect plot, float dbTop, float dbBottom, float dbStep, bool signedLabels) const;
     [[nodiscard]] float plain(const PanelHost& host, int param) const;
@@ -230,7 +237,8 @@ private:
     const FaceLayout& L_;
     ParamTable        params_;
     Theme             th_;
-    mutable float     needle_ = 0.0f;   // the GR needle's position (it swings, it doesn't jump)
+    mutable float     needle_ = 1.0f;   // the GR needle's position (it swings, it doesn't jump); > 0 = not drawn yet
+    mutable float     vu_[2] = {100.0f, 100.0f};   // VU needles; 100 = not drawn yet
 };
 
 // Plot rectangle inside an EQ graph or spectrum widget (plate units), shared by view and controller.

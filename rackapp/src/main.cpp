@@ -71,11 +71,11 @@ fs::path musicDir() {
     return out;
 }
 
-// Command line (CI and support): --exit-after <s> --screenshot <png> --device offline --demo --select <slot 1..8> [song]
+// Command line (CI and support): --exit-after <s> --screenshot <png> --device offline --demo | --demo2 --select <slot 1..8> [song]
 struct Options {
     double   exitAfter = 0.0;
     fs::path screenshot, song;
-    bool     offline = false, demo = false;
+    bool     offline = false, demo = false, demo2 = false;   // --demo2: the vintage chain (TAPE .. FET)
     int      select = 0;
 };
 Options parseOptions() {
@@ -88,6 +88,7 @@ Options parseOptions() {
         else if (k == L"--screenshot" && i + 1 < argc) o.screenshot = argv[++i];
         else if (k == L"--device" && i + 1 < argc) o.offline = std::wstring(argv[++i]) == L"offline";
         else if (k == L"--demo") o.demo = true;
+        else if (k == L"--demo2") o.demo = o.demo2 = true;
         else if (k == L"--select" && i + 1 < argc) o.select = static_cast<int>(std::wcstol(argv[++i], nullptr, 10));
         else if (!k.empty() && k[0] != L'-') o.song = k;
     }
@@ -478,34 +479,47 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     if (opts.demo) {   // CI / showing it off: a made-up song and a chain with something to look at
         a.setSong(demoSong(), {}, "made-up test audio - 20 s");
         a.overview = makeOverview(a.rack().song()->left, a.rack().song()->right);
-        a.addPlugin("RESTORER", 0);
-        if (auto* e = a.rack().effect(0)) e->set(rack::restorer::Reduction, 6.0f);
-        a.addPlugin("ELITE EQ", 1);
-        if (auto* e = a.rack().effect(1)) {
-            using namespace rack::eq;
-            const struct { int t; float f, g, q; int st; } bands[] = {{static_cast<int>(Type::LowCut), 28, 0, 0.71f, 0},
-                                                                      {static_cast<int>(Type::Bell), 220, -3.5f, 1.4f, 0},
-                                                                      {static_cast<int>(Type::Bell), 3200, 2.5f, 0.9f, 1},
-                                                                      {static_cast<int>(Type::HighShelf), 11000, 3.0f, 0.71f, 2}};
-            for (int b = 0; b < 4; ++b) {
-                e->set(bandParam(b, On), 1);
-                e->set(bandParam(b, TypeC), static_cast<float>(bands[b].t));
-                e->set(bandParam(b, Freq), bands[b].f);
-                e->set(bandParam(b, Gain), bands[b].g);
-                e->set(bandParam(b, Q), bands[b].q);
-                e->set(bandParam(b, StereoC), static_cast<float>(bands[b].st));
+        if (opts.demo2) {   // the vintage chain: tape, tube EQ, three compressors
+            a.addPlugin("TAPE", 0);
+            if (auto* e = a.rack().effect(0)) { e->set(rack::tape::Input, 6); e->set(rack::tape::Wow, 15); }
+            a.addPlugin("TUBE EQ", 1);
+            if (auto* e = a.rack().effect(1)) { e->set(rack::tubeeq::LowBoost, 6); e->set(rack::tubeeq::LowAtten, 4); e->set(rack::tubeeq::HighBoost, 4); }
+            a.addPlugin("VARI-MU", 2);
+            if (auto* e = a.rack().effect(2)) e->set(rack::varimu::Threshold, -26);
+            a.addPlugin("OPTO", 3);
+            if (auto* e = a.rack().effect(3)) e->set(rack::opto::PeakReduction, 55);
+            a.addPlugin("FET", 4);
+            if (auto* e = a.rack().effect(4)) { e->set(rack::fet::Input, 20); e->set(rack::fet::Output, -10); }
+        } else {
+            a.addPlugin("RESTORER", 0);
+            if (auto* e = a.rack().effect(0)) e->set(rack::restorer::Reduction, 6.0f);
+            a.addPlugin("ELITE EQ", 1);
+            if (auto* e = a.rack().effect(1)) {
+                using namespace rack::eq;
+                const struct { int t; float f, g, q; int st; } bands[] = {{static_cast<int>(Type::LowCut), 28, 0, 0.71f, 0},
+                                                                          {static_cast<int>(Type::Bell), 220, -3.5f, 1.4f, 0},
+                                                                          {static_cast<int>(Type::Bell), 3200, 2.5f, 0.9f, 1},
+                                                                          {static_cast<int>(Type::HighShelf), 11000, 3.0f, 0.71f, 2}};
+                for (int b = 0; b < 4; ++b) {
+                    e->set(bandParam(b, On), 1);
+                    e->set(bandParam(b, TypeC), static_cast<float>(bands[b].t));
+                    e->set(bandParam(b, Freq), bands[b].f);
+                    e->set(bandParam(b, Gain), bands[b].g);
+                    e->set(bandParam(b, Q), bands[b].q);
+                    e->set(bandParam(b, StereoC), static_cast<float>(bands[b].st));
+                }
+                e->set(bandParam(1, Dyn), 1);
+                e->set(bandParam(1, Threshold), -30);
             }
-            e->set(bandParam(1, Dyn), 1);
-            e->set(bandParam(1, Threshold), -30);
+            a.addPlugin("CONSOLE EQ", 2);
+            if (auto* e = a.rack().effect(2)) {
+                using namespace rack::console;
+                e->set(HpfOn, 1); e->set(HpfHz, 60); e->set(LfGain, 3); e->set(LfHz, 90); e->set(LmfGain, -4); e->set(LmfHz, 350);
+                e->set(LmfQ, 1.4f); e->set(HmfGain, 2.5f); e->set(HmfHz, 3500); e->set(HfGain, 4); e->set(HfHz, 10000); e->set(Curve, 1);
+            }
+            a.addPlugin("BUS GLUE", 3);
+            if (auto* e = a.rack().effect(3)) { e->set(rack::glue::Threshold, -22); e->set(rack::glue::Makeup, 2); }
         }
-        a.addPlugin("CONSOLE EQ", 2);
-        if (auto* e = a.rack().effect(2)) {
-            using namespace rack::console;
-            e->set(HpfOn, 1); e->set(HpfHz, 60); e->set(LfGain, 3); e->set(LfHz, 90); e->set(LmfGain, -4); e->set(LmfHz, 350);
-            e->set(LmfQ, 1.4f); e->set(HmfGain, 2.5f); e->set(HmfHz, 3500); e->set(HfGain, 4); e->set(HfHz, 10000); e->set(Curve, 1);
-        }
-        a.addPlugin("BUS GLUE", 3);
-        if (auto* e = a.rack().effect(3)) { e->set(rack::glue::Threshold, -22); e->set(rack::glue::Makeup, 2); }
         a.select(std::clamp(opts.select > 0 ? opts.select - 1 : 1, 0, kMaxSlots - 1));
     } else {
         a.restoreChain(a.settings.sectionText("chain"));

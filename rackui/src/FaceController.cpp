@@ -196,7 +196,8 @@ void FaceController::mouseDown(float x, float y, bool doubleClick, bool fine) {
         return;
     case WKind::Spectrum:
     case WKind::CurveDisplay:
-    case WKind::GrMeter: return;
+    case WKind::GrMeter:
+    case WKind::VuMeter: return;
     }
 }
 

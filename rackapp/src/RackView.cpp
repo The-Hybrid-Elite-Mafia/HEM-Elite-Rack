@@ -49,8 +49,13 @@ Rect slotDel(int i) { const Rect r = slotRow(i); return {r.x + 282, r.y + 8, 72,
 Rect slotUp(int i) { const Rect r = slotRow(i); return {r.x + 206, r.y + 48, 72, 34}; }
 Rect slotDown(int i) { const Rect r = slotRow(i); return {r.x + 282, r.y + 48, 72, 34}; }
 
-Rect pickerPanel() { return RackView::faceArea().inset(150, 120); }
-Rect pickerItem(int i) { const Rect p = pickerPanel(); return {p.x + 40, p.y + 110 + static_cast<float>(i) * 140, p.w - 80, 124}; }
+Rect pickerPanel() { return RackView::faceArea().inset(80, 40); }
+// Two columns of cards, top to bottom then left to right.
+Rect pickerItem(int i) {
+    const Rect p = pickerPanel();
+    const float w = (p.w - 100) * 0.5f;
+    return {p.x + 40 + static_cast<float>(i / 5) * (w + 20), p.y + 110 + static_cast<float>(i % 5) * 136, w, 124};
+}
 Rect pickerClose() { const Rect p = pickerPanel(); return {p.right() - 200, p.y + 30, 160, 50}; }
 
 float mid(const Renderer& r, Rect a, TextStyle s) { return a.cy() + r.capHeight(s) * 0.5f; }

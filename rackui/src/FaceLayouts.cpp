@@ -2,6 +2,9 @@
 
 #include "hem/rack/BusGlue.hpp"
 #include "hem/rack/ConsoleEq.hpp"
+#include "hem/rack/Dynamics.hpp"
+#include "hem/rack/Tape.hpp"
+#include "hem/rack/TubeEq.hpp"
 #include "hem/rack/EliteEq.hpp"
 #include "hem/rack/Restorer.hpp"
 
@@ -301,6 +304,165 @@ FaceLayout busGlue(const rack::PluginInfo& info) {
     return L;
 }
 
+void bypassAt(FaceLayout& L, Rect r, std::string caption = "ON / BYPASS") {
+    Widget byp;
+    byp.kind = WKind::Bypass;
+    byp.r = r;
+    byp.caption = std::move(caption);
+    L.widgets.push_back(byp);
+    L.recesses.push_back({byp.r.inset(-10), byp.r.w * 0.5f + 10, 4, true, false});
+}
+void buttonSeats(FaceLayout& L) {
+    for (const Widget& w : L.widgets)
+        if (w.kind == WKind::ChoiceButton || w.kind == WKind::Toggle) L.recesses.push_back({w.r.inset(-4), 10, 4, false, false});
+}
+// A row of knobs across under the display: {param, caption, size, lo, hi, small}
+struct KnobSpec { int param; const char* caption; float size; const char* lo; const char* hi; bool small; };
+void knobRow(FaceLayout& L, std::initializer_list<KnobSpec> ks, float topY) {
+    const float pitch = 1226.0f / static_cast<float>(ks.size());
+    const std::size_t first = L.widgets.size();
+    int i = 0;
+    for (const KnobSpec& k : ks) {
+        const float cx = 410 + (static_cast<float>(i++) + 0.5f) * pitch;
+        const float y = topY + (128.0f - k.size) * 0.5f;
+        L.widgets.push_back(knob({cx - k.size * 0.5f, y, k.size, k.size}, k.param, k.caption, k.lo, k.hi, k.small));
+    }
+    seatKnobs(L, first, 14);
+}
+// The compressors: needle display on the left, buttons on the right, knobs underneath.
+void needleDisplay(FaceLayout& L) {
+    L.display = {410, 182, 700, 330};
+    L.recesses.push_back({L.display, 14, 9, false, true});
+    Widget gr;
+    gr.kind = WKind::GrMeter;
+    gr.r = L.display;
+    L.widgets.push_back(gr);
+    L.grooves.push_back({410, 524, 1636, 524});
+}
+void buttonRow(FaceLayout& L, const char* caption, float y, int param, int count) {
+    L.sections.push_back({{1150, y - 40, 486, 30}, caption});
+    const float w = (486.0f - 6.0f * static_cast<float>(count - 1)) / static_cast<float>(count);
+    for (int i = 0; i < count; ++i) L.widgets.push_back(choiceButton({1150 + static_cast<float>(i) * (w + 6.0f), y, w, 44}, param, i));
+}
+
+FaceLayout tape(const rack::PluginInfo& info) {
+    using namespace rack::tape;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"RUN IT TO TAPE", "WARMTH AND GLUE"};
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 182, 1226, 310};
+    for (int ch = 0; ch < 2; ++ch) {
+        Widget vu;
+        vu.kind = WKind::VuMeter;
+        vu.choice = ch;
+        vu.caption = ch == 0 ? "LEFT" : "RIGHT";
+        vu.r = {410 + static_cast<float>(ch) * 626, 182, 600, 310};
+        L.widgets.push_back(vu);
+        L.recesses.push_back({vu.r, 14, 9, false, true});
+    }
+    L.grooves.push_back({410, 524, 1636, 524});
+    knobRow(L, {{Input, "INPUT", 128, "-12", "+18", false}, {Bump, "HEAD BUMP", 100, "0", "100", false}, {Wow, "WOW", 100, "0", "100", false},
+                {Hiss, "HISS", 100, "0", "100", false}, {Output, "OUTPUT", 86, "", "", true}}, 568);
+    L.widgets.push_back(choiceButton({70, 434, 270, 40}, Speed, 0, "SPEED"));
+    L.widgets.push_back(choiceButton({70, 480, 270, 40}, Speed, 1));
+    L.widgets.push_back(toggle({70, 560, 270, 44}, AutoTrim, "AUTO TRIM"));
+    buttonSeats(L);
+    bypassAt(L, {160, 666, 90, 90});
+    return L;
+}
+
+FaceLayout tubeEq(const rack::PluginInfo& info) {
+    using namespace rack::tubeeq;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"BROAD AND MUSICAL", "BOOST AND ATTEN"};
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 182, 1226, 250};
+    L.recesses.push_back({L.display, 14, 9, false, true});
+    Widget curve;
+    curve.kind = WKind::CurveDisplay;
+    curve.r = L.display;
+    L.widgets.push_back(curve);
+    const float pitch = 1226.0f / 3.0f;
+    const char* names[3] = {"LOW FREQUENCY", "HIGH FREQUENCY", "HIGH ATTENUATION"};
+    for (int i = 0; i < 3; ++i) {
+        const float x0 = 410 + static_cast<float>(i) * pitch;
+        L.sections.push_back({{x0, 450, pitch, 30}, names[i]});
+        if (i > 0) L.grooves.push_back({x0, 460, x0, 808});
+    }
+    const std::size_t first = L.widgets.size();
+    auto cx = [&](int sec, int slot) { return 410 + static_cast<float>(sec) * pitch + pitch * (0.5f + 0.32f * static_cast<float>(slot - 1)); };
+    const float y = 540;
+    // LOW: frequency, boost, atten
+    L.widgets.push_back(knob({cx(0, 0) - 40, y + 14, 80, 80}, LowFreq, "FREQ", "20", "100", true));
+    L.widgets.push_back(knob({cx(0, 1) - 48, y + 6, 96, 96}, LowBoost, "BOOST", "0", "10"));
+    L.widgets.push_back(knob({cx(0, 2) - 48, y + 6, 96, 96}, LowAtten, "ATTEN", "0", "10"));
+    // HIGH: frequency, boost, bandwidth
+    L.widgets.push_back(knob({cx(1, 0) - 40, y + 14, 80, 80}, HighFreq, "FREQ", "3k", "16k", true));
+    L.widgets.push_back(knob({cx(1, 1) - 48, y + 6, 96, 96}, HighBoost, "BOOST", "0", "10"));
+    L.widgets.push_back(knob({cx(1, 2) - 40, y + 14, 80, 80}, Bandwidth, "WIDTH", "SHARP", "BROAD", true));
+    // HIGH ATTEN: select, atten
+    L.widgets.push_back(knob({cx(2, 0) - 40, y + 14, 80, 80}, AttenSel, "SELECT", "5k", "20k", true));
+    L.widgets.push_back(knob({cx(2, 1) - 48, y + 6, 96, 96}, HighAtten, "ATTEN", "0", "10"));
+    // left column: the tube
+    L.sections.push_back({{60, 400, 300, 30}, "TUBE"});
+    L.widgets.push_back(knob({92, 468, 86, 86}, Drive, "DRIVE", "", "", true));
+    L.widgets.push_back(knob({232, 468, 86, 86}, Output, "OUTPUT", "", "", true));
+    seatKnobs(L, first, 12);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
+FaceLayout variMu(const rack::PluginInfo& info) {
+    using namespace rack::varimu;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"SMOOTH TUBE GLUE", "MASTER BUS FAVORITE"};
+    L.title = {60, 190, 330, 110};
+    needleDisplay(L);
+    buttonRow(L, "TIME CONSTANT", 236, Time, 6);
+    buttonRow(L, "MODE", 356, Mode, 2);
+    L.sections.push_back({{1150, 436, 486, 30}, "5 AND 6 RELEASE BY THEMSELVES"});
+    knobRow(L, {{Input, "INPUT", 100, "-12", "+12", false}, {Threshold, "THRESHOLD", 128, "-40", "0", false}, {Tube, "TUBE", 100, "0", "100", false},
+                {Makeup, "MAKEUP", 100, "0", "+20", false}, {Mix, "MIX", 100, "DRY", "WET", false}}, 568);
+    buttonSeats(L);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
+FaceLayout optoFace(const rack::PluginInfo& info) {
+    using namespace rack::opto;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"TWO KNOBS", "SMOOTH AS LIGHT"};
+    L.title = {60, 190, 330, 110};
+    needleDisplay(L);
+    buttonRow(L, "MODE", 236, Mode, 2);
+    L.sections.push_back({{1150, 316, 486, 30}, "EMPHASIS: LISTEN TO THE HIGHS"});
+    knobRow(L, {{PeakReduction, "PEAK REDUCTION", 128, "0", "100", false}, {Gain, "GAIN", 128, "0", "+40", false},
+                {Emphasis, "EMPHASIS", 96, "FLAT", "HIGHS", false}, {Mix, "MIX", 96, "DRY", "WET", false}}, 568);
+    buttonSeats(L);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
+FaceLayout fetFace(const rack::PluginInfo& info) {
+    using namespace rack::fet;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"FAST AND PUNCHY", "ALL BUTTONS IN"};
+    L.title = {60, 190, 330, 110};
+    needleDisplay(L);
+    buttonRow(L, "RATIO", 236, Ratio, 5);
+    L.sections.push_back({{1150, 316, 486, 30}, "ATTACK AND RELEASE: 7 = FASTEST"});
+    knobRow(L, {{Input, "INPUT", 128, "0", "40", false}, {Output, "OUTPUT", 128, "-30", "+12", false}, {Attack, "ATTACK", 100, "1", "7", false},
+                {Release, "RELEASE", 100, "1", "7", false}, {Mix, "MIX", 90, "DRY", "WET", false}}, 568);
+    buttonSeats(L);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
 } // namespace
 
 FaceLayout faceLayout(const rack::PluginInfo& info) {
@@ -308,6 +470,11 @@ FaceLayout faceLayout(const rack::PluginInfo& info) {
     case rack::Face::EliteEq: return eliteEq(info);
     case rack::Face::ConsoleEq: return consoleEq(info);
     case rack::Face::BusGlue: return busGlue(info);
+    case rack::Face::Tape: return tape(info);
+    case rack::Face::TubeEq: return tubeEq(info);
+    case rack::Face::VariMu: return variMu(info);
+    case rack::Face::Opto: return optoFace(info);
+    case rack::Face::Fet: return fetFace(info);
     case rack::Face::Restorer: break;
     }
     return restorer(info);

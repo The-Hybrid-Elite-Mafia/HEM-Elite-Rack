@@ -1,5 +1,6 @@
 // =============================================================================
-//  HEM-Elite-Rack.vst3 — ELITE EQ, RESTORER, CONSOLE EQ and BUS GLUE as VST3 plug-ins (one bundle, one plug-in each),
+//  HEM-Elite-Rack.vst3 — every HEM-Elite-Rack plug-in (ELITE EQ, RESTORER, CONSOLE EQ, BUS GLUE, TAPE,
+//  TUBE EQ, VARI-MU, OPTO, FET) as VST3 plug-ins (one bundle, one plug-in each),
 //  with the same teal / gunmetal faceplates as the rack app (hem::ui::FaceWindow, OpenGL, inside
 //  the host's window).
 //
@@ -52,7 +53,8 @@ constexpr Vst::ParamID kBypassId   = 1000;
 constexpr Vst::ParamID kRateId     = 1001;   // sample rate / 384000 (the EQ curve is drawn for it)
 constexpr Vst::ParamID kAutoGainId = 1002;   // ELITE EQ auto gain, -24..24 dB
 constexpr Vst::ParamID kRemovedId  = 1003;   // RESTORER: dB taken out, -60..0
-constexpr Vst::ParamID kGrId       = 1004;   // BUS GLUE: gain reduction, -30..0 dB
+constexpr Vst::ParamID kGrId       = 1004;   // compressors: gain reduction, -30..0 dB
+constexpr Vst::ParamID kMeterBase  = 1500;   // + i: the effect's own meters (TAPE: VU L / R), in their MeterInfo range
 constexpr Vst::ParamID kDynBase    = 1100;   // + band: ELITE EQ dynamic gain, -30..30 dB
 constexpr Vst::ParamID kBeforeBase = 1200;   // + i: spectrum before (kSent bins)
 constexpr Vst::ParamID kAfterBase  = 1300;   // + i: spectrum after
@@ -63,6 +65,9 @@ static_assert(kSent <= 100);
 float dbToNorm(float db, float lo, float hi) { return std::clamp((db - lo) / (hi - lo), 0.0f, 1.0f); }
 float normToDb(double n, float lo, float hi) { return lo + static_cast<float>(n) * (hi - lo); }
 constexpr float kSpecLo = -120.0f, kSpecHi = 0.0f;
+bool isCompressor(rack::Face f) {
+    return f == rack::Face::BusGlue || f == rack::Face::VariMu || f == rack::Face::Opto || f == rack::Face::Fet;
+}
 
 // <bundle>/Contents/x86_64-win/<dll> -> <bundle>/Contents/Resources (fonts/, faceplates/, brand/).
 std::filesystem::path bundleResources() {
@@ -257,7 +262,10 @@ private:
                 send(c, kNoiseBase + static_cast<Vst::ParamID>(i), dbToNorm(0.5f * (noise_->noiseFloorDb(2 * i) + noise_->noiseFloorDb(2 * i + 1)), kSpecLo, kSpecHi));
             send(c, kRemovedId, dbToNorm(noise_->removedDb(), -60.0f, 0.0f));
         }
-        if (info_->face == rack::Face::BusGlue) send(c, kGrId, dbToNorm(fx_->reductionDb(), -30.0f, 0.0f));
+        if (isCompressor(info_->face)) send(c, kGrId, dbToNorm(fx_->reductionDb(), -30.0f, 0.0f));
+        const auto ms = fx_->meters();
+        for (std::size_t m = 0; m < ms.size(); ++m)
+            send(c, kMeterBase + static_cast<Vst::ParamID>(m), dbToNorm(fx_->meter(static_cast<int>(m)), ms[m].min, ms[m].max));
         if (eq_) {
             for (int b = 0; b < rack::eq::kBands; ++b) send(c, kDynBase + static_cast<Vst::ParamID>(b), dbToNorm(eq_->dynamicGainDb(b), -30.0f, 30.0f));
             send(c, kAutoGainId, dbToNorm(eq_->autoGainDb(), -24.0f, 24.0f));
@@ -355,8 +363,13 @@ private:
 // The faceplate's live data, from the processor's hidden output parameters.
 class ControllerFeed final : public ui::FaceFeed {
 public:
-    ControllerFeed(Vst::EditController& c, const rack::PluginInfo& info)
-        : c_(c), restorer_(info.face == rack::Face::Restorer), spectrum_(info.face != rack::Face::BusGlue) {}
+    ControllerFeed(Vst::EditController& c, const rack::PluginInfo& info, const hc::fx::Effect& fx)
+        : c_(c), fx_(fx), restorer_(info.face == rack::Face::Restorer), spectrum_(dynamic_cast<const rack::SpectrumSource*>(&fx) != nullptr) {}
+    float meterDb(int m) const override {
+        const auto ms = fx_.meters();
+        if (m < 0 || m >= static_cast<int>(ms.size())) return -100.0f;
+        return normToDb(c_.getParamNormalized(kMeterBase + static_cast<Vst::ParamID>(m)), ms[static_cast<std::size_t>(m)].min, ms[static_cast<std::size_t>(m)].max);
+    }
     bool hasSpectrum() const override { return spectrum_; }
     float reductionDb() const override { return normToDb(c_.getParamNormalized(kGrId), -30.0f, 0.0f); }
     float before(int b) const override { return bin(kBeforeBase, b); }
@@ -383,6 +396,7 @@ private:
         return a + (c - a) * f;
     }
     Vst::EditController& c_;
+    const hc::fx::Effect& fx_;
     bool restorer_, spectrum_;
 };
 
@@ -415,7 +429,7 @@ private:
 
 class Controller final : public Vst::EditController {
 public:
-    explicit Controller(const rack::PluginInfo* info) : info_(info), fx_(info->create()), host_(*this, *fx_), feed_(*this, *info) {}
+    explicit Controller(const rack::PluginInfo* info) : info_(info), fx_(info->create()), host_(*this, *fx_), feed_(*this, *info, *fx_) {}
     static FUnknown* createInstance(void* ctx) { return static_cast<Vst::IEditController*>(new Controller(static_cast<const rack::PluginInfo*>(ctx))); }
 
     tresult PLUGIN_API initialize(FUnknown* context) SMTG_OVERRIDE {
@@ -431,7 +445,7 @@ public:
         };
         // Only what this plug-in's faceplate shows.
         const rack::Face face = info_->face;
-        if (face != rack::Face::BusGlue)
+        if (dynamic_cast<rack::SpectrumSource*>(fx_.get()))
             for (int i = 0; i < kSent; ++i) {
                 addHidden("Display Before " + std::to_string(i + 1), kBeforeBase + static_cast<Vst::ParamID>(i), 0.0);
                 addHidden("Display After " + std::to_string(i + 1), kAfterBase + static_cast<Vst::ParamID>(i), 0.0);
@@ -442,9 +456,11 @@ public:
         } else if (face == rack::Face::EliteEq) {
             for (int b = 0; b < rack::eq::kBands; ++b) addHidden("Display Dynamic " + std::to_string(b + 1), kDynBase + static_cast<Vst::ParamID>(b), 0.5);
             addHidden("Display Auto Gain", kAutoGainId, 0.5);
-        } else if (face == rack::Face::BusGlue) {
-            addHidden("Display Gain Reduction", kGrId, 1.0);
         }
+        if (isCompressor(face)) addHidden("Display Gain Reduction", kGrId, 1.0);
+        const auto ms = fx_->meters();
+        for (std::size_t m = 0; m < ms.size(); ++m)
+            addHidden(std::string("Display Meter ") + ms[m].name, kMeterBase + static_cast<Vst::ParamID>(m), 0.0);
         return kResultOk;
     }
 

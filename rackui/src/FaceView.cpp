@@ -4,6 +4,7 @@
 #include "hybrid/ui/Parts.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdio>
 #include <numbers>
@@ -508,27 +509,30 @@ void FaceView::spectrumBehind(const Ctx& c, Rect plot, float alpha) const {
     r.polyline(xs, yb, rack::kSpectrumBins, 1.2f * c.z, th_.before.withAlpha(0.35f), Blend::Over, false);
 }
 
-// CONSOLE EQ: the music behind, the EQ's curve in front (the same filter maths the audio runs).
+// CONSOLE EQ / TUBE EQ: the music behind, the EQ's curve in front (the same filter maths the audio runs).
 void FaceView::consoleCurve(const Ctx& c, const Widget& w) const {
-    using namespace rack::console;
     Renderer& r = c.r;
     const float z = c.z;
     const Rect plot = plotArea(w.r);
     const Rect p = c.T(plot);
     spectrumBehind(c, plot, 0.16f);
-    constexpr float kRange = 18.0f;
-    grid(c, plot, kRange, -kRange, 6.0f, true);
-    float v[kCount];
-    for (int i = 0; i < kCount; ++i) v[i] = plain(c.host, i);
-    const Settings st = settingsFrom(v);
+    const bool tube = L_.face == rack::Face::TubeEq;
+    const float kRange = tube ? 20.0f : 18.0f;
+    grid(c, plot, kRange, -kRange, tube ? 5.0f : 6.0f, true);
+    float v[32] = {};
+    const int count = static_cast<int>(std::min<std::size_t>(params_.size(), 32));
+    for (int i = 0; i < count; ++i) v[i] = plain(c.host, i);
     const double fs = c.feed.sampleRate();
+    const rack::console::Settings cs = rack::console::settingsFrom(v);
+    const rack::tubeeq::Settings ts = rack::tubeeq::settingsFrom(v);
+    auto curve = [&](double hz) { return tube ? rack::tubeeq::curveDb(ts, fs, hz) : rack::console::curveDb(cs, fs, hz); };
+    auto yOf = [&](double db) { return p.cy() - static_cast<float>(std::clamp(db / kRange, -1.04, 1.04)) * p.h * 0.5f; };
     constexpr int kN = 220;
     float xs[kN], ys[kN];
     for (int i = 0; i < kN; ++i) {
         const float x = plot.x + plot.w * static_cast<float>(i) / static_cast<float>(kN - 1);
-        const double db = curveDb(st, fs, xToFreq(plot, x));
         xs[i] = c.X(x);
-        ys[i] = p.cy() - static_cast<float>(std::clamp(db / kRange, -1.04, 1.04)) * p.h * 0.5f;
+        ys[i] = yOf(curve(xToFreq(plot, x)));
     }
     for (int i = 0; i + 1 < kN; ++i) {   // light between the curve and 0 dB
         const float qx[4] = {xs[i], xs[i + 1], xs[i + 1], xs[i]}, qy[4] = {ys[i], ys[i + 1], p.cy(), p.cy()};
@@ -538,23 +542,76 @@ void FaceView::consoleCurve(const Ctx& c, const Widget& w) const {
     }
     r.polyline(xs, ys, kN, 6.0f * z, th_.teal.withAlpha(0.25f), Blend::Add, true);
     r.polyline(xs, ys, kN, 2.8f * z, th_.teal, Blend::Over, true);
-    // A dot on the curve for each band, at its frequency.
-    const struct { double hz; int col; } dots[] = {{st.lfHz, 0}, {st.lmfHz, 1}, {st.hmfHz, 2}, {st.hfHz, 3}};
-    const Rgba cols[4] = {th_.teal, th_.gold, th_.violet, th_.teal};
-    for (const auto& d : dots) {
-        const float x = c.X(freqToX(plot, static_cast<float>(d.hz)));
-        const float y = p.cy() - static_cast<float>(std::clamp(curveDb(st, fs, d.hz) / kRange, -1.04, 1.04)) * p.h * 0.5f;
-        r.fillRound({x - 7 * z, y - 7 * z, 14 * z, 14 * z}, 7 * z, cols[d.col], Blend::Over, true);
+    // A dot on the curve at each band's frequency.
+    struct Dot { double hz; Rgba col; };
+    std::array<Dot, 4> dots{};
+    int nd = 0;
+    if (tube) {
+        dots[nd++] = {ts.lowHz, th_.gold};
+        dots[nd++] = {ts.highHz, th_.violet};
+        dots[nd++] = {ts.attenHz, th_.teal};
+    } else {
+        dots[nd++] = {cs.lfHz, th_.teal};
+        dots[nd++] = {cs.lmfHz, th_.gold};
+        dots[nd++] = {cs.hmfHz, th_.violet};
+        dots[nd++] = {cs.hfHz, th_.teal};
+    }
+    for (int i = 0; i < nd; ++i) {
+        const double hz = std::clamp(dots[static_cast<std::size_t>(i)].hz, 20.0, 20000.0);
+        const float x = c.X(freqToX(plot, static_cast<float>(hz))), y = yOf(curve(hz));
+        r.fillRound({x - 7 * z, y - 7 * z, 14 * z, 14 * z}, 7 * z, dots[static_cast<std::size_t>(i)].col, Blend::Over, true);
     }
 }
 
-// BUS GLUE: a gain-reduction needle with a console-meter scale (0 on the right, -20 on the left).
+// TAPE: a VU meter (0 VU = -18 dBFS), its scale linear in voltage like the real thing.
+void FaceView::vuMeter(const Ctx& c, const Widget& w) const {
+    Renderer& r = c.r;
+    const float z = c.z;
+    const Rect d = c.T(w.r);
+    const int ch = std::clamp(w.choice, 0, 1);
+    const float vu = std::clamp(c.feed.meterDb(ch) + 18.0f, -22.0f, 4.0f);
+    if (vu_[ch] > 50.0f) vu_[ch] = vu;
+    vu_[ch] += (vu - vu_[ch]) * 0.35f;
+    const float px = d.cx(), py = d.bottom() - 30 * z, R = std::min(d.w * 0.44f, d.h * 0.78f);
+    auto angle = [](float v) {
+        const float a = std::pow(10.0f, v / 20.0f), lo = 0.1f, hi = std::pow(10.0f, 3.0f / 20.0f);
+        const float t = std::clamp((a - lo) / (hi - lo), 0.0f, 1.0f);
+        return (-50.0f + 100.0f * t) * kPi / 180.0f;
+    };
+    r.arc(px, py, R, 3.0f * z, angle(-20.0f), angle(0.0f), th_.teal.withAlpha(0.45f), true);
+    r.arc(px, py, R, 5.0f * z, angle(0.0f), angle(3.0f), th_.red.withAlpha(0.85f), true);
+    const TextStyle ts = c.ts(TextStyle::Caption);
+    for (float v : {-20.0f, -10.0f, -7.0f, -5.0f, -3.0f, -2.0f, -1.0f, 0.0f, 1.0f, 2.0f, 3.0f}) {
+        const float a = angle(v), sx = std::sin(a), sy = -std::cos(a);
+        const float xs[2] = {px + sx * (R - 14 * z), px + sx * (R + 8 * z)}, ys[2] = {py + sy * (R - 14 * z), py + sy * (R + 8 * z)};
+        r.polyline(xs, ys, 2, 2.2f * z, v > 0.0f ? th_.red : th_.silver.withAlpha(0.8f), Blend::Over, false);
+        if (v == -20.0f || v == -10.0f || v == -7.0f || v == -5.0f || v == -3.0f || v == 0.0f || v == 3.0f) {
+            char b[8];
+            std::snprintf(b, sizeof b, v > 0.0f ? "+%.0f" : "%.0f", static_cast<double>(v));
+            r.text(ts, b, px + sx * (R + 30 * z), py + sy * (R + 30 * z) + r.capHeight(ts) * 0.5f, v > 0.0f ? th_.red : th_.label, Align::Center,
+                   TextFx::Shadowed);
+        }
+    }
+    const float a = angle(vu_[ch]);
+    const float nx[2] = {px, px + std::sin(a) * R * 0.97f}, ny[2] = {py, py - std::cos(a) * R * 0.97f};
+    r.polyline(nx, ny, 2, 7.0f * z, th_.teal.withAlpha(0.25f), Blend::Add, true);
+    r.polyline(nx, ny, 2, 2.6f * z, th_.silver, Blend::Over, true);
+    r.fillRound({px - 13 * z, py - 13 * z, 26 * z, 26 * z}, 13 * z, rgb8(0x9AA4AA), Blend::Over);
+    r.fillRound({px - 6 * z, py - 6 * z, 12 * z, 12 * z}, 6 * z, th_.tealDeep, Blend::Over, true);
+    const TextStyle ls = c.ts(TextStyle::Label);
+    r.text(ls, "VU", d.x + 24 * z, d.y + 40 * z, th_.teal, Align::Left, TextFx::NeonCrisp);
+    r.text(ls, w.caption, d.right() - 24 * z, d.y + 40 * z, th_.label, Align::Right, TextFx::Shadowed);
+    r.text(c.ts(TextStyle::Caption), "0 VU = -18 dBFS", d.x + 24 * z, d.bottom() - 18 * z, th_.dim, Align::Left, TextFx::Shadowed);
+}
+
+// Compressors: a gain-reduction needle with a console-meter scale (0 on the right, -20 on the left).
 void FaceView::grMeter(const Ctx& c, const Widget& w) const {
     Renderer& r = c.r;
     const float z = c.z;
     const Rect d = c.T(w.r);
     const float target = std::clamp(c.feed.reductionDb(), -20.0f, 0.0f);
-    needle_ += (target - needle_) * 0.35f;   // swings like a real needle, ~0.1 s
+    if (needle_ > 0.5f) needle_ = target;    // the first frame shows where it is
+    needle_ += (target - needle_) * 0.35f;   // then it swings like a real needle, ~0.1 s
     if (std::fabs(needle_) < 0.01f) needle_ = 0.0f;
     const float px = d.cx(), py = d.bottom() - 34 * z, R = std::min(d.w * 0.42f, d.h * 0.78f);
     auto angle = [](float db) {   // 0 dB at +50°, -20 dB at -50° (more room for the first few dB)
@@ -581,8 +638,8 @@ void FaceView::grMeter(const Ctx& c, const Widget& w) const {
     r.fillRound({px - 13 * z, py - 13 * z, 26 * z, 26 * z}, 13 * z, rgb8(0x9AA4AA), Blend::Over);
     r.fillRound({px - 6 * z, py - 6 * z, 12 * z, 12 * z}, 6 * z, th_.tealDeep, Blend::Over, true);
     // labels and the number
-    const TextStyle ls = c.ts(TextStyle::Label);
-    r.text(ls, "GAIN REDUCTION  dB", d.x + 24 * z, d.bottom() - 22 * z, th_.label, Align::Left, TextFx::Shadowed);
+    const TextStyle ls = c.ts(TextStyle::Caption);
+    r.text(ls, "GAIN REDUCTION  dB", d.x + 20 * z, d.bottom() - 18 * z, th_.label, Align::Left, TextFx::Shadowed);
     char b[32];
     std::snprintf(b, sizeof b, "%.1f", static_cast<double>(target));
     const TextStyle big = c.ts(TextStyle::Panel);
@@ -626,6 +683,7 @@ void FaceView::draw(Renderer& r, const PanelHost& host, const FaceFeed& feed, co
         case WKind::EqGraph: eqGraph(c, w); break;
         case WKind::CurveDisplay: consoleCurve(c, w); break;
         case WKind::GrMeter: grMeter(c, w); break;
+        case WKind::VuMeter: vuMeter(c, w); break;
         case WKind::GraphRange: {
             const std::string t = fmt("%.0f dB", kGraphRanges[static_cast<std::size_t>(w.choice)]);
             button(c, c.T(w.r), t, st.graphRange == w.choice, hot, false, th_.teal);
