@@ -1,12 +1,11 @@
 // =============================================================================
-//  HEM-Elite-Rack.vst3 — every HEM-Elite-Rack plug-in (ELITE EQ, RESTORER, CONSOLE EQ, BUS GLUE, TAPE,
-//  TUBE EQ, VARI-MU, OPTO, FET, LIMITER) as VST3 plug-ins (one bundle, one plug-in each),
+//  HEM-Elite-Rack.vst3 — every HEM-Elite-Rack plug-in (all 49) as VST3 plug-ins (one bundle, one plug-in each),
 //  with the same teal / gunmetal faceplates as the rack app (hem::ui::FaceWindow, OpenGL, inside
 //  the host's window).
 //
 //  Per plug-in: stereo in / out; its parameters (ids 0..n-1, same ranges and text as the app);
 //  a Bypass parameter (latency-matched, 10 ms crossfade, no click). What the faceplate shows
-//  besides the knobs (before / after spectrum, RESTORER's noise curve, ELITE EQ's dynamic gains
+//  besides the knobs (before / after spectrum, THE CLEANER's noise curve, SURGEON's dynamic gains
 //  and auto gain) travels from the processor to the editor as hidden read-only output
 //  parameters, about 30 times a second, so it works the VST3 way in every host.
 //  Steinberg VST3 SDK: MIT licence (verified from the SDK's LICENSE.txt, v3.8.1). No ASIO.
@@ -51,14 +50,14 @@ namespace hem::vst {
 // Parameter ids beyond the plug-in's own (0..n-1).
 constexpr Vst::ParamID kBypassId   = 1000;
 constexpr Vst::ParamID kRateId     = 1001;   // sample rate / 384000 (the EQ curve is drawn for it)
-constexpr Vst::ParamID kAutoGainId = 1002;   // ELITE EQ auto gain, -24..24 dB
-constexpr Vst::ParamID kRemovedId  = 1003;   // RESTORER: dB taken out, -60..0
+constexpr Vst::ParamID kAutoGainId = 1002;   // SURGEON auto gain, -24..24 dB
+constexpr Vst::ParamID kRemovedId  = 1003;   // THE CLEANER: dB taken out, -60..0
 constexpr Vst::ParamID kGrId       = 1004;   // compressors: gain reduction, -30..0 dB
-constexpr Vst::ParamID kMeterBase  = 1500;   // + i: the effect's own meters (TAPE: VU L / R), in their MeterInfo range
-constexpr Vst::ParamID kDynBase    = 1100;   // + band: ELITE EQ dynamic gain, -30..30 dB
+constexpr Vst::ParamID kMeterBase  = 1500;   // + i: the effect's own meters (ARCHIVE: VU L / R), in their MeterInfo range
+constexpr Vst::ParamID kDynBase    = 1100;   // + band: SURGEON dynamic gain, -30..30 dB
 constexpr Vst::ParamID kBeforeBase = 1200;   // + i: spectrum before (kSent bins)
 constexpr Vst::ParamID kAfterBase  = 1300;   // + i: spectrum after
-constexpr Vst::ParamID kNoiseBase  = 1400;   // + i: RESTORER noise curve
+constexpr Vst::ParamID kNoiseBase  = 1400;   // + i: THE CLEANER noise curve
 constexpr int kSent = rack::kSpectrumBins / 2;   // every other display bin; the editor interpolates
 static_assert(kSent <= 100);
 
@@ -111,7 +110,7 @@ bool readState(IBStream* s, hc::fx::Effect& e, bool& bypass) {
         int32 got = 0;
         if (s->read(buf, sizeof buf, &got) != kResultOk || got <= 0) break;
         text.append(buf, static_cast<std::size_t>(got));
-        if (text.size() > (1u << 18)) return false;   // ELITE EQ's state is ~4 KB; refuse junk
+        if (text.size() > (1u << 18)) return false;   // SURGEON's state is ~4 KB; refuse junk
     }
     if (text.compare(0, sizeof(kStateMagic) - 1, kStateMagic) != 0) return false;
     std::istringstream in(text.substr(sizeof(kStateMagic) - 1));

@@ -75,7 +75,7 @@ fs::path musicDir() {
 struct Options {
     double   exitAfter = 0.0;
     fs::path screenshot, song;
-    bool     offline = false, demo = false, demo2 = false;   // --demo2: the vintage chain (TAPE .. FET)
+    bool     offline = false, demo = false, demo2 = false;   // --demo2: the vintage chain (ARCHIVE .. TRIGGER)
     int      select = 0;
 };
 Options parseOptions() {
@@ -481,22 +481,22 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
         a.setSong(demoSong(), {}, "made-up test audio - 20 s");
         a.overview = makeOverview(a.rack().song()->left, a.rack().song()->right);
         if (opts.demo2) {   // the vintage chain: tape, tube EQ, three compressors
-            a.addPlugin("TAPE", 0);
+            a.addPlugin("ARCHIVE", 0);
             if (auto* e = a.rack().effect(0)) { e->set(rack::tape::Input, 6); e->set(rack::tape::Wow, 15); }
-            a.addPlugin("TUBE EQ", 1);
+            a.addPlugin("VELVET", 1);
             if (auto* e = a.rack().effect(1)) { e->set(rack::tubeeq::LowBoost, 6); e->set(rack::tubeeq::LowAtten, 4); e->set(rack::tubeeq::HighBoost, 4); }
-            a.addPlugin("VARI-MU", 2);
+            a.addPlugin("SMOKE", 2);
             if (auto* e = a.rack().effect(2)) e->set(rack::varimu::Threshold, -26);
-            a.addPlugin("OPTO", 3);
+            a.addPlugin("LANTERN", 3);
             if (auto* e = a.rack().effect(3)) e->set(rack::opto::PeakReduction, 55);
-            a.addPlugin("FET", 4);
+            a.addPlugin("TRIGGER", 4);
             if (auto* e = a.rack().effect(4)) { e->set(rack::fet::Input, 20); e->set(rack::fet::Output, -10); }
-            a.addPlugin("LIMITER", 5);
+            a.addPlugin("LOCKDOWN", 5);
             if (auto* e = a.rack().effect(5)) e->set(rack::limiter::Input, 6);
         } else {
-            a.addPlugin("RESTORER", 0);
+            a.addPlugin("THE CLEANER", 0);
             if (auto* e = a.rack().effect(0)) e->set(rack::restorer::Reduction, 6.0f);
-            a.addPlugin("ELITE EQ", 1);
+            a.addPlugin("SURGEON", 1);
             if (auto* e = a.rack().effect(1)) {
                 using namespace rack::eq;
                 const struct { int t; float f, g, q; int st; } bands[] = {{static_cast<int>(Type::LowCut), 28, 0, 0.71f, 0},
@@ -514,13 +514,13 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
                 e->set(bandParam(1, Dyn), 1);
                 e->set(bandParam(1, Threshold), -30);
             }
-            a.addPlugin("CONSOLE EQ", 2);
+            a.addPlugin("BOARDROOM", 2);
             if (auto* e = a.rack().effect(2)) {
                 using namespace rack::console;
                 e->set(HpfOn, 1); e->set(HpfHz, 60); e->set(LfGain, 3); e->set(LfHz, 90); e->set(LmfGain, -4); e->set(LmfHz, 350);
                 e->set(LmfQ, 1.4f); e->set(HmfGain, 2.5f); e->set(HmfHz, 3500); e->set(HfGain, 4); e->set(HfHz, 10000); e->set(Curve, 1);
             }
-            a.addPlugin("BUS GLUE", 3);
+            a.addPlugin("THE FAMILY", 3);
             if (auto* e = a.rack().effect(3)) { e->set(rack::glue::Threshold, -22); e->set(rack::glue::Makeup, 2); }
         }
         a.select(std::clamp(opts.select > 0 ? opts.select - 1 : 1, 0, kMaxSlots - 1));

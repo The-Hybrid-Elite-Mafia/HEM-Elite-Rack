@@ -88,7 +88,7 @@ void layoutRules(const rack::PluginInfo& info) {
 float plain(const hc::fx::Effect& e, int p) { return e.get(p); }
 
 void restorerGestures() {
-    const rack::PluginInfo* info = rack::findPlugin("RESTORER");
+    const rack::PluginInfo* info = rack::findPlugin("THE CLEANER");
     auto fx = info->create();
     const FaceLayout L = faceLayout(*info);
     TestHost host(*fx);
@@ -150,7 +150,7 @@ void restorerGestures() {
 
 void eqGestures() {
     using namespace rack::eq;
-    const rack::PluginInfo* info = rack::findPlugin("ELITE EQ");
+    const rack::PluginInfo* info = rack::findPlugin("SURGEON");
     auto fx = info->create();
     const FaceLayout L = faceLayout(*info);
     TestHost host(*fx);

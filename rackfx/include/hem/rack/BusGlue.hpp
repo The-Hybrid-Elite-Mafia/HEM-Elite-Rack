@@ -1,6 +1,6 @@
 #pragma once
 // =============================================================================
-//  HEM BUS GLUE — a mix-bus compressor in the spirit of the classic console bus compressors
+//  HEM THE FAMILY — a mix-bus compressor in the spirit of the classic console bus compressors
 //  (our own design): a few dB of gain reduction that pulls a mix together.
 //
 //    THRESHOLD  -40..0 dB          RATIO   2:1, 4:1, 10:1

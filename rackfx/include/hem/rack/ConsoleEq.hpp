@@ -1,6 +1,6 @@
 #pragma once
 // =============================================================================
-//  HEM CONSOLE EQ — a large-format-console channel EQ (our own design, in the spirit of the
+//  HEM BOARDROOM — a large-format-console channel EQ (our own design, in the spirit of the
 //  classic big-console style): fast to dial in, musical, four bands plus filters.
 //
 //    FILTERS  HPF 16..350 Hz (18 dB/oct) and LPF 3..22 kHz (12 dB/oct), each with its own IN switch

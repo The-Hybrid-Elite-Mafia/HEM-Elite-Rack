@@ -2,17 +2,17 @@
 // =============================================================================
 //  HEM-Elite-Rack space: reverbs and echoes (our own designs).
 //
-//  HEM HALL / HEM ROOM / HEM PLATE — one 8-line feedback-delay-network reverb, voiced three ways.
+//  HEM CATHEDRAL / HEM BACKROOM / HEM CHROME — one 8-line feedback-delay-network reverb, voiced three ways.
 //    PRE-DELAY, SIZE, DECAY (seconds to fall 60 dB), DAMPING (highs die sooner), EARLY (HALL and
 //    ROOM: the first reflections) or DIFFUSION (PLATE: how quickly it turns dense), MOD (slow
 //    movement in the tail: lusher, no metallic ring), WIDTH, LOW CUT and HIGH CUT on the reverb,
 //    MIX. The dry sound is never delayed: zero latency.
-//  HEM SPRING — a spring tank: DECAY, TENSION (the spring's length: the "boing" pitch), DRIP (the
+//  HEM COIL — a spring tank: DECAY, TENSION (the spring's length: the "boing" pitch), DRIP (the
 //    chirpy, dispersive splash), TONE, MIX. Zero latency.
-//  HEM TAPE ECHO — a tape loop with playback heads: TIME 40..1000 ms (changes bend the pitch, like
+//  HEM WIRETAP — a tape loop with playback heads: TIME 40..1000 ms (changes bend the pitch, like
 //    tape), HEADS 1 / 1+2 / 1+2+3 (the heads sit at 1x, 2x and 3x TIME), FEEDBACK up to 110 % (the
 //    tape saturates, so it runs away musically instead of blowing up), TONE, WOBBLE, SATURATION, MIX.
-//  HEM DIGITAL DELAY — clean delay: TIME in ms or a note value at BPM, FEEDBACK, PING-PONG,
+//  HEM REPEAT OFFENDER — clean delay: TIME in ms or a note value at BPM, FEEDBACK, PING-PONG,
 //    STEREO OFFSET, LOW CUT and HIGH CUT in the repeats, MIX. Zero latency.
 // =============================================================================
 #include "hybrid/fx/Fx.hpp"

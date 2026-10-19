@@ -1,4 +1,4 @@
-// ELITE EQ, RESTORER and the spectrum display: what each must actually do to the sound,
+// SURGEON, THE CLEANER and the spectrum display: what each must actually do to the sound,
 // measured, plus the rules every HEM effect follows (silence stays silence, no allocation on
 // the audio thread, same result for any block size, finite output, constant latency).
 #include "Harness.hpp"
@@ -134,8 +134,8 @@ double gainAt(hc::fx::Effect& e, double hz, float amp = 0.25f) {
 } // namespace
 
 void testEliteEq() {
-    std::printf("[eq] ELITE EQ: filter shapes, mid / side, dynamic bands, character, auto gain\n");
-    const PluginInfo* info = findPlugin("ELITE EQ");
+    std::printf("[eq] SURGEON: filter shapes, mid / side, dynamic bands, character, auto gain\n");
+    const PluginInfo* info = findPlugin("SURGEON");
     CHECK(info != nullptr);
     if (!info) return;
     commonRules(*info);
@@ -289,8 +289,8 @@ void testEliteEq() {
 }
 
 void testRestorer() {
-    std::printf("[restorer] RESTORER: noise down, music kept, range, listen, noise curve\n");
-    const PluginInfo* info = findPlugin("RESTORER");
+    std::printf("[restorer] THE CLEANER: noise down, music kept, range, listen, noise curve\n");
+    const PluginInfo* info = findPlugin("THE CLEANER");
     CHECK(info != nullptr);
     if (!info) return;
     commonRules(*info);
@@ -394,7 +394,7 @@ void testSpectrum() {
 
 } // namespace hem::test
 
-// ---- CONSOLE EQ ----------------------------------------------------------------------------------
+// ---- BOARDROOM ----------------------------------------------------------------------------------
 namespace hem::test {
 namespace {
 using namespace hem::rack;
@@ -419,8 +419,8 @@ double consoleGainAt(hc::fx::Effect& e, double hz) {
 
 void testConsoleEq() {
     using namespace console;
-    std::printf("[console eq] CONSOLE EQ: filters, four bands, classic / modern curves, drive\n");
-    const PluginInfo* info = findPlugin("CONSOLE EQ");
+    std::printf("[console eq] BOARDROOM: filters, four bands, classic / modern curves, drive\n");
+    const PluginInfo* info = findPlugin("BOARDROOM");
     CHECK(info != nullptr);
     if (!info) return;
     commonRules(*info);
@@ -500,7 +500,7 @@ void testConsoleEq() {
     }
 }
 
-// ---- BUS GLUE -------------------------------------------------------------------------------------
+// ---- THE FAMILY -------------------------------------------------------------------------------------
 namespace {
 // Output level (dB) of a steady tone after `seconds`, measured over the last 0.25 s.
 double glueOut(hc::fx::Effect& e, double hz, float amp, double seconds = 1.5) {
@@ -526,8 +526,8 @@ double recoveryMs(hc::fx::Effect& e, double loudS) {
 
 void testBusGlue() {
     using namespace glue;
-    std::printf("[bus glue] BUS GLUE: static curve, attack, release, auto release, sidechain HPF, mix\n");
-    const PluginInfo* info = findPlugin("BUS GLUE");
+    std::printf("[bus glue] THE FAMILY: static curve, attack, release, auto release, sidechain HPF, mix\n");
+    const PluginInfo* info = findPlugin("THE FAMILY");
     CHECK(info != nullptr);
     if (!info) return;
     commonRules(*info);
@@ -633,7 +633,7 @@ void testBusGlue() {
 
 } // namespace hem::test
 
-// ---- TAPE, TUBE EQ, VARI-MU, OPTO, FET ---------------------------------------------------------------
+// ---- ARCHIVE, VELVET, SMOKE, LANTERN, TRIGGER ---------------------------------------------------------------
 namespace hem::test {
 namespace {
 using namespace hem::rack;
@@ -667,33 +667,33 @@ double maxDelayedDiff(const Stereo& out, const Stereo& in, std::uint32_t lat, st
 
 void testTape() {
     using namespace tape;
-    std::printf("[tape] TAPE: saturation, head bump, speed, wow, hiss, auto trim, VU\n");
-    const PluginInfo* info = findPlugin("TAPE");
+    std::printf("[tape] ARCHIVE: saturation, head bump, speed, wow, hiss, auto trim, VU\n");
+    const PluginInfo* info = findPlugin("ARCHIVE");
     CHECK(info != nullptr);
     if (!info) return;
     commonRules(*info);
-    auto e = fresh("TAPE", {});
+    auto e = fresh("ARCHIVE", {});
     CHECK(e->latency() == 23 + kTransportDelay);
     // INPUT drives it: more input, more harmonics; AUTO TRIM keeps the level where it was
-    auto e0 = fresh("TAPE", {{Input, 0}}), e18 = fresh("TAPE", {{Input, 18}});
+    auto e0 = fresh("ARCHIVE", {{Input, 0}}), e18 = fresh("ARCHIVE", {{Input, 18}});
     const double h0 = harmonicDb(*e0, 200, 3, 0.25f), h18 = harmonicDb(*e18, 200, 3, 0.25f);
     const double lv0 = toneOut(*e0, 1000, 0.05f), lv18 = toneOut(*e18, 1000, 0.05f);
     std::printf("  -12 dBFS 200 Hz, 3rd harmonic: input 0 dB %.1f dB, input +18 dB %.1f dB;  quiet level with AUTO TRIM: %+.2f / %+.2f dB\n", h0, h18, lv0, lv18);
     CHECK(h18 > h0 + 15.0);
     CHECK(std::fabs(lv18 - lv0) < 1.0);
     // head bump: 15 IPS lifts around 55 Hz, 30 IPS around 95 Hz; 0 % is flat-ish
-    auto b15 = fresh("TAPE", {{Bump, 100}, {Speed, 0}}), b30 = fresh("TAPE", {{Bump, 100}, {Speed, 1}}), b0 = fresh("TAPE", {{Bump, 0}});
+    auto b15 = fresh("ARCHIVE", {{Bump, 100}, {Speed, 0}}), b30 = fresh("ARCHIVE", {{Bump, 100}, {Speed, 1}}), b0 = fresh("ARCHIVE", {{Bump, 0}});
     const double at55 = toneOut(*b15, 55, 0.05f), at95 = toneOut(*b30, 95, 0.05f), flat55 = toneOut(*b0, 55, 0.05f);
     std::printf("  head bump 100 %%: 15 IPS %+.2f dB at 55 Hz, 30 IPS %+.2f dB at 95 Hz;  bump 0: %+.2f dB at 55 Hz\n", at55, at95, flat55);
     CHECK(at55 > 2.5 && at95 > 2.5);
     CHECK(std::fabs(flat55) < 0.5);
     // top end: 15 IPS rolls off earlier than 30 IPS
-    auto s15 = fresh("TAPE", {{Speed, 0}}), s30 = fresh("TAPE", {{Speed, 1}});
+    auto s15 = fresh("ARCHIVE", {{Speed, 0}}), s30 = fresh("ARCHIVE", {{Speed, 1}});
     const double t15 = toneOut(*s15, 18000, 0.05f), t30 = toneOut(*s30, 18000, 0.05f);
     std::printf("  18 kHz: 15 IPS %+.2f dB, 30 IPS %+.2f dB\n", t15, t30);
     CHECK(t15 < t30 - 1.5);
     // WOW 0: a steady tone stays a steady tone; WOW 100: the pitch wanders
-    auto w0 = fresh("TAPE", {}), w100 = fresh("TAPE", {{Wow, 100}});
+    auto w0 = fresh("ARCHIVE", {}), w100 = fresh("ARCHIVE", {{Wow, 100}});
     auto pitchSpread = [](hc::fx::Effect& x) {
         x.reset();
         Stereo s = sine(1000, 3.0, 0.1f);
@@ -711,14 +711,14 @@ void testTape() {
     CHECK(spread0 <= 5.0);
     CHECK(spread100 >= 5.0);
     // HISS: none at 0 (silence stays silence, checked above); about -50 dBFS at 100 %
-    auto hs = fresh("TAPE", {{Hiss, 100}});
+    auto hs = fresh("ARCHIVE", {{Hiss, 100}});
     Stereo z(48000);
     run(*hs, z);
     const double hissDb = db(rms(z.l, 24000, 24000));
     std::printf("  HISS 100 %%: %.1f dBFS RMS\n", hissDb);
     CHECK(hissDb > -60.0 && hissDb < -40.0);
     // VU: a -18 dBFS sine reads about -18 on the meter
-    auto vu = fresh("TAPE", {{Bump, 0}});
+    auto vu = fresh("ARCHIVE", {{Bump, 0}});
     (void)toneOut(*vu, 1000, static_cast<float>(std::pow(10.0, -18.0 / 20.0)));
     std::printf("  VU with a -18 dBFS sine: %.2f dB\n", vu->meter(0));
     CHECK(std::fabs(vu->meter(0) + 18.0f) < 0.5f);
@@ -730,13 +730,13 @@ void testTape() {
 
 void testTubeEq() {
     using namespace tubeeq;
-    std::printf("[tube eq] TUBE EQ: boosts and cuts as drawn, the low-end trick, tube\n");
-    const PluginInfo* info = findPlugin("TUBE EQ");
+    std::printf("[tube eq] VELVET: boosts and cuts as drawn, the low-end trick, tube\n");
+    const PluginInfo* info = findPlugin("VELVET");
     CHECK(info != nullptr);
     if (!info) return;
     commonRules(*info);
     {   // drive 0, all at 0: output = input delayed 23 samples
-        auto e = fresh("TUBE EQ", {{Drive, 0}});
+        auto e = fresh("VELVET", {{Drive, 0}});
         Stereo s = noise(1.0, 0.4f, 6), ref = s;
         run(*e, s);
         const double d = maxDelayedDiff(s, ref, e->latency(), 0);
@@ -750,7 +750,7 @@ void testTubeEq() {
             {{Drive, 0}, {LowFreq, 0}, {LowBoost, 4}, {HighFreq, 1}, {HighBoost, 9}, {Bandwidth, 9}, {HighAtten, 5}, {AttenSel, 0}},
         };
         for (const auto& c : cases) {
-            auto e = fresh("TUBE EQ", c);
+            auto e = fresh("VELVET", c);
             float v[kCount];
             for (int i = 0; i < kCount; ++i) v[i] = e->get(i);
             const Settings st = settingsFrom(v);
@@ -763,14 +763,14 @@ void testTubeEq() {
         CHECK(worst < 0.05);
     }
     {   // boost and atten together at 60 Hz: more at the bottom, a dip just above
-        auto e = fresh("TUBE EQ", {{Drive, 0}, {LowFreq, 2}, {LowBoost, 10}, {LowAtten, 10}});
+        auto e = fresh("VELVET", {{Drive, 0}, {LowFreq, 2}, {LowBoost, 10}, {LowAtten, 10}});
         const double at30 = toneOut(*e, 30, 0.05f), at200 = toneOut(*e, 200, 0.05f);
         std::printf("  LOW 60 Hz, boost 10 + atten 10: %+.2f dB at 30 Hz, %+.2f dB at 200 Hz\n", at30, at200);
         CHECK(at30 > 3.0);
         CHECK(at200 < -1.0);
     }
     {   // the tube: 2nd harmonic grows with DRIVE
-        auto d0 = fresh("TUBE EQ", {{Drive, 0}}), d100 = fresh("TUBE EQ", {{Drive, 100}});
+        auto d0 = fresh("VELVET", {{Drive, 0}}), d100 = fresh("VELVET", {{Drive, 100}});
         const double a = harmonicDb(*d0, 200, 2, 0.5f), b = harmonicDb(*d100, 200, 2, 0.5f);
         std::printf("  -6 dBFS 200 Hz, 2nd harmonic: drive 0 %.1f dB, drive 100 %% %.1f dB\n", a, b);
         CHECK(a < -100.0);
@@ -784,8 +784,8 @@ void testTubeEq() {
 
 void testVariMu() {
     using namespace varimu;
-    std::printf("[vari-mu] VARI-MU: the ratio grows with level, time constants, mid / side, tube\n");
-    const PluginInfo* info = findPlugin("VARI-MU");
+    std::printf("[vari-mu] SMOKE: the ratio grows with level, time constants, mid / side, tube\n");
+    const PluginInfo* info = findPlugin("SMOKE");
     CHECK(info != nullptr);
     if (!info) return;
     commonRules(*info);
@@ -795,7 +795,7 @@ void testVariMu() {
     std::printf("  dB of reduction per dB over: just over %.2f, 20 dB over %.2f\n", s1, s2);
     CHECK(s2 < s1 - 0.2f);
     {   // under the threshold, tube 0: output = input delayed 23
-        auto e = fresh("VARI-MU", {{Threshold, 0}, {Tube, 0}});
+        auto e = fresh("SMOKE", {{Threshold, 0}, {Tube, 0}});
         Stereo s = sine(500, 1.0, 0.1f), ref = s;
         run(*e, s);
         const double d = maxDelayedDiff(s, ref, 23, 0);
@@ -803,7 +803,7 @@ void testVariMu() {
         CHECK(d < 1e-6);
     }
     {   // it compresses as the curve says (time 1, tube 0)
-        auto e = fresh("VARI-MU", {{Threshold, -24}, {Tube, 0}, {Time, 0}});
+        auto e = fresh("SMOKE", {{Threshold, -24}, {Tube, 0}, {Time, 0}});
         const double out = toneOut(*e, 1000, 0.5f);
         const double want = gainComputerDb(static_cast<float>(db(0.5)), -24);
         std::printf("  -6 dBFS, threshold -24: %.2f dB (curve says %.2f), meter %.2f\n", out, want, e->reductionDb());
@@ -821,13 +821,13 @@ void testVariMu() {
             }
             return 8000.0;
         };
-        auto t1 = fresh("VARI-MU", {{Threshold, -30}, {Time, 0}}), t4 = fresh("VARI-MU", {{Threshold, -30}, {Time, 3}});
+        auto t1 = fresh("SMOKE", {{Threshold, -30}, {Time, 0}}), t4 = fresh("SMOKE", {{Threshold, -30}, {Time, 3}});
         const double r1 = recover(*t1), r4 = recover(*t4);
         std::printf("  back to -1 dB: time 1 %.0f ms, time 4 %.0f ms\n", r1, r4);
         CHECK(r4 > 5.0 * r1);
     }
     {   // MID / SIDE: a side-only signal is compressed, the mid of a quiet mono signal is not
-        auto e = fresh("VARI-MU", {{Threshold, -30}, {Mode, 1}, {Tube, 0}, {Time, 0}});
+        auto e = fresh("SMOKE", {{Threshold, -30}, {Mode, 1}, {Tube, 0}, {Time, 0}});
         Stereo s(72000);
         for (std::size_t i = 0; i < s.size(); ++i) {
             const double t = static_cast<double>(i) / kFs;
@@ -845,7 +845,7 @@ void testVariMu() {
         CHECK(std::fabs(midG) < 0.3);
     }
     {
-        auto d0 = fresh("VARI-MU", {{Threshold, 0}, {Tube, 0}}), d100 = fresh("VARI-MU", {{Threshold, 0}, {Tube, 100}});
+        auto d0 = fresh("SMOKE", {{Threshold, 0}, {Tube, 0}}), d100 = fresh("SMOKE", {{Threshold, 0}, {Tube, 100}});
         const double a = harmonicDb(*d0, 200, 2, 0.5f), b = harmonicDb(*d100, 200, 2, 0.5f);
         std::printf("  TUBE 2nd harmonic at -6 dBFS: tube 0 %.1f dB, tube 100 %% %.1f dB\n", a, b);
         CHECK(a < -100.0 && b > -40.0);
@@ -858,29 +858,29 @@ void testVariMu() {
 
 void testOpto() {
     using namespace opto;
-    std::printf("[opto] OPTO: peak reduction, compress / limit, two-stage release, emphasis\n");
-    const PluginInfo* info = findPlugin("OPTO");
+    std::printf("[opto] LANTERN: peak reduction, compress / limit, two-stage release, emphasis\n");
+    const PluginInfo* info = findPlugin("LANTERN");
     CHECK(info != nullptr);
     if (!info) return;
     commonRules(*info);
     {   // PEAK REDUCTION 0: nothing happens (exactly); GAIN adds exactly what it says
-        auto e = fresh("OPTO", {{PeakReduction, 0}, {Gain, 6}});
+        auto e = fresh("LANTERN", {{PeakReduction, 0}, {Gain, 6}});
         const double g = toneOut(*e, 1000, 0.1f);
         std::printf("  peak reduction 0, gain +6: %+.3f dB, meter %.2f\n", g, e->reductionDb());
         CHECK(std::fabs(g - 6.0) < 0.02);
         CHECK(e->reductionDb() == 0.0f);
     }
     {
-        auto lo = fresh("OPTO", {{PeakReduction, 30}}), hi = fresh("OPTO", {{PeakReduction, 70}});
+        auto lo = fresh("LANTERN", {{PeakReduction, 30}}), hi = fresh("LANTERN", {{PeakReduction, 70}});
         const double a = toneOut(*lo, 1000, 0.3f, 3.0), b = toneOut(*hi, 1000, 0.3f, 3.0);
-        auto cm = fresh("OPTO", {{PeakReduction, 70}, {Mode, 0}}), lm = fresh("OPTO", {{PeakReduction, 70}, {Mode, 1}});
+        auto cm = fresh("LANTERN", {{PeakReduction, 70}, {Mode, 0}}), lm = fresh("LANTERN", {{PeakReduction, 70}, {Mode, 1}});
         const double c = toneOut(*cm, 1000, 0.5f, 3.0), l = toneOut(*lm, 1000, 0.5f, 3.0);
         std::printf("  -10 dBFS: peak reduction 30 -> %.1f dB, 70 -> %.1f dB;  -6 dBFS at 70: COMPRESS %.1f dB, LIMIT %.1f dB\n", a, b, c, l);
         CHECK(b < a - 5.0);
         CHECK(l < c - 3.0);
     }
     {   // two-stage release: after 4 s of hard work, half comes back fast, the rest slowly
-        auto e = fresh("OPTO", {{PeakReduction, 80}});
+        auto e = fresh("LANTERN", {{PeakReduction, 80}});
         Stereo loud = sine(1000, 4.0, 0.5f);
         run(*e, loud);
         const float start = e->reductionDb();
@@ -897,13 +897,13 @@ void testOpto() {
         CHECK(nearMs > 1000);
     }
     {   // EMPHASIS: a 6 kHz tone is pulled down harder with it
-        auto e0 = fresh("OPTO", {{PeakReduction, 50}}), e100 = fresh("OPTO", {{PeakReduction, 50}, {Emphasis, 100}});
+        auto e0 = fresh("LANTERN", {{PeakReduction, 50}}), e100 = fresh("LANTERN", {{PeakReduction, 50}, {Emphasis, 100}});
         const double a = toneOut(*e0, 6000, 0.2f, 3.0), b = toneOut(*e100, 6000, 0.2f, 3.0);
         std::printf("  6 kHz: emphasis 0 -> %.1f dB, emphasis 100 %% -> %.1f dB\n", a, b);
         CHECK(b < a - 2.0);
     }
     {
-        auto e = fresh("OPTO", {{PeakReduction, 90}, {Mix, 0}});
+        auto e = fresh("LANTERN", {{PeakReduction, 90}, {Mix, 0}});
         Stereo s = sine(700, 0.5, 0.5f), ref = s;
         run(*e, s);
         const double d = maxDelayedDiff(s, ref, 0, 0);
@@ -918,8 +918,8 @@ void testOpto() {
 
 void testFet() {
     using namespace fet;
-    std::printf("[fet] FET: input / output, attack and release 1-7, ratios, ALL\n");
-    const PluginInfo* info = findPlugin("FET");
+    std::printf("[fet] TRIGGER: input / output, attack and release 1-7, ratios, ALL\n");
+    const PluginInfo* info = findPlugin("TRIGGER");
     CHECK(info != nullptr);
     if (!info) return;
     commonRules(*info);
@@ -928,7 +928,7 @@ void testFet() {
     CHECK(std::fabs(releaseMs(1) - 1100.0f) < 0.1f && std::fabs(releaseMs(7) - 50.0f) < 0.01f);
     {   // more INPUT, more compression; 20:1 holds harder than 4:1; ALL harder still
         auto lv = [&](float input, int ratio) {
-            auto e = fresh("FET", {{Input, input}, {Output, 0}, {Ratio, static_cast<float>(ratio)}});
+            auto e = fresh("TRIGGER", {{Input, input}, {Output, 0}, {Ratio, static_cast<float>(ratio)}});
             return toneOut(*e, 1000, 0.25f);
         };
         // 10 dB more INPUT once it is compressing: 4:1 lets 2.5 dB more out, 20:1 about 0.5 dB
@@ -939,7 +939,7 @@ void testFet() {
         CHECK(all < r20 - 1.0);
     }
     {   // ALL is grittier than 20:1
-        auto r20 = fresh("FET", {{Input, 30}, {Ratio, 3}}), all = fresh("FET", {{Input, 30}, {Ratio, 4}});
+        auto r20 = fresh("TRIGGER", {{Input, 30}, {Ratio, 3}}), all = fresh("TRIGGER", {{Input, 30}, {Ratio, 4}});
         // 3rd harmonic relative to what comes out (ALL is quieter, so compare like with like)
         const double a = harmonicDb(*r20, 200, 3, 0.25f) - harmonicDb(*r20, 200, 1, 0.25f);
         const double b = harmonicDb(*all, 200, 3, 0.25f) - harmonicDb(*all, 200, 1, 0.25f);
@@ -948,7 +948,7 @@ void testFet() {
     }
     {   // attack 7 catches the first millisecond of a hit, attack 1 lets some through
         auto first = [&](float att) {
-            auto e = fresh("FET", {{Input, 30}, {Output, 0}, {Attack, att}});
+            auto e = fresh("TRIGGER", {{Input, 30}, {Output, 0}, {Attack, att}});
             Stereo s = sine(2000, 0.05, 0.25f);
             run(*e, s, 32);
             double pk = 0;
@@ -960,7 +960,7 @@ void testFet() {
         CHECK(a7 < a1 - 3.0);
     }
     {
-        auto e = fresh("FET", {{Input, 30}, {Mix, 0}});
+        auto e = fresh("TRIGGER", {{Input, 30}, {Mix, 0}});
         Stereo s = sine(700, 0.5, 0.5f), ref = s;
         run(*e, s);
         const double d = maxDelayedDiff(s, ref, 23, 0);
@@ -975,7 +975,7 @@ void testFet() {
 
 } // namespace hem::test
 
-// ---- LIMITER --------------------------------------------------------------------------------------
+// ---- LOCKDOWN --------------------------------------------------------------------------------------
 namespace hem::test {
 namespace {
 // Largest true peak (dBTP) of a signal: 4x oversampled with a flat-to-20-kHz filter.
@@ -1011,13 +1011,13 @@ Stereo hotMix(double seconds) {
 
 void testLimiter() {
     using namespace limiter;
-    std::printf("[limiter] LIMITER: ceiling, true peak, look-ahead, release, link, loudness\n");
-    const PluginInfo* info = findPlugin("LIMITER");
+    std::printf("[limiter] LOCKDOWN: ceiling, true peak, look-ahead, release, link, loudness\n");
+    const PluginInfo* info = findPlugin("LOCKDOWN");
     CHECK(info != nullptr);
     if (!info) return;
     commonRules(*info);
     {   // under the ceiling: untouched, just delayed
-        auto e = fresh("LIMITER", {});
+        auto e = fresh("LOCKDOWN", {});
         CHECK(e->latency() == kLatency);
         Stereo s = sine(700, 1.0, 0.1f), ref = s;
         run(*e, s);
@@ -1027,7 +1027,7 @@ void testLimiter() {
     }
     {   // pushed hard: never a sample over the ceiling; with TRUE PEAK on, not between samples either
         for (float push : {6.0f, 12.0f, 18.0f}) {
-            auto on = fresh("LIMITER", {{Input, push}, {Ceiling, -1.0f}}), off = fresh("LIMITER", {{Input, push}, {Ceiling, -1.0f}, {TruePeak, 0}});
+            auto on = fresh("LOCKDOWN", {{Input, push}, {Ceiling, -1.0f}}), off = fresh("LOCKDOWN", {{Input, push}, {Ceiling, -1.0f}, {TruePeak, 0}});
             Stereo a = hotMix(4.0), b = a;
             run(*on, a);
             run(*off, b);
@@ -1045,7 +1045,7 @@ void testLimiter() {
         }
     }
     {   // INPUT makes it louder (that's the point)
-        auto e0 = fresh("LIMITER", {{Input, 0}}), e8 = fresh("LIMITER", {{Input, 8}});
+        auto e0 = fresh("LOCKDOWN", {{Input, 0}}), e8 = fresh("LOCKDOWN", {{Input, 8}});
         Stereo a = hotMix(4.0);
         for (std::size_t i = 0; i < a.size(); ++i) { a.l[i] *= 0.25f; a.r[i] *= 0.25f; }   // a mix with headroom left
         Stereo b = a;
@@ -1057,7 +1057,7 @@ void testLimiter() {
         CHECK(std::fabs(e8->meter(0) - l8) < 0.5);
     }
     {   // a steady tone 3 dB over the ceiling comes out clean (the gain sits still)
-        auto e = fresh("LIMITER", {{Ceiling, -6.0f}});
+        auto e = fresh("LOCKDOWN", {{Ceiling, -6.0f}});
         Stereo s = sine(1000, 1.5, static_cast<float>(std::pow(10.0, -3.0 / 20.0)));
         run(*e, s);
         const double f = toneAmp(s.l, 1000, 36000, 24000), h3 = toneAmp(s.l, 3000, 36000, 24000);
@@ -1067,7 +1067,7 @@ void testLimiter() {
     }
     {   // release: 30 ms comes back faster than 600 ms
         auto back = [&](float ms) {
-            auto e = fresh("LIMITER", {{AutoRelease, 0}, {Release, ms}, {Ceiling, -6}});
+            auto e = fresh("LOCKDOWN", {{AutoRelease, 0}, {Release, ms}, {Ceiling, -6}});
             Stereo loud = sine(1000, 0.5, 1.0f);
             run(*e, loud);
             Stereo quiet = sine(1000, 3.0, 0.2f);
@@ -1083,7 +1083,7 @@ void testLimiter() {
     }
     {   // LINK: 100 % turns the quiet side down with the loud one; 0 % leaves it alone
         auto side = [&](float link) {
-            auto e = fresh("LIMITER", {{Link, link}, {Ceiling, -6}});
+            auto e = fresh("LOCKDOWN", {{Link, link}, {Ceiling, -6}});
             Stereo s(72000);
             for (std::size_t i = 0; i < s.size(); ++i) {
                 const double t = static_cast<double>(i) / kFs;
@@ -1106,7 +1106,7 @@ void testLimiter() {
 
 } // namespace hem::test
 
-// ---- WAVE 5: DE-ESSER, STEREO WIDTH, CLIPPER, EXCITER, TRANSIENT, LOUDNESS METER ----------------
+// ---- WAVE 5: HUSH MONEY, WIDE LOAD, RAZOR, SPARK, SUCKER PUNCH, THE ACCOUNTANT ----------------
 namespace hem::test {
 namespace {
 // A drum-like hit every 0.5 s: a 150 Hz tone that dies away over ~150 ms.
@@ -1134,14 +1134,14 @@ double hitPart(const Stereo& s, double t0, double t1) {
 
 void testDeEsser() {
     using namespace deesser;
-    std::printf("[deesser] DE-ESSER: esses down, the rest alone\n");
-    const PluginInfo* info = findPlugin("DE-ESSER");
+    std::printf("[deesser] HUSH MONEY: esses down, the rest alone\n");
+    const PluginInfo* info = findPlugin("HUSH MONEY");
     CHECK(info != nullptr);
     if (!info) return;
     commonRules(*info);
     auto mix = [] { Stereo s = sine(300, 1.5, 0.3f); add(s, sine(7000, 1.5, 0.3f)); return s; };
     {   // quiet: nothing happens at all
-        auto e = fresh("DE-ESSER", {{Threshold, 0}});
+        auto e = fresh("HUSH MONEY", {{Threshold, 0}});
         Stereo s = mix(), ref = s;
         run(*e, s);
         const double d = maxDelayedDiff(s, ref, 0, 0);
@@ -1149,7 +1149,7 @@ void testDeEsser() {
         CHECK(d < 1e-6);
     }
     for (int mode : {0, 1}) {
-        auto e = fresh("DE-ESSER", {{Threshold, -40}, {Range, 8}, {Mode, static_cast<float>(mode)}});
+        auto e = fresh("HUSH MONEY", {{Threshold, -40}, {Range, 8}, {Mode, static_cast<float>(mode)}});
         Stereo s = mix();
         run(*e, s);
         const double ess = db(toneAmp(s.l, 7000, 48000, 12000) / 0.3), body = db(toneAmp(s.l, 300, 48000, 12000) / 0.3);
@@ -1161,7 +1161,7 @@ void testDeEsser() {
         CHECK(e->reductionDb() < -3.0f);
     }
     {   // LISTEN: only the ess band
-        auto e = fresh("DE-ESSER", {{Listen, 1}, {Freq, 6000}});
+        auto e = fresh("HUSH MONEY", {{Listen, 1}, {Freq, 6000}});
         Stereo s = mix();
         run(*e, s);
         const double ess = db(toneAmp(s.l, 7000, 48000, 12000) / 0.3), body = db(toneAmp(s.l, 300, 48000, 12000) / 0.3);
@@ -1176,19 +1176,19 @@ void testDeEsser() {
 
 void testWidth() {
     using namespace width;
-    std::printf("[width] STEREO WIDTH: mono, wider, mono bass, balance, meters\n");
-    const PluginInfo* info = findPlugin("STEREO WIDTH");
+    std::printf("[width] WIDE LOAD: mono, wider, mono bass, balance, meters\n");
+    const PluginInfo* info = findPlugin("WIDE LOAD");
     CHECK(info != nullptr);
     if (!info) return;
     commonRules(*info);
     {   // 100 %: untouched
-        auto e = fresh("STEREO WIDTH", {});
+        auto e = fresh("WIDE LOAD", {});
         Stereo s = noise(1.0, 0.4f), ref = s;
         run(*e, s);
         CHECK(maxDelayedDiff(s, ref, 0, 0) < 1e-6);
     }
     {   // 0 %: mono (L = R), correlation +1
-        auto e = fresh("STEREO WIDTH", {{Width, 0}});
+        auto e = fresh("WIDE LOAD", {{Width, 0}});
         Stereo s = noise(1.0, 0.4f);
         run(*e, s);
         double d = 0;
@@ -1197,7 +1197,7 @@ void testWidth() {
         CHECK(d < 1e-5 && e->meter(0) > 0.99f);
     }
     {   // 200 %: the sides +6 dB, the middle the same
-        auto e = fresh("STEREO WIDTH", {{Width, 200}});
+        auto e = fresh("WIDE LOAD", {{Width, 200}});
         Stereo s = sine(1000, 1.0, 0.2f);
         add(s, sine(3000, 1.0, 0.1f, kFs, true));   // a side-only tone
         run(*e, s);
@@ -1206,7 +1206,7 @@ void testWidth() {
         CHECK(std::fabs(mid) < 0.05 && std::fabs(side - 6.02) < 0.1);
     }
     {   // MONO BASS 120 Hz: low side content gone, high side content kept
-        auto e = fresh("STEREO WIDTH", {{MonoBass, 2}});
+        auto e = fresh("WIDE LOAD", {{MonoBass, 2}});
         Stereo s = sine(50, 2.0, 0.2f, kFs, true);
         add(s, sine(2000, 2.0, 0.1f, kFs, true));
         run(*e, s);
@@ -1215,7 +1215,7 @@ void testWidth() {
         CHECK(lo < -15.0 && std::fabs(hi) < 0.2);
     }
     {   // antiphase reads -1; BALANCE right turns the left down
-        auto e = fresh("STEREO WIDTH", {{Balance, 50}});
+        auto e = fresh("WIDE LOAD", {{Balance, 50}});
         Stereo s = sine(500, 1.0, 0.2f, kFs, true);
         run(*e, s);
         const double l = db(toneAmp(s.l, 500, 24000, 12000) / 0.2), r = db(toneAmp(s.r, 500, 24000, 12000) / 0.2);
@@ -1231,13 +1231,13 @@ void testWidth() {
 
 void testClipper() {
     using namespace clipper;
-    std::printf("[clipper] CLIPPER: under the ceiling clean, over it shaved\n");
-    const PluginInfo* info = findPlugin("CLIPPER");
+    std::printf("[clipper] RAZOR: under the ceiling clean, over it shaved\n");
+    const PluginInfo* info = findPlugin("RAZOR");
     CHECK(info != nullptr);
     if (!info) return;
     commonRules(*info);
     {   // well under the ceiling: the same sound, delayed
-        auto e = fresh("CLIPPER", {});
+        auto e = fresh("RAZOR", {});
         Stereo s = sine(1000, 1.0, 0.3f), ref = s;
         run(*e, s);
         const double d = maxDelayedDiff(s, ref, e->latency(), 4800);
@@ -1246,7 +1246,7 @@ void testClipper() {
         CHECK(e->reductionDb() > -0.01f);
     }
     for (float shape : {0.0f, 100.0f}) {   // pushed 12 dB into a -1 dB ceiling
-        auto e = fresh("CLIPPER", {{Input, 12}, {Ceiling, -1}, {Shape, shape}});
+        auto e = fresh("RAZOR", {{Input, 12}, {Ceiling, -1}, {Shape, shape}});
         Stereo s = hotMix(3.0);
         float most = 0.0f;
         for (std::size_t i = 0; i < s.size(); i += 512) {
@@ -1259,7 +1259,7 @@ void testClipper() {
         CHECK(most < -10.0f);
     }
     {   // the clipping is oversampled: a hard-clipped 5 kHz tone leaves little aliasing (energy off the harmonics)
-        auto e = fresh("CLIPPER", {{Input, 12}, {Shape, 0}});
+        auto e = fresh("RAZOR", {{Input, 12}, {Shape, 0}});
         Stereo s = sine(5000, 1.0, 0.5f);
         run(*e, s);
         const double f = toneAmp(s.l, 5000, 24000, 12000), alias = toneAmp(s.l, 48000 - 7 * 5000 - 0, 24000, 12000);   // 7th harmonic folded to 13 kHz
@@ -1274,34 +1274,34 @@ void testClipper() {
 
 void testExciter() {
     using namespace exciter;
-    std::printf("[exciter] EXCITER: harmonics up top only\n");
-    const PluginInfo* info = findPlugin("EXCITER");
+    std::printf("[exciter] SPARK: harmonics up top only\n");
+    const PluginInfo* info = findPlugin("SPARK");
     CHECK(info != nullptr);
     if (!info) return;
     commonRules(*info);
     {   // MIX 0: the dry sound, delayed
-        auto e = fresh("EXCITER", {{Mix, 0}});
+        auto e = fresh("SPARK", {{Mix, 0}});
         Stereo s = noise(1.0, 0.3f), ref = s;
         run(*e, s);
         CHECK(maxDelayedDiff(s, ref, e->latency(), 4800) < 1e-6);
     }
     {   // a 400 Hz tone (under FREQ 3 kHz): left alone
-        auto e = fresh("EXCITER", {{Drive, 100}, {Mix, 100}});
+        auto e = fresh("SPARK", {{Drive, 100}, {Mix, 100}});
         Stereo s = sine(400, 1.0, 0.5f);
         run(*e, s);
         const double f = db(toneAmp(s.l, 400, 24000, 12000) / 0.5), h2 = db(toneAmp(s.l, 800, 24000, 12000) / 0.5);
         std::printf("  400 Hz under FREQ: fundamental %.2f dB, 2nd harmonic %.1f dB\n", f, h2);
         CHECK(std::fabs(f) < 0.2 && h2 < -50.0);
     }
-    {   // a 4 kHz tone: new harmonics; TUBE even (8 kHz) stronger than TAPE's, TAPE odd (12 kHz)
+    {   // a 4 kHz tone: new harmonics; TUBE even (8 kHz) stronger than ARCHIVE's, ARCHIVE odd (12 kHz)
         auto h = [&](float mode, double hz) {
-            auto e = fresh("EXCITER", {{Freq, 3000}, {Drive, 80}, {Mix, 50}, {Mode, mode}});
+            auto e = fresh("SPARK", {{Freq, 3000}, {Drive, 80}, {Mix, 50}, {Mode, mode}});
             Stereo s = sine(4000, 1.0, 0.4f);
             run(*e, s);
             return db(toneAmp(s.l, hz, 24000, 12000) / 0.4);
         };
         const double t2 = h(0, 8000), p2 = h(1, 8000), p3 = h(1, 12000);
-        std::printf("  4 kHz: TUBE 2nd harmonic %.1f dB, TAPE 2nd %.1f dB, TAPE 3rd %.1f dB\n", t2, p2, p3);
+        std::printf("  4 kHz: TUBE 2nd harmonic %.1f dB, ARCHIVE 2nd %.1f dB, ARCHIVE 3rd %.1f dB\n", t2, p2, p3);
         CHECK(t2 > -40.0 && t2 > p2 + 10.0 && p3 > -45.0);
     }
     Stereo in = noise(1.0, 0.3f);
@@ -1312,13 +1312,13 @@ void testExciter() {
 
 void testTransient() {
     using namespace transient;
-    std::printf("[transient] TRANSIENT: more or less hit, more or less tail, any level\n");
-    const PluginInfo* info = findPlugin("TRANSIENT");
+    std::printf("[transient] SUCKER PUNCH: more or less hit, more or less tail, any level\n");
+    const PluginInfo* info = findPlugin("SUCKER PUNCH");
     CHECK(info != nullptr);
     if (!info) return;
     commonRules(*info);
     {   // at 0 / 0: untouched
-        auto e = fresh("TRANSIENT", {});
+        auto e = fresh("SUCKER PUNCH", {});
         Stereo s = hits(2.0, 0.5f), ref = s;
         run(*e, s);
         CHECK(maxDelayedDiff(s, ref, 0, 0) < 1e-6);
@@ -1327,7 +1327,7 @@ void testTransient() {
     const double hit0 = hitPart(dry, 0.0, 0.01), tail0 = hitPart(dry, 0.08, 0.2);
     for (float amp : {0.5f, 0.05f}) {   // the same at -6 and -26 dBFS
         auto part = [&](std::initializer_list<std::pair<int, float>> v, double t0, double t1) {
-            auto e = fresh("TRANSIENT", v);
+            auto e = fresh("SUCKER PUNCH", v);
             Stereo s = hits(4.0, amp);
             run(*e, s);
             return hitPart(s, t0, t1) - db(amp / 0.5);
@@ -1346,13 +1346,13 @@ void testTransient() {
 
 void testLoudnessMeter() {
     using namespace meter;
-    std::printf("[meter] LOUDNESS METER: BS.1770 / EBU R128 numbers, sound untouched\n");
-    const PluginInfo* info = findPlugin("LOUDNESS METER");
+    std::printf("[meter] THE ACCOUNTANT: BS.1770 / EBU R128 numbers, sound untouched\n");
+    const PluginInfo* info = findPlugin("THE ACCOUNTANT");
     CHECK(info != nullptr);
     if (!info) return;
     commonRules(*info);
     {   // untouched; a -20 dBFS 1 kHz tone in both channels reads -20 LUFS everywhere
-        auto e = fresh("LOUDNESS METER", {});
+        auto e = fresh("THE ACCOUNTANT", {});
         Stereo s = sine(1000, 5.0, 0.1f), ref = s;
         run(*e, s);
         std::printf("  -20 dBFS 1 kHz: momentary %.2f, short-term %.2f, integrated %.2f LUFS, range %.2f LU, true peak %.2f dBTP, to -14 target %+.2f\n",
@@ -1365,7 +1365,7 @@ void testLoudnessMeter() {
         CHECK(e->meter(Correlation) > 0.99f);
     }
     {   // integrated agrees with The Hybrid Core's export meter on a real-ish mix
-        auto e = fresh("LOUDNESS METER", {});
+        auto e = fresh("THE ACCOUNTANT", {});
         Stereo s = hotMix(10.0);
         for (std::size_t i = 0; i < s.size(); ++i) { s.l[i] *= 0.4f; s.r[i] *= 0.4f; }
         const double ref = hc::media::integratedLufs(s.l.data(), s.r.data(), s.size(), kFs);
@@ -1374,7 +1374,7 @@ void testLoudnessMeter() {
         CHECK(std::fabs(e->meter(Integrated) - ref) < 0.1);
     }
     {   // gating: silence after the music doesn't drag the integrated value down
-        auto e = fresh("LOUDNESS METER", {});
+        auto e = fresh("THE ACCOUNTANT", {});
         Stereo s = sine(1000, 10.0, 0.1f);
         for (std::size_t i = s.size() / 2; i < s.size(); ++i) s.l[i] = s.r[i] = 0.0f;
         const double ref = hc::media::integratedLufs(s.l.data(), s.r.data(), s.size(), kFs);
@@ -1383,7 +1383,7 @@ void testLoudnessMeter() {
         CHECK(std::fabs(e->meter(Integrated) + 20.0f) < 0.2f && std::fabs(e->meter(Integrated) - ref) < 0.05);
     }
     {   // loudness range: 20 s at -20, 20 s at -30 (EBU Tech 3342 style) reads about 10 LU
-        auto e = fresh("LOUDNESS METER", {});
+        auto e = fresh("THE ACCOUNTANT", {});
         Stereo s = sine(1000, 40.0, 0.1f);
         for (std::size_t i = s.size() / 2; i < s.size(); ++i) { s.l[i] *= 0.31623f; s.r[i] *= 0.31623f; }
         run(*e, s);
@@ -1391,7 +1391,7 @@ void testLoudnessMeter() {
         CHECK(std::fabs(e->meter(Range) - 10.0f) < 0.6f);
     }
     {   // true peak between the samples: fs / 4 tone at 45 degrees, samples at 0.707 of the real peak
-        auto e = fresh("LOUDNESS METER", {});
+        auto e = fresh("THE ACCOUNTANT", {});
         Stereo s(48000);
         for (std::size_t i = 0; i < s.size(); ++i) s.l[i] = s.r[i] = 0.5f * static_cast<float>(std::sin(std::numbers::pi * 0.5 * static_cast<double>(i) + std::numbers::pi * 0.25));
         run(*e, s);
@@ -1399,7 +1399,7 @@ void testLoudnessMeter() {
         CHECK(std::fabs(e->meter(TruePeak) + 6.02f) < 0.6f);
     }
     {   // correlation: antiphase -1, independent noise about 0
-        auto a = fresh("LOUDNESS METER", {}), b = fresh("LOUDNESS METER", {});
+        auto a = fresh("THE ACCOUNTANT", {}), b = fresh("THE ACCOUNTANT", {});
         Stereo s = sine(500, 2.0, 0.3f, kFs, true), n = noise(2.0, 0.3f);
         run(*a, s);
         run(*b, n);
@@ -1407,7 +1407,7 @@ void testLoudnessMeter() {
         CHECK(a->meter(Correlation) < -0.99f && std::fabs(b->meter(Correlation)) < 0.15f);
     }
     {   // RESET starts the integrated value over; TARGET changes the difference
-        auto e = fresh("LOUDNESS METER", {{Target, 1}});
+        auto e = fresh("THE ACCOUNTANT", {{Target, 1}});
         Stereo loud = sine(1000, 3.0, 0.1f), quiet = sine(1000, 3.0, 0.01f);
         run(*e, loud);
         const float before = e->meter(Integrated);
@@ -1421,12 +1421,12 @@ void testLoudnessMeter() {
 
 } // namespace hem::test
 
-// ---- WAVE 6: IRON PRE, PUNCH EQ, MID EQ, AIR EQ, GRAPHIC EQ, TILT ------------------------------
+// ---- WAVE 6: FOUNDRY, KNUCKLES, MIDTOWN, PENTHOUSE, BLUEPRINT, LEVERAGE ------------------------------
 namespace hem::test {
 
 void testClassicEqs() {
     std::printf("[classic eqs] the curve on the faceplate is what you hear\n");
-    const char* names[] = {"IRON PRE", "PUNCH EQ", "MID EQ", "AIR EQ", "GRAPHIC EQ", "TILT"};
+    const char* names[] = {"FOUNDRY", "KNUCKLES", "MIDTOWN", "PENTHOUSE", "BLUEPRINT", "LEVERAGE"};
     const double probe[] = {60, 150, 400, 1000, 2500, 6000, 12000};
     for (const char* name : names) {
         const PluginInfo* info = findPlugin(name);
@@ -1472,7 +1472,7 @@ void testClassicEqs() {
         std::printf("  %s: 4 random settings x 7 frequencies, largest difference between curve and sound %.3f dB\n", name, worst);
         CHECK(worst < 0.1);
     }
-    {   // PUNCH EQ: proportional Q - a small boost is broader than a big one (relative to its peak)
+    {   // KNUCKLES: proportional Q - a small boost is broader than a big one (relative to its peak)
         using namespace punchq;
         auto widthAtHalf = [](float gain) {
             float v[kCount] = {};
@@ -1483,26 +1483,26 @@ void testClassicEqs() {
             return std::log2(1500 / lo) * 2.0;   // octaves between the half-gain points
         };
         const double w3 = widthAtHalf(3), w12 = widthAtHalf(12);
-        std::printf("  PUNCH EQ mid: +3 dB is %.2f octaves wide, +12 dB is %.2f octaves wide\n", w3, w12);
+        std::printf("  KNUCKLES mid: +3 dB is %.2f octaves wide, +12 dB is %.2f octaves wide\n", w3, w12);
         CHECK(w3 > 1.4 * w12);
     }
-    {   // TILT +6: lows -3 dB, highs +3 dB, pivot ~0
+    {   // LEVERAGE +6: lows -3 dB, highs +3 dB, pivot ~0
         using namespace tilt;
         float v[kCount] = {};
         v[Tilt] = 6; v[Pivot] = 1;
         const double lo = kTiltCurve.db(v, kFs, 30), mid = kTiltCurve.db(v, kFs, 650), hi = kTiltCurve.db(v, kFs, 18000);
-        std::printf("  TILT +6 around 650 Hz: 30 Hz %.2f dB, 650 Hz %.2f dB, 18 kHz %.2f dB\n", lo, mid, hi);
+        std::printf("  LEVERAGE +6 around 650 Hz: 30 Hz %.2f dB, 650 Hz %.2f dB, 18 kHz %.2f dB\n", lo, mid, hi);
         CHECK(std::fabs(lo + 3.0) < 0.4 && std::fabs(mid) < 0.5 && std::fabs(hi - 3.0) < 0.4);
     }
-    {   // IRON PRE high-pass: 18 dB / octave
+    {   // FOUNDRY high-pass: 18 dB / octave
         using namespace iron;
         float v[kCount] = {};
         v[Hpf] = 3; v[LowFreq] = 1; v[MidFreq] = 2;   // 160 Hz
         const double a = kIronCurve.db(v, kFs, 40), b = kIronCurve.db(v, kFs, 20);
-        std::printf("  IRON PRE high-pass 160 Hz: 40 Hz %.1f dB, 20 Hz %.1f dB (%.1f dB / octave)\n", a, b, a - b);
+        std::printf("  FOUNDRY high-pass 160 Hz: 40 Hz %.1f dB, 20 Hz %.1f dB (%.1f dB / octave)\n", a, b, a - b);
         CHECK(std::fabs((a - b) - 18.0) < 1.0);
     }
-    {   // DRIVE at a normal level (-14 dBFS, drive 50): IRON PRE (iron) odd harmonics, MID EQ (tube) even first
+    {   // DRIVE at a normal level (-14 dBFS, drive 50): FOUNDRY (iron) odd harmonics, MIDTOWN (tube) even first
         auto h = [](const char* n, int drive, int k) {
             auto e = findPlugin(n)->create();
             e->set(drive, 50);
@@ -1511,15 +1511,15 @@ void testClassicEqs() {
             run(*e, s);
             return db(toneAmp(s.l, 200.0 * k, 24000, 24000) / 0.2);
         };
-        const double b2 = h("IRON PRE", iron::Drive, 2), b3 = h("IRON PRE", iron::Drive, 3), m2 = h("MID EQ", mideq::Drive, 2), m3 = h("MID EQ", mideq::Drive, 3);
-        std::printf("  drive 50 at -14 dBFS: IRON PRE 2nd %.1f / 3rd %.1f dB, MID EQ 2nd %.1f / 3rd %.1f dB\n", b2, b3, m2, m3);
+        const double b2 = h("FOUNDRY", iron::Drive, 2), b3 = h("FOUNDRY", iron::Drive, 3), m2 = h("MIDTOWN", mideq::Drive, 2), m3 = h("MIDTOWN", mideq::Drive, 3);
+        std::printf("  drive 50 at -14 dBFS: FOUNDRY 2nd %.1f / 3rd %.1f dB, MIDTOWN 2nd %.1f / 3rd %.1f dB\n", b2, b3, m2, m3);
         CHECK(b3 > b2 + 10.0 && m2 > m3 && m2 > -50.0 && b3 > -50.0);
     }
 }
 
 } // namespace hem::test
 
-// ---- WAVE 7: VCA COMP, PUNCH COMP, FOCUS BUS, DIODE BUS, GATE, MULTIBAND ---------------------------
+// ---- WAVE 7: ENFORCER, HEAVY HAND, MUSCLE, UNDERBOSS, BOUNCER, TRIAD ---------------------------
 namespace hem::test {
 namespace {
 // Steady 1 kHz tone level change (dB) after `seconds`, measured over the last 0.25 s.
@@ -1530,26 +1530,26 @@ double steadyChange(const char* name, std::initializer_list<std::pair<int, float
 } // namespace
 
 void testMoreDynamics() {
-    std::printf("[dynamics 2] VCA COMP, PUNCH COMP, FOCUS BUS, DIODE BUS, GATE, MULTIBAND\n");
-    for (const char* n : {"VCA COMP", "PUNCH COMP", "FOCUS BUS", "DIODE BUS", "GATE", "MULTIBAND"}) {
+    std::printf("[dynamics 2] ENFORCER, HEAVY HAND, MUSCLE, UNDERBOSS, BOUNCER, TRIAD\n");
+    for (const char* n : {"ENFORCER", "HEAVY HAND", "MUSCLE", "UNDERBOSS", "BOUNCER", "TRIAD"}) {
         const PluginInfo* info = findPlugin(n);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
     }
-    {   // VCA COMP: the static curve. -6 dBFS tone, threshold -20, 4:1, hard knee: 14 over -> 3.5 over = -10.5 dB
+    {   // ENFORCER: the static curve. -6 dBFS tone, threshold -20, 4:1, hard knee: 14 over -> 3.5 over = -10.5 dB
         using namespace vca;
-        const double under = steadyChange("VCA COMP", {{Threshold, -20}, {Knee, 0}}, 0.05f);   // -26 dBFS: under
-        const double over = steadyChange("VCA COMP", {{Threshold, -20}, {Knee, 0}, {Ratio, 4}}, 0.5f);
-        const double autoMk = steadyChange("VCA COMP", {{Threshold, -20}, {Knee, 0}, {Ratio, 4}, {AutoMakeup, 1}}, 0.5f);
-        const double half = steadyChange("VCA COMP", {{Threshold, -20}, {Knee, 0}, {Ratio, 4}, {Mix, 50}}, 0.5f);
-        std::printf("  VCA COMP -20 dB, 4:1: under %.3f dB, -6 dBFS tone %.2f dB (curve -10.50), auto makeup %.2f dB, mix 50 %% %.2f dB\n", under, over, autoMk, half);
+        const double under = steadyChange("ENFORCER", {{Threshold, -20}, {Knee, 0}}, 0.05f);   // -26 dBFS: under
+        const double over = steadyChange("ENFORCER", {{Threshold, -20}, {Knee, 0}, {Ratio, 4}}, 0.5f);
+        const double autoMk = steadyChange("ENFORCER", {{Threshold, -20}, {Knee, 0}, {Ratio, 4}, {AutoMakeup, 1}}, 0.5f);
+        const double half = steadyChange("ENFORCER", {{Threshold, -20}, {Knee, 0}, {Ratio, 4}, {Mix, 50}}, 0.5f);
+        std::printf("  ENFORCER -20 dB, 4:1: under %.3f dB, -6 dBFS tone %.2f dB (curve -10.50), auto makeup %.2f dB, mix 50 %% %.2f dB\n", under, over, autoMk, half);
         CHECK(std::fabs(under) < 1e-4);
         CHECK(std::fabs(over + 10.5) < 0.6);
         CHECK(std::fabs(autoMk - (over + 7.5)) < 0.3);
         CHECK(half > over + 3.0 && half < -1.0);
         // attack: fast grabs a burst sooner than slow
         auto grabbed = [](float attackMs) {
-            auto e = fresh("VCA COMP", {{Threshold, -30}, {Attack, attackMs}});
+            auto e = fresh("ENFORCER", {{Threshold, -30}, {Attack, attackMs}});
             Stereo s = sine(1000, 0.5, 0.5f);
             for (std::size_t i = 0; i < s.size(); i += 48) {
                 e->process(s.l.data() + i, s.r.data() + i, 48);
@@ -1558,78 +1558,78 @@ void testMoreDynamics() {
             return 500.0;
         };
         const double fast = grabbed(0.5f), slow = grabbed(30.0f);
-        std::printf("  VCA COMP to -6 dB: attack 0.5 ms in %.0f ms, 30 ms in %.0f ms\n", fast, slow);
+        std::printf("  ENFORCER to -6 dB: attack 0.5 ms in %.0f ms, 30 ms in %.0f ms\n", fast, slow);
         CHECK(fast < 3.0 && slow > 10.0 * std::max(fast, 1.0));
     }
-    {   // PUNCH COMP: RMS on a sine scale, 4:1 at -20: a -6 dBFS tone -> -10.5 dB; it lets go at ~120 dB/s
+    {   // HEAVY HAND: RMS on a sine scale, 4:1 at -20: a -6 dBFS tone -> -10.5 dB; it lets go at ~120 dB/s
         using namespace punch;
-        const double over = steadyChange("PUNCH COMP", {{Threshold, -20}, {Compression, 4}}, 0.5f);
-        std::printf("  PUNCH COMP -20 dB, 4:1: -6 dBFS tone %.2f dB (curve -10.50)\n", over);
+        const double over = steadyChange("HEAVY HAND", {{Threshold, -20}, {Compression, 4}}, 0.5f);
+        std::printf("  HEAVY HAND -20 dB, 4:1: -6 dBFS tone %.2f dB (curve -10.50)\n", over);
         CHECK(std::fabs(over + 10.5) < 0.6);
-        auto e = fresh("PUNCH COMP", {{Threshold, -30}, {Compression, 60}});
+        auto e = fresh("HEAVY HAND", {{Threshold, -30}, {Compression, 60}});
         Stereo loud = sine(1000, 0.5, 0.5f);
         run(*e, loud);
         const float start = e->reductionDb();
         Stereo quiet(4800);   // 100 ms of silence
         run(*e, quiet);
         const float after = e->reductionDb();
-        std::printf("  PUNCH COMP release: %.1f dB -> %.1f dB after 100 ms of silence (%.0f dB/s)\n", start, after, (after - start) * 10.0f);
+        std::printf("  HEAVY HAND release: %.1f dB -> %.1f dB after 100 ms of silence (%.0f dB/s)\n", start, after, (after - start) * 10.0f);
         CHECK(std::fabs((after - start) * 10.0f - 120.0f) < 10.0f);
     }
-    {   // FOCUS BUS: MODERN and VINTAGE give the same ratio; MUCH LESS low focus compresses bass far less than NORM
+    {   // MUSCLE: MODERN and VINTAGE give the same ratio; MUCH LESS low focus compresses bass far less than NORM
         using namespace focus;
-        const double neu = steadyChange("FOCUS BUS", {{Threshold, -20}, {Knee, 0}, {Ratio, 3}, {Style, 0}}, 0.5f);
-        const double old = steadyChange("FOCUS BUS", {{Threshold, -20}, {Knee, 0}, {Ratio, 3}, {Style, 1}}, 0.5f);
-        std::printf("  FOCUS BUS 4:1 at -20, -6 dBFS tone: MODERN %.2f dB, VINTAGE %.2f dB (curve -10.50)\n", neu, old);
+        const double neu = steadyChange("MUSCLE", {{Threshold, -20}, {Knee, 0}, {Ratio, 3}, {Style, 0}}, 0.5f);
+        const double old = steadyChange("MUSCLE", {{Threshold, -20}, {Knee, 0}, {Ratio, 3}, {Style, 1}}, 0.5f);
+        std::printf("  MUSCLE 4:1 at -20, -6 dBFS tone: MODERN %.2f dB, VINTAGE %.2f dB (curve -10.50)\n", neu, old);
         CHECK(std::fabs(neu + 10.5) < 0.6 && std::fabs(old + 10.5) < 1.0);
         auto bass = [](float focusSel) {
-            auto e = fresh("FOCUS BUS", {{Threshold, -20}, {LowFocus, focusSel}});
+            auto e = fresh("MUSCLE", {{Threshold, -20}, {LowFocus, focusSel}});
             return toneOut(*e, 60, 0.5f, 1.5);
         };
         const double norm = bass(0), loud = bass(2);
         std::printf("  60 Hz at -6 dBFS: LOW FOCUS FLAT %.2f dB, MUCH LESS %.2f dB\n", norm, loud);
         CHECK(loud > norm + 4.0);
     }
-    {   // DIODE BUS: compresses; the LIMIT section holds the level; AUTO recovers faster after a short hit
+    {   // UNDERBOSS: compresses; the LIMIT section holds the level; AUTO recovers faster after a short hit
         using namespace diodebus;
-        const double c = steadyChange("DIODE BUS", {{Threshold, -20}, {Ratio, 3}, {Drive, 0}}, 0.5f);
-        const double lim = steadyChange("DIODE BUS", {{Threshold, 0}, {Limit, 1}, {LimitLevel, -10}, {Drive, 0}}, 0.5f);
-        std::printf("  DIODE BUS 4:1 at -20: -6 dBFS tone %.2f dB; LIMIT at -10: %.2f dB (wants -4.0)\n", c, lim);
+        const double c = steadyChange("UNDERBOSS", {{Threshold, -20}, {Ratio, 3}, {Drive, 0}}, 0.5f);
+        const double lim = steadyChange("UNDERBOSS", {{Threshold, 0}, {Limit, 1}, {LimitLevel, -10}, {Drive, 0}}, 0.5f);
+        std::printf("  UNDERBOSS 4:1 at -20: -6 dBFS tone %.2f dB; LIMIT at -10: %.2f dB (wants -4.0)\n", c, lim);
         CHECK(c < -7.0 && c > -12.0);
         CHECK(std::fabs(lim + 4.0) < 0.6);
-        auto e = fresh("DIODE BUS", {{Drive, 0}, {Mix, 100}});
+        auto e = fresh("UNDERBOSS", {{Drive, 0}, {Mix, 100}});
         Stereo s = noise(1.0, 0.05f), ref = s;
         run(*e, s);
         const double d = maxDelayedDiff(s, ref, e->latency(), 4800);
-        std::printf("  DIODE BUS under the threshold, no iron: latency %u, max difference %.2e\n", e->latency(), d);
+        std::printf("  UNDERBOSS under the threshold, no iron: latency %u, max difference %.2e\n", e->latency(), d);
         CHECK(d < 1e-3);
     }
-    {   // GATE: closes by RANGE on quiet, opens on loud, holds; EXPAND drops 2 dB per dB under
+    {   // BOUNCER: closes by RANGE on quiet, opens on loud, holds; EXPAND drops 2 dB per dB under
         using namespace gate;
-        const double closed = steadyChange("GATE", {{Threshold, -30}, {Range, 40}}, 0.01f);   // -40 dBFS
-        const double open = steadyChange("GATE", {{Threshold, -30}, {Range, 40}}, 0.1f);      // -20 dBFS
-        const double exp = steadyChange("GATE", {{Threshold, -30}, {Range, 60}, {Mode, 1}}, 0.01f);   // 10 under: -20 dB
-        std::printf("  GATE -30: -40 dBFS tone %.2f dB (closed, range 40), -20 dBFS %.3f dB (open); EXPAND 10 dB under %.2f dB\n", closed, open, exp);
+        const double closed = steadyChange("BOUNCER", {{Threshold, -30}, {Range, 40}}, 0.01f);   // -40 dBFS
+        const double open = steadyChange("BOUNCER", {{Threshold, -30}, {Range, 40}}, 0.1f);      // -20 dBFS
+        const double exp = steadyChange("BOUNCER", {{Threshold, -30}, {Range, 60}, {Mode, 1}}, 0.01f);   // 10 under: -20 dB
+        std::printf("  BOUNCER -30: -40 dBFS tone %.2f dB (closed, range 40), -20 dBFS %.3f dB (open); EXPAND 10 dB under %.2f dB\n", closed, open, exp);
         CHECK(std::fabs(closed + 40.0) < 0.5 && std::fabs(open) < 0.01 && std::fabs(exp + 20.0) < 1.5);
     }
-    {   // MULTIBAND: no compression -> flat (the bands add back up); a loud low tone is compressed, a mid tone isn't
+    {   // TRIAD: no compression -> flat (the bands add back up); a loud low tone is compressed, a mid tone isn't
         using namespace multiband;
         double worst = 0;
         for (double hz : {40.0, 100.0, 150.0, 300.0, 1000.0, 3000.0, 6000.0, 12000.0}) {
-            auto e = fresh("MULTIBAND", {{LowThr, 0}, {MidThr, 0}, {HighThr, 0}});
+            auto e = fresh("TRIAD", {{LowThr, 0}, {MidThr, 0}, {HighThr, 0}});
             worst = std::max(worst, std::fabs(toneOut(*e, hz, 0.1f, 1.0)));
         }
-        std::printf("  MULTIBAND at rest, 40 Hz .. 12 kHz: largest deviation from flat %.3f dB\n", worst);
+        std::printf("  TRIAD at rest, 40 Hz .. 12 kHz: largest deviation from flat %.3f dB\n", worst);
         CHECK(worst < 0.05);
-        auto e = fresh("MULTIBAND", {{LowThr, -30}, {LowRatio, 4}, {MidThr, 0}, {HighThr, 0}});
+        auto e = fresh("TRIAD", {{LowThr, -30}, {LowRatio, 4}, {MidThr, 0}, {HighThr, 0}});
         Stereo s = sine(60, 1.5, 0.3f);
         add(s, sine(1000, 1.5, 0.05f));
         run(*e, s);
         const double lo = db(toneAmp(s.l, 60, 48000, 12000) / 0.3), mid = db(toneAmp(s.l, 1000, 48000, 12000) / 0.05);
-        std::printf("  MULTIBAND low band at -30, 4:1: 60 Hz %.2f dB, 1 kHz %.2f dB, meters %.1f / %.1f / %.1f\n", lo, mid, e->meter(0), e->meter(1), e->meter(2));
+        std::printf("  TRIAD low band at -30, 4:1: 60 Hz %.2f dB, 1 kHz %.2f dB, meters %.1f / %.1f / %.1f\n", lo, mid, e->meter(0), e->meter(1), e->meter(2));
         CHECK(lo < -10.0 && std::fabs(mid) < 0.2 && e->meter(0) < -10.0f && e->meter(1) > -0.1f);
     }
-    for (const char* n : {"VCA COMP", "PUNCH COMP", "FOCUS BUS", "DIODE BUS", "GATE", "MULTIBAND"}) {
+    for (const char* n : {"ENFORCER", "HEAVY HAND", "MUSCLE", "UNDERBOSS", "BOUNCER", "TRIAD"}) {
         Stereo in = hotMix(1.0);
         const double d = blockSizeDifference(*findPlugin(n), [](hc::fx::Effect&) {}, in);
         std::printf("  %s block size 1 vs 512: max difference %.2e\n", n, d);
@@ -1639,7 +1639,7 @@ void testMoreDynamics() {
 
 } // namespace hem::test
 
-// ---- WAVE 8: TUBE SAT, PREAMP, CASSETTE, VINYL, BIT CRUSHER, TRANSFORMER -------------------------
+// ---- WAVE 8: FURNACE, FRONT MAN, MIXTAPE, CRATE DIGGER, SHREDDER, ANVIL -------------------------
 namespace hem::test {
 namespace {
 // Spread (standard deviation, in samples) of the time between upward zero crossings of a tone:
@@ -1658,101 +1658,101 @@ double periodSpread(const std::vector<float>& x, std::size_t from) {
 } // namespace
 
 void testColorFx() {
-    std::printf("[colour] TUBE SAT, PREAMP, CASSETTE, VINYL, BIT CRUSHER, TRANSFORMER\n");
-    for (const char* n : {"TUBE SAT", "PREAMP", "CASSETTE", "VINYL", "BIT CRUSHER", "TRANSFORMER"}) {
+    std::printf("[colour] FURNACE, FRONT MAN, MIXTAPE, CRATE DIGGER, SHREDDER, ANVIL\n");
+    for (const char* n : {"FURNACE", "FRONT MAN", "MIXTAPE", "CRATE DIGGER", "SHREDDER", "ANVIL"}) {
         const PluginInfo* info = findPlugin(n);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
     }
-    {   // TUBE SAT: quiet passes at the same level; driven, BIAS brings the 2nd harmonic; MIX 0 = dry
+    {   // FURNACE: quiet passes at the same level; driven, BIAS brings the 2nd harmonic; MIX 0 = dry
         using namespace tubesat;
-        auto quiet = fresh("TUBE SAT", {{Drive, 100}});
+        auto quiet = fresh("FURNACE", {{Drive, 100}});
         const double q = toneOut(*quiet, 1000, 0.003f);
-        auto h2 = [](float bias) { auto e = fresh("TUBE SAT", {{Drive, 70}, {Bias, bias}}); return harmonicDb(*e, 200, 2, 0.3f); };
-        auto h3 = [] { auto e = fresh("TUBE SAT", {{Drive, 70}, {Bias, 0}}); return harmonicDb(*e, 200, 3, 0.3f); }();
+        auto h2 = [](float bias) { auto e = fresh("FURNACE", {{Drive, 70}, {Bias, bias}}); return harmonicDb(*e, 200, 2, 0.3f); };
+        auto h3 = [] { auto e = fresh("FURNACE", {{Drive, 70}, {Bias, 0}}); return harmonicDb(*e, 200, 3, 0.3f); }();
         const double b0 = h2(0), b100 = h2(100);
-        std::printf("  TUBE SAT: -50 dBFS at drive 100 %.2f dB; drive 70 at -10 dBFS: 2nd harmonic bias 0 %.1f dB, bias 100 %.1f dB, 3rd %.1f dB\n", q, b0, b100, h3);
+        std::printf("  FURNACE: -50 dBFS at drive 100 %.2f dB; drive 70 at -10 dBFS: 2nd harmonic bias 0 %.1f dB, bias 100 %.1f dB, 3rd %.1f dB\n", q, b0, b100, h3);
         CHECK(std::fabs(q) < 0.3 && b100 > b0 + 20.0 && b100 > -40.0 && h3 > -40.0);
-        auto dry = fresh("TUBE SAT", {{Mix, 0}, {Drive, 100}});
+        auto dry = fresh("FURNACE", {{Mix, 0}, {Drive, 100}});
         Stereo s = noise(1.0, 0.5f), ref = s;
         run(*dry, s);
         CHECK(maxDelayedDiff(s, ref, dry->latency(), 0) < 1e-6);
     }
-    {   // PREAMP: +20 dB is +20 dB (clean, quiet signal); PHASE flips; LOW CUT takes out 30 Hz
+    {   // FRONT MAN: +20 dB is +20 dB (clean, quiet signal); PHASE flips; LOW CUT takes out 30 Hz
         using namespace preamp;
-        auto e = fresh("PREAMP", {{Gain, 20}, {Character, 0}});
+        auto e = fresh("FRONT MAN", {{Gain, 20}, {Character, 0}});
         const double g = toneOut(*e, 1000, 0.003f);
-        auto ph = fresh("PREAMP", {{Phase, 1}, {Character, 0}});
+        auto ph = fresh("FRONT MAN", {{Phase, 1}, {Character, 0}});
         Stereo s = sine(1000, 0.5, 0.01f), ref = s;
         run(*ph, s);
         double sum = 0;
         for (std::size_t i = 12000; i < s.size(); ++i) sum += s.l[i] * ref.l[i - ph->latency()];
-        auto lc = fresh("PREAMP", {{LowCut, 1}, {Character, 0}});
+        auto lc = fresh("FRONT MAN", {{LowCut, 1}, {Character, 0}});
         const double low = toneOut(*lc, 30, 0.01f, 2.0);
-        std::printf("  PREAMP: gain +20 -> %.2f dB, phase invert correlation %s, low cut 30 Hz %.1f dB\n", g, sum < 0 ? "negative" : "positive", low);
+        std::printf("  FRONT MAN: gain +20 -> %.2f dB, phase invert correlation %s, low cut 30 Hz %.1f dB\n", g, sum < 0 ? "negative" : "positive", low);
         CHECK(std::fabs(g - 20.0) < 0.3 && sum < 0 && low < -10.0);
     }
-    {   // CASSETTE: TYPE IV keeps more top than TYPE I; WOW moves the pitch; HISS lands near -40 dBFS at 100 %
+    {   // MIXTAPE: TYPE IV keeps more top than TYPE I; WOW moves the pitch; HISS lands near -40 dBFS at 100 %
         using namespace cassette;
-        auto top = [](float type) { auto e = fresh("CASSETTE", {{Type, type}, {Drive, 0}, {Wow, 0}, {Flutter, 0}}); return toneOut(*e, 12000, 0.05f); };
+        auto top = [](float type) { auto e = fresh("MIXTAPE", {{Type, type}, {Drive, 0}, {Wow, 0}, {Flutter, 0}}); return toneOut(*e, 12000, 0.05f); };
         const double t1 = top(0), t4 = top(2);
         auto spread = [](float wow) {
-            auto e = fresh("CASSETTE", {{Wow, wow}, {Flutter, 0}, {Drive, 0}});
+            auto e = fresh("MIXTAPE", {{Wow, wow}, {Flutter, 0}, {Drive, 0}});
             Stereo s = sine(1000, 3.0, 0.1f);
             run(*e, s);
             return periodSpread(s.l, 4800);
         };
         const double still = spread(0), wobble = spread(100);
-        auto hs = fresh("CASSETTE", {{Hiss, 100}});
+        auto hs = fresh("MIXTAPE", {{Hiss, 100}});
         Stereo z(96000);
         run(*hs, z);
         const double hissDb = db(rms(z.l, 48000, 48000));
-        std::printf("  CASSETTE: 12 kHz TYPE I %.1f dB, TYPE IV %.1f dB; period spread still %.4f, wow 100 %% %.4f samples; hiss %.1f dBFS RMS\n", t1, t4, still, wobble, hissDb);
+        std::printf("  MIXTAPE: 12 kHz TYPE I %.1f dB, TYPE IV %.1f dB; period spread still %.4f, wow 100 %% %.4f samples; hiss %.1f dBFS RMS\n", t1, t4, still, wobble, hissDb);
         CHECK(t4 > t1 + 3.0 && wobble > 20.0 * std::max(still, 1e-4) && hissDb > -50.0 && hissDb < -30.0);
     }
-    {   // VINYL: clicks appear with CRACKLE; with everything off it's the input, delayed
+    {   // CRATE DIGGER: clicks appear with CRACKLE; with everything off it's the input, delayed
         using namespace vinyl;
-        auto e = fresh("VINYL", {{Crackle, 100}, {Wear, 0}, {Warp, 0}});
+        auto e = fresh("CRATE DIGGER", {{Crackle, 100}, {Wear, 0}, {Warp, 0}});
         Stereo z(48000 * 4);
         run(*e, z);
         int clicks = 0;
         for (std::size_t i = 1; i < z.size(); ++i) clicks += std::fabs(z.l[i]) > 0.01f && std::fabs(z.l[i - 1]) <= 0.01f;
-        auto clean = fresh("VINYL", {{Wear, 0}, {Warp, 0}, {MonoLows, 0}});
+        auto clean = fresh("CRATE DIGGER", {{Wear, 0}, {Warp, 0}, {MonoLows, 0}});
         Stereo s = noise(1.0, 0.3f), ref = s;
         run(*clean, s);
         const double d = maxDelayedDiff(s, ref, clean->latency(), 0);
-        std::printf("  VINYL: crackle 100 %% -> %d click onsets in 4 s; all off: max difference from the input %.2e\n", clicks, d);
+        std::printf("  CRATE DIGGER: crackle 100 %% -> %d click onsets in 4 s; all off: max difference from the input %.2e\n", clicks, d);
         CHECK(clicks > 40 && d < 1e-6);
     }
-    {   // BIT CRUSHER: 4 bits = at most 17 levels; downsample 4 holds each value 4 samples; 24 bits / 1x is clean
+    {   // SHREDDER: 4 bits = at most 17 levels; downsample 4 holds each value 4 samples; 24 bits / 1x is clean
         using namespace crusher;
-        auto e = fresh("BIT CRUSHER", {{Bits, 4}, {Downsample, 4}});
+        auto e = fresh("SHREDDER", {{Bits, 4}, {Downsample, 4}});
         Stereo s = sine(97, 0.5, 0.9f);
         run(*e, s);
         std::set<float> levels(s.l.begin() + 4800, s.l.end());
         bool held = true;
         for (std::size_t i = 4800; i + 4 < s.size(); i += 4)
             for (int k = 1; k < 4; ++k) held = held && s.l[i + k] == s.l[i];
-        auto hi = fresh("BIT CRUSHER", {{Bits, 24}, {Downsample, 1}});
+        auto hi = fresh("SHREDDER", {{Bits, 24}, {Downsample, 1}});
         Stereo t = noise(0.5, 0.5f), ref = t;
         run(*hi, t);
         const double d = maxDelayedDiff(t, ref, 0, 0);
-        std::printf("  BIT CRUSHER: 4 bits -> %zu levels, held for 4 samples %s; 24 bits 1x max difference %.2e\n", levels.size(), held ? "yes" : "no", d);
+        std::printf("  SHREDDER: 4 bits -> %zu levels, held for 4 samples %s; 24 bits 1x max difference %.2e\n", levels.size(), held ? "yes" : "no", d);
         CHECK(levels.size() <= 17 && held && d < 1e-6);
     }
-    {   // TRANSFORMER: the lows saturate more than the highs; WEIGHT lifts 60 Hz
+    {   // ANVIL: the lows saturate more than the highs; WEIGHT lifts 60 Hz
         using namespace transformer;
         auto h = [](double hz) {   // 3rd harmonic relative to what comes out at the fundamental
-            auto e = fresh("TRANSFORMER", {{Drive, 100}, {Weight, 0}});
+            auto e = fresh("ANVIL", {{Drive, 100}, {Weight, 0}});
             return harmonicDb(*e, hz, 3, 0.4f) - harmonicDb(*e, hz, 1, 0.4f);
         };
         const double lo = h(50), hi = h(2000);
-        auto w = fresh("TRANSFORMER", {{Drive, 0}, {Weight, 6}});
+        auto w = fresh("ANVIL", {{Drive, 0}, {Weight, 6}});
         const double bump = toneOut(*w, 60, 0.01f, 2.0);
-        std::printf("  TRANSFORMER drive 100 at -8 dBFS: 3rd harmonic of 50 Hz %.1f dB under it, of 2 kHz %.1f dB; weight +6 at 60 Hz %.2f dB\n", lo, hi, bump);
+        std::printf("  ANVIL drive 100 at -8 dBFS: 3rd harmonic of 50 Hz %.1f dB under it, of 2 kHz %.1f dB; weight +6 at 60 Hz %.2f dB\n", lo, hi, bump);
         CHECK(lo > hi + 6.0 && std::fabs(bump - 6.0) < 0.5);
     }
-    for (const char* n : {"TUBE SAT", "PREAMP", "CASSETTE", "VINYL", "BIT CRUSHER", "TRANSFORMER"}) {
+    for (const char* n : {"FURNACE", "FRONT MAN", "MIXTAPE", "CRATE DIGGER", "SHREDDER", "ANVIL"}) {
         Stereo in = hotMix(1.0);
         const double d = blockSizeDifference(*findPlugin(n), [](hc::fx::Effect&) {}, in);
         std::printf("  %s block size 1 vs 512: max difference %.2e\n", n, d);
@@ -1762,7 +1762,7 @@ void testColorFx() {
 
 } // namespace hem::test
 
-// ---- WAVE 9: HALL, ROOM, PLATE, SPRING, TAPE ECHO, DIGITAL DELAY ---------------------------------
+// ---- WAVE 9: CATHEDRAL, BACKROOM, CHROME, COIL, WIRETAP, REPEAT OFFENDER ---------------------------------
 namespace hem::test {
 namespace {
 Stereo impulse(double seconds, float amp = 1.0f) {
@@ -1805,15 +1805,15 @@ double energyAround(const std::vector<float>& x, std::size_t at, std::size_t hal
 } // namespace
 
 void testSpace() {
-    std::printf("[space] HALL, ROOM, PLATE, SPRING, TAPE ECHO, DIGITAL DELAY\n");
-    for (const char* n : {"HALL", "ROOM", "PLATE", "SPRING", "TAPE ECHO", "DIGITAL DELAY"}) {
+    std::printf("[space] CATHEDRAL, BACKROOM, CHROME, COIL, WIRETAP, REPEAT OFFENDER\n");
+    for (const char* n : {"CATHEDRAL", "BACKROOM", "CHROME", "COIL", "WIRETAP", "REPEAT OFFENDER"}) {
         const PluginInfo* info = findPlugin(n);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
     }
     {   // the reverbs: DECAY is the real reverb time; MIX 0 is the dry signal; the tail is wide
         using namespace verb;
-        const struct { const char* n; float decay; } cases[] = {{"HALL", 3.0f}, {"HALL", 1.2f}, {"ROOM", 0.8f}, {"PLATE", 2.0f}};
+        const struct { const char* n; float decay; } cases[] = {{"CATHEDRAL", 3.0f}, {"CATHEDRAL", 1.2f}, {"BACKROOM", 0.8f}, {"CHROME", 2.0f}};
         for (const auto& c : cases) {
             auto e = fresh(c.n, {{Decay, c.decay}, {Damping, 0}, {Mod, 0}, {LowCut, 20}, {HighCut, 20000}, {Mix, 100}, {PreDelay, 0}});
             Stereo s = impulse(c.decay * 2.0 + 0.5);
@@ -1823,65 +1823,65 @@ void testSpace() {
             CHECK(t > c.decay * 0.75 && t < c.decay * 1.25);
             CHECK(std::fabs(corr) < 0.5);
         }
-        auto dry = fresh("HALL", {{Mix, 0}});
+        auto dry = fresh("CATHEDRAL", {{Mix, 0}});
         Stereo s = noise(1.0, 0.3f), ref = s;
         run(*dry, s);
         CHECK(maxDelayedDiff(s, ref, 0, 0) == 0.0);
-        auto dark = fresh("HALL", {{Damping, 100}, {Mix, 100}}), bright = fresh("HALL", {{Damping, 0}, {Mix, 100}});
+        auto dark = fresh("CATHEDRAL", {{Damping, 100}, {Mix, 100}}), bright = fresh("CATHEDRAL", {{Damping, 0}, {Mix, 100}});
         Stereo a = noise(1.0, 0.3f), b = a;
         run(*dark, a);
         run(*bright, b);
         const double hd = bandLevelDb(a.l, 6000, 12000, 24000, 24000), hb = bandLevelDb(b.l, 6000, 12000, 24000, 24000);
-        std::printf("  HALL 6-12 kHz in the tail: damping 100 %% %.1f dB, damping 0 %% %.1f dB\n", hd, hb);
+        std::printf("  CATHEDRAL 6-12 kHz in the tail: damping 100 %% %.1f dB, damping 0 %% %.1f dB\n", hd, hb);
         CHECK(hd < hb - 6.0);
     }
-    {   // SPRING: it rings and dies away within DECAY
+    {   // COIL: it rings and dies away within DECAY
         using namespace spring;
-        auto e = fresh("SPRING", {{Decay, 2.0f}, {Mix, 100}});
+        auto e = fresh("COIL", {{Decay, 2.0f}, {Mix, 100}});
         Stereo s = impulse(3.0);
         run(*e, s);
         const double early = rms(s.l, 4800, 24000), late = rms(s.l, 96000, 24000);
-        std::printf("  SPRING decay 2 s: level 0.1-0.6 s %.1f dB, 2.0-2.5 s %.1f dB\n", db(early), db(late));
+        std::printf("  COIL decay 2 s: level 0.1-0.6 s %.1f dB, 2.0-2.5 s %.1f dB\n", db(early), db(late));
         CHECK(db(early) > -60.0 && db(late) < db(early) - 30.0);
     }
-    {   // TAPE ECHO: the first repeat lands exactly at TIME; the heads at 2x and 3x; 110 % feedback stays bounded
+    {   // WIRETAP: the first repeat lands exactly at TIME; the heads at 2x and 3x; 110 % feedback stays bounded
         using namespace tapeecho;
-        auto e = fresh("TAPE ECHO", {{Time, 250}, {Wobble, 0}, {Feedback, 0}, {Mix, 100}});
+        auto e = fresh("WIRETAP", {{Time, 250}, {Wobble, 0}, {Feedback, 0}, {Mix, 100}});
         Stereo s = impulse(1.0, 0.5f);
         run(*e, s);
         const std::size_t k = peakIndex(s.l, 1, s.size());
-        auto e3 = fresh("TAPE ECHO", {{Time, 100}, {Heads, 2}, {Wobble, 0}, {Feedback, 0}, {Mix, 100}});
+        auto e3 = fresh("WIRETAP", {{Time, 100}, {Heads, 2}, {Wobble, 0}, {Feedback, 0}, {Mix, 100}});
         Stereo t = impulse(1.0, 0.5f);
         run(*e3, t);
         const std::size_t h2 = peakIndex(t.l, 6000, 12000), h3 = peakIndex(t.l, 12000, 18000);
-        auto run110 = fresh("TAPE ECHO", {{Time, 120}, {Feedback, 110}, {Mix, 100}});
+        auto run110 = fresh("WIRETAP", {{Time, 120}, {Feedback, 110}, {Mix, 100}});
         Stereo u = impulse(10.0, 0.5f);
         run(*run110, u);
-        std::printf("  TAPE ECHO: 250 ms repeat at sample %zu (12000); heads 2 and 3 at %zu and %zu (9600, 14400); 110 %% feedback for 10 s peaks at %.2f\n", k, h2, h3, peak(u));
+        std::printf("  WIRETAP: 250 ms repeat at sample %zu (12000); heads 2 and 3 at %zu and %zu (9600, 14400); 110 %% feedback for 10 s peaks at %.2f\n", k, h2, h3, peak(u));
         CHECK(k == 12000 && h2 == 9600 && h3 == 14400);
         CHECK(finite(u) && peak(u) < 1.5f && peak(u) > 0.1f);
     }
-    {   // DIGITAL DELAY: exact time, feedback level, note values at BPM, ping-pong alternates sides
+    {   // REPEAT OFFENDER: exact time, feedback level, note values at BPM, ping-pong alternates sides
         using namespace ddelay;
-        auto e = fresh("DIGITAL DELAY", {{Division, 0}, {Time, 250}, {Feedback, 50}, {Mix, 100}, {LowCut, 20}, {HighCut, 20000}});
+        auto e = fresh("REPEAT OFFENDER", {{Division, 0}, {Time, 250}, {Feedback, 50}, {Mix, 100}, {LowCut, 20}, {HighCut, 20000}});
         Stereo s = impulse(1.0);
         run(*e, s);
         const std::size_t k = peakIndex(s.l, 1, 18000);
         const double second = 10.0 * std::log10(energyAround(s.l, 24000, 400) / energyAround(s.l, 12000, 400));
-        auto q = fresh("DIGITAL DELAY", {{Division, 1}, {Bpm, 120}, {Feedback, 0}, {Mix, 100}});
+        auto q = fresh("REPEAT OFFENDER", {{Division, 1}, {Bpm, 120}, {Feedback, 0}, {Mix, 100}});
         Stereo t = impulse(1.0);
         run(*q, t);
         const std::size_t kq = peakIndex(t.l, 1, t.size());
-        auto pp = fresh("DIGITAL DELAY", {{Division, 0}, {Time, 100}, {Feedback, 60}, {PingPong, 1}, {Mix, 100}});
+        auto pp = fresh("REPEAT OFFENDER", {{Division, 0}, {Time, 100}, {Feedback, 60}, {PingPong, 1}, {Mix, 100}});
         Stereo u = impulse(1.0);
         run(*pp, u);
         const double l1 = energyAround(u.l, 4800, 200), r1 = energyAround(u.r, 4800, 200), l2 = energyAround(u.l, 9600, 200), r2 = energyAround(u.r, 9600, 200);
-        std::printf("  DIGITAL DELAY: 250 ms echo at %zu (12000), value %.3f, second repeat %.1f dB (feedback 50 %% = -6.0); 1/4 at 120 BPM at %zu (24000); ping-pong 1st L/R %.2f / %.2f, 2nd %.2f / %.2f\n",
+        std::printf("  REPEAT OFFENDER: 250 ms echo at %zu (12000), value %.3f, second repeat %.1f dB (feedback 50 %% = -6.0); 1/4 at 120 BPM at %zu (24000); ping-pong 1st L/R %.2f / %.2f, 2nd %.2f / %.2f\n",
                     k, s.l[k], second, kq, l1, r1, l2, r2);
         CHECK(k == 12000 && std::fabs(s.l[k] - 1.0f) < 1e-6f && std::fabs(second + 6.0) < 1.5 && kq == 24000);
         CHECK(l1 > 0.1 && r1 < 1e-6 && r2 > 0.05 && l2 < 1e-6);
     }
-    for (const char* n : {"HALL", "ROOM", "PLATE", "SPRING", "TAPE ECHO", "DIGITAL DELAY"}) {
+    for (const char* n : {"CATHEDRAL", "BACKROOM", "CHROME", "COIL", "WIRETAP", "REPEAT OFFENDER"}) {
         Stereo in = hotMix(1.0);
         const double d = blockSizeDifference(*findPlugin(n), [](hc::fx::Effect&) {}, in);
         std::printf("  %s block size 1 vs 512: max difference %.2e\n", n, d);
@@ -1891,53 +1891,53 @@ void testSpace() {
 
 } // namespace hem::test
 
-// ---- WAVE 10: CHORUS, FLANGER, PHASER, TREMOLO, ROTARY, AUTO FILTER ------------------------------
+// ---- WAVE 10: THE CREW, GETAWAY, SMOKESCREEN, SHAKEDOWN, CYCLONE, SHAPESHIFTER ------------------------------
 namespace hem::test {
 
 void testMovement() {
-    std::printf("[movement] CHORUS, FLANGER, PHASER, TREMOLO, ROTARY, AUTO FILTER\n");
-    for (const char* n : {"CHORUS", "FLANGER", "PHASER", "TREMOLO", "ROTARY", "AUTO FILTER"}) {
+    std::printf("[movement] THE CREW, GETAWAY, SMOKESCREEN, SHAKEDOWN, CYCLONE, SHAPESHIFTER\n");
+    for (const char* n : {"THE CREW", "GETAWAY", "SMOKESCREEN", "SHAKEDOWN", "CYCLONE", "SHAPESHIFTER"}) {
         const PluginInfo* info = findPlugin(n);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
     }
-    {   // CHORUS: MIX 0 = dry; it wobbles the pitch and spreads a mono source
+    {   // THE CREW: MIX 0 = dry; it wobbles the pitch and spreads a mono source
         using namespace chorus;
-        auto dry = fresh("CHORUS", {{Mix, 0}});
+        auto dry = fresh("THE CREW", {{Mix, 0}});
         Stereo s = noise(0.5, 0.3f), ref = s;
         run(*dry, s);
         CHECK(maxDelayedDiff(s, ref, 0, 0) == 0.0);
-        auto e = fresh("CHORUS", {{Mix, 100}, {Depth, 100}, {Rate, 1}});
+        auto e = fresh("THE CREW", {{Mix, 100}, {Depth, 100}, {Rate, 1}});
         Stereo t = noise(2.0, 0.3f);
         for (std::size_t i = 0; i < t.size(); ++i) t.r[i] = t.l[i];
         run(*e, t);
         const double corr = correlation(t, 9600);
-        auto w = fresh("CHORUS", {{Mix, 100}, {Depth, 100}, {Rate, 1}, {Voices, 0}});
+        auto w = fresh("THE CREW", {{Mix, 100}, {Depth, 100}, {Rate, 1}, {Voices, 0}});
         Stereo u = sine(1000, 3.0, 0.3f);
         run(*w, u);
-        std::printf("  CHORUS: mono noise in, left / right correlation %.2f; 1 kHz period spread %.3f samples\n", corr, periodSpread(u.l, 4800));
+        std::printf("  THE CREW: mono noise in, left / right correlation %.2f; 1 kHz period spread %.3f samples\n", corr, periodSpread(u.l, 4800));
         CHECK(corr < 0.8 && periodSpread(u.l, 4800) > 0.05);
     }
-    {   // FLANGER: still (depth 0) at 1 ms, the comb: 500 Hz cancels, 1 kHz passes
+    {   // GETAWAY: still (depth 0) at 1 ms, the comb: 500 Hz cancels, 1 kHz passes
         using namespace flanger;
-        auto f = [](double hz) { auto e = fresh("FLANGER", {{Depth, 0}, {Manual, 1.0f}, {Feedback, 0}, {Mix, 50}}); return toneOut(*e, hz, 0.2f); };
+        auto f = [](double hz) { auto e = fresh("GETAWAY", {{Depth, 0}, {Manual, 1.0f}, {Feedback, 0}, {Mix, 50}}); return toneOut(*e, hz, 0.2f); };
         const double n500 = f(500), p1k = f(1000);
-        std::printf("  FLANGER at 1 ms, mix 50 %%: 500 Hz %.1f dB (notch), 1 kHz %.2f dB\n", n500, p1k);
+        std::printf("  GETAWAY at 1 ms, mix 50 %%: 500 Hz %.1f dB (notch), 1 kHz %.2f dB\n", n500, p1k);
         CHECK(n500 < -30.0 && std::fabs(p1k) < 0.2);
     }
-    {   // PHASER: still, the stages make a deep notch somewhere; MIX 0 = dry
+    {   // SMOKESCREEN: still, the stages make a deep notch somewhere; MIX 0 = dry
         using namespace phaser;
         double lowest = 0;
         for (double hz = 100; hz < 10000; hz *= 1.03) {
-            auto e = fresh("PHASER", {{Depth, 0}, {Center, 1000}, {Stages, 0}, {Feedback, 0}, {Mix, 50}});
+            auto e = fresh("SMOKESCREEN", {{Depth, 0}, {Center, 1000}, {Stages, 0}, {Feedback, 0}, {Mix, 50}});
             lowest = std::min(lowest, toneOut(*e, hz, 0.2f, 0.5));
         }
-        std::printf("  PHASER 4 stages, still at 1 kHz: deepest notch %.1f dB\n", lowest);
+        std::printf("  SMOKESCREEN 4 stages, still at 1 kHz: deepest notch %.1f dB\n", lowest);
         CHECK(lowest < -20.0);
     }
-    {   // TREMOLO: depth 100 swings the level all the way; AUTO PAN moves left against right
+    {   // SHAKEDOWN: depth 100 swings the level all the way; AUTO PAN moves left against right
         using namespace tremolo;
-        auto e = fresh("TREMOLO", {{Depth, 100}, {Rate, 4}, {Pan, 1}});
+        auto e = fresh("SHAKEDOWN", {{Depth, 100}, {Rate, 4}, {Pan, 1}});
         Stereo s = sine(1000, 2.0, 0.3f);
         run(*e, s);
         double lo = 1e9, hi = 0, envCorr = 0;
@@ -1947,13 +1947,13 @@ void testMovement() {
             hi = std::max(hi, l);
             envCorr += (l - 0.106) * (r - 0.106);
         }
-        std::printf("  TREMOLO depth 100: level swings %.1f dB; auto pan left / right envelopes move %s\n", db(hi / std::max(lo, 1e-9)), envCorr < 0 ? "opposite" : "together");
+        std::printf("  SHAKEDOWN depth 100: level swings %.1f dB; auto pan left / right envelopes move %s\n", db(hi / std::max(lo, 1e-9)), envCorr < 0 ? "opposite" : "together");
         CHECK(db(hi / std::max(lo, 1e-9)) > 20.0 && envCorr < 0);
     }
-    {   // ROTARY: FAST spins the level and pitch faster than SLOW, and the horn gets there first
+    {   // CYCLONE: FAST spins the level and pitch faster than SLOW, and the horn gets there first
         using namespace rotary;
         auto swing = [](float speed) {
-            auto e = fresh("ROTARY", {{Speed, speed}, {Drive, 0}});
+            auto e = fresh("CYCLONE", {{Speed, speed}, {Drive, 0}});
             Stereo s = sine(3000, 3.0, 0.2f);
             run(*e, s);
             int crossings = 0;
@@ -1967,17 +1967,17 @@ void testMovement() {
             return crossings / 2.0;   // level cycles per second (over 2 s)
         };
         const double slow = swing(0), fast = swing(1);
-        std::printf("  ROTARY horn level cycles per second: SLOW %.1f, FAST %.1f\n", slow, fast);
+        std::printf("  CYCLONE horn level cycles per second: SLOW %.1f, FAST %.1f\n", slow, fast);
         CHECK(fast > 3.0 * std::max(slow, 0.5) && fast < 9.0);
     }
-    {   // AUTO FILTER: still, low-pass at 500 Hz: 100 Hz through, 5 kHz far down; ENVELOPE opens it on loud input
+    {   // SHAPESHIFTER: still, low-pass at 500 Hz: 100 Hz through, 5 kHz far down; ENVELOPE opens it on loud input
         using namespace autofilter;
-        auto lp = [](double hz, float env, float amp) { auto e = fresh("AUTO FILTER", {{Type, 0}, {Cutoff, 500}, {Resonance, 0.7071f}, {Envelope, env}, {Depth, 0}}); return toneOut(*e, hz, amp); };
+        auto lp = [](double hz, float env, float amp) { auto e = fresh("SHAPESHIFTER", {{Type, 0}, {Cutoff, 500}, {Resonance, 0.7071f}, {Envelope, env}, {Depth, 0}}); return toneOut(*e, hz, amp); };
         const double pass = lp(100, 0, 0.3f), stop = lp(5000, 0, 0.3f), open = lp(5000, 100, 0.3f);
-        std::printf("  AUTO FILTER low-pass 500 Hz: 100 Hz %.2f dB, 5 kHz %.1f dB; with ENVELOPE 100 on a -10 dBFS tone 5 kHz %.1f dB\n", pass, stop, open);
+        std::printf("  SHAPESHIFTER low-pass 500 Hz: 100 Hz %.2f dB, 5 kHz %.1f dB; with ENVELOPE 100 on a -10 dBFS tone 5 kHz %.1f dB\n", pass, stop, open);
         CHECK(std::fabs(pass) < 0.3 && stop < -30.0 && open > stop + 20.0);
     }
-    for (const char* n : {"CHORUS", "FLANGER", "PHASER", "TREMOLO", "ROTARY", "AUTO FILTER"}) {
+    for (const char* n : {"THE CREW", "GETAWAY", "SMOKESCREEN", "SHAKEDOWN", "CYCLONE", "SHAPESHIFTER"}) {
         Stereo in = hotMix(1.0);
         const double d = blockSizeDifference(*findPlugin(n), [](hc::fx::Effect&) {}, in);
         std::printf("  %s block size 1 vs 512: max difference %.2e\n", n, d);
@@ -1987,66 +1987,66 @@ void testMovement() {
 
 } // namespace hem::test
 
-// ---- WAVE 11: SUB, BASS TIGHTENER, VOCAL STRIP ---------------------------------------------------
+// ---- WAVE 11: UNDERGROUND, CHOKEHOLD, SPOTLIGHT ---------------------------------------------------
 namespace hem::test {
 
 void testSpecialty() {
-    std::printf("[specialty] SUB, BASS TIGHTENER, VOCAL STRIP\n");
-    for (const char* n : {"SUB", "BASS TIGHTENER", "VOCAL STRIP"}) {
+    std::printf("[specialty] UNDERGROUND, CHOKEHOLD, SPOTLIGHT\n");
+    for (const char* n : {"UNDERGROUND", "CHOKEHOLD", "SPOTLIGHT"}) {
         const PluginInfo* info = findPlugin(n);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
     }
-    {   // SUB: AMOUNT 0 = the input exactly; OCTAVE puts 40 Hz under an 80 Hz bass; HARMONICS adds 100 / 150 Hz to 50 Hz
+    {   // UNDERGROUND: AMOUNT 0 = the input exactly; OCTAVE puts 40 Hz under an 80 Hz bass; HARMONICS adds 100 / 150 Hz to 50 Hz
         using namespace sub;
-        auto off = fresh("SUB", {{Amount, 0}});
+        auto off = fresh("UNDERGROUND", {{Amount, 0}});
         Stereo s = noise(0.5, 0.3f), ref = s;
         run(*off, s);
         CHECK(maxDelayedDiff(s, ref, 0, 0) == 0.0);
-        auto oct = fresh("SUB", {{Mode, 0}, {Amount, 80}, {Freq, 100}});
+        auto oct = fresh("UNDERGROUND", {{Mode, 0}, {Amount, 80}, {Freq, 100}});
         Stereo b = sine(80, 2.0, 0.3f);
         run(*oct, b);
         const double sub40 = db(toneAmp(b.l, 40, 48000, 48000) / 0.3);
-        auto har = fresh("SUB", {{Mode, 1}, {Amount, 80}, {Freq, 80}});
+        auto har = fresh("UNDERGROUND", {{Mode, 1}, {Amount, 80}, {Freq, 80}});
         Stereo c = sine(50, 2.0, 0.3f);
         run(*har, c);
         const double h2 = db(toneAmp(c.l, 100, 48000, 48000) / 0.3), h3 = db(toneAmp(c.l, 150, 48000, 48000) / 0.3);
-        std::printf("  SUB: OCTAVE on 80 Hz adds 40 Hz at %.1f dB; HARMONICS on 50 Hz adds 100 Hz %.1f dB, 150 Hz %.1f dB\n", sub40, h2, h3);
+        std::printf("  UNDERGROUND: OCTAVE on 80 Hz adds 40 Hz at %.1f dB; HARMONICS on 50 Hz adds 100 Hz %.1f dB, 150 Hz %.1f dB\n", sub40, h2, h3);
         CHECK(sub40 > -20.0 && h2 > -25.0 && h3 > -25.0);
     }
-    {   // BASS TIGHTENER: at rest flat; TIGHTEN holds a loud 50 Hz down and leaves 1 kHz; MONO takes the low sides out
+    {   // CHOKEHOLD: at rest flat; TIGHTEN holds a loud 50 Hz down and leaves 1 kHz; MONO takes the low sides out
         using namespace tightener;
         double worst = 0;
-        for (double hz : {40.0, 120.0, 400.0, 3000.0}) { auto e = fresh("BASS TIGHTENER", {}); worst = std::max(worst, std::fabs(toneOut(*e, hz, 0.2f))); }
-        auto t = fresh("BASS TIGHTENER", {{Tighten, 100}});
+        for (double hz : {40.0, 120.0, 400.0, 3000.0}) { auto e = fresh("CHOKEHOLD", {}); worst = std::max(worst, std::fabs(toneOut(*e, hz, 0.2f))); }
+        auto t = fresh("CHOKEHOLD", {{Tighten, 100}});
         Stereo s = sine(50, 1.5, 0.5f);
         add(s, sine(1000, 1.5, 0.05f));
         run(*t, s);
         const double lo = db(toneAmp(s.l, 50, 48000, 12000) / 0.5), mid = db(toneAmp(s.l, 1000, 48000, 12000) / 0.05);
-        auto m = fresh("BASS TIGHTENER", {{Mono, 1}});
+        auto m = fresh("CHOKEHOLD", {{Mono, 1}});
         Stereo u = sine(50, 1.5, 0.3f, kFs, true);
         run(*m, u);
         const double side = db(toneAmp(u.l, 50, 48000, 12000) / 0.3);
-        std::printf("  BASS TIGHTENER: at rest within %.3f dB; TIGHTEN 100 on -6 dBFS 50 Hz %.1f dB, 1 kHz %.2f dB; MONO, 50 Hz sides %.1f dB\n", worst, lo, mid, side);
+        std::printf("  CHOKEHOLD: at rest within %.3f dB; TIGHTEN 100 on -6 dBFS 50 Hz %.1f dB, 1 kHz %.2f dB; MONO, 50 Hz sides %.1f dB\n", worst, lo, mid, side);
         CHECK(worst < 0.05 && lo < -8.0 && std::fabs(mid) < 0.3 && side < -20.0);
     }
-    {   // VOCAL STRIP: all at 0 = exactly the input; HIGH-PASS, PRESENCE and COMPRESS do what they say
+    {   // SPOTLIGHT: all at 0 = exactly the input; HIGH-PASS, PRESENCE and COMPRESS do what they say
         using namespace vocal;
-        auto e = fresh("VOCAL STRIP", {});
+        auto e = fresh("SPOTLIGHT", {});
         Stereo s = noise(0.5, 0.3f), ref = s;
         run(*e, s);
         const double d = maxDelayedDiff(s, ref, 0, 0);
-        auto hp = fresh("VOCAL STRIP", {{Hpf, 4}});
+        auto hp = fresh("SPOTLIGHT", {{Hpf, 4}});
         const double cut = toneOut(*hp, 40, 0.1f, 1.5);
-        auto pr = fresh("VOCAL STRIP", {{Presence, 6}});
+        auto pr = fresh("SPOTLIGHT", {{Presence, 6}});
         const double pres = toneOut(*pr, 4000, 0.05f);
-        auto cp = fresh("VOCAL STRIP", {{Compress, 100}});
+        auto cp = fresh("SPOTLIGHT", {{Compress, 100}});
         const double loud = toneOut(*cp, 1000, 0.5f), quiet = toneOut(*cp, 1000, 0.005f);
-        std::printf("  VOCAL STRIP: neutral max difference %.2e; 120 Hz high-pass at 40 Hz %.1f dB; presence +6 at 4 kHz %.2f dB; compress 100: -6 dBFS %+.1f dB, -46 dBFS %+.1f dB\n",
+        std::printf("  SPOTLIGHT: neutral max difference %.2e; 120 Hz high-pass at 40 Hz %.1f dB; presence +6 at 4 kHz %.2f dB; compress 100: -6 dBFS %+.1f dB, -46 dBFS %+.1f dB\n",
                     d, cut, pres, loud, quiet);
         CHECK(d == 0.0 && cut < -15.0 && std::fabs(pres - 6.0) < 0.2 && quiet - loud > 10.0);
     }
-    for (const char* n : {"SUB", "BASS TIGHTENER", "VOCAL STRIP"}) {
+    for (const char* n : {"UNDERGROUND", "CHOKEHOLD", "SPOTLIGHT"}) {
         Stereo in = hotMix(1.0);
         const double d = blockSizeDifference(*findPlugin(n), [](hc::fx::Effect& x) { if (x.params().size() > 2) x.set(2, 50); }, in);
         std::printf("  %s block size 1 vs 512: max difference %.2e\n", n, d);

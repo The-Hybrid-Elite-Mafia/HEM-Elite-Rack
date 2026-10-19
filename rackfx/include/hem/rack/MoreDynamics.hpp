@@ -3,22 +3,22 @@
 //  More HEM-Elite-Rack dynamics (our own designs). Each publishes its gain reduction (dB, <= 0)
 //  for the faceplate's needle.
 //
-//  HEM VCA COMP — a clean, modern compressor: THRESHOLD, RATIO 1..20, KNEE 0..24 dB, ATTACK,
+//  HEM ENFORCER — a clean, modern compressor: THRESHOLD, RATIO 1..20, KNEE 0..24 dB, ATTACK,
 //    RELEASE (or AUTO), MAKEUP (or AUTO MAKEUP), sidechain HPF, MIX, OUTPUT. Zero latency.
-//  HEM PUNCH COMP — a one-knob-per-job RMS compressor: THRESHOLD, COMPRESSION (ratio up
+//  HEM HEAVY HAND — a one-knob-per-job RMS compressor: THRESHOLD, COMPRESSION (ratio up
 //    to 60:1), SOFT KNEE (soft knee), OUTPUT, MIX. Attack and release follow the music: the further
 //    over, the faster it grabs; it lets go at a steady 120 dB per second. Zero latency.
-//  HEM FOCUS BUS — a punchy bus compressor: RATIO 1.5..10, stepped ATTACK and RELEASE, KNEE
+//  HEM MUSCLE — a punchy bus compressor: RATIO 1.5..10, stepped ATTACK and RELEASE, KNEE
 //    HARD / MED / SOFT, LOW FOCUS (FLAT / LESS LOW / MUCH LESS: the detector listens less to the low
 //    end, so the bass pumps less), MODERN (feed-forward) or VINTAGE (feedback) style, LINK, MAKEUP, MIX, OUTPUT.
 //    Zero latency.
-//  HEM DIODE BUS — a Diode-bridge bus compressor with a limiter after it: RATIO, THRESHOLD,
+//  HEM UNDERBOSS — a Diode-bridge bus compressor with a limiter after it: RATIO, THRESHOLD,
 //    ATTACK FAST / SLOW, RECOVERY 100 ms .. 1.5 s or AUTO 1 / AUTO 2 (release follows the music),
 //    LIMIT on / LEVEL, MAKEUP, iron DRIVE, MIX. Latency 23 samples (the iron is 4x oversampled).
-//  HEM GATE — gate or expander: THRESHOLD (with 4 dB hysteresis so it doesn't chatter), RANGE
+//  HEM BOUNCER — gate or expander: THRESHOLD (with 4 dB hysteresis so it doesn't chatter), RANGE
 //    (how far it closes), ATTACK, HOLD, RELEASE, GATE or EXPAND (1:3 below the threshold), the
 //    detector's HPF and LPF, LISTEN (hear the detector). Zero latency.
-//  HEM MULTIBAND — a three-band compressor: crossovers LOW / MID and MID / HIGH (Linkwitz-Riley,
+//  HEM TRIAD — a three-band compressor: crossovers LOW / MID and MID / HIGH (Linkwitz-Riley,
 //    24 dB/oct, the bands add back up flat), THRESHOLD, RATIO and GAIN per band, ATTACK, RELEASE,
 //    OUTPUT. Meters 0..2 = each band's gain reduction. Zero latency.
 // =============================================================================

@@ -1,4 +1,4 @@
-// HEM LOUDNESS METER (see Tools.hpp): BS.1770 / EBU R128 loudness, loudness range, true peak,
+// HEM THE ACCOUNTANT (see Tools.hpp): BS.1770 / EBU R128 loudness, loudness range, true peak,
 // correlation. The audio passes through untouched.
 #include "hem/rack/Tools.hpp"
 

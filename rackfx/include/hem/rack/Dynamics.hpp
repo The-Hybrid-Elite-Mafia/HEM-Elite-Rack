@@ -3,18 +3,18 @@
 //  HEM-Elite-Rack's classic-style compressors (our own designs). Each publishes its gain
 //  reduction (dB, <= 0) through hc::fx::Effect::reductionDb() for the faceplate's needle.
 //
-//  HEM VARI-MU — a variable-mu tube compressor: the ratio grows the harder it is pushed (gentle
+//  HEM SMOKE — a variable-mu tube compressor: the ratio grows the harder it is pushed (gentle
 //    at first, firmer on peaks), six TIME settings (5 and 6 release by themselves, longer after
 //    long passages), STEREO or MID / SIDE, the tube's warmth (TUBE), MAKEUP, MIX.
 //    Latency 23 samples (the tube stage is 4x oversampled), always.
 //
-//  HEM OPTO — an optical leveler: two knobs do it all. PEAK REDUCTION (how much), GAIN (makeup).
+//  HEM LANTERN — an optical leveler: two knobs do it all. PEAK REDUCTION (how much), GAIN (makeup).
 //    The light cell's attack is about 10 ms; it lets go in two stages, half quickly (~60 ms) and
 //    the rest slowly (0.5 s, up to 5 s after it has been working hard for a while). COMPRESS or
 //    LIMIT; EMPHASIS makes the detector listen harder to the highs (tames esses and cymbals
 //    first). MIX. Zero latency.
 //
-//  HEM FET — a fast FET limiting amplifier: INPUT drives it (more input = more compression),
+//  HEM TRIGGER — a fast FET limiting amplifier: INPUT drives it (more input = more compression),
 //    OUTPUT sets the level. ATTACK and RELEASE 1..7 (7 = fastest: 20 µs attack, 50 ms release),
 //    RATIO 4, 8, 12, 20 or ALL (every button in: aggressive, overshooting, gritty). Its colour
 //    grows with the compression. MIX. Latency 23 samples, always.

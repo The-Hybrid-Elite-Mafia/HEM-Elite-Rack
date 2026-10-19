@@ -43,8 +43,8 @@ std::shared_ptr<Song> testSong(double seconds) {
 SlotState eqState(float shelfGainDb) {
     using namespace rack::eq;
     SlotState st;
-    st.name = "ELITE EQ";
-    auto e = makePlugin("ELITE EQ");
+    st.name = "SURGEON";
+    auto e = makePlugin("SURGEON");
     e->set(bandParam(0, On), 1);
     e->set(bandParam(0, TypeC), static_cast<float>(static_cast<int>(Type::HighShelf)));
     e->set(bandParam(0, Freq), 800);
@@ -61,8 +61,8 @@ SlotState eqState(float shelfGainDb) {
 
 SlotState restorerState() {
     SlotState st;
-    st.name = "RESTORER";
-    auto e = makePlugin("RESTORER");
+    st.name = "THE CLEANER";
+    auto e = makePlugin("THE CLEANER");
     e->set(rack::restorer::Reduction, 6.0f);
     const auto ps = e->params();
     for (std::size_t i = 0; i < ps.size(); ++i) st.values.emplace_back(ps[i].id, e->get(static_cast<int>(i)));
@@ -122,7 +122,7 @@ void testChain() {
         std::vector<float> want(n, 0.0f);
         for (std::size_t i = 23; i < n; ++i) want[i] = song->left[i - 23];
         const double d = maxDiff(out.l, want, 9600, n);
-        std::printf("  bypassed ELITE EQ vs the song delayed 23 samples: %.2e\n", d);
+        std::printf("  bypassed SURGEON vs the song delayed 23 samples: %.2e\n", d);
         CHECK(d < 1e-6);
     }
     // 3. A / B: B is the untouched song lined up with A; with MATCH LOUDNESS it is brought to A's loudness.
@@ -191,14 +191,14 @@ void testChain() {
     // 6. Moving slots swaps them; emptying a slot frees the plug-in (after the audio side lets go).
     {
         RackProcessor rack;
-        (void)rack.setSlot(0, makePlugin("RESTORER"));
-        (void)rack.setSlot(1, makePlugin("ELITE EQ"));
+        (void)rack.setSlot(0, makePlugin("THE CLEANER"));
+        (void)rack.setSlot(1, makePlugin("SURGEON"));
         std::vector<float> l(64), r(64);
         rack.render(l.data(), r.data(), 64);
         CHECK(rack.moveSlot(0, 1));
         rack.render(l.data(), r.data(), 64);
-        CHECK(std::string(pluginName(*rack.effect(0))) == "ELITE EQ");
-        CHECK(std::string(pluginName(*rack.effect(1))) == "RESTORER");
+        CHECK(std::string(pluginName(*rack.effect(0))) == "SURGEON");
+        CHECK(std::string(pluginName(*rack.effect(1))) == "THE CLEANER");
         CHECK(rack.latency() == 2048 + 23);
         (void)rack.setSlot(1, nullptr);
         rack.render(l.data(), r.data(), 64);
@@ -230,8 +230,8 @@ void testRackSession() {
             same = back[i].values[k].first == chain[i].values[k].first && back[i].values[k].second == chain[i].values[k].second;
     }
     CHECK(same);
-    CHECK(back[0].slot == 2 && back[0].name == "ELITE EQ" && back[0].on);
-    CHECK(back[1].slot == 5 && back[1].name == "RESTORER" && !back[1].on);
+    CHECK(back[0].slot == 2 && back[0].name == "SURGEON" && back[0].on);
+    CHECK(back[1].slot == 5 && back[1].name == "THE CLEANER" && !back[1].on);
     // Restoring builds plug-ins with exactly those settings.
     auto e = makePlugin(back[0]);
     CHECK(std::fabs(e->get(rack::eq::bandParam(0, rack::eq::Gain)) - 5.5f) < 1e-6f);

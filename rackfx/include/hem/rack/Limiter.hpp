@@ -1,6 +1,6 @@
 #pragma once
 // =============================================================================
-//  HEM LIMITER — the mastering limiter at the end of the chain (our own design): makes a song
+//  HEM LOCKDOWN — the mastering limiter at the end of the chain (our own design): makes a song
 //  loud without it ever going over the ceiling.
 //
 //    INPUT      0..+24 dB of push into the limiter (more = louder, more limiting)

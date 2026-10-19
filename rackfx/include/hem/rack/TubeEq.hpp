@@ -1,6 +1,6 @@
 #pragma once
 // =============================================================================
-//  HEM TUBE EQ — a passive tube program EQ in the classic style (our own design): broad,
+//  HEM VELVET — a passive tube program EQ in the classic style (our own design): broad,
 //  forgiving moves with a tube behind them.
 //
 //    LOW    FREQ 20 / 30 / 60 / 100 Hz, BOOST 0..10, ATTEN 0..10. The attenuation shelf sits about

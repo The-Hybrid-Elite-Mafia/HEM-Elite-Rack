@@ -51,7 +51,7 @@ double lumaStdDev(const hc::ui::Image& img) {
     return std::sqrt(std::max(0.0, sq / static_cast<double>(std::max<std::size_t>(n, 1)) - m * m));
 }
 
-// A short "song": kick, bass, a voice, hats and hiss (the RESTORER has something to find).
+// A short "song": kick, bass, a voice, hats and hiss (the THE CLEANER has something to find).
 void feed(hc::fx::Effect& e, double seconds) {
     e.prepare(48000.0, 512);
     std::vector<float> l(512), r(512);

@@ -1,6 +1,6 @@
 #pragma once
 // =============================================================================
-//  HEM TAPE — a two-track tape machine (our own design): the warmth, weight and glue of
+//  HEM ARCHIVE — a two-track tape machine (our own design): the warmth, weight and glue of
 //  running a mix to tape.
 //
 //    INPUT     -12..+18 dB into the tape: more = more saturation (highs first, like real tape:

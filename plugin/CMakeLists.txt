@@ -1,5 +1,5 @@
 # =============================================================================
-#  HEM-Elite-Rack.vst3 — ELITE EQ and RESTORER as VST3 plug-ins with their faceplates.
+#  HEM-Elite-Rack.vst3 — every HEM-Elite-Rack plug-in as VST3 with their faceplates.
 #  Steinberg VST3 SDK v3.8.1 (MIT licence) is fetched at configure time, never committed.
 #  VSTGUI and the SDK examples are not fetched / built. Steinberg's validator runs after linking.
 # =============================================================================

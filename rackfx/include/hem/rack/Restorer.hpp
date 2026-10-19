@@ -1,6 +1,6 @@
 #pragma once
 // =============================================================================
-//  HEM RESTORER — adaptive hiss / noise reduction (our own design).
+//  HEM THE CLEANER — adaptive hiss / noise reduction (our own design).
 //
 //  STFT (2048 points at 44.1 / 48 kHz, hop 1/4, square-root Hann in and out).
 //  It learns the noise floor by itself (per frequency: median of 13 neighbouring bins, then the

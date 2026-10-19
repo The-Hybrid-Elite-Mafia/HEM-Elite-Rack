@@ -16,16 +16,16 @@ namespace hem::app {
 
 struct SlotState {
     int         slot = 0;
-    std::string name;                                    // "ELITE EQ"
+    std::string name;                                    // "SURGEON"
     bool        on = true;
     std::vector<std::pair<std::string, float>> values;   // parameter id -> plain value
 };
 
-// The registered name of a plug-in object ("ELITE EQ"), "" if it is not one of ours.
+// The registered name of a plug-in object ("SURGEON"), "" if it is not one of ours.
 [[nodiscard]] const char* pluginName(const hc::fx::Effect& e);
 // What the chain holds right now (reads the live plug-ins' atomics).
 [[nodiscard]] std::vector<SlotState> snapshotChain(const RackProcessor& rack);
-// One line per used slot:  slot1=ELITE EQ|on=1|b1on=1|b1freq=120 ...
+// One line per used slot:  slot1=SURGEON|on=1|b1on=1|b1freq=120 ...
 [[nodiscard]] std::string chainToText(const std::vector<SlotState>& chain);
 // Unknown plug-ins and parameter ids are skipped (`note` says what).
 [[nodiscard]] std::vector<SlotState> chainFromText(const std::string& text, std::string* note = nullptr);

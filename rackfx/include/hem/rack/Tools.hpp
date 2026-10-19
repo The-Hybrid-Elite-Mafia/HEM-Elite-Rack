@@ -2,25 +2,25 @@
 // =============================================================================
 //  HEM-Elite-Rack mastering tools (our own designs):
 //
-//  HEM DE-ESSER — tames harsh S / T / SH sounds. FREQ 3..12 kHz (where the esses live), THRESHOLD,
+//  HEM HUSH MONEY — tames harsh S / T / SH sounds. FREQ 3..12 kHz (where the esses live), THRESHOLD,
 //    RANGE (the most it turns down), SPLIT (only the ess band goes down) or WIDE (the whole signal
 //    ducks, gentler), LISTEN (hear only the ess band the detector hears). Zero latency.
 //
-//  HEM STEREO WIDTH — WIDTH 0..200 % (0 = mono, 100 = as it was, 200 = twice the sides),
+//  HEM WIDE LOAD — WIDTH 0..200 % (0 = mono, 100 = as it was, 200 = twice the sides),
 //    MONO BASS (below 80..250 Hz the sides are removed: tight, centred low end), BALANCE, OUTPUT.
 //    Meters: 0 = correlation (-1..+1), 1 = width of what comes out (side vs mid, dB). Zero latency.
 //
-//  HEM CLIPPER — loudness by shaving the very tops of peaks: INPUT, CEILING, SHAPE (hard .. soft),
+//  HEM RAZOR — loudness by shaving the very tops of peaks: INPUT, CEILING, SHAPE (hard .. soft),
 //    OUTPUT. 4x oversampled so the clipping doesn't fold back as harsh aliasing. Latency 23.
 //
-//  HEM EXCITER — adds fresh harmonics above FREQ: brightness and air without EQ boost.
+//  HEM SPARK — adds fresh harmonics above FREQ: brightness and air without EQ boost.
 //    TUBE (even, warmer) or TAPE (odd, edgier), DRIVE, MIX (how much is added). Latency 23.
 //
-//  HEM TRANSIENT — shapes the hit and the tail of every note, whatever its level:
+//  HEM SUCKER PUNCH — shapes the hit and the tail of every note, whatever its level:
 //    ATTACK -100..+100 % (more / less punch), SUSTAIN -100..+100 % (more / less ring and room),
 //    OUTPUT. Zero latency.
 //
-//  HEM LOUDNESS METER — measures, changes nothing (the sound passes untouched):
+//  HEM THE ACCOUNTANT — measures, changes nothing (the sound passes untouched):
 //    meters 0..6 = MOMENTARY (400 ms), SHORT-TERM (3 s), INTEGRATED (since reset, gated as
 //    BS.1770 says), LOUDNESS RANGE (LU), TRUE PEAK max (dBTP), CORRELATION, TARGET difference (LU).
 //    TARGET: -14 (Spotify / YouTube), -16 (Apple), -11, -9 (club / loud). RESET: any click restarts.

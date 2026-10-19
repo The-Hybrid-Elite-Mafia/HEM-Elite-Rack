@@ -1,6 +1,6 @@
 #pragma once
 // =============================================================================
-//  HEM ELITE EQ — the mastering / mixing equalizer of HEM-Elite-Rack (our own design).
+//  HEM SURGEON — the mastering / mixing equalizer of HEM-Elite-Rack (our own design).
 //
 //  16 bands, each: ON, TYPE (bell, low / high shelf, low / high cut, notch, tilt), FREQ, GAIN,
 //  Q, SLOPE (cuts: 6..48 dB/oct), STEREO (stereo, mid, side, left, right) and DYNAMIC

@@ -5,18 +5,18 @@
 //  faceplate is computed by the same design function the audio runs, and the ones with a DRIVE
 //  knob run their saturation 4x oversampled (latency 23 samples); the clean ones have none.
 //
-//  HEM IRON PRE — Console channel: 18 dB/oct HIGH-PASS (OFF / 50 / 80 / 160 / 300 Hz),
+//  HEM FOUNDRY — Console channel: 18 dB/oct HIGH-PASS (OFF / 50 / 80 / 160 / 300 Hz),
 //    LOW shelf 35 / 60 / 110 / 220 Hz, MID bell 360 Hz .. 7.2 kHz, HIGH shelf 12 kHz (all ±16 /
 //    ±18 dB), PREAMP drive through iron (transformer-style, odd harmonics), OUTPUT.
-//  HEM PUNCH EQ — punchy three-band: LOW 50..400 Hz and HIGH 5..15 kHz (PEAK or SHELF),
+//  HEM KNUCKLES — punchy three-band: LOW 50..400 Hz and HIGH 5..15 kHz (PEAK or SHELF),
 //    MID 400 Hz..5 kHz, ±12 dB each with proportional Q (bigger moves get narrower, like the
 //    originals), FILTER (50 Hz – 15 kHz band-pass), DRIVE, OUTPUT.
-//  HEM MID EQ — tube midrange EQ: LOW PEAK 200 Hz..1 kHz boost, DIP 200 Hz..7 kHz cut,
+//  HEM MIDTOWN — tube midrange EQ: LOW PEAK 200 Hz..1 kHz boost, DIP 200 Hz..7 kHz cut,
 //    HIGH PEAK 1.5..5 kHz boost (0..10 each), tube DRIVE, OUTPUT.
-//  HEM AIR EQ — clean mastering EQ with broad bands at 10 Hz (SUB), 40, 160, 650 Hz and 2.5 kHz
+//  HEM PENTHOUSE — clean mastering EQ with broad bands at 10 Hz (SUB), 40, 160, 650 Hz and 2.5 kHz
 //    (±10 dB) and an AIR shelf (2.5 / 5 / 10 / 20 kHz, boost 0..10 dB). No colour, zero latency.
-//  HEM GRAPHIC EQ — 10 bands, 31 Hz .. 16 kHz, ±12 dB, constant Q. Zero latency.
-//  HEM TILT — one knob tips the whole balance darker or brighter (±6 dB around a PIVOT of
+//  HEM BLUEPRINT — 10 bands, 31 Hz .. 16 kHz, ±12 dB, constant Q. Zero latency.
+//  HEM LEVERAGE — one knob tips the whole balance darker or brighter (±6 dB around a PIVOT of
 //    300 / 650 Hz, 1.2 / 2.5 kHz), LOW CUT and HIGH CUT (12 dB/oct), OUTPUT. Zero latency.
 // =============================================================================
 #include "hybrid/fx/Fx.hpp"
