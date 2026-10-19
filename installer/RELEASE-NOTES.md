@@ -1,3 +1,21 @@
+# HEM-Elite-Rack 0.6.0
+
+**Six new EQs — twenty-two plug-ins in all**, in the rack and as VST3. Each draws its curve on the
+faceplate, computed by the same code the audio runs (tested: curve and sound agree to 0.000 dB):
+- **BRIT PRE** — British console channel: 18 dB/oct HIGH-PASS, LOW shelf, MID bell (narrows as you
+  push it), 12 kHz HIGH shelf, PREAMP drive through iron (odd harmonics).
+- **AMERICAN EQ** — three bands with proportional Q (a +3 dB move is about twice as wide as +12),
+  PEAK or SHELF on low and high, FILTER (50 Hz – 15 kHz), DRIVE.
+- **MID EQ** — tube midrange EQ: LOW PEAK, DIP, HIGH PEAK, tube DRIVE (even harmonics).
+- **AIR EQ** — clean, broad mastering bands (10 / 40 / 160 / 650 Hz, 2.5 kHz) and an AIR shelf
+  (2.5 / 5 / 10 / 20 kHz). Zero latency.
+- **GRAPHIC EQ** — ten bands, 31 Hz – 16 kHz, ±12 dB. Zero latency.
+- **TILT** — darker / brighter around a PIVOT, LOW CUT, HIGH CUT. Zero latency.
+
+**Fixes:** LOUDNESS METER RESET is a push button now (no confusing ON / OFF); STEREO WIDTH's
+correlation label no longer runs into the number; EXCITER's display dims the range below
+FREQUENCY (where nothing is added) and marks the edge.
+
 # HEM-Elite-Rack 0.5.0
 
 **Six new plug-ins — sixteen in all**, in the rack and as VST3:

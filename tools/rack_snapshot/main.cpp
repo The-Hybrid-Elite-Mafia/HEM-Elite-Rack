@@ -13,6 +13,7 @@
 #include "hem/rack/Plugins.hpp"
 #include "hem/rack/Restorer.hpp"
 #include "hem/rack/Tools.hpp"
+#include "hem/rack/ClassicEqs.hpp"
 #include "hem/ui/FaceWindow.hpp"
 
 #include <windows.h>
@@ -141,11 +142,28 @@ int main(int argc, char** argv) {
         } else if (info.face == hem::rack::Face::Width) {
             fx->set(hem::rack::width::Width, 140); fx->set(hem::rack::width::MonoBass, 2);
         } else if (info.face == hem::rack::Face::Clipper) {
-            fx->set(hem::rack::clipper::Input, 6);
+            fx->set(hem::rack::clipper::Input, 12);
         } else if (info.face == hem::rack::Face::Exciter) {
             fx->set(hem::rack::exciter::Drive, 60); fx->set(hem::rack::exciter::Mix, 35);
         } else if (info.face == hem::rack::Face::Transient) {
             fx->set(hem::rack::transient::Attack, 60);
+        } else if (info.face == hem::rack::Face::BritPre) {
+            using namespace hem::rack::brit;
+            fx->set(Hpf, 2); fx->set(LowGain, 4); fx->set(MidFreq, 3); fx->set(MidGain, 3); fx->set(HighGain, 5);
+        } else if (info.face == hem::rack::Face::AmericanEq) {
+            using namespace hem::rack::american;
+            fx->set(LowGain, 4); fx->set(MidFreq, 1); fx->set(MidGain, -4); fx->set(HighGain, 4); fx->set(HighShelf, 1);
+        } else if (info.face == hem::rack::Face::MidEq) {
+            using namespace hem::rack::mideq;
+            fx->set(LowPeak, 3); fx->set(Dip, 4); fx->set(DipFreq, 2); fx->set(HighPeak, 4); fx->set(HighFreq, 3);
+        } else if (info.face == hem::rack::Face::AirEq) {
+            using namespace hem::rack::air;
+            fx->set(B40, 2); fx->set(B160, -1.5f); fx->set(B650, -1); fx->set(AirGain, 4); fx->set(AirFreq, 3);
+        } else if (info.face == hem::rack::Face::GraphicEq) {
+            const float g[10] = {3, 2, 0, -2, -3, -1, 1, 3, 4, 2};
+            for (int b = 0; b < 10; ++b) fx->set(b, g[b]);
+        } else if (info.face == hem::rack::Face::Tilt) {
+            fx->set(hem::rack::tilt::Tilt, 2.5f); fx->set(hem::rack::tilt::LowCut, 2);
         } else if (info.face == hem::rack::Face::Restorer) {
             fx->set(hem::rack::restorer::Reduction, 6.0f);
         }

@@ -14,11 +14,20 @@
 namespace hem::rack {
 
 enum class Face : std::uint8_t { EliteEq, Restorer, ConsoleEq, BusGlue, Tape, TubeEq, VariMu, Opto, Fet, Limiter,
-                                DeEsser, Width, Clipper, Exciter, Transient, Meter };
+                                DeEsser, Width, Clipper, Exciter, Transient, Meter,
+                                BritPre, AmericanEq, MidEq, AirEq, GraphicEq, Tilt };
 
 // Where a plug-in sits in the rack's picker.
 enum class Group : std::uint8_t { Eq, Dynamics, Color, Space, Movement, Tools, kCount };
 [[nodiscard]] const char* groupName(Group g) noexcept;   // "EQ", "DYNAMICS", ...
+
+// For the EQs whose faceplate draws their curve: the exact response the audio runs, computed
+// from plain parameter values only (so a VST3 editor, which has no effect object, can draw it too).
+struct CurveInfo {
+    double (*db)(const float* plain, double sampleRate, double hz) noexcept;
+    int (*dots)(const float* plain, double* hz, int max) noexcept;   // a dot on the curve per band
+    float range;                                                      // ± dB shown
+};
 
 struct PluginInfo {
     const char*   name;          // "ELITE EQ"
@@ -31,6 +40,7 @@ struct PluginInfo {
     Face          face;
     Group         group;
     std::unique_ptr<hc::fx::Effect> (*create)();
+    const CurveInfo* curve = nullptr;
 };
 
 [[nodiscard]] std::span<const PluginInfo> plugins() noexcept;

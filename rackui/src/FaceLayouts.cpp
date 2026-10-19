@@ -9,9 +9,12 @@
 #include "hem/rack/Limiter.hpp"
 #include "hem/rack/Restorer.hpp"
 #include "hem/rack/Tools.hpp"
+#include "hem/rack/ClassicEqs.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <tuple>
+#include <vector>
 
 namespace hem::ui {
 namespace {
@@ -541,10 +544,11 @@ FaceLayout widthFace(const rack::PluginInfo& info) {
     L.leftNotes = {"WIDE ON TOP", "MONO DOWN LOW"};
     L.title = {60, 190, 330, 110};
     L.display = {410, 182, 1226, 140};
-    readoutAt(L, {410, 182, 600, 120}, 0, "CORRELATION", "+1 MONO  -1 OUT OF PHASE", "+2");
+    readoutAt(L, {410, 182, 600, 120}, 0, "CORRELATION", "PHASE", "+2");
     readoutAt(L, {1036, 182, 600, 120}, 1, "SIDE VS MID", "dB", "+");
     buttonRow(L, "MONO BASS", 392, MonoBass, 5);
-    L.sections.push_back({{410, 352, 700, 30}, "BELOW THIS THE LOW END STAYS IN THE CENTRE"});
+    L.sections.push_back({{410, 330, 700, 30}, "CORRELATION: +1 MONO, 0 WIDE, BELOW 0 CANCELS"});
+    L.sections.push_back({{410, 380, 700, 30}, "MONO BASS: THE LOW END STAYS IN THE CENTRE"});
     L.grooves.push_back({410, 524, 1636, 524});
     knobRow(L, {{Width, "WIDTH", 128, "MONO", "200%", false}, {Balance, "BALANCE", 100, "L", "R", false},
                 {Output, "OUTPUT", 86, "", "", true}}, 568);
@@ -630,9 +634,140 @@ FaceLayout meterFace(const rack::PluginInfo& info) {
     for (int i = 0; i < 4; ++i) L.widgets.push_back(choiceButton({1234 + static_cast<float>(i) * 102, 600, 96, 44}, Target, i));
     L.sections.push_back({{410, 720, 1226, 30}, "-14 SPOTIFY / YOUTUBE    -16 APPLE MUSIC    -11 / -9 LOUD"});
     L.widgets.push_back(toggle({70, 434, 270, 44}, Reset, "RESET"));
+    L.widgets.back().hi = "PRESS";
     L.sections.push_back({{60, 490, 300, 30}, "CLICK TO START OVER"});
     buttonSeats(L);
     bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
+// ---- the classic EQs: the curve on top, engraved sections of knobs under it, colour on the left
+struct SecKnob { int param; const char* cap; bool big; const char* lo; const char* hi; };
+struct Sec { const char* name; std::vector<SecKnob> knobs; std::vector<std::pair<int, const char*>> toggles; };
+void curveOnTop(FaceLayout& L) {
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 182, 1226, 250};
+    L.recesses.push_back({L.display, 14, 9, false, true});
+    Widget curve;
+    curve.kind = WKind::CurveDisplay;
+    curve.r = L.display;
+    L.widgets.push_back(curve);
+}
+void sections(FaceLayout& L, const std::vector<Sec>& secs) {
+    const float pitch = 1226.0f / static_cast<float>(secs.size());
+    const std::size_t first = L.widgets.size();
+    for (std::size_t si = 0; si < secs.size(); ++si) {
+        const Sec& sec = secs[si];
+        const float x0 = 410 + static_cast<float>(si) * pitch;
+        L.sections.push_back({{x0, 450, pitch, 30}, sec.name});
+        if (si > 0) L.grooves.push_back({x0, 460, x0, 808});
+        const float n = static_cast<float>(sec.knobs.size());
+        for (std::size_t k = 0; k < sec.knobs.size(); ++k) {
+            const SecKnob& kn = sec.knobs[k];
+            const float cx = x0 + pitch * (static_cast<float>(k) + 0.5f) / n, d = kn.big ? 96.0f : 76.0f;
+            const float y = sec.toggles.empty() ? 548.0f : 512.0f;
+            L.widgets.push_back(knob({cx - d * 0.5f, y + (96.0f - d) * 0.5f, d, d}, kn.param, kn.cap, kn.lo, kn.hi, !kn.big));
+        }
+        for (std::size_t t = 0; t < sec.toggles.size(); ++t) {
+            const float tw = std::min(pitch - 40.0f, 200.0f);
+            L.widgets.push_back(toggle({x0 + (pitch - tw) * 0.5f, 720 + static_cast<float>(t) * 50, tw, 40}, sec.toggles[t].first, sec.toggles[t].second));
+        }
+    }
+    seatKnobs(L, first, 12);
+}
+// The left column: up to two small knobs (drive / output) under a caption, then the bypass.
+void leftColumn(FaceLayout& L, const char* caption, std::vector<SecKnob> ks, float bypassY = 640) {
+    L.sections.push_back({{60, 400, 300, 30}, caption});
+    const std::size_t first = L.widgets.size();
+    const float xs[2] = {ks.size() == 1 ? 162.0f : 92.0f, 232.0f};
+    for (std::size_t i = 0; i < ks.size() && i < 2; ++i) L.widgets.push_back(knob({xs[i], 468, 86, 86}, ks[i].param, ks[i].cap, ks[i].lo, ks[i].hi, true));
+    seatKnobs(L, first, 12);
+    bypassAt(L, {160, bypassY, 90, 90});
+}
+
+FaceLayout britPre(const rack::PluginInfo& info) {
+    using namespace rack::brit;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"BIG IRON SOUND", "CLASSIC CHANNEL"};
+    curveOnTop(L);
+    sections(L, {{"HIGH-PASS", {{Hpf, "FREQ", false, "OFF", "300"}}, {}},
+                 {"LOW", {{LowFreq, "FREQ", false, "", ""}, {LowGain, "GAIN", true, "-16", "+16"}}, {}},
+                 {"MID", {{MidFreq, "FREQ", false, "", ""}, {MidGain, "GAIN", true, "-18", "+18"}}, {}},
+                 {"HIGH 12 kHz", {{HighGain, "GAIN", true, "-16", "+16"}}, {}}});
+    leftColumn(L, "PREAMP", {{Drive, "DRIVE", false, "", ""}, {Output, "OUTPUT", false, "", ""}});
+    return L;
+}
+
+FaceLayout americanEq(const rack::PluginInfo& info) {
+    using namespace rack::american;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"PUNCH AND FORWARD", "PROPORTIONAL Q"};
+    curveOnTop(L);
+    sections(L, {{"LOW", {{LowFreq, "FREQ", false, "", ""}, {LowGain, "GAIN", true, "-12", "+12"}}, {{LowShelf, "SHELF"}}},
+                 {"MID", {{MidFreq, "FREQ", false, "", ""}, {MidGain, "GAIN", true, "-12", "+12"}}, {}},
+                 {"HIGH", {{HighFreq, "FREQ", false, "", ""}, {HighGain, "GAIN", true, "-12", "+12"}}, {{HighShelf, "SHELF"}}}});
+    L.widgets.push_back(toggle({70, 590, 270, 44}, Filter, "FILTER 50 - 15k"));
+    buttonSeats(L);
+    leftColumn(L, "DRIVE", {{Drive, "DRIVE", false, "", ""}, {Output, "OUTPUT", false, "", ""}}, 670);
+    return L;
+}
+
+FaceLayout midEq(const rack::PluginInfo& info) {
+    using namespace rack::mideq;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"SHAPE THE MIDDLE", "TUBE WARMTH"};
+    curveOnTop(L);
+    sections(L, {{"LOW PEAK", {{LowFreq, "FREQ", false, "", ""}, {LowPeak, "BOOST", true, "0", "10"}}, {}},
+                 {"DIP", {{DipFreq, "FREQ", false, "", ""}, {Dip, "CUT", true, "0", "10"}}, {}},
+                 {"HIGH PEAK", {{HighFreq, "FREQ", false, "", ""}, {HighPeak, "BOOST", true, "0", "10"}}, {}}});
+    leftColumn(L, "TUBE", {{Drive, "DRIVE", false, "", ""}, {Output, "OUTPUT", false, "", ""}});
+    return L;
+}
+
+FaceLayout airEq(const rack::PluginInfo& info) {
+    using namespace rack::air;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"OPEN AND CLEAN", "MASTERING BANDS"};
+    curveOnTop(L);
+    sections(L, {{"SUB", {{Sub, "10 Hz", true, "-10", "+10"}}, {}},
+                 {"40 Hz", {{B40, "GAIN", true, "-10", "+10"}}, {}},
+                 {"160 Hz", {{B160, "GAIN", true, "-10", "+10"}}, {}},
+                 {"650 Hz", {{B650, "GAIN", true, "-10", "+10"}}, {}},
+                 {"2.5 kHz", {{B2k5, "GAIN", true, "-10", "+10"}}, {}},
+                 {"AIR", {{AirFreq, "FREQ", false, "", ""}, {AirGain, "AIR", false, "0", "10"}}, {}}});
+    leftColumn(L, "OUTPUT", {{Output, "OUTPUT", false, "", ""}});
+    return L;
+}
+
+FaceLayout graphicEq(const rack::PluginInfo& info) {
+    using namespace rack::graphic;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"TEN BANDS", "QUICK AND CLEAR"};
+    curveOnTop(L);
+    const char* names[kBands] = {"31", "62", "125", "250", "500", "1k", "2k", "4k", "8k", "16k"};
+    std::vector<Sec> secs;
+    for (int b = 0; b < kBands; ++b) secs.push_back({names[b], {{b, "dB", false, "-12", "+12"}}, {}});
+    sections(L, secs);
+    leftColumn(L, "OUTPUT", {{Output, "OUTPUT", false, "", ""}});
+    return L;
+}
+
+FaceLayout tiltFace(const rack::PluginInfo& info) {
+    using namespace rack::tilt;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"ONE KNOB", "DARKER OR BRIGHTER"};
+    curveOnTop(L);
+    sections(L, {{"TILT", {{Tilt, "TILT", true, "DARK", "BRIGHT"}}, {}},
+                 {"PIVOT", {{Pivot, "FREQ", false, "", ""}}, {}},
+                 {"LOW CUT", {{LowCut, "FREQ", false, "OFF", "80"}}, {}},
+                 {"HIGH CUT", {{HighCut, "FREQ", false, "OFF", "8k"}}, {}}});
+    leftColumn(L, "OUTPUT", {{Output, "OUTPUT", false, "", ""}});
     return L;
 }
 
@@ -655,6 +790,12 @@ FaceLayout faceLayout(const rack::PluginInfo& info) {
     case rack::Face::Exciter: return exciterFace(info);
     case rack::Face::Transient: return transientFace(info);
     case rack::Face::Meter: return meterFace(info);
+    case rack::Face::BritPre: return britPre(info);
+    case rack::Face::AmericanEq: return americanEq(info);
+    case rack::Face::MidEq: return midEq(info);
+    case rack::Face::AirEq: return airEq(info);
+    case rack::Face::GraphicEq: return graphicEq(info);
+    case rack::Face::Tilt: return tiltFace(info);
     case rack::Face::Restorer: break;
     }
     return restorer(info);

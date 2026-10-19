@@ -36,6 +36,7 @@ int main(int argc, char** argv) {
     testExciter();
     testTransient();
     testLoudnessMeter();
+    testClassicEqs();
     testFaces();
     testChain();
     testRackSession();

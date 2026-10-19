@@ -313,10 +313,6 @@ void FaceView::spectrum(const Ctx& c, const Widget& w) const {
     auto yOf = [&](float db) { return p.y + std::clamp((kTop - db) / (kTop - kBottom), 0.0f, 1.0f) * p.h; };
     const bool isRestorer = L_.face == rack::Face::Restorer;
     // Outside FREQUENCY RANGE: shaded (nothing is touched there).
-    if (L_.face == rack::Face::Exciter) {   // below FREQUENCY nothing is added
-        const float x1 = c.X(freqToX(plot, plain(c.host, rack::exciter::Freq)));
-        if (x1 > p.x + 0.5f) r.fillRound({p.x, p.y, x1 - p.x, p.h}, 0, rgb8(0x000000, 0.45f), Blend::Over);
-    }
     if (isRestorer) {
         const float x0 = c.X(freqToX(plot, plain(c.host, rack::restorer::LowHz)));
         const float x1 = c.X(freqToX(plot, plain(c.host, rack::restorer::HighHz)));
@@ -339,6 +335,12 @@ void FaceView::spectrum(const Ctx& c, const Widget& w) const {
         }
         r.polyline(xs, yb, rack::kSpectrumBins, 1.6f * z, th_.before.withAlpha(0.75f), Blend::Over, false);
         r.polyline(xs, ya, rack::kSpectrumBins, 2.4f * z, th_.teal, Blend::Over, true);
+    }
+    if (L_.face == rack::Face::Exciter) {   // below FREQUENCY nothing is added: dim it, mark the edge
+        const float x1 = c.X(freqToX(plot, plain(c.host, rack::exciter::Freq)));
+        if (x1 > p.x + 0.5f) r.fillRound({p.x, p.y, x1 - p.x, p.h}, 0, rgb8(0x000000, 0.55f), Blend::Over);
+        const float lx[2] = {x1, x1}, ly[2] = {p.y, p.bottom()};
+        r.polyline(lx, ly, 2, 2.0f * z, th_.gold.withAlpha(0.8f), Blend::Over, true);
     }
     const TextStyle s = c.ts(TextStyle::Caption);
     float lx = p.x + 14 * z;
@@ -521,15 +523,20 @@ void FaceView::consoleCurve(const Ctx& c, const Widget& w) const {
     const Rect p = c.T(plot);
     spectrumBehind(c, plot, 0.16f);
     const bool tube = L_.face == rack::Face::TubeEq;
-    const float kRange = tube ? 20.0f : 18.0f;
-    grid(c, plot, kRange, -kRange, tube ? 5.0f : 6.0f, true);
+    const rack::PluginInfo* info = rack::findPlugin(L_.name.c_str());
+    const rack::CurveInfo* ci = info ? info->curve : nullptr;   // the classic EQs describe their own curve
+    const float kRange = ci ? ci->range : tube ? 20.0f : 18.0f;
+    grid(c, plot, kRange, -kRange, kRange >= 18.0f ? 6.0f : kRange >= 15.0f ? 5.0f : 3.0f, true);
     float v[32] = {};
     const int count = static_cast<int>(std::min<std::size_t>(params_.size(), 32));
     for (int i = 0; i < count; ++i) v[i] = plain(c.host, i);
     const double fs = c.feed.sampleRate();
     const rack::console::Settings cs = rack::console::settingsFrom(v);
     const rack::tubeeq::Settings ts = rack::tubeeq::settingsFrom(v);
-    auto curve = [&](double hz) { return tube ? rack::tubeeq::curveDb(ts, fs, hz) : rack::console::curveDb(cs, fs, hz); };
+    auto curve = [&](double hz) {
+        if (ci) return ci->db(v, fs, hz);
+        return tube ? rack::tubeeq::curveDb(ts, fs, hz) : rack::console::curveDb(cs, fs, hz);
+    };
     auto yOf = [&](double db) { return p.cy() - static_cast<float>(std::clamp(db / kRange, -1.04, 1.04)) * p.h * 0.5f; };
     constexpr int kN = 220;
     float xs[kN], ys[kN];
@@ -548,9 +555,14 @@ void FaceView::consoleCurve(const Ctx& c, const Widget& w) const {
     r.polyline(xs, ys, kN, 2.8f * z, th_.teal, Blend::Over, true);
     // A dot on the curve at each band's frequency.
     struct Dot { double hz; Rgba col; };
-    std::array<Dot, 4> dots{};
+    std::array<Dot, 12> dots{};
     int nd = 0;
-    if (tube) {
+    if (ci) {
+        double hz[12];
+        const Rgba cols[3] = {th_.teal, th_.gold, th_.violet};
+        nd = ci->dots(v, hz, 12);
+        for (int i = 0; i < nd; ++i) dots[static_cast<std::size_t>(i)] = {hz[i], cols[i % 3]};
+    } else if (tube) {
         dots[nd++] = {ts.lowHz, th_.gold};
         dots[nd++] = {ts.highHz, th_.violet};
         dots[nd++] = {ts.attenHz, th_.teal};
@@ -688,6 +700,10 @@ void FaceView::draw(Renderer& r, const PanelHost& host, const FaceFeed& feed, co
             const bool on = plain(host, param) >= 0.5f;
             std::string t = w.caption;
             if (w.control == rack::eq::On) t = "BAND " + std::to_string(std::clamp(st.selectedBand, 0, rack::eq::kBands - 1) + 1);
+            if (w.hi == "PRESS") {   // a push button (any click does it): no ON / OFF state to show
+                button(c, c.T(w.r), t, false, hot, false, th_.teal);
+                break;
+            }
             t += on ? "  ON" : "  OFF";
             button(c, c.T(w.r), t, on, hot, !host.active(param), th_.teal);
             break;

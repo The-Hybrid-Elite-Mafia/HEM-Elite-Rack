@@ -36,6 +36,7 @@ void testClipper();
 void testExciter();
 void testTransient();
 void testLoudnessMeter();
+void testClassicEqs();
 void testSpectrum();
 void testFaces();
 void testChain();

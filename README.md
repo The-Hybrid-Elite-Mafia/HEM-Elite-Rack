@@ -24,6 +24,12 @@ C++23 audio framework, as a library.
 | **EXCITER** | Adds fresh harmonics above a frequency: TUBE (even) or TAPE (odd), drive, mix |
 | **TRANSIENT** | Transient shaper: more or less ATTACK and SUSTAIN, the same at any level |
 | **LOUDNESS METER** | EBU R128 / BS.1770: momentary, short-term, integrated LUFS, loudness range, true peak, correlation, distance to a target |
+| **BRIT PRE** | British console channel: 18 dB/oct high-pass, low shelf, mid bell, 12 kHz high shelf, preamp drive through iron |
+| **AMERICAN EQ** | Punchy three-band EQ with proportional Q, PEAK or SHELF low / high, 50 Hz–15 kHz band-pass filter, drive |
+| **MID EQ** | Tube midrange EQ: low peak, dip and high peak, tube drive |
+| **AIR EQ** | Clean mastering EQ: broad bands at 10 / 40 / 160 / 650 Hz and 2.5 kHz, AIR shelf up to 20 kHz |
+| **GRAPHIC EQ** | Ten bands, 31 Hz – 16 kHz, ±12 dB, constant Q |
+| **TILT** | Darker or brighter with one knob around a pivot, low cut, high cut |
 
 Our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 

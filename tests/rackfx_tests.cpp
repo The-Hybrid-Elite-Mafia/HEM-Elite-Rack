@@ -16,10 +16,12 @@
 #include "hem/rack/Restorer.hpp"
 #include "hem/rack/Spectrum.hpp"
 #include "hem/rack/Tools.hpp"
+#include "hem/rack/ClassicEqs.hpp"
 #include "hybrid/fx/Dsp.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <memory>
 #include <random>
 #include <set>
@@ -1409,6 +1411,104 @@ void testLoudnessMeter() {
         std::printf("  -20 LUFS, RESET, then -40: integrated %.2f -> %.2f LUFS, to -16 target %+.2f\n", before, e->meter(Integrated), e->meter(ToTarget));
         CHECK(std::fabs(before + 20.0f) < 0.1f && std::fabs(e->meter(Integrated) + 40.0f) < 0.1f);
         CHECK(std::fabs(e->meter(ToTarget) + 24.0f) < 0.1f);
+    }
+}
+
+} // namespace hem::test
+
+// ---- WAVE 6: BRIT PRE, AMERICAN EQ, MID EQ, AIR EQ, GRAPHIC EQ, TILT ------------------------------
+namespace hem::test {
+
+void testClassicEqs() {
+    std::printf("[classic eqs] the curve on the faceplate is what you hear\n");
+    const char* names[] = {"BRIT PRE", "AMERICAN EQ", "MID EQ", "AIR EQ", "GRAPHIC EQ", "TILT"};
+    const double probe[] = {60, 150, 400, 1000, 2500, 6000, 12000};
+    for (const char* name : names) {
+        const PluginInfo* info = findPlugin(name);
+        CHECK(info != nullptr && info->curve != nullptr);
+        if (!info || !info->curve) continue;
+        commonRules(*info);
+        auto proto = info->create();
+        const auto ps = proto->params();
+        auto isColor = [&](std::size_t i) { return std::string(ps[i].id) == "drive" || std::string(ps[i].id) == "output"; };
+        {   // everything at 0 (and no drive): the input, exactly (delayed by the latency)
+            auto e = info->create();
+            for (std::size_t i = 0; i < ps.size(); ++i)
+                if (isColor(i) || ps[i].unit == std::string("dB") || ps[i].unit == std::string("/10")) e->set(static_cast<int>(i), 0.0f);
+            e->prepare(kFs, 512);
+            Stereo s = noise(1.0, 0.3f), ref = s;
+            run(*e, s);
+            const double d = maxDelayedDiff(s, ref, e->latency(), 0);
+            std::printf("  %s flat: latency %u, max difference from the input %.2e\n", name, e->latency(), d);
+            CHECK(d < 1e-6);
+        }
+        double worst = 0;
+        std::mt19937 rng(static_cast<unsigned>(std::strlen(name)) * 31u);
+        std::uniform_real_distribution<float> u(0.0f, 1.0f);
+        for (int trial = 0; trial < 4; ++trial) {   // random settings: measured response == drawn curve
+            float v[hc::fx::Effect::kMaxParams] = {};
+            auto e = info->create();
+            for (std::size_t i = 0; i < ps.size(); ++i) {
+                float x = hc::fx::toPlain(ps[i], u(rng));
+                if (isColor(i)) x = 0.0f;
+                e->set(static_cast<int>(i), x);
+                v[i] = e->get(static_cast<int>(i));
+            }
+            e->prepare(kFs, 512);
+            for (double hz : probe) {
+                const double want = info->curve->db(v, kFs, hz);
+                e->reset();
+                Stereo s = sine(hz, 0.6, 0.05f);
+                run(*e, s);
+                const double got = db(toneAmp(s.l, hz, 14400, 14400) / 0.05);
+                worst = std::max(worst, std::fabs(got - want));
+            }
+        }
+        std::printf("  %s: 4 random settings x 7 frequencies, largest difference between curve and sound %.3f dB\n", name, worst);
+        CHECK(worst < 0.1);
+    }
+    {   // AMERICAN EQ: proportional Q - a small boost is broader than a big one (relative to its peak)
+        using namespace american;
+        auto widthAtHalf = [](float gain) {
+            float v[kCount] = {};
+            v[LowFreq] = 1; v[MidFreq] = 2; v[HighFreq] = 2; v[MidGain] = gain;
+            const double peak = kAmericanCurve.db(v, kFs, 1500);
+            double lo = 1500;
+            while (lo > 20 && kAmericanCurve.db(v, kFs, lo) > peak * 0.5) lo /= 1.01;
+            return std::log2(1500 / lo) * 2.0;   // octaves between the half-gain points
+        };
+        const double w3 = widthAtHalf(3), w12 = widthAtHalf(12);
+        std::printf("  AMERICAN EQ mid: +3 dB is %.2f octaves wide, +12 dB is %.2f octaves wide\n", w3, w12);
+        CHECK(w3 > 1.4 * w12);
+    }
+    {   // TILT +6: lows -3 dB, highs +3 dB, pivot ~0
+        using namespace tilt;
+        float v[kCount] = {};
+        v[Tilt] = 6; v[Pivot] = 1;
+        const double lo = kTiltCurve.db(v, kFs, 30), mid = kTiltCurve.db(v, kFs, 650), hi = kTiltCurve.db(v, kFs, 18000);
+        std::printf("  TILT +6 around 650 Hz: 30 Hz %.2f dB, 650 Hz %.2f dB, 18 kHz %.2f dB\n", lo, mid, hi);
+        CHECK(std::fabs(lo + 3.0) < 0.4 && std::fabs(mid) < 0.5 && std::fabs(hi - 3.0) < 0.4);
+    }
+    {   // BRIT PRE high-pass: 18 dB / octave
+        using namespace brit;
+        float v[kCount] = {};
+        v[Hpf] = 3; v[LowFreq] = 1; v[MidFreq] = 2;   // 160 Hz
+        const double a = kBritCurve.db(v, kFs, 40), b = kBritCurve.db(v, kFs, 20);
+        std::printf("  BRIT PRE high-pass 160 Hz: 40 Hz %.1f dB, 20 Hz %.1f dB (%.1f dB / octave)\n", a, b, a - b);
+        CHECK(std::fabs((a - b) - 18.0) < 1.0);
+    }
+    {   // DRIVE at a normal level (-14 dBFS, drive 50): BRIT PRE (iron) odd harmonics, MID EQ (tube) even first
+        auto h = [](const char* n, int drive, int k) {
+            auto e = findPlugin(n)->create();
+            e->set(drive, 50);
+            e->prepare(kFs, 512);
+            Stereo s = sine(200, 1.0, 0.2f);
+            run(*e, s);
+            return db(toneAmp(s.l, 200.0 * k, 24000, 24000) / 0.2);
+        };
+        const double b2 = h("BRIT PRE", brit::Drive, 2), b3 = h("BRIT PRE", brit::Drive, 3), m2 = h("MID EQ", mideq::Drive, 2), m3 = h("MID EQ", mideq::Drive, 3);
+        std::printf("  drive 50 at -14 dBFS: BRIT PRE 2nd %.1f / 3rd %.1f dB, MID EQ 2nd %.1f / 3rd %.1f dB\n", b2, b3, m2, m3);
+        CHECK(b3 > b2 + 10.0 && m2 > m3 && m2 > -50.0 && b3 > -50.0);
     }
 }
 

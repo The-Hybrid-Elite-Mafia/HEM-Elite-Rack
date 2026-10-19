@@ -9,6 +9,7 @@
 #include "hem/rack/Limiter.hpp"
 #include "hem/rack/Restorer.hpp"
 #include "hem/rack/Tools.hpp"
+#include "hem/rack/ClassicEqs.hpp"
 
 #include <cstring>
 
@@ -79,6 +80,30 @@ const PluginInfo kPlugins[] = {
      "LUFS momentary / short / integrated, range, true peak, phase",
      {0xBCE2E2E1u, 0x1F5C4964u, 0xB9783BC2u, 0x4B40A45Bu}, {0xF68CB16Cu, 0x90254E67u, 0xAD7EAB9Du, 0x64A0886Eu},
      Face::Meter, Group::Tools, &makeLoudnessMeter},
+    {"BRIT PRE", "BRITISH CONSOLE CHANNEL", "DRIVE WHAT MATTERS", "Fx|EQ",
+     "British console channel: 18 dB high-pass, low, mid and high, preamp drive through iron",
+     {0xEC9EC13Cu, 0x5510450Bu, 0xBBC55190u, 0x8EC26DE3u}, {0x9F1768D3u, 0x833D4210u, 0x8AAC1AE2u, 0xC0FB90B3u},
+     Face::BritPre, Group::Eq, &makeBritPre, &kBritCurve},
+    {"AMERICAN EQ", "THREE-BAND EQUALIZER", "PUNCH WHAT MATTERS", "Fx|EQ",
+     "Punchy three-band EQ: proportional Q, peak or shelf, band-pass filter, drive",
+     {0x340E095Eu, 0x58914483u, 0xB15FDE44u, 0xC498D070u}, {0x7F790A9Cu, 0xA19546C5u, 0xBBEF70E2u, 0x9E2D4318u},
+     Face::AmericanEq, Group::Eq, &makeAmericanEq, &kAmericanCurve},
+    {"MID EQ", "TUBE MIDRANGE EQUALIZER", "FOCUS WHAT MATTERS", "Fx|EQ",
+     "Tube midrange EQ: low peak, dip, high peak: shape the middle of a mix",
+     {0xF6958F8Cu, 0x84DC4B49u, 0x948ED3FFu, 0x92B8921Bu}, {0x863B7A41u, 0xF0324AB8u, 0x9E6DB7CBu, 0xD06E810Cu},
+     Face::MidEq, Group::Eq, &makeMidEq, &kMidEqCurve},
+    {"AIR EQ", "MASTERING EQUALIZER", "OPEN WHAT MATTERS", "Fx|EQ",
+     "Clean, broad mastering EQ: sub to 2.5 kHz bands and an AIR shelf up to 20 kHz",
+     {0x5B76F458u, 0xB9A343B9u, 0xA698AE67u, 0x7392734Du}, {0xAD625C42u, 0x10D140C3u, 0xA15730EAu, 0x04F60D31u},
+     Face::AirEq, Group::Eq, &makeAirEq, &kAirCurve},
+    {"GRAPHIC EQ", "TEN-BAND GRAPHIC EQUALIZER", "BALANCE WHAT MATTERS", "Fx|EQ",
+     "Ten bands, 31 Hz to 16 kHz, ±12 dB: quick, clear tone shaping",
+     {0xC553EDB8u, 0x018244E0u, 0x85EE116Eu, 0x267C903Cu}, {0x297B4BAEu, 0xFA464996u, 0xB2B2C9B7u, 0x0D3F53FCu},
+     Face::GraphicEq, Group::Eq, &makeGraphicEq, &kGraphicCurve},
+    {"TILT", "TILT EQUALIZER", "TIP WHAT MATTERS", "Fx|EQ",
+     "One knob: darker or brighter around a pivot, plus low cut and high cut",
+     {0xD5CACDF2u, 0xCE234DCBu, 0x965055ACu, 0x0DAEFD70u}, {0x25474B39u, 0xB559473Au, 0xB1B03CD2u, 0xBA9FF5D0u},
+     Face::Tilt, Group::Eq, &makeTilt, &kTiltCurve},
 };
 } // namespace
 
