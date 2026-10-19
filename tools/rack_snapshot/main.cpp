@@ -122,7 +122,7 @@ int main(int argc, char** argv) {
             fx->set(Threshold, -18); fx->set(ScHpf, 2); fx->set(Makeup, 2);
         } else if (info.face == hem::rack::Face::Tape) {
             using namespace hem::rack::tape;
-            fx->set(Input, 6); fx->set(Bump, 60); fx->set(Wow, 15);
+            fx->set(Input, 6); fx->set(Bump, 60); fx->set(Wow, 15); fx->set(VuCal, 3);
         } else if (info.face == hem::rack::Face::TubeEq) {
             using namespace hem::rack::tubeeq;
             fx->set(LowBoost, 6); fx->set(LowAtten, 4); fx->set(HighBoost, 5); fx->set(Bandwidth, 4); fx->set(HighAtten, 2); fx->set(Drive, 30);

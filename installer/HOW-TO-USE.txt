@@ -40,7 +40,8 @@ BUS GLUE
 TAPE
   INPUT drives the tape (AUTO TRIM keeps the level the same, so you hear the colour, not the
   volume). SPEED 15 IPS = more low-end bump and a softer top, 30 IPS = tighter and brighter.
-  HEAD BUMP, WOW (pitch drift), HISS. The VU meters read 0 at -18 dBFS.
+  HEAD BUMP, WOW (pitch drift), HISS. VU CAL picks what reads 0 on the meters: -18 dBFS for quiet
+  mixes, -10 (the default) or -6 for loud finished songs.
 
 TUBE EQ
   LOW: pick a frequency, BOOST and/or ATTEN. Both together = the classic trick: more weight at

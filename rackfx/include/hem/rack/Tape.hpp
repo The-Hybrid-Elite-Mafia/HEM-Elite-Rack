@@ -11,6 +11,7 @@
 //    HISS      0..100 %: tape noise (0 = none)
 //    AUTO TRIM ON: output turned down by what INPUT adds, so you hear colour, not volume
 //    OUTPUT
+//    VU CAL    what reads 0 VU: -18 / -14 / -10 / -6 dBFS (loud finished mixes want -10 or -6)
 //  Saturation 4x oversampled. Latency: 23 (oversampler) + 48 (the wow transport) = 71 samples,
 //  always the same. Meters 0 / 1: VU left / right (dB, a full-scale sine reads 0).
 // =============================================================================
@@ -21,7 +22,8 @@
 namespace hem::rack {
 
 namespace tape {
-enum P : int { Input, Speed, Bump, Wow, Hiss, AutoTrim, Output, kCount };
+enum P : int { Input, Speed, Bump, Wow, Hiss, AutoTrim, Output, VuCal, kCount };
+inline constexpr float kVuCalDbfs[] = {-18.0f, -14.0f, -10.0f, -6.0f};   // the level that reads 0 VU
 inline constexpr std::uint32_t kTransportDelay = 48;
 } // namespace tape
 

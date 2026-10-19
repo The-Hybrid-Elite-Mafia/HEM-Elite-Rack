@@ -569,7 +569,9 @@ void FaceView::vuMeter(const Ctx& c, const Widget& w) const {
     const float z = c.z;
     const Rect d = c.T(w.r);
     const int ch = std::clamp(w.choice, 0, 1);
-    const float vu = std::clamp(c.feed.meterDb(ch) + 18.0f, -22.0f, 4.0f);
+    const int calIdx = std::clamp(static_cast<int>(std::lround(plain(c.host, rack::tape::VuCal))), 0, 3);
+    const float cal = rack::tape::kVuCalDbfs[calIdx];
+    const float vu = std::clamp(c.feed.meterDb(ch) - cal, -22.0f, 4.0f);
     if (vu_[ch] > 50.0f) vu_[ch] = vu;
     vu_[ch] += (vu - vu_[ch]) * 0.35f;
     const float px = d.cx(), py = d.bottom() - 30 * z, R = std::min(d.w * 0.44f, d.h * 0.78f);
@@ -601,7 +603,9 @@ void FaceView::vuMeter(const Ctx& c, const Widget& w) const {
     const TextStyle ls = c.ts(TextStyle::Label);
     r.text(ls, "VU", d.x + 24 * z, d.y + 40 * z, th_.teal, Align::Left, TextFx::NeonCrisp);
     r.text(ls, w.caption, d.right() - 24 * z, d.y + 40 * z, th_.label, Align::Right, TextFx::Shadowed);
-    r.text(c.ts(TextStyle::Caption), "0 VU = -18 dBFS", d.x + 24 * z, d.bottom() - 18 * z, th_.dim, Align::Left, TextFx::Shadowed);
+    char calText[32];
+    std::snprintf(calText, sizeof calText, "0 VU = %.0f dBFS", static_cast<double>(cal));
+    r.text(c.ts(TextStyle::Caption), calText, d.x + 24 * z, d.bottom() - 18 * z, th_.dim, Align::Left, TextFx::Shadowed);
 }
 
 // Compressors: a gain-reduction needle with a console-meter scale (0 on the right, -20 on the left).

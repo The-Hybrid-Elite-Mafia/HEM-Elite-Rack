@@ -367,8 +367,17 @@ FaceLayout tape(const rack::PluginInfo& info) {
     L.widgets.push_back(choiceButton({70, 434, 270, 40}, Speed, 0, "SPEED"));
     L.widgets.push_back(choiceButton({70, 480, 270, 40}, Speed, 1));
     L.widgets.push_back(toggle({70, 560, 270, 44}, AutoTrim, "AUTO TRIM"));
+    {   // VU CAL: which level reads 0 VU
+        Widget cal;
+        cal.kind = WKind::Stepper;
+        cal.param = VuCal;
+        cal.caption = "VU CAL";
+        cal.r = {170, 626, 170, 40};
+        L.widgets.push_back(cal);
+        L.recesses.push_back({cal.r.inset(-4), 9, 4, false, false});
+    }
     buttonSeats(L);
-    bypassAt(L, {160, 666, 90, 90});
+    bypassAt(L, {160, 698, 90, 90});
     return L;
 }
 
@@ -395,15 +404,15 @@ FaceLayout tubeEq(const rack::PluginInfo& info) {
     auto cx = [&](int sec, int slot) { return 410 + static_cast<float>(sec) * pitch + pitch * (0.5f + 0.32f * static_cast<float>(slot - 1)); };
     const float y = 540;
     // LOW: frequency, boost, atten
-    L.widgets.push_back(knob({cx(0, 0) - 40, y + 14, 80, 80}, LowFreq, "FREQ", "20", "100", true));
+    L.widgets.push_back(knob({cx(0, 0) - 40, y + 14, 80, 80}, LowFreq, "FREQ", "", "", true));
     L.widgets.push_back(knob({cx(0, 1) - 48, y + 6, 96, 96}, LowBoost, "BOOST", "0", "10"));
     L.widgets.push_back(knob({cx(0, 2) - 48, y + 6, 96, 96}, LowAtten, "ATTEN", "0", "10"));
     // HIGH: frequency, boost, bandwidth
-    L.widgets.push_back(knob({cx(1, 0) - 40, y + 14, 80, 80}, HighFreq, "FREQ", "3k", "16k", true));
+    L.widgets.push_back(knob({cx(1, 0) - 40, y + 14, 80, 80}, HighFreq, "FREQ", "", "", true));
     L.widgets.push_back(knob({cx(1, 1) - 48, y + 6, 96, 96}, HighBoost, "BOOST", "0", "10"));
-    L.widgets.push_back(knob({cx(1, 2) - 40, y + 14, 80, 80}, Bandwidth, "WIDTH", "SHARP", "BROAD", true));
+    L.widgets.push_back(knob({cx(1, 2) - 40, y + 14, 80, 80}, Bandwidth, "WIDTH", "", "", true));
     // HIGH ATTEN: select, atten
-    L.widgets.push_back(knob({cx(2, 0) - 40, y + 14, 80, 80}, AttenSel, "SELECT", "5k", "20k", true));
+    L.widgets.push_back(knob({cx(2, 0) - 40, y + 14, 80, 80}, AttenSel, "SELECT", "", "", true));
     L.widgets.push_back(knob({cx(2, 1) - 48, y + 6, 96, 96}, HighAtten, "ATTEN", "0", "10"));
     // left column: the tube
     L.sections.push_back({{60, 400, 300, 30}, "TUBE"});

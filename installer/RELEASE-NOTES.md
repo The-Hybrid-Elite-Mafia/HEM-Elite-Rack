@@ -2,7 +2,8 @@
 
 **Five new plug-ins** — nine in all, in the rack and as VST3:
 - **TAPE** — a two-track tape machine: INPUT drive (highs saturate first, like real tape),
-  15 / 30 IPS, HEAD BUMP, WOW & FLUTTER, HISS, AUTO TRIM, a pair of VU meters.
+  15 / 30 IPS, HEAD BUMP, WOW & FLUTTER, HISS, AUTO TRIM, a pair of VU meters with VU CAL
+  (what reads 0 VU: -18 / -14 / -10 / -6 dBFS, so loud songs don't pin the needles).
 - **TUBE EQ** — a passive tube program EQ: LOW boost and atten (together: more weight at the bottom,
   less mud above), HIGH boost with WIDTH, HIGH ATTENUATION, tube DRIVE. Its display shows the curve.
 - **VARI-MU** — a variable-mu tube compressor: the ratio grows the harder you push, six TIME

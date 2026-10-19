@@ -17,6 +17,7 @@ using OS = hc::fx::Oversampler4;
 
 const char* const kSpeedN[] = {"15 IPS", "30 IPS"};
 const char* const kOnOff[] = {"OFF", "ON"};
+const char* const kCalN[] = {"-18 dBFS", "-14 dBFS", "-10 dBFS", "-6 dBFS"};
 const ParamInfo kParams[kCount] = {
     {"input", "Input", "dB", -12.0f, 18.0f, 0.0f},
     {"speed", "Speed", "", 0, 1, 0, Taper::Choice, kSpeedN},
@@ -25,6 +26,7 @@ const ParamInfo kParams[kCount] = {
     {"hiss", "Hiss", "%", 0.0f, 100.0f, 0.0f},
     {"autotrim", "Auto Trim", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
+    {"vucal", "VU Calibration", "", 0, 3, 2, Taper::Choice, kCalN},
 };
 const hc::fx::MeterInfo kMeters[] = {{"VU L", "dB", -40.0f, 6.0f}, {"VU R", "dB", -40.0f, 6.0f}};
 
