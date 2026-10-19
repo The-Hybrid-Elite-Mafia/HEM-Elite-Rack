@@ -52,19 +52,19 @@ jobs:
         env:
           GALLIUM_DRIVER: llvmpipe
         run: |
-          tools\ci\run-and-report.ps1 -Title "app: SURGEON selected" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_elite_eq.png','-Select','2'
+          tools\ci\run-and-report.ps1 -Title "app: SURGEON selected" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_surgeon.png','-Select','2'
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          tools\ci\run-and-report.ps1 -Title "app: THE CLEANER selected" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_restorer.png','-Select','1'
+          tools\ci\run-and-report.ps1 -Title "app: THE CLEANER selected" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_the_cleaner.png','-Select','1'
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          tools\ci\run-and-report.ps1 -Title "app: BOARDROOM selected" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_console_eq.png','-Select','3'
+          tools\ci\run-and-report.ps1 -Title "app: BOARDROOM selected" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_boardroom.png','-Select','3'
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          tools\ci\run-and-report.ps1 -Title "app: THE FAMILY selected" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_bus_glue.png','-Select','4'
+          tools\ci\run-and-report.ps1 -Title "app: THE FAMILY selected" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_the_family.png','-Select','4'
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          tools\ci\run-and-report.ps1 -Title "app: vintage chain, ARCHIVE selected" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_tape.png','-Select','1','-Vintage'
+          tools\ci\run-and-report.ps1 -Title "app: vintage chain, ARCHIVE selected" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_archive.png','-Select','1','-Vintage'
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          tools\ci\run-and-report.ps1 -Title "app: vintage chain, SMOKE selected" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_varimu.png','-Select','3','-Vintage'
+          tools\ci\run-and-report.ps1 -Title "app: vintage chain, SMOKE selected" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_smoke.png','-Select','3','-Vintage'
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          tools\ci\run-and-report.ps1 -Title "app: vintage chain, LOCKDOWN selected" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_limiter.png','-Select','6','-Vintage'
+          tools\ci\run-and-report.ps1 -Title "app: vintage chain, LOCKDOWN selected" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_lockdown.png','-Select','6','-Vintage'
 
       - name: Publish screenshots to the ci-screenshots branch
         if: github.ref == 'refs/heads/main'
