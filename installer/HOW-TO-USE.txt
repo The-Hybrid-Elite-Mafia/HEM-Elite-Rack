@@ -124,6 +124,15 @@ MULTIBAND
   Three compressors, one per band: LOW / MID and MID / HIGH set where the bands split. Each band
   has THRESHOLD, RATIO and GAIN; the readouts show how much each band is turned down.
 
+THE COLOUR BOXES (TUBE SAT, PREAMP, CASSETTE, VINYL, BIT CRUSHER, TRANSFORMER)
+  The screen shows BEFORE and AFTER, so you can see the harmonics and noise they add.
+  TUBE SAT: DRIVE for more colour (the level stays about the same), BIAS toward EVEN = warmer.
+  PREAMP: GAIN really makes it louder (like a real preamp) - use OUTPUT to bring it back down.
+  CASSETTE: TYPE I is the darkest, TYPE IV the brightest. WOW = slow wobble, FLUTTER = fast.
+  VINYL: CRACKLE, NOISE, WEAR (duller), WARP (slow pitch wobble). MONO LOWS like a real cut.
+  BIT CRUSHER: BITS down = grittier, DOWNSAMPLE up = more lo-fi aliasing. Use MIX to blend.
+  TRANSFORMER: DRIVE saturates the low end most; WEIGHT adds a low bump; STEEL is thicker.
+
 LOUDNESS METER (measures only, changes nothing)
   INTEGRATED = the whole song since RESET (play it all the way through). SHORT-TERM = the last
   3 seconds, MOMENTARY = the last 0.4 s. LOUDNESS RANGE = how much it moves (LU).

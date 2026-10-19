@@ -276,7 +276,7 @@ namespace bb {
 using namespace britbus;
 const char* const kRatioN[] = {"1.5:1", "2:1", "3:1", "4:1", "6:1"};
 const char* const kAttN[] = {"FAST", "SLOW"};
-const char* const kRecN[] = {"100 ms", "400 ms", "800 ms", "1.5 s", "AUTO 1", "AUTO 2"};
+const char* const kRecN[] = {"0.1 s", "0.4 s", "0.8 s", "1.5 s", "AUTO1", "AUTO2"};
 const ParamInfo kParams[kCount] = {
     {"threshold", "Threshold", "dB", -30.0f, 0.0f, -12.0f},
     {"ratio", "Ratio", "", 0, 4, 1, Taper::Choice, kRatioN},

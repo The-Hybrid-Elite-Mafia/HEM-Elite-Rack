@@ -15,6 +15,7 @@
 #include "hem/rack/Tools.hpp"
 #include "hem/rack/ClassicEqs.hpp"
 #include "hem/rack/MoreDynamics.hpp"
+#include "hem/rack/ColorFx.hpp"
 #include "hem/ui/FaceWindow.hpp"
 
 #include <windows.h>
@@ -178,6 +179,18 @@ int main(int argc, char** argv) {
         } else if (info.face == hem::rack::Face::Multiband) {
             using namespace hem::rack::multiband;
             fx->set(LowThr, -30); fx->set(MidThr, -34); fx->set(HighThr, -40);
+        } else if (info.face == hem::rack::Face::TubeSat) {
+            fx->set(hem::rack::tubesat::Drive, 70);
+        } else if (info.face == hem::rack::Face::Preamp) {
+            fx->set(hem::rack::preamp::Gain, 12); fx->set(hem::rack::preamp::Output, -10); fx->set(hem::rack::preamp::Character, 2);
+        } else if (info.face == hem::rack::Face::Cassette) {
+            fx->set(hem::rack::cassette::Hiss, 40); fx->set(hem::rack::cassette::Drive, 60);
+        } else if (info.face == hem::rack::Face::Vinyl) {
+            fx->set(hem::rack::vinyl::Crackle, 50); fx->set(hem::rack::vinyl::Noise, 40);
+        } else if (info.face == hem::rack::Face::BitCrusher) {
+            fx->set(hem::rack::crusher::Bits, 6);
+        } else if (info.face == hem::rack::Face::Transformer) {
+            fx->set(hem::rack::transformer::Drive, 80);
         } else if (info.face == hem::rack::Face::Restorer) {
             fx->set(hem::rack::restorer::Reduction, 6.0f);
         }

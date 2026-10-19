@@ -18,6 +18,7 @@
 #include "hem/rack/Tools.hpp"
 #include "hem/rack/ClassicEqs.hpp"
 #include "hem/rack/MoreDynamics.hpp"
+#include "hem/rack/ColorFx.hpp"
 #include "hybrid/fx/Dsp.hpp"
 
 #include <algorithm>
@@ -1626,6 +1627,129 @@ void testMoreDynamics() {
         CHECK(lo < -10.0 && std::fabs(mid) < 0.2 && e->meter(0) < -10.0f && e->meter(1) > -0.1f);
     }
     for (const char* n : {"VCA COMP", "PUNCH 160", "THRUST BUS", "BRIT BUS", "GATE", "MULTIBAND"}) {
+        Stereo in = hotMix(1.0);
+        const double d = blockSizeDifference(*findPlugin(n), [](hc::fx::Effect&) {}, in);
+        std::printf("  %s block size 1 vs 512: max difference %.2e\n", n, d);
+        CHECK(d < 1e-5);
+    }
+}
+
+} // namespace hem::test
+
+// ---- WAVE 8: TUBE SAT, PREAMP, CASSETTE, VINYL, BIT CRUSHER, TRANSFORMER -------------------------
+namespace hem::test {
+namespace {
+// Spread (standard deviation, in samples) of the time between upward zero crossings of a tone:
+// steady pitch = tiny spread, wobbling pitch = bigger.
+double periodSpread(const std::vector<float>& x, std::size_t from) {
+    std::vector<double> cross;
+    for (std::size_t i = from + 1; i < x.size(); ++i)
+        if (x[i - 1] < 0.0f && x[i] >= 0.0f) cross.push_back(static_cast<double>(i - 1) + x[i - 1] / (x[i - 1] - x[i]));
+    double m = 0, v = 0;
+    const std::size_t k = cross.size() > 1 ? cross.size() - 1 : 0;
+    for (std::size_t i = 0; i < k; ++i) m += cross[i + 1] - cross[i];
+    m /= std::max<std::size_t>(k, 1);
+    for (std::size_t i = 0; i < k; ++i) v += (cross[i + 1] - cross[i] - m) * (cross[i + 1] - cross[i] - m);
+    return std::sqrt(v / std::max<std::size_t>(k, 1));
+}
+} // namespace
+
+void testColorFx() {
+    std::printf("[colour] TUBE SAT, PREAMP, CASSETTE, VINYL, BIT CRUSHER, TRANSFORMER\n");
+    for (const char* n : {"TUBE SAT", "PREAMP", "CASSETTE", "VINYL", "BIT CRUSHER", "TRANSFORMER"}) {
+        const PluginInfo* info = findPlugin(n);
+        CHECK(info != nullptr);
+        if (info) commonRules(*info);
+    }
+    {   // TUBE SAT: quiet passes at the same level; driven, BIAS brings the 2nd harmonic; MIX 0 = dry
+        using namespace tubesat;
+        auto quiet = fresh("TUBE SAT", {{Drive, 100}});
+        const double q = toneOut(*quiet, 1000, 0.003f);
+        auto h2 = [](float bias) { auto e = fresh("TUBE SAT", {{Drive, 70}, {Bias, bias}}); return harmonicDb(*e, 200, 2, 0.3f); };
+        auto h3 = [] { auto e = fresh("TUBE SAT", {{Drive, 70}, {Bias, 0}}); return harmonicDb(*e, 200, 3, 0.3f); }();
+        const double b0 = h2(0), b100 = h2(100);
+        std::printf("  TUBE SAT: -50 dBFS at drive 100 %.2f dB; drive 70 at -10 dBFS: 2nd harmonic bias 0 %.1f dB, bias 100 %.1f dB, 3rd %.1f dB\n", q, b0, b100, h3);
+        CHECK(std::fabs(q) < 0.3 && b100 > b0 + 20.0 && b100 > -40.0 && h3 > -40.0);
+        auto dry = fresh("TUBE SAT", {{Mix, 0}, {Drive, 100}});
+        Stereo s = noise(1.0, 0.5f), ref = s;
+        run(*dry, s);
+        CHECK(maxDelayedDiff(s, ref, dry->latency(), 0) < 1e-6);
+    }
+    {   // PREAMP: +20 dB is +20 dB (clean, quiet signal); PHASE flips; LOW CUT takes out 30 Hz
+        using namespace preamp;
+        auto e = fresh("PREAMP", {{Gain, 20}, {Character, 0}});
+        const double g = toneOut(*e, 1000, 0.003f);
+        auto ph = fresh("PREAMP", {{Phase, 1}, {Character, 0}});
+        Stereo s = sine(1000, 0.5, 0.01f), ref = s;
+        run(*ph, s);
+        double sum = 0;
+        for (std::size_t i = 12000; i < s.size(); ++i) sum += s.l[i] * ref.l[i - ph->latency()];
+        auto lc = fresh("PREAMP", {{LowCut, 1}, {Character, 0}});
+        const double low = toneOut(*lc, 30, 0.01f, 2.0);
+        std::printf("  PREAMP: gain +20 -> %.2f dB, phase invert correlation %s, low cut 30 Hz %.1f dB\n", g, sum < 0 ? "negative" : "positive", low);
+        CHECK(std::fabs(g - 20.0) < 0.3 && sum < 0 && low < -10.0);
+    }
+    {   // CASSETTE: TYPE IV keeps more top than TYPE I; WOW moves the pitch; HISS lands near -40 dBFS at 100 %
+        using namespace cassette;
+        auto top = [](float type) { auto e = fresh("CASSETTE", {{Type, type}, {Drive, 0}, {Wow, 0}, {Flutter, 0}}); return toneOut(*e, 12000, 0.05f); };
+        const double t1 = top(0), t4 = top(2);
+        auto spread = [](float wow) {
+            auto e = fresh("CASSETTE", {{Wow, wow}, {Flutter, 0}, {Drive, 0}});
+            Stereo s = sine(1000, 3.0, 0.1f);
+            run(*e, s);
+            return periodSpread(s.l, 4800);
+        };
+        const double still = spread(0), wobble = spread(100);
+        auto hs = fresh("CASSETTE", {{Hiss, 100}});
+        Stereo z(96000);
+        run(*hs, z);
+        const double hissDb = db(rms(z.l, 48000, 48000));
+        std::printf("  CASSETTE: 12 kHz TYPE I %.1f dB, TYPE IV %.1f dB; period spread still %.4f, wow 100 %% %.4f samples; hiss %.1f dBFS RMS\n", t1, t4, still, wobble, hissDb);
+        CHECK(t4 > t1 + 3.0 && wobble > 20.0 * std::max(still, 1e-4) && hissDb > -50.0 && hissDb < -30.0);
+    }
+    {   // VINYL: clicks appear with CRACKLE; with everything off it's the input, delayed
+        using namespace vinyl;
+        auto e = fresh("VINYL", {{Crackle, 100}, {Wear, 0}, {Warp, 0}});
+        Stereo z(48000 * 4);
+        run(*e, z);
+        int clicks = 0;
+        for (std::size_t i = 1; i < z.size(); ++i) clicks += std::fabs(z.l[i]) > 0.01f && std::fabs(z.l[i - 1]) <= 0.01f;
+        auto clean = fresh("VINYL", {{Wear, 0}, {Warp, 0}, {MonoLows, 0}});
+        Stereo s = noise(1.0, 0.3f), ref = s;
+        run(*clean, s);
+        const double d = maxDelayedDiff(s, ref, clean->latency(), 0);
+        std::printf("  VINYL: crackle 100 %% -> %d click onsets in 4 s; all off: max difference from the input %.2e\n", clicks, d);
+        CHECK(clicks > 40 && d < 1e-6);
+    }
+    {   // BIT CRUSHER: 4 bits = at most 17 levels; downsample 4 holds each value 4 samples; 24 bits / 1x is clean
+        using namespace crusher;
+        auto e = fresh("BIT CRUSHER", {{Bits, 4}, {Downsample, 4}});
+        Stereo s = sine(97, 0.5, 0.9f);
+        run(*e, s);
+        std::set<float> levels(s.l.begin() + 4800, s.l.end());
+        bool held = true;
+        for (std::size_t i = 4800; i + 4 < s.size(); i += 4)
+            for (int k = 1; k < 4; ++k) held = held && s.l[i + k] == s.l[i];
+        auto hi = fresh("BIT CRUSHER", {{Bits, 24}, {Downsample, 1}});
+        Stereo t = noise(0.5, 0.5f), ref = t;
+        run(*hi, t);
+        const double d = maxDelayedDiff(t, ref, 0, 0);
+        std::printf("  BIT CRUSHER: 4 bits -> %zu levels, held for 4 samples %s; 24 bits 1x max difference %.2e\n", levels.size(), held ? "yes" : "no", d);
+        CHECK(levels.size() <= 17 && held && d < 1e-6);
+    }
+    {   // TRANSFORMER: the lows saturate more than the highs; WEIGHT lifts 60 Hz
+        using namespace transformer;
+        auto h = [](double hz) {   // 3rd harmonic relative to what comes out at the fundamental
+            auto e = fresh("TRANSFORMER", {{Drive, 100}, {Weight, 0}});
+            return harmonicDb(*e, hz, 3, 0.4f) - harmonicDb(*e, hz, 1, 0.4f);
+        };
+        const double lo = h(50), hi = h(2000);
+        auto w = fresh("TRANSFORMER", {{Drive, 0}, {Weight, 6}});
+        const double bump = toneOut(*w, 60, 0.01f, 2.0);
+        std::printf("  TRANSFORMER drive 100 at -8 dBFS: 3rd harmonic of 50 Hz %.1f dB under it, of 2 kHz %.1f dB; weight +6 at 60 Hz %.2f dB\n", lo, hi, bump);
+        CHECK(lo > hi + 6.0 && std::fabs(bump - 6.0) < 0.5);
+    }
+    for (const char* n : {"TUBE SAT", "PREAMP", "CASSETTE", "VINYL", "BIT CRUSHER", "TRANSFORMER"}) {
         Stereo in = hotMix(1.0);
         const double d = blockSizeDifference(*findPlugin(n), [](hc::fx::Effect&) {}, in);
         std::printf("  %s block size 1 vs 512: max difference %.2e\n", n, d);

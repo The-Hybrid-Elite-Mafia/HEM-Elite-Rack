@@ -11,6 +11,7 @@
 #include "hem/rack/Tools.hpp"
 #include "hem/rack/ClassicEqs.hpp"
 #include "hem/rack/MoreDynamics.hpp"
+#include "hem/rack/ColorFx.hpp"
 
 #include <cstring>
 
@@ -129,6 +130,30 @@ const PluginInfo kPlugins[] = {
      "Three-band compressor: low, mid and high each with their own threshold, ratio and gain",
      {0x6C8E86E2u, 0x22C9473Cu, 0x998322BCu, 0xB093647Bu}, {0xB1E68B77u, 0x2FBD4391u, 0xA66F0851u, 0x05ABC7A1u},
      Face::Multiband, Group::Dynamics, &makeMultiband},
+    {"TUBE SAT", "TUBE SATURATOR", "WARM WHAT MATTERS", "Fx|Distortion",
+     "Tube stage: drive, bias for even harmonics, tone, mix - colour without the volume jump",
+     {0x4B77D551u, 0xB1494534u, 0x8B631BB3u, 0x5A93E0F1u}, {0x84D480F5u, 0xD1364F7Du, 0x91770D82u, 0xA8291747u},
+     Face::TubeSat, Group::Color, &makeTubeSat},
+    {"PREAMP", "MIC / LINE PREAMP", "GAIN WHAT MATTERS", "Fx|Distortion",
+     "Preamp: up to +30 dB of gain into clean, iron or tube; low cut, phase",
+     {0x552A8774u, 0x47A74B20u, 0xB585680Eu, 0xC9638DF5u}, {0x3F10D679u, 0x8E084471u, 0xBD9FA66Cu, 0xB5DB114Fu},
+     Face::Preamp, Group::Color, &makePreamp},
+    {"CASSETTE", "CASSETTE DECK", "TAPE WHAT MATTERS", "Fx|Distortion",
+     "Cassette deck: type I / II / IV, drive, wow, flutter, hiss, age",
+     {0x6C727491u, 0xCAD6470Fu, 0x8DB1AEAFu, 0x2BF20EADu}, {0x02DF1618u, 0x264F4C05u, 0x8DEC06E0u, 0x060FC41Bu},
+     Face::Cassette, Group::Color, &makeCassette},
+    {"VINYL", "RECORD PLAYER", "SPIN WHAT MATTERS", "Fx|Distortion",
+     "Vinyl: crackle, surface noise, wear, warp, mono lows",
+     {0x588E9B96u, 0x864141C6u, 0xA55D17F2u, 0x6EEC7E86u}, {0xDFE85975u, 0x73E94927u, 0x9FBD80ACu, 0xFFB735A4u},
+     Face::Vinyl, Group::Color, &makeVinyl},
+    {"BIT CRUSHER", "LO-FI DECIMATOR", "CRUSH WHAT MATTERS", "Fx|Distortion",
+     "Bits and sample rate down: lo-fi grit and aliasing, with mix",
+     {0x31C973CBu, 0x878B457Au, 0xA4095F25u, 0xFDE4169Cu}, {0xF0DEB542u, 0x76EE42C7u, 0x95CAD099u, 0x8608C512u},
+     Face::BitCrusher, Group::Color, &makeBitCrusher},
+    {"TRANSFORMER", "OUTPUT IRON", "WEIGHT THE LOWS", "Fx|Distortion",
+     "Output transformer: low-end saturation, weight, nickel or steel",
+     {0x08343753u, 0x77654ABBu, 0x97A35049u, 0x668FC2FAu}, {0x0AA1C5EEu, 0xEACA4B1Au, 0xA8B5C910u, 0x61ECBEBCu},
+     Face::Transformer, Group::Color, &makeTransformer},
 };
 } // namespace
 

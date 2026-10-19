@@ -11,6 +11,7 @@
 #include "hem/rack/Tools.hpp"
 #include "hem/rack/ClassicEqs.hpp"
 #include "hem/rack/MoreDynamics.hpp"
+#include "hem/rack/ColorFx.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -791,9 +792,9 @@ FaceLayout vcaFace(const rack::PluginInfo& info) {
     L.widgets.push_back(toggle({1150, 330, 238, 44}, AutoRelease, "AUTO REL"));
     L.widgets.push_back(toggle({1398, 330, 238, 44}, AutoMakeup, "AUTO GAIN"));
     L.sections.push_back({{1150, 420, 486, 30}, "AUTO GAIN GIVES BACK HALF"});
-    knobRow(L, {{Threshold, "THRESHOLD", 120, "-60", "0", false}, {Ratio, "RATIO", 96, "1", "20", false}, {Knee, "KNEE", 86, "0", "24", true},
-                {Attack, "ATTACK", 96, "0.1", "100", false}, {Release, "RELEASE", 96, "10", "2k", false}, {Makeup, "MAKEUP", 86, "0", "+24", true},
-                {Mix, "MIX", 86, "DRY", "WET", true}, {Output, "OUTPUT", 86, "", "", true}}, 568);
+    knobRow(L, {{Threshold, "THRESHOLD", 120, "-60", "0", false}, {Ratio, "RATIO", 96, "1", "20", false}, {Knee, "KNEE", 86, "", "", true},
+                {Attack, "ATTACK", 96, "0.1", "100", false}, {Release, "RELEASE", 96, "10", "2k", false}, {Makeup, "MAKEUP", 86, "", "", true},
+                {Mix, "MIX", 86, "", "", true}, {Output, "OUTPUT", 86, "", "", true}}, 568);
     buttonSeats(L);
     bypassAt(L, {160, 640, 90, 90});
     return L;
@@ -883,7 +884,7 @@ FaceLayout multibandFace(const rack::PluginInfo& info) {
     const char* names[3] = {"LOW", "MID", "HIGH"};
     for (int b = 0; b < 3; ++b) {
         const float x = 410 + static_cast<float>(b) * 412;
-        readoutAt(L, {x, 182, 402, 100}, b, names[b], "dB REDUCTION");
+        readoutAt(L, {x, 182, 402, 100}, b, names[b], "dB");
     }
     {   // the crossovers between the readouts' bands
         const std::size_t first = L.widgets.size();
@@ -891,16 +892,112 @@ FaceLayout multibandFace(const rack::PluginInfo& info) {
         L.widgets.push_back(knob({1192, 312, 76, 76}, HighX, "MID / HIGH", "1k", "10k", true));
         seatKnobs(L, first, 10);
     }
-    sections(L, {{"LOW", {{LowThr, "THRESHOLD", true, "-60", "0"}, {LowRatio, "RATIO", false, "1", "10"}, {LowGain, "GAIN", false, "-12", "+12"}}, {}},
-                 {"MID", {{MidThr, "THRESHOLD", true, "-60", "0"}, {MidRatio, "RATIO", false, "1", "10"}, {MidGain, "GAIN", false, "-12", "+12"}}, {}},
-                 {"HIGH", {{HighThr, "THRESHOLD", true, "-60", "0"}, {HighRatio, "RATIO", false, "1", "10"}, {HighGain, "GAIN", false, "-12", "+12"}}, {}}});
+    sections(L, {{"LOW", {{LowThr, "THRESHOLD", true, "-60", "0"}, {LowRatio, "RATIO", false, "", ""}, {LowGain, "GAIN", false, "", ""}}, {}},
+                 {"MID", {{MidThr, "THRESHOLD", true, "-60", "0"}, {MidRatio, "RATIO", false, "", ""}, {MidGain, "GAIN", false, "", ""}}, {}},
+                 {"HIGH", {{HighThr, "THRESHOLD", true, "-60", "0"}, {HighRatio, "RATIO", false, "", ""}, {HighGain, "GAIN", false, "", ""}}, {}}});
     L.sections.push_back({{60, 400, 300, 30}, "TIMING"});
     const std::size_t first = L.widgets.size();
     L.widgets.push_back(knob({92, 468, 86, 86}, Attack, "ATTACK", "", "", true));
     L.widgets.push_back(knob({232, 468, 86, 86}, Release, "RELEASE", "", "", true));
-    L.widgets.push_back(knob({162, 640, 76, 76}, Output, "OUTPUT", "", "", true));
+    L.widgets.push_back(knob({250, 640, 76, 76}, Output, "OUTPUT", "", "", true));
     seatKnobs(L, first, 10);
-    bypassAt(L, {40, 640, 80, 80});
+    bypassAt(L, {80, 640, 80, 80});
+    return L;
+}
+
+// ---- wave 8 colour: the spectrum on top (what the colour adds), knobs under it, switches on the left
+void spectrumOnTop(FaceLayout& L) {
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 182, 1226, 330};
+    L.recesses.push_back({L.display, 14, 9, false, true});
+    Widget spec;
+    spec.kind = WKind::Spectrum;
+    spec.r = L.display;
+    L.widgets.push_back(spec);
+    L.grooves.push_back({410, 524, 1636, 524});
+}
+void leftChoices(FaceLayout& L, const char* caption, int param, int count, float y = 434) {
+    for (int i = 0; i < count; ++i) L.widgets.push_back(choiceButton({70, y + static_cast<float>(i) * 46, 270, 40}, param, i, i == 0 ? caption : ""));
+}
+
+FaceLayout tubeSatFace(const rack::PluginInfo& info) {
+    using namespace rack::tubesat;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"WARMTH AND BODY", "SAME LEVEL, MORE TONE"};
+    spectrumOnTop(L);
+    knobRow(L, {{Drive, "DRIVE", 128, "0", "100", false}, {Bias, "BIAS", 100, "ODD", "EVEN", false}, {Tone, "TONE", 100, "DARK", "BRIGHT", false},
+                {Mix, "MIX", 90, "DRY", "WET", false}, {Output, "OUTPUT", 86, "", "", true}}, 568);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
+FaceLayout preampFace(const rack::PluginInfo& info) {
+    using namespace rack::preamp;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"GAIN STAGE", "CLEAN, IRON OR TUBE"};
+    spectrumOnTop(L);
+    leftChoices(L, "CHARACTER", Character, 3, 420);
+    L.widgets.push_back(toggle({70, 580, 270, 40}, LowCut, "LOW CUT 80"));
+    L.widgets.push_back(toggle({70, 630, 270, 40}, Phase, "PHASE INV"));
+    knobRow(L, {{Gain, "GAIN", 128, "0", "+30", false}, {Output, "OUTPUT", 128, "-30", "+6", false}}, 568);
+    buttonSeats(L);
+    bypassAt(L, {160, 700, 80, 80});
+    return L;
+}
+
+FaceLayout cassetteFace(const rack::PluginInfo& info) {
+    using namespace rack::cassette;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"FOUR-TRACK DAYS", "WOBBLE AND HISS"};
+    spectrumOnTop(L);
+    leftChoices(L, "TAPE", Type, 3, 420);
+    knobRow(L, {{Drive, "DRIVE", 120, "0", "100", false}, {Wow, "WOW", 96, "0", "100", false}, {Flutter, "FLUTTER", 96, "0", "100", false},
+                {Hiss, "HISS", 96, "0", "100", false}, {Age, "AGE", 96, "NEW", "OLD", false}, {Output, "OUTPUT", 86, "", "", true}}, 568);
+    buttonSeats(L);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
+FaceLayout vinylFace(const rack::PluginInfo& info) {
+    using namespace rack::vinyl;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"DUSTY GROOVES", "33 AND A THIRD"};
+    spectrumOnTop(L);
+    L.widgets.push_back(toggle({70, 434, 270, 44}, MonoLows, "MONO LOWS"));
+    knobRow(L, {{Crackle, "CRACKLE", 120, "0", "100", false}, {Noise, "NOISE", 100, "0", "100", false}, {Wear, "WEAR", 100, "NEW", "WORN", false},
+                {Warp, "WARP", 100, "0", "100", false}, {Output, "OUTPUT", 86, "", "", true}}, 568);
+    buttonSeats(L);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
+FaceLayout crusherFace(const rack::PluginInfo& info) {
+    using namespace rack::crusher;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"LO-FI GRIT", "ALIASING ON PURPOSE"};
+    spectrumOnTop(L);
+    knobRow(L, {{Bits, "BITS", 128, "1", "24", false}, {Downsample, "DOWNSAMPLE", 128, "1x", "50x", false}, {Mix, "MIX", 100, "DRY", "WET", false},
+                {Output, "OUTPUT", 86, "", "", true}}, 568);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
+FaceLayout transformerFace(const rack::PluginInfo& info) {
+    using namespace rack::transformer;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"IRON IN THE LOWS", "WEIGHT AND GLUE"};
+    spectrumOnTop(L);
+    leftChoices(L, "CORE", Type, 2);
+    knobRow(L, {{Drive, "DRIVE", 128, "0", "100", false}, {Weight, "WEIGHT", 100, "0", "+6", false}, {Mix, "MIX", 100, "DRY", "WET", false},
+                {Output, "OUTPUT", 86, "", "", true}}, 568);
+    buttonSeats(L);
+    bypassAt(L, {160, 640, 90, 90});
     return L;
 }
 
@@ -935,6 +1032,12 @@ FaceLayout faceLayout(const rack::PluginInfo& info) {
     case rack::Face::BritBus: return britBusFace(info);
     case rack::Face::Gate: return gateFace(info);
     case rack::Face::Multiband: return multibandFace(info);
+    case rack::Face::TubeSat: return tubeSatFace(info);
+    case rack::Face::Preamp: return preampFace(info);
+    case rack::Face::Cassette: return cassetteFace(info);
+    case rack::Face::Vinyl: return vinylFace(info);
+    case rack::Face::BitCrusher: return crusherFace(info);
+    case rack::Face::Transformer: return transformerFace(info);
     case rack::Face::Restorer: break;
     }
     return restorer(info);

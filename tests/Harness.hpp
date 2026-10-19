@@ -38,6 +38,7 @@ void testTransient();
 void testLoudnessMeter();
 void testClassicEqs();
 void testMoreDynamics();
+void testColorFx();
 void testSpectrum();
 void testFaces();
 void testChain();

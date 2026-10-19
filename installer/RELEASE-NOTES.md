@@ -1,3 +1,17 @@
+# HEM-Elite-Rack 0.8.0
+
+**Six new colour plug-ins — thirty-four in all**, in the rack and as VST3. Each shows the spectrum
+before and after, so you can see what it adds:
+- **TUBE SAT** — drive, BIAS for even harmonics, tone, mix. Quiet passages stay at the same level.
+- **PREAMP** — up to +30 dB into a CLEAN, IRON or TUBE stage, 80 Hz low cut, phase invert.
+- **CASSETTE** — TYPE I / II / IV, drive, wow, flutter, hiss, age.
+- **VINYL** — crackle, surface noise and rumble, wear, warp (33 rpm), mono lows.
+- **BIT CRUSHER** — bits and downsampling, mix.
+- **TRANSFORMER** — output iron: the lows saturate far more than the highs, weight, nickel / steel.
+
+**Faceplate fixes:** BRIT BUS recovery buttons fit their text; MULTIBAND and VCA COMP labels no
+longer overlap.
+
 # HEM-Elite-Rack 0.7.0
 
 **Six new dynamics plug-ins — twenty-eight in all**, in the rack and as VST3:

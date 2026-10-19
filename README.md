@@ -36,6 +36,12 @@ C++23 audio framework, as a library.
 | **BRIT BUS** | British diode-bridge bus compressor + limiter: AUTO recovery, iron drive |
 | **GATE** | Gate / expander: range, hold, hysteresis, detector HPF / LPF, listen |
 | **MULTIBAND** | Three-band compressor: Linkwitz-Riley crossovers, threshold / ratio / gain per band |
+| **TUBE SAT** | Tube stage: drive, bias (even harmonics), tone, mix — colour without a volume jump |
+| **PREAMP** | Mic / line preamp: up to +30 dB into CLEAN, IRON or TUBE; low cut, phase invert |
+| **CASSETTE** | Cassette deck: TYPE I / II / IV, drive, wow, flutter, hiss, age |
+| **VINYL** | Record: crackle, surface noise and rumble, wear, warp, mono lows |
+| **BIT CRUSHER** | Bits 1–24, downsample 1–50x, mix |
+| **TRANSFORMER** | Output iron: the lows saturate most, weight, nickel or steel |
 
 Our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 
