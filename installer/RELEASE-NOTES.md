@@ -1,3 +1,15 @@
+# HEM-Elite-Rack 0.2.0
+
+**Two new plug-ins** (in the rack and as VST3):
+- **CONSOLE EQ** — a big-console channel EQ: HPF (18 dB/oct) and LPF with IN switches, LF and HF
+  (shelf or BELL), LMF and HMF with Q, CLASSIC or MODERN curves (modern: small moves broad, big
+  moves narrower), DRIVE for console colour. The display shows the music and the EQ curve.
+- **BUS GLUE** — a mix-bus compressor with a gain-reduction needle: THRESHOLD, RATIO 2 / 4 / 10:1,
+  ATTACK 0.1–30 ms, RELEASE 0.1–1.2 s or AUTO, MAKEUP, MIX (parallel), SIDECHAIN HPF so the low
+  end doesn't pump the mix. Stereo-linked, zero latency.
+
+**Fixed:** the chain's DOWN button showed "D...". The plug-in picker fits four plug-ins.
+
 # HEM-Elite-Rack 0.1.1
 
 **Fixed (looks only, the sound is unchanged):** labels that ran into each other on the rack

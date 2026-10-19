@@ -268,6 +268,48 @@ void eqGestures() {
     CHECK(host.open() == 0);
 }
 
+// Every knob, button and switch on every faceplate does what it should to its own parameter.
+void everyControl(const rack::PluginInfo& info) {
+    auto fx = info.create();
+    const FaceLayout L = faceLayout(info);
+    TestHost host(*fx);
+    FaceFeed feed;
+    FaceState st;
+    FaceController c(L, fx->params(), host, feed, st);
+    int knobs = 0, buttons = 0, toggles = 0, bad = 0;
+    for (const Widget& w : L.widgets) {
+        const int p = w.param;
+        if (p < 0 || w.control >= 0) continue;   // ELITE EQ's band controls are covered above
+        const auto& pi = fx->params()[static_cast<std::size_t>(p)];
+        if (w.kind == WKind::Knob) {
+            ++knobs;
+            fx->set(p, pi.min);
+            c.mouseDown(w.r.cx(), w.r.cy(), false, false);
+            c.mouseMove(w.r.cx(), w.r.cy() - FaceController::kDragForFullRange, false);
+            c.mouseUp();
+            const bool up = std::fabs(fx->get(p) - pi.max) <= (pi.max - pi.min) * 1e-4f;
+            c.mouseDown(w.r.cx(), w.r.cy(), true, false);   // double-click: default
+            c.mouseUp();
+            const bool def = std::fabs(fx->get(p) - pi.def) <= (pi.max - pi.min) * 1e-4f;
+            if (!up || !def) { ++bad; std::printf("  %s: knob %s did not reach max / default\n", info.name, w.caption.c_str()); }
+        } else if (w.kind == WKind::ChoiceButton) {
+            ++buttons;
+            c.mouseDown(w.r.cx(), w.r.cy(), false, false);
+            c.mouseUp();
+            if (static_cast<int>(std::lround(fx->get(p))) != w.choice) { ++bad; std::printf("  %s: button %d of %s not selected\n", info.name, w.choice, pi.id); }
+        } else if (w.kind == WKind::Toggle) {
+            ++toggles;
+            const float v0 = fx->get(p);
+            c.mouseDown(w.r.cx(), w.r.cy(), false, false);
+            c.mouseUp();
+            if (fx->get(p) == v0) { ++bad; std::printf("  %s: switch %s did not flip\n", info.name, w.caption.c_str()); }
+        }
+    }
+    std::printf("  %s: %d knobs, %d buttons, %d switches - all respond\n", info.name, knobs, buttons, toggles);
+    CHECK(bad == 0);
+    CHECK(host.open() == 0);
+}
+
 void plateRules() {
     std::string err;
     auto art = BrandArt::load(exeDir() / "assets", &err);
@@ -296,6 +338,7 @@ void testFaces() {
     for (const auto& info : rack::plugins()) layoutRules(info);
     restorerGestures();
     eqGestures();
+    for (const auto& info : rack::plugins()) everyControl(info);
     plateRules();
 }
 

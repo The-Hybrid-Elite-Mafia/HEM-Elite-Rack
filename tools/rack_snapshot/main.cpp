@@ -3,6 +3,8 @@
 // the spectrum, noise curve and EQ curve are live. Saves one PNG per plug-in.
 //   hem_rack_snapshot [--out <folder>] [--scale 0.75]
 // Exit 3 when a faceplate fails to open or comes out blank.
+#include "hem/rack/BusGlue.hpp"
+#include "hem/rack/ConsoleEq.hpp"
 #include "hem/rack/EliteEq.hpp"
 #include "hem/rack/Plugins.hpp"
 #include "hem/rack/Restorer.hpp"
@@ -107,6 +109,14 @@ int main(int argc, char** argv) {
             fx->set(bandParam(1, Dyn), 1);
             fx->set(bandParam(1, Threshold), -36);
             fx->set(AutoGain, 1);
+        } else if (info.face == hem::rack::Face::ConsoleEq) {   // a typical channel: low cut, a little low end, scoop, air
+            using namespace hem::rack::console;
+            fx->set(HpfOn, 1); fx->set(HpfHz, 60); fx->set(LfGain, 3); fx->set(LfHz, 90);
+            fx->set(LmfGain, -4); fx->set(LmfHz, 350); fx->set(LmfQ, 1.4f); fx->set(HmfGain, 2.5f); fx->set(HmfHz, 3500);
+            fx->set(HfGain, 4); fx->set(HfHz, 10000); fx->set(Curve, 1); fx->set(Drive, 25);
+        } else if (info.face == hem::rack::Face::BusGlue) {     // 4:1, 3 ms, AUTO, working a few dB
+            using namespace hem::rack::glue;
+            fx->set(Threshold, -18); fx->set(ScHpf, 2); fx->set(Makeup, 2);
         } else {
             fx->set(hem::rack::restorer::Reduction, 6.0f);
         }

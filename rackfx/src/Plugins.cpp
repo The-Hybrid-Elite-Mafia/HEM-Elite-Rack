@@ -1,5 +1,7 @@
 #include "hem/rack/Plugins.hpp"
 
+#include "hem/rack/BusGlue.hpp"
+#include "hem/rack/ConsoleEq.hpp"
 #include "hem/rack/EliteEq.hpp"
 #include "hem/rack/Restorer.hpp"
 
@@ -16,6 +18,14 @@ const PluginInfo kPlugins[] = {
      "Adaptive hiss and noise reduction that keeps the air and the attacks",
      {0x7B19E4D3u, 0x3A6C42F1u, 0x95E0B87Au, 0xC4271D6Bu}, {0x1E5D93A8u, 0xF2B04C69u, 0x6A83E15Du, 0xD70C2B94u},
      Face::Restorer, &makeRestorer},
+    {"CONSOLE EQ", "CHANNEL EQUALIZER", "COLOR WHAT MATTERS", "Fx|EQ",
+     "Big-console channel EQ: filters, four bands, classic or modern curves, drive",
+     {0x9CAF2094u, 0x19C94666u, 0x84891576u, 0x5D6DCD8Fu}, {0xA1FA67E5u, 0x71DD4649u, 0xB1EB1036u, 0xB378AFE0u},
+     Face::ConsoleEq, &makeConsoleEq},
+    {"BUS GLUE", "MIX BUS COMPRESSOR", "GLUE WHAT MATTERS", "Fx|Dynamics",
+     "Console-style bus compressor: a few dB that pulls the mix together",
+     {0x8123CD1Fu, 0x26D64A8Fu, 0x85460D6Cu, 0x9DE3CF07u}, {0x41B35BAAu, 0xE74641DAu, 0xBAA0F616u, 0x7A3DABCDu},
+     Face::BusGlue, &makeBusGlue},
 };
 } // namespace
 

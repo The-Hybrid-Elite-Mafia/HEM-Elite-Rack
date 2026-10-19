@@ -194,7 +194,9 @@ void FaceController::mouseDown(float x, float y, bool doubleClick, bool fine) {
         graphDown(x, y, doubleClick);
         if (st_.dragNode >= 0) st_.active = i;
         return;
-    case WKind::Spectrum: return;
+    case WKind::Spectrum:
+    case WKind::CurveDisplay:
+    case WKind::GrMeter: return;
     }
 }
 

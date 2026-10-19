@@ -1,5 +1,5 @@
 // =============================================================================
-//  HEM-Elite-Rack.vst3 — ELITE EQ and RESTORER as VST3 plug-ins (one bundle, one plug-in each),
+//  HEM-Elite-Rack.vst3 — ELITE EQ, RESTORER, CONSOLE EQ and BUS GLUE as VST3 plug-ins (one bundle, one plug-in each),
 //  with the same teal / gunmetal faceplates as the rack app (hem::ui::FaceWindow, OpenGL, inside
 //  the host's window).
 //
@@ -52,6 +52,7 @@ constexpr Vst::ParamID kBypassId   = 1000;
 constexpr Vst::ParamID kRateId     = 1001;   // sample rate / 384000 (the EQ curve is drawn for it)
 constexpr Vst::ParamID kAutoGainId = 1002;   // ELITE EQ auto gain, -24..24 dB
 constexpr Vst::ParamID kRemovedId  = 1003;   // RESTORER: dB taken out, -60..0
+constexpr Vst::ParamID kGrId       = 1004;   // BUS GLUE: gain reduction, -30..0 dB
 constexpr Vst::ParamID kDynBase    = 1100;   // + band: ELITE EQ dynamic gain, -30..30 dB
 constexpr Vst::ParamID kBeforeBase = 1200;   // + i: spectrum before (kSent bins)
 constexpr Vst::ParamID kAfterBase  = 1300;   // + i: spectrum after
@@ -256,6 +257,7 @@ private:
                 send(c, kNoiseBase + static_cast<Vst::ParamID>(i), dbToNorm(0.5f * (noise_->noiseFloorDb(2 * i) + noise_->noiseFloorDb(2 * i + 1)), kSpecLo, kSpecHi));
             send(c, kRemovedId, dbToNorm(noise_->removedDb(), -60.0f, 0.0f));
         }
+        if (info_->face == rack::Face::BusGlue) send(c, kGrId, dbToNorm(fx_->reductionDb(), -30.0f, 0.0f));
         if (eq_) {
             for (int b = 0; b < rack::eq::kBands; ++b) send(c, kDynBase + static_cast<Vst::ParamID>(b), dbToNorm(eq_->dynamicGainDb(b), -30.0f, 30.0f));
             send(c, kAutoGainId, dbToNorm(eq_->autoGainDb(), -24.0f, 24.0f));
@@ -353,8 +355,10 @@ private:
 // The faceplate's live data, from the processor's hidden output parameters.
 class ControllerFeed final : public ui::FaceFeed {
 public:
-    ControllerFeed(Vst::EditController& c, const rack::PluginInfo& info) : c_(c), restorer_(info.face == rack::Face::Restorer) {}
-    bool hasSpectrum() const override { return true; }
+    ControllerFeed(Vst::EditController& c, const rack::PluginInfo& info)
+        : c_(c), restorer_(info.face == rack::Face::Restorer), spectrum_(info.face != rack::Face::BusGlue) {}
+    bool hasSpectrum() const override { return spectrum_; }
+    float reductionDb() const override { return normToDb(c_.getParamNormalized(kGrId), -30.0f, 0.0f); }
     float before(int b) const override { return bin(kBeforeBase, b); }
     float after(int b) const override { return bin(kAfterBase, b); }
     bool hasNoiseFloor() const override { return restorer_; }
@@ -379,7 +383,7 @@ private:
         return a + (c - a) * f;
     }
     Vst::EditController& c_;
-    bool restorer_;
+    bool restorer_, spectrum_;
 };
 
 class FaceView final : public CPluginView {
@@ -425,16 +429,21 @@ public:
         auto addHidden = [&](const std::string& name, Vst::ParamID id, double def) {
             parameters.addParameter(toU16(name).c_str(), nullptr, 0, def, hidden, id);
         };
-        for (int i = 0; i < kSent; ++i) {
-            addHidden("Display Before " + std::to_string(i + 1), kBeforeBase + static_cast<Vst::ParamID>(i), 0.0);
-            addHidden("Display After " + std::to_string(i + 1), kAfterBase + static_cast<Vst::ParamID>(i), 0.0);
-        }
-        if (info_->face == rack::Face::Restorer) {
+        // Only what this plug-in's faceplate shows.
+        const rack::Face face = info_->face;
+        if (face != rack::Face::BusGlue)
+            for (int i = 0; i < kSent; ++i) {
+                addHidden("Display Before " + std::to_string(i + 1), kBeforeBase + static_cast<Vst::ParamID>(i), 0.0);
+                addHidden("Display After " + std::to_string(i + 1), kAfterBase + static_cast<Vst::ParamID>(i), 0.0);
+            }
+        if (face == rack::Face::Restorer) {
             for (int i = 0; i < kSent; ++i) addHidden("Display Noise " + std::to_string(i + 1), kNoiseBase + static_cast<Vst::ParamID>(i), 0.0);
             addHidden("Display Removed", kRemovedId, 1.0);
-        } else {
+        } else if (face == rack::Face::EliteEq) {
             for (int b = 0; b < rack::eq::kBands; ++b) addHidden("Display Dynamic " + std::to_string(b + 1), kDynBase + static_cast<Vst::ParamID>(b), 0.5);
             addHidden("Display Auto Gain", kAutoGainId, 0.5);
+        } else if (face == rack::Face::BusGlue) {
+            addHidden("Display Gain Reduction", kGrId, 1.0);
         }
         return kResultOk;
     }

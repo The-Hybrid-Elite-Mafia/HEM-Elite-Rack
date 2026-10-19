@@ -55,6 +55,10 @@ jobs:
           tools\ci\run-and-report.ps1 -Title "app: ELITE EQ selected" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_elite_eq.png','-Select','2'
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           tools\ci\run-and-report.ps1 -Title "app: RESTORER selected" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_restorer.png','-Select','1'
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          tools\ci\run-and-report.ps1 -Title "app: CONSOLE EQ selected" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_console_eq.png','-Select','3'
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          tools\ci\run-and-report.ps1 -Title "app: BUS GLUE selected" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_bus_glue.png','-Select','4'
 
       - name: Publish screenshots to the ci-screenshots branch
         if: github.ref == 'refs/heads/main'

@@ -22,6 +22,8 @@ int main(int argc, char** argv) {
     testSpectrum();
     testEliteEq();
     testRestorer();
+    testConsoleEq();
+    testBusGlue();
     testFaces();
     testChain();
     testRackSession();

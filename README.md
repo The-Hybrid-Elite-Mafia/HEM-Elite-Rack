@@ -10,6 +10,8 @@ C++23 audio framework, as a library.
 |---|---|
 | **ELITE EQ** | 16-band mastering / mixing EQ: bell, shelves, cuts (6–48 dB/oct), notch, tilt; per band stereo / mid / side / left / right; dynamic bands; CLEAN / CONSOLE / TUBE character; auto gain |
 | **RESTORER** | Adaptive hiss and noise reduction that keeps the air and the attacks |
+| **CONSOLE EQ** | Big-console channel EQ: HPF / LPF, LF, LMF, HMF, HF; classic or modern curves; drive |
+| **BUS GLUE** | Console-style mix-bus compressor: 2 / 4 / 10:1, stepped attack and release (+ AUTO), sidechain HPF, mix |
 
 Our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 

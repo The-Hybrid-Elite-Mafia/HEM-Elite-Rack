@@ -13,7 +13,7 @@
 
 namespace hem::rack {
 
-enum class Face : std::uint8_t { EliteEq, Restorer };
+enum class Face : std::uint8_t { EliteEq, Restorer, ConsoleEq, BusGlue };
 
 struct PluginInfo {
     const char*   name;          // "ELITE EQ"

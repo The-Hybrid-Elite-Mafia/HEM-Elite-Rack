@@ -498,6 +498,14 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
             e->set(bandParam(1, Dyn), 1);
             e->set(bandParam(1, Threshold), -30);
         }
+        a.addPlugin("CONSOLE EQ", 2);
+        if (auto* e = a.rack().effect(2)) {
+            using namespace rack::console;
+            e->set(HpfOn, 1); e->set(HpfHz, 60); e->set(LfGain, 3); e->set(LfHz, 90); e->set(LmfGain, -4); e->set(LmfHz, 350);
+            e->set(LmfQ, 1.4f); e->set(HmfGain, 2.5f); e->set(HmfHz, 3500); e->set(HfGain, 4); e->set(HfHz, 10000); e->set(Curve, 1);
+        }
+        a.addPlugin("BUS GLUE", 3);
+        if (auto* e = a.rack().effect(3)) { e->set(rack::glue::Threshold, -22); e->set(rack::glue::Makeup, 2); }
         a.select(std::clamp(opts.select > 0 ? opts.select - 1 : 1, 0, kMaxSlots - 1));
     } else {
         a.restoreChain(a.settings.sectionText("chain"));

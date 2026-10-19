@@ -22,6 +22,8 @@ struct AllocScope {
 
 void testEliteEq();
 void testRestorer();
+void testConsoleEq();
+void testBusGlue();
 void testSpectrum();
 void testFaces();
 void testChain();

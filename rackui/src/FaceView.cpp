@@ -91,6 +91,12 @@ void FaceView::header(const Ctx& c) const {
         r.polyline(xs, ys, 2, 2.4f * z, th_.tealDeep, Blend::Over, true);
         r.polyline(xs, ys, 2, 1.0f * z, {1, 1, 1, 0.35f}, Blend::Add, true);
     }
+    // Section names over their part of the plate ("LMF", "RATIO").
+    for (const auto& [rect, text] : L_.sections) {
+        const Rect sr = c.T(rect);
+        const TextStyle st = c.fit(TextStyle::Label, text, sr.w - 10 * z);
+        r.text(st, text, sr.cx(), c.mid(sr, st), th_.teal, Align::Center, TextFx::NeonCrisp);
+    }
     // HYBRID ELITE MAFIA / suite between the crown and the ghost.
     const float cx = c.X(kPlateW * 0.5f);
     const TextStyle hs = c.fit(TextStyle::Heading, "HYBRID ELITE MAFIA", 760 * z);
@@ -483,6 +489,106 @@ void FaceView::eqGraph(const Ctx& c, const Widget& w) const {
     }
 }
 
+void FaceView::spectrumBehind(const Ctx& c, Rect plot, float alpha) const {
+    if (!c.feed.hasSpectrum()) return;
+    Renderer& r = c.r;
+    const Rect p = c.T(plot);
+    float xs[rack::kSpectrumBins], ya[rack::kSpectrumBins], yb[rack::kSpectrumBins];
+    for (int i = 0; i < rack::kSpectrumBins; ++i) {
+        xs[i] = c.X(freqToX(plot, rack::spectrumBinHz(i)));
+        ya[i] = p.y + std::clamp(-c.feed.after(i) / 96.0f, 0.0f, 1.0f) * p.h;
+        yb[i] = p.y + std::clamp(-c.feed.before(i) / 96.0f, 0.0f, 1.0f) * p.h;
+    }
+    for (int i = 0; i + 1 < rack::kSpectrumBins; ++i) {
+        const float qx[4] = {xs[i], xs[i + 1], xs[i + 1], xs[i]}, qy[4] = {ya[i], ya[i + 1], p.bottom(), p.bottom()};
+        const Rgba top = th_.teal.withAlpha(alpha), bot = th_.teal.withAlpha(0.02f);
+        const Rgba cols[4] = {top, top, bot, bot};
+        r.colorQuad(qx, qy, cols, Blend::Over, false);
+    }
+    r.polyline(xs, yb, rack::kSpectrumBins, 1.2f * c.z, th_.before.withAlpha(0.35f), Blend::Over, false);
+}
+
+// CONSOLE EQ: the music behind, the EQ's curve in front (the same filter maths the audio runs).
+void FaceView::consoleCurve(const Ctx& c, const Widget& w) const {
+    using namespace rack::console;
+    Renderer& r = c.r;
+    const float z = c.z;
+    const Rect plot = plotArea(w.r);
+    const Rect p = c.T(plot);
+    spectrumBehind(c, plot, 0.16f);
+    constexpr float kRange = 18.0f;
+    grid(c, plot, kRange, -kRange, 6.0f, true);
+    float v[kCount];
+    for (int i = 0; i < kCount; ++i) v[i] = plain(c.host, i);
+    const Settings st = settingsFrom(v);
+    const double fs = c.feed.sampleRate();
+    constexpr int kN = 220;
+    float xs[kN], ys[kN];
+    for (int i = 0; i < kN; ++i) {
+        const float x = plot.x + plot.w * static_cast<float>(i) / static_cast<float>(kN - 1);
+        const double db = curveDb(st, fs, xToFreq(plot, x));
+        xs[i] = c.X(x);
+        ys[i] = p.cy() - static_cast<float>(std::clamp(db / kRange, -1.04, 1.04)) * p.h * 0.5f;
+    }
+    for (int i = 0; i + 1 < kN; ++i) {   // light between the curve and 0 dB
+        const float qx[4] = {xs[i], xs[i + 1], xs[i + 1], xs[i]}, qy[4] = {ys[i], ys[i + 1], p.cy(), p.cy()};
+        const Rgba a = th_.teal.withAlpha(0.20f), b = th_.teal.withAlpha(0.04f);
+        const Rgba cols[4] = {a, a, b, b};
+        r.colorQuad(qx, qy, cols, Blend::Over, false);
+    }
+    r.polyline(xs, ys, kN, 6.0f * z, th_.teal.withAlpha(0.25f), Blend::Add, true);
+    r.polyline(xs, ys, kN, 2.8f * z, th_.teal, Blend::Over, true);
+    // A dot on the curve for each band, at its frequency.
+    const struct { double hz; int col; } dots[] = {{st.lfHz, 0}, {st.lmfHz, 1}, {st.hmfHz, 2}, {st.hfHz, 3}};
+    const Rgba cols[4] = {th_.teal, th_.gold, th_.violet, th_.teal};
+    for (const auto& d : dots) {
+        const float x = c.X(freqToX(plot, static_cast<float>(d.hz)));
+        const float y = p.cy() - static_cast<float>(std::clamp(curveDb(st, fs, d.hz) / kRange, -1.04, 1.04)) * p.h * 0.5f;
+        r.fillRound({x - 7 * z, y - 7 * z, 14 * z, 14 * z}, 7 * z, cols[d.col], Blend::Over, true);
+    }
+}
+
+// BUS GLUE: a gain-reduction needle with a console-meter scale (0 on the right, -20 on the left).
+void FaceView::grMeter(const Ctx& c, const Widget& w) const {
+    Renderer& r = c.r;
+    const float z = c.z;
+    const Rect d = c.T(w.r);
+    const float target = std::clamp(c.feed.reductionDb(), -20.0f, 0.0f);
+    needle_ += (target - needle_) * 0.35f;   // swings like a real needle, ~0.1 s
+    if (std::fabs(needle_) < 0.01f) needle_ = 0.0f;
+    const float px = d.cx(), py = d.bottom() - 34 * z, R = std::min(d.w * 0.42f, d.h * 0.78f);
+    auto angle = [](float db) {   // 0 dB at +50°, -20 dB at -50° (more room for the first few dB)
+        const float t = std::pow(std::clamp(-db / 20.0f, 0.0f, 1.0f), 0.6f);
+        return (50.0f - 100.0f * t) * kPi / 180.0f;
+    };
+    // the scale: a lit arc, ticks and numbers
+    r.arc(px, py, R, 3.0f * z, angle(-20.0f), angle(0.0f), th_.teal.withAlpha(0.35f), true);
+    r.arc(px, py, R, 5.0f * z, angle(-3.0f), angle(0.0f), th_.teal.withAlpha(0.75f), true);
+    const TextStyle ts = c.ts(TextStyle::Caption);
+    for (float db : {0.0f, -1.0f, -2.0f, -3.0f, -4.0f, -6.0f, -8.0f, -10.0f, -14.0f, -20.0f}) {
+        const float a = angle(db), sx = std::sin(a), sy = -std::cos(a);
+        const float xs[2] = {px + sx * (R - 14 * z), px + sx * (R + 8 * z)}, ys[2] = {py + sy * (R - 14 * z), py + sy * (R + 8 * z)};
+        r.polyline(xs, ys, 2, 2.2f * z, th_.silver.withAlpha(0.8f), Blend::Over, false);
+        char b[8];
+        std::snprintf(b, sizeof b, "%.0f", static_cast<double>(-db));
+        r.text(ts, b, px + sx * (R + 30 * z), py + sy * (R + 30 * z) + r.capHeight(ts) * 0.5f, th_.label, Align::Center, TextFx::Shadowed);
+    }
+    // the needle and its pivot
+    const float a = angle(needle_);
+    const float nx[2] = {px, px + std::sin(a) * R * 0.97f}, ny[2] = {py, py - std::cos(a) * R * 0.97f};
+    r.polyline(nx, ny, 2, 7.0f * z, th_.teal.withAlpha(0.25f), Blend::Add, true);
+    r.polyline(nx, ny, 2, 2.6f * z, th_.silver, Blend::Over, true);
+    r.fillRound({px - 13 * z, py - 13 * z, 26 * z, 26 * z}, 13 * z, rgb8(0x9AA4AA), Blend::Over);
+    r.fillRound({px - 6 * z, py - 6 * z, 12 * z, 12 * z}, 6 * z, th_.tealDeep, Blend::Over, true);
+    // labels and the number
+    const TextStyle ls = c.ts(TextStyle::Label);
+    r.text(ls, "GAIN REDUCTION  dB", d.x + 24 * z, d.y + 40 * z, th_.label, Align::Left, TextFx::Shadowed);
+    char b[32];
+    std::snprintf(b, sizeof b, "%.1f", static_cast<double>(target));
+    const TextStyle big = c.ts(TextStyle::Panel);
+    r.text(big, b, d.right() - 24 * z, d.y + 52 * z, th_.teal, Align::Right, TextFx::NeonCrisp);
+}
+
 void FaceView::draw(Renderer& r, const PanelHost& host, const FaceFeed& feed, const FaceState& st, float ox, float oy, float zoom,
                     bool plate) const {
     const Ctx c{r, host, feed, st, ox, oy, zoom};
@@ -518,6 +624,8 @@ void FaceView::draw(Renderer& r, const PanelHost& host, const FaceFeed& feed, co
         case WKind::Bypass: bypass(c, w, wi); break;
         case WKind::Spectrum: spectrum(c, w); break;
         case WKind::EqGraph: eqGraph(c, w); break;
+        case WKind::CurveDisplay: consoleCurve(c, w); break;
+        case WKind::GrMeter: grMeter(c, w); break;
         case WKind::GraphRange: {
             const std::string t = fmt("%.0f dB", kGraphRanges[static_cast<std::size_t>(w.choice)]);
             button(c, c.T(w.r), t, st.graphRange == w.choice, hot, false, th_.teal);

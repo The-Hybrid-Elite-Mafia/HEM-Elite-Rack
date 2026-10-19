@@ -44,13 +44,13 @@ constexpr Rect kAdd{32, 1124, 356, 72};
 constexpr Rect kStatus{0, 1218, RackView::kW, 32};
 
 Rect slotRow(int i) { return {32, kRow0 + static_cast<float>(i) * kRowPitch, 356, kRowH}; }
-Rect slotOn(int i) { const Rect r = slotRow(i); return {r.x + 220, r.y + 8, 64, 34}; }
-Rect slotDel(int i) { const Rect r = slotRow(i); return {r.x + 288, r.y + 8, 64, 34}; }
-Rect slotUp(int i) { const Rect r = slotRow(i); return {r.x + 220, r.y + 48, 64, 34}; }
-Rect slotDown(int i) { const Rect r = slotRow(i); return {r.x + 288, r.y + 48, 64, 34}; }
+Rect slotOn(int i) { const Rect r = slotRow(i); return {r.x + 206, r.y + 8, 72, 34}; }
+Rect slotDel(int i) { const Rect r = slotRow(i); return {r.x + 282, r.y + 8, 72, 34}; }
+Rect slotUp(int i) { const Rect r = slotRow(i); return {r.x + 206, r.y + 48, 72, 34}; }
+Rect slotDown(int i) { const Rect r = slotRow(i); return {r.x + 282, r.y + 48, 72, 34}; }
 
 Rect pickerPanel() { return RackView::faceArea().inset(150, 120); }
-Rect pickerItem(int i) { const Rect p = pickerPanel(); return {p.x + 40, p.y + 110 + static_cast<float>(i) * 170, p.w - 80, 150}; }
+Rect pickerItem(int i) { const Rect p = pickerPanel(); return {p.x + 40, p.y + 110 + static_cast<float>(i) * 140, p.w - 80, 124}; }
 Rect pickerClose() { const Rect p = pickerPanel(); return {p.right() - 200, p.y + 30, 160, 50}; }
 
 float mid(const Renderer& r, Rect a, TextStyle s) { return a.cy() + r.capHeight(s) * 0.5f; }
@@ -124,8 +124,9 @@ Hit RackView::hit(float x, float y, const RackViewState& s) const noexcept {
 }
 
 void RackView::button(Renderer& r, Rect b, std::string_view text, bool lit, bool hot, bool dim) const {
-    const TextStyle s = fit(r, TextStyle::Label, text, b.w - 16);
-    const std::string shown = clip(r, s, std::string(text), b.w - 16);
+    const float pad = std::min(16.0f, b.w * 0.11f);
+    const TextStyle s = fit(r, TextStyle::Label, text, b.w - pad);
+    const std::string shown = clip(r, s, std::string(text), b.w - pad);
     text = shown;
     if (lit && !dim) {
         r.glow(b.inset(4), 9, 12.0f, kTh.teal.withAlpha(0.35f), true);
@@ -246,10 +247,10 @@ void RackView::drawBack(Renderer& r, const RackViewState& s, const Hit& hv) cons
                    TextFx::Shadowed);
             continue;
         }
-        const TextStyle ns = fit(r, TextStyle::Title, sv.name, 166);
-        r.text(ns, clip(r, ns, sv.name, 166), row.x + 46, row.y + 42, sv.on ? kTh.silver : kTh.dim, Align::Left, TextFx::Shadowed);
-        const TextStyle ss = fit(r, TextStyle::Caption, sv.suite, 166);
-        r.text(ss, clip(r, ss, sv.suite, 166), row.x + 46, row.y + 74, sv.on ? kTh.teal : kTh.dim, Align::Left, sv.on ? TextFx::NeonCrisp : TextFx::Shadowed);
+        const TextStyle ns = fit(r, TextStyle::Title, sv.name, 152);
+        r.text(ns, clip(r, ns, sv.name, 152), row.x + 46, row.y + 42, sv.on ? kTh.silver : kTh.dim, Align::Left, TextFx::Shadowed);
+        const TextStyle ss = fit(r, TextStyle::Caption, sv.suite, 152);
+        r.text(ss, clip(r, ss, sv.suite, 152), row.x + 46, row.y + 74, sv.on ? kTh.teal : kTh.dim, Align::Left, sv.on ? TextFx::NeonCrisp : TextFx::Shadowed);
         button(r, slotOn(i), sv.on ? "ON" : "OFF", sv.on, hv.action == Action::SlotOn && hv.index == i);
         button(r, slotDel(i), "DEL", false, hv.action == Action::SlotRemove && hv.index == i);
         button(r, slotUp(i), "UP", false, hv.action == Action::SlotUp && hv.index == i, i == 0);
@@ -299,11 +300,11 @@ void RackView::drawFront(Renderer& r, const RackViewState& s, const Hit& hv) con
         const bool hot = hv.action == Action::AddPlugin && hv.index == i;
         if (hot) r.glow(it.inset(4), 12, 14.0f, kTh.teal.withAlpha(0.35f), true);
         r.fillRound(it, 12, hot ? rgb8(0x0F2427) : rgb8(0x0D1113), Blend::Over);
-        r.text(TextStyle::Panel, s.pickerItems[static_cast<std::size_t>(i)].first, it.x + 30, it.y + 68, hot ? kTh.teal : kTh.silver, Align::Left,
+        r.text(TextStyle::Panel, s.pickerItems[static_cast<std::size_t>(i)].first, it.x + 30, it.y + 58, hot ? kTh.teal : kTh.silver, Align::Left,
                hot ? TextFx::Neon : TextFx::Shadowed);
         const std::string& blurb = s.pickerItems[static_cast<std::size_t>(i)].second;
         const TextStyle bs = fit(r, TextStyle::Label, blurb, it.w - 60);
-        r.text(bs, clip(r, bs, blurb, it.w - 60), it.x + 30, it.y + 116, kTh.label, Align::Left, TextFx::Shadowed);
+        r.text(bs, clip(r, bs, blurb, it.w - 60), it.x + 30, it.y + 104, kTh.label, Align::Left, TextFx::Shadowed);
     }
 }
 

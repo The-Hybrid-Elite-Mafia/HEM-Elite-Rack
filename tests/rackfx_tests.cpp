@@ -4,6 +4,8 @@
 #include "Harness.hpp"
 #include "Signals.hpp"
 
+#include "hem/rack/BusGlue.hpp"
+#include "hem/rack/ConsoleEq.hpp"
 #include "hem/rack/EliteEq.hpp"
 #include "hem/rack/Plugins.hpp"
 #include "hem/rack/Restorer.hpp"
@@ -374,6 +376,245 @@ void testSpectrum() {
     off.prepare(kFs);
     off.push(s.l.data(), s.r.data(), static_cast<std::uint32_t>(s.size()));
     CHECK(off.frames() == 0);
+}
+
+} // namespace hem::test
+
+// ---- CONSOLE EQ ----------------------------------------------------------------------------------
+namespace hem::test {
+namespace {
+using namespace hem::rack;
+
+void setConsole(hc::fx::Effect& e, std::initializer_list<std::pair<int, float>> v) {
+    e.setDefaults();
+    for (const auto& [i, x] : v) e.set(i, x);
+}
+console::Settings consoleSettings(const hc::fx::Effect& e) {
+    float v[console::kCount];
+    for (int i = 0; i < console::kCount; ++i) v[i] = e.get(i);
+    return console::settingsFrom(v);
+}
+// Measured gain at hz, corrected for nothing: the console EQ's latency doesn't change a steady tone's level.
+double consoleGainAt(hc::fx::Effect& e, double hz) {
+    e.reset();
+    Stereo s = sine(hz, 1.2, 0.1f);
+    run(e, s);
+    return db(toneAmp(s.l, hz, 28800, 28800) / 0.1);
+}
+} // namespace
+
+void testConsoleEq() {
+    using namespace console;
+    std::printf("[console eq] CONSOLE EQ: filters, four bands, classic / modern curves, drive\n");
+    const PluginInfo* info = findPlugin("CONSOLE EQ");
+    CHECK(info != nullptr);
+    if (!info) return;
+    commonRules(*info);
+    auto e = info->create();
+    e->prepare(kFs, 512);
+
+    {   // flat: output = input delayed 23 samples, exactly
+        setConsole(*e, {});
+        e->reset();
+        Stereo s = noise(1.0, 0.5f, 3), ref = s;
+        run(*e, s);
+        double d = 0;
+        for (std::size_t i = 23; i < s.size(); ++i) d = std::max(d, static_cast<double>(std::fabs(s.l[i] - ref.l[i - 23])));
+        std::printf("  flat (all at 0, filters OUT, drive 0): output = input delayed %u samples, max difference %.2e\n", e->latency(), d);
+        CHECK(e->latency() == 23);
+        CHECK(d < 1e-6);
+    }
+    {   // what you hear is what the faceplate draws, for every kind of setting
+        const std::initializer_list<std::pair<int, float>> cases[] = {
+            {{LfGain, 6}, {LfHz, 100}, {LmfGain, -4}, {LmfHz, 400}, {LmfQ, 1.5f}, {HmfGain, 3}, {HmfHz, 3000}, {HfGain, 5}, {HfHz, 10000}},
+            {{LfGain, -8}, {LfHz, 200}, {LfBell, 1}, {HmfGain, 9}, {HmfHz, 2000}, {HmfQ, 0.7f}, {HfGain, -6}, {HfHz, 6000}, {HfBell, 1}, {Curve, 1}},
+            {{HpfOn, 1}, {HpfHz, 120}, {LpfOn, 1}, {LpfHz, 9000}, {LmfGain, 12}, {LmfHz, 900}, {Curve, 1}},
+        };
+        double worst = 0;
+        for (const auto& c : cases) {
+            setConsole(*e, c);
+            const Settings st = consoleSettings(*e);
+            for (double hz : {40.0, 80.0, 150.0, 300.0, 600.0, 1000.0, 2000.0, 4000.0, 7000.0, 12000.0}) {
+                const double want = curveDb(st, kFs, hz), got = consoleGainAt(*e, hz);
+                if (want > -40) worst = std::max(worst, std::fabs(want - got));
+            }
+        }
+        std::printf("  3 settings x 10 frequencies: measured vs drawn curve, worst difference %.3f dB\n", worst);
+        CHECK(worst < 0.05);
+    }
+    {   // HPF 18 dB/oct
+        setConsole(*e, {{HpfOn, 1}, {HpfHz, 80}});
+        const double at80 = consoleGainAt(*e, 80), at20 = consoleGainAt(*e, 20), at1k = consoleGainAt(*e, 1000);
+        std::printf("  HPF 80 Hz: %.2f dB at 80 Hz, %.1f dB at 20 Hz, %.2f dB at 1 kHz\n", at80, at20, at1k);
+        CHECK(std::fabs(at80 + 3.0) < 0.3);
+        CHECK(at20 < -33.0 && at20 > -39.0);
+        CHECK(std::fabs(at1k) < 0.05);
+    }
+    {   // MODERN: a big boost is narrower than CLASSIC, a small one is wider
+        setConsole(*e, {{LmfGain, 12}, {LmfHz, 1000}, {LmfQ, 1}});
+        const double cBig = consoleGainAt(*e, 2000);
+        setConsole(*e, {{LmfGain, 12}, {LmfHz, 1000}, {LmfQ, 1}, {Curve, 1}});
+        const double mBig = consoleGainAt(*e, 2000);
+        setConsole(*e, {{LmfGain, 3}, {LmfHz, 1000}, {LmfQ, 1}});
+        const double cSmall = consoleGainAt(*e, 2000);
+        setConsole(*e, {{LmfGain, 3}, {LmfHz, 1000}, {LmfQ, 1}, {Curve, 1}});
+        const double mSmall = consoleGainAt(*e, 2000);
+        std::printf("  LMF +12 dB one octave away: classic %.2f, modern %.2f dB;  +3 dB: classic %.2f, modern %.2f dB\n", cBig, mBig, cSmall, mSmall);
+        CHECK(mBig < cBig - 0.5);
+        CHECK(mSmall > cSmall + 0.2);
+    }
+    {   // DRIVE: harmonics only when asked for
+        Stereo s0 = sine(200.0, 1.0, 0.89f), s1 = s0;
+        setConsole(*e, {});
+        e->reset();
+        run(*e, s0);
+        setConsole(*e, {{Drive, 100}});
+        e->reset();
+        run(*e, s1);
+        const double h0 = db(toneAmp(s0.l, 600, 24000, 24000) / 0.89), h1 = db(toneAmp(s1.l, 600, 24000, 24000) / 0.89);
+        std::printf("  -1 dBFS 200 Hz, 3rd harmonic: drive 0 %.1f dB, drive 100 %% %.1f dB\n", h0, h1);
+        CHECK(h0 < -100.0);
+        CHECK(h1 > -40.0);
+    }
+    {
+        Stereo in = noise(1.0, 0.4f, 9);
+        const double d = blockSizeDifference(*info, [](hc::fx::Effect& x) {
+            x.set(HpfOn, 1); x.set(LfGain, 5); x.set(HmfGain, -6); x.set(HfBell, 1); x.set(HfGain, 4); x.set(Curve, 1); x.set(Drive, 40);
+        }, in);
+        std::printf("  block size 1 vs 512: max difference %.2e\n", d);
+        CHECK(d < 1e-6);
+    }
+}
+
+// ---- BUS GLUE -------------------------------------------------------------------------------------
+namespace {
+// Output level (dB) of a steady tone after `seconds`, measured over the last 0.25 s.
+double glueOut(hc::fx::Effect& e, double hz, float amp, double seconds = 1.5) {
+    e.reset();
+    Stereo s = sine(hz, seconds, amp);
+    run(e, s);
+    const std::size_t len = 12000;
+    return db(toneAmp(s.l, hz, s.size() - len, len));
+}
+// Time (ms) for the gain reduction to come back above -1 dB after a loud passage of `loudS` seconds.
+double recoveryMs(hc::fx::Effect& e, double loudS) {
+    e.reset();
+    Stereo loud = sine(1000.0, loudS, 0.7f);
+    run(e, loud);
+    Stereo quiet = sine(1000.0, 5.0, 0.01f);
+    for (std::size_t i = 0; i < quiet.size(); i += 48) {
+        e.process(quiet.l.data() + i, quiet.r.data() + i, 48);
+        if (e.reductionDb() > -1.0f) return static_cast<double>(i) / 48.0;
+    }
+    return 5000.0;
+}
+} // namespace
+
+void testBusGlue() {
+    using namespace glue;
+    std::printf("[bus glue] BUS GLUE: static curve, attack, release, auto release, sidechain HPF, mix\n");
+    const PluginInfo* info = findPlugin("BUS GLUE");
+    CHECK(info != nullptr);
+    if (!info) return;
+    commonRules(*info);
+    auto e = info->create();
+    e->prepare(kFs, 512);
+    auto set = [&](std::initializer_list<std::pair<int, float>> v) { e->setDefaults(); for (const auto& [i, x] : v) e->set(i, x); };
+
+    {   // static curve: -6 dBFS peak, threshold -20, 4:1 -> 10.5 dB of reduction
+        set({{Threshold, -20}, {Ratio, 1}, {Attack, 0}, {Release, 0}});
+        const double out = glueOut(*e, 1000, 0.5f);
+        const float gr = e->reductionDb();
+        const double want = db(0.5) + gainComputerDb(static_cast<float>(db(0.5)), -20, 4);
+        std::printf("  -6 dBFS, threshold -20 dB, 4:1: output %.2f dB (curve says %.2f), meter %.2f dB\n", out, want, gr);
+        CHECK(std::fabs(out - want) < 0.8);
+        CHECK(std::fabs(gr - gainComputerDb(static_cast<float>(db(0.5)), -20, 4)) < 0.8);
+    }
+    {   // under the threshold: untouched, exactly
+        set({{Threshold, -3}});
+        e->reset();
+        Stereo s = sine(500, 0.5, 0.25f), ref = s;
+        run(*e, s);
+        double d = 0;
+        for (std::size_t i = 0; i < s.size(); ++i) d = std::max(d, static_cast<double>(std::fabs(s.l[i] - ref.l[i])));
+        std::printf("  under the threshold: max difference %.2e, meter %.2f dB\n", d, e->reductionDb());
+        CHECK(d < 1e-6);
+        CHECK(e->reductionDb() == 0.0f);
+    }
+    {   // ratio
+        set({{Threshold, -30}, {Ratio, 0}});
+        const double r2 = glueOut(*e, 1000, 0.5f);
+        set({{Threshold, -30}, {Ratio, 2}});
+        const double r10 = glueOut(*e, 1000, 0.5f);
+        std::printf("  threshold -30, -6 dBFS: 2:1 -> %.1f dB, 10:1 -> %.1f dB\n", r2, r10);
+        CHECK(r10 < r2 - 6.0);
+    }
+    {   // MIX 0 = dry exactly; MAKEUP adds exactly what it says under the threshold
+        set({{Threshold, -40}, {Ratio, 2}, {Mix, 0}});
+        e->reset();
+        Stereo s = sine(700, 0.5, 0.5f), ref = s;
+        run(*e, s);
+        double d = 0;
+        for (std::size_t i = 0; i < s.size(); ++i) d = std::max(d, static_cast<double>(std::fabs(s.l[i] - ref.l[i])));
+        CHECK(d < 1e-6);
+        set({{Threshold, 0}, {Makeup, 6}});
+        const double mk = glueOut(*e, 1000, 0.1f) - db(0.1);
+        std::printf("  MIX 0: difference from dry %.2e;  MAKEUP 6 under the threshold: %+.2f dB\n", d, mk);
+        CHECK(std::fabs(mk - 6.0) < 0.05);
+    }
+    {   // attack: 0.1 ms grabs the first 5 ms of a hit, 30 ms lets it through
+        auto firstMs = [&](int att) {
+            set({{Threshold, -30}, {Ratio, 2}, {Attack, static_cast<float>(att)}});
+            e->reset();
+            Stereo s = sine(1000, 0.1, 0.5f);
+            run(*e, s, 64);
+            return db(rms(s.l, 0, 240) * std::numbers::sqrt2);
+        };
+        const double fast = firstMs(0), slow = firstMs(5);
+        std::printf("  first 5 ms of a hit: attack 0.1 ms %.1f dB, attack 30 ms %.1f dB\n", fast, slow);
+        CHECK(slow > fast + 6.0);
+    }
+    {   // release: 0.1 s comes back faster than 1.2 s; AUTO waits longer after sustained work
+        set({{Threshold, -30}, {Release, 0}});
+        const double r01 = recoveryMs(*e, 1.0);
+        set({{Threshold, -30}, {Release, 3}});
+        const double r12 = recoveryMs(*e, 1.0);
+        set({{Threshold, -30}, {Release, 4}});
+        const double aShort = recoveryMs(*e, 0.05), aLong = recoveryMs(*e, 3.0);
+        std::printf("  back to -1 dB: release 0.1 s %.0f ms, 1.2 s %.0f ms;  AUTO after 50 ms %.0f ms, after 3 s %.0f ms\n", r01, r12, aShort, aLong);
+        CHECK(r12 > 4.0 * r01);
+        CHECK(aLong > 2.0 * aShort);
+    }
+    {   // sidechain high-pass: a 40 Hz bass line hardly moves it with SC HPF 150 Hz
+        set({{Threshold, -30}, {ScHpf, 0}});
+        (void)glueOut(*e, 40, 0.5f);
+        const float off = e->reductionDb();
+        set({{Threshold, -30}, {ScHpf, 3}});
+        (void)glueOut(*e, 40, 0.5f);
+        const float on = e->reductionDb();
+        std::printf("  40 Hz at -6 dBFS: reduction %.1f dB with SC HPF off, %.1f dB at 150 Hz\n", off, on);
+        CHECK(on > off + 6.0f);
+    }
+    {   // stereo link: a loud left side turns the right side down by the same amount
+        set({{Threshold, -30}, {Ratio, 2}});
+        e->reset();
+        Stereo s(48000);
+        for (std::size_t i = 0; i < s.size(); ++i) {
+            const double t = static_cast<double>(i) / kFs;
+            s.l[i] = 0.5f * static_cast<float>(std::sin(2 * std::numbers::pi * 1000 * t));
+            s.r[i] = 0.01f * static_cast<float>(std::sin(2 * std::numbers::pi * 300 * t));
+        }
+        run(*e, s);
+        const double gl = db(toneAmp(s.l, 1000, 36000, 12000) / 0.5), gr = db(toneAmp(s.r, 300, 36000, 12000) / 0.01);
+        std::printf("  stereo link: left turned down %.2f dB, right %.2f dB\n", gl, gr);
+        CHECK(std::fabs(gl - gr) < 0.3);
+    }
+    {
+        Stereo in = noise(1.0, 0.6f, 4);
+        const double d = blockSizeDifference(*info, [](hc::fx::Effect& x) { x.set(Threshold, -25); x.set(Release, 4); x.set(ScHpf, 2); x.set(Mix, 70); }, in);
+        std::printf("  block size 1 vs 512: max difference %.2e\n", d);
+        CHECK(d < 1e-5);
+    }
 }
 
 } // namespace hem::test

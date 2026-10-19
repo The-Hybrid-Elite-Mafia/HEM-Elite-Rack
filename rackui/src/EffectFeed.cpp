@@ -3,7 +3,8 @@
 namespace hem::ui {
 
 EffectFeed::EffectFeed(hc::fx::Effect& e) noexcept
-    : spectrum_(dynamic_cast<rack::SpectrumSource*>(&e)),
+    : fx_(&e),
+      spectrum_(dynamic_cast<rack::SpectrumSource*>(&e)),
       noise_(dynamic_cast<rack::NoiseProfileSource*>(&e)),
       eq_(dynamic_cast<rack::EliteEqView*>(&e)) {}
 
