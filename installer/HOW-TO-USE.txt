@@ -98,6 +98,32 @@ THE CLASSIC EQs (BRIT PRE, AMERICAN EQ, MID EQ, AIR EQ, GRAPHIC EQ, TILT)
   AIR EQ: gentle mastering moves (1 - 2 dB is a lot) and AIR on top. No colour.
   GRAPHIC EQ: one knob per band. TILT: + brighter, - darker, around PIVOT.
 
+VCA COMP
+  The all-rounder. THRESHOLD down until the needle moves, RATIO (2 - 4 gentle, 8+ hard), KNEE
+  (higher = smoother), ATTACK (slower lets the punch through), RELEASE or AUTO REL,
+  AUTO GAIN gives back about half of what it takes. SIDECHAIN HPF stops the bass pumping it.
+
+PUNCH 160
+  THRESHOLD and COMPRESSION, that's it. It grabs faster the harder it is hit and lets go
+  steadily: great on drums and bass. OVER EASY = a softer start.
+
+THRUST BUS
+  On the mix or drum bus. THRUST MED / LOUD makes it listen less to the low end, so the kick
+  and bass don't make everything pump. NEW = modern, tighter; OLD = smoother, vintage.
+
+BRIT BUS
+  Thick, smooth bus glue. RECOVERY AUTO 1 / AUTO 2 lets go by itself (fast after a hit, slow
+  when it's been working). LIMIT catches what's left. IRON adds weight.
+
+GATE
+  THRESHOLD: under it the gate closes by RANGE dB (EXPAND: it turns down gradually). HOLD keeps
+  it open a moment after the hit. The detector filters and LISTEN help it hear only the drum
+  you want (e.g. HPF to ignore the kick bleed on a snare).
+
+MULTIBAND
+  Three compressors, one per band: LOW / MID and MID / HIGH set where the bands split. Each band
+  has THRESHOLD, RATIO and GAIN; the readouts show how much each band is turned down.
+
 LOUDNESS METER (measures only, changes nothing)
   INTEGRATED = the whole song since RESET (play it all the way through). SHORT-TERM = the last
   3 seconds, MOMENTARY = the last 0.4 s. LOUDNESS RANGE = how much it moves (LU).

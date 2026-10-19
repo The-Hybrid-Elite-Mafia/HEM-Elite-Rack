@@ -10,6 +10,7 @@
 #include "hem/rack/Restorer.hpp"
 #include "hem/rack/Tools.hpp"
 #include "hem/rack/ClassicEqs.hpp"
+#include "hem/rack/MoreDynamics.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -660,7 +661,7 @@ void sections(FaceLayout& L, const std::vector<Sec>& secs) {
         const Sec& sec = secs[si];
         const float x0 = 410 + static_cast<float>(si) * pitch;
         L.sections.push_back({{x0, 450, pitch, 30}, sec.name});
-        if (si > 0) L.grooves.push_back({x0, 460, x0, 808});
+        if (si > 0 && secs.size() <= 6) L.grooves.push_back({x0, 460, x0, 808});   // more than six: too busy
         const float n = static_cast<float>(sec.knobs.size());
         for (std::size_t k = 0; k < sec.knobs.size(); ++k) {
             const SecKnob& kn = sec.knobs[k];
@@ -691,7 +692,7 @@ FaceLayout britPre(const rack::PluginInfo& info) {
     common(L, info);
     L.leftNotes = {"BIG IRON SOUND", "CLASSIC CHANNEL"};
     curveOnTop(L);
-    sections(L, {{"HIGH-PASS", {{Hpf, "FREQ", false, "OFF", "300"}}, {}},
+    sections(L, {{"HIGH-PASS", {{Hpf, "FREQ", false, "", ""}}, {}},
                  {"LOW", {{LowFreq, "FREQ", false, "", ""}, {LowGain, "GAIN", true, "-16", "+16"}}, {}},
                  {"MID", {{MidFreq, "FREQ", false, "", ""}, {MidGain, "GAIN", true, "-18", "+18"}}, {}},
                  {"HIGH 12 kHz", {{HighGain, "GAIN", true, "-16", "+16"}}, {}}});
@@ -751,7 +752,7 @@ FaceLayout graphicEq(const rack::PluginInfo& info) {
     curveOnTop(L);
     const char* names[kBands] = {"31", "62", "125", "250", "500", "1k", "2k", "4k", "8k", "16k"};
     std::vector<Sec> secs;
-    for (int b = 0; b < kBands; ++b) secs.push_back({names[b], {{b, "dB", false, "-12", "+12"}}, {}});
+    for (int b = 0; b < kBands; ++b) secs.push_back({names[b], {{b, "dB", false, "", ""}}, {}});
     sections(L, secs);
     leftColumn(L, "OUTPUT", {{Output, "OUTPUT", false, "", ""}});
     return L;
@@ -768,6 +769,138 @@ FaceLayout tiltFace(const rack::PluginInfo& info) {
                  {"LOW CUT", {{LowCut, "FREQ", false, "OFF", "80"}}, {}},
                  {"HIGH CUT", {{HighCut, "FREQ", false, "OFF", "8k"}}, {}}});
     leftColumn(L, "OUTPUT", {{Output, "OUTPUT", false, "", ""}});
+    return L;
+}
+
+// ---- wave 7 dynamics
+// A group of choice buttons anywhere in the right column (x, width), with a caption above.
+void buttonGroup(FaceLayout& L, const char* caption, float x, float w, float y, int param, int count) {
+    L.sections.push_back({{x, y - 40, w, 30}, caption});
+    const float bw = (w - 6.0f * static_cast<float>(count - 1)) / static_cast<float>(count);
+    for (int i = 0; i < count; ++i) L.widgets.push_back(choiceButton({x + static_cast<float>(i) * (bw + 6.0f), y, bw, 44}, param, i));
+}
+
+FaceLayout vcaFace(const rack::PluginInfo& info) {
+    using namespace rack::vca;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"CLEAN CONTROL", "ANY SOURCE"};
+    L.title = {60, 190, 330, 110};
+    needleDisplay(L);
+    buttonRow(L, "SIDECHAIN HPF", 236, ScHpf, 5);
+    L.widgets.push_back(toggle({1150, 330, 238, 44}, AutoRelease, "AUTO REL"));
+    L.widgets.push_back(toggle({1398, 330, 238, 44}, AutoMakeup, "AUTO GAIN"));
+    L.sections.push_back({{1150, 420, 486, 30}, "AUTO GAIN GIVES BACK HALF"});
+    knobRow(L, {{Threshold, "THRESHOLD", 120, "-60", "0", false}, {Ratio, "RATIO", 96, "1", "20", false}, {Knee, "KNEE", 86, "0", "24", true},
+                {Attack, "ATTACK", 96, "0.1", "100", false}, {Release, "RELEASE", 96, "10", "2k", false}, {Makeup, "MAKEUP", 86, "0", "+24", true},
+                {Mix, "MIX", 86, "DRY", "WET", true}, {Output, "OUTPUT", 86, "", "", true}}, 568);
+    buttonSeats(L);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
+FaceLayout punchFace(const rack::PluginInfo& info) {
+    using namespace rack::punch;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"PUNCHY DRUMS", "SOLID BASS"};
+    L.title = {60, 190, 330, 110};
+    needleDisplay(L);
+    L.widgets.push_back(toggle({1150, 236, 486, 44}, OverEasy, "OVER EASY"));
+    L.sections.push_back({{1150, 196, 486, 30}, "SOFT KNEE"});
+    L.sections.push_back({{1150, 316, 486, 30}, "FASTER THE HARDER IT HITS"});
+    L.sections.push_back({{1150, 356, 486, 30}, "RELEASES 120 dB PER SECOND"});
+    knobRow(L, {{Threshold, "THRESHOLD", 128, "-40", "0", false}, {Compression, "COMPRESSION", 128, "1", "60", false},
+                {Output, "OUTPUT", 100, "-20", "+20", false}, {Mix, "MIX", 90, "DRY", "WET", false}}, 568);
+    buttonSeats(L);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
+FaceLayout thrustFace(const rack::PluginInfo& info) {
+    using namespace rack::thrust;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"PUNCH THE BUS", "BASS STAYS STEADY"};
+    L.title = {60, 190, 330, 110};
+    needleDisplay(L);
+    buttonRow(L, "RATIO", 236, Ratio, 6);
+    buttonRow(L, "THRUST", 330, Thrust, 3);
+    buttonGroup(L, "KNEE", 1150, 290, 424, Knee, 3);
+    buttonGroup(L, "STYLE", 1450, 186, 424, Style, 2);
+    knobRow(L, {{Threshold, "THRESHOLD", 120, "-40", "0", false}, {Attack, "ATTACK", 96, "FAST", "SLOW", false}, {Release, "RELEASE", 96, "FAST", "SLOW", false},
+                {Link, "LINK", 86, "0", "100", true}, {Makeup, "MAKEUP", 96, "0", "+20", false}, {Mix, "MIX", 86, "DRY", "WET", true},
+                {Output, "OUTPUT", 86, "", "", true}}, 568);
+    buttonSeats(L);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
+FaceLayout britBusFace(const rack::PluginInfo& info) {
+    using namespace rack::britbus;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"THICK AND SMOOTH", "WITH A LIMITER"};
+    L.title = {60, 190, 330, 110};
+    needleDisplay(L);
+    buttonRow(L, "RATIO", 236, Ratio, 5);
+    buttonRow(L, "RECOVERY", 330, Recovery, 6);
+    buttonGroup(L, "ATTACK", 1150, 238, 424, Attack, 2);
+    L.sections.push_back({{1398, 384, 238, 30}, "LIMITER"});
+    L.widgets.push_back(toggle({1398, 424, 238, 44}, Limit, "LIMIT"));
+    knobRow(L, {{Threshold, "THRESHOLD", 128, "-30", "0", false}, {LimitLevel, "LIMIT LEVEL", 96, "-12", "0", false},
+                {Makeup, "MAKEUP", 100, "0", "+20", false}, {Drive, "IRON", 100, "0", "100", false}, {Mix, "MIX", 90, "DRY", "WET", false}}, 568);
+    buttonSeats(L);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
+FaceLayout gateFace(const rack::PluginInfo& info) {
+    using namespace rack::gate;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"CLEAN SILENCE", "TIGHT DRUMS"};
+    L.title = {60, 190, 330, 110};
+    needleDisplay(L);
+    buttonRow(L, "MODE", 236, Mode, 2);
+    buttonRow(L, "DETECTOR HPF", 330, ScHpf, 5);
+    buttonRow(L, "DETECTOR LPF", 424, ScLpf, 5);
+    L.widgets.push_back(toggle({70, 560, 270, 44}, Listen, "LISTEN"));
+    knobRow(L, {{Threshold, "THRESHOLD", 128, "-80", "0", false}, {Range, "RANGE", 100, "0", "80", false}, {Attack, "ATTACK", 96, "FAST", "SLOW", false},
+                {Hold, "HOLD", 96, "0", "500", false}, {Release, "RELEASE", 96, "FAST", "SLOW", false}}, 568);
+    buttonSeats(L);
+    bypassAt(L, {160, 650, 90, 90});
+    return L;
+}
+
+FaceLayout multibandFace(const rack::PluginInfo& info) {
+    using namespace rack::multiband;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"THREE BANDS", "EACH ITS OWN"};
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 182, 1226, 100};
+    const char* names[3] = {"LOW", "MID", "HIGH"};
+    for (int b = 0; b < 3; ++b) {
+        const float x = 410 + static_cast<float>(b) * 412;
+        readoutAt(L, {x, 182, 402, 100}, b, names[b], "dB REDUCTION");
+    }
+    {   // the crossovers between the readouts' bands
+        const std::size_t first = L.widgets.size();
+        L.widgets.push_back(knob({780, 312, 76, 76}, LowX, "LOW / MID", "40", "500", true));
+        L.widgets.push_back(knob({1192, 312, 76, 76}, HighX, "MID / HIGH", "1k", "10k", true));
+        seatKnobs(L, first, 10);
+    }
+    sections(L, {{"LOW", {{LowThr, "THRESHOLD", true, "-60", "0"}, {LowRatio, "RATIO", false, "1", "10"}, {LowGain, "GAIN", false, "-12", "+12"}}, {}},
+                 {"MID", {{MidThr, "THRESHOLD", true, "-60", "0"}, {MidRatio, "RATIO", false, "1", "10"}, {MidGain, "GAIN", false, "-12", "+12"}}, {}},
+                 {"HIGH", {{HighThr, "THRESHOLD", true, "-60", "0"}, {HighRatio, "RATIO", false, "1", "10"}, {HighGain, "GAIN", false, "-12", "+12"}}, {}}});
+    L.sections.push_back({{60, 400, 300, 30}, "TIMING"});
+    const std::size_t first = L.widgets.size();
+    L.widgets.push_back(knob({92, 468, 86, 86}, Attack, "ATTACK", "", "", true));
+    L.widgets.push_back(knob({232, 468, 86, 86}, Release, "RELEASE", "", "", true));
+    L.widgets.push_back(knob({162, 640, 76, 76}, Output, "OUTPUT", "", "", true));
+    seatKnobs(L, first, 10);
+    bypassAt(L, {40, 640, 80, 80});
     return L;
 }
 
@@ -796,6 +929,12 @@ FaceLayout faceLayout(const rack::PluginInfo& info) {
     case rack::Face::AirEq: return airEq(info);
     case rack::Face::GraphicEq: return graphicEq(info);
     case rack::Face::Tilt: return tiltFace(info);
+    case rack::Face::VcaComp: return vcaFace(info);
+    case rack::Face::Punch160: return punchFace(info);
+    case rack::Face::ThrustBus: return thrustFace(info);
+    case rack::Face::BritBus: return britBusFace(info);
+    case rack::Face::Gate: return gateFace(info);
+    case rack::Face::Multiband: return multibandFace(info);
     case rack::Face::Restorer: break;
     }
     return restorer(info);

@@ -10,6 +10,7 @@
 #include "hem/rack/Restorer.hpp"
 #include "hem/rack/Tools.hpp"
 #include "hem/rack/ClassicEqs.hpp"
+#include "hem/rack/MoreDynamics.hpp"
 
 #include <cstring>
 
@@ -104,6 +105,30 @@ const PluginInfo kPlugins[] = {
      "One knob: darker or brighter around a pivot, plus low cut and high cut",
      {0xD5CACDF2u, 0xCE234DCBu, 0x965055ACu, 0x0DAEFD70u}, {0x25474B39u, 0xB559473Au, 0xB1B03CD2u, 0xBA9FF5D0u},
      Face::Tilt, Group::Eq, &makeTilt, &kTiltCurve},
+    {"VCA COMP", "MODERN COMPRESSOR", "CONTROL WHAT MATTERS", "Fx|Dynamics",
+     "Clean, modern compressor: ratio, knee, attack, release or auto, auto makeup, sidechain HPF",
+     {0x823E513Au, 0x83E8451Bu, 0xA51AB94Cu, 0xE6F6EA5Bu}, {0x1FBA4F56u, 0xF9B74DC4u, 0xA5C98199u, 0x9A92B5B2u},
+     Face::VcaComp, Group::Dynamics, &makeVcaComp},
+    {"PUNCH 160", "RMS COMPRESSOR", "HIT WHAT MATTERS", "Fx|Dynamics",
+     "Classic RMS compressor: threshold, compression, over easy - punchy drums and bass",
+     {0xC892426Fu, 0x97AC4C40u, 0xA9C2E348u, 0xC378F1B4u}, {0xAC2865D4u, 0xACDC4FDFu, 0xBA504220u, 0xB97B78A2u},
+     Face::Punch160, Group::Dynamics, &makePunch160},
+    {"THRUST BUS", "BUS COMPRESSOR", "DRIVE THE MIX", "Fx|Dynamics",
+     "Punchy bus compressor: thrust keeps the bass from pumping, knee, new or old style",
+     {0x10BDADF2u, 0x7D7B4966u, 0xA6EC2503u, 0x005C2DDAu}, {0x700B8492u, 0x2D2E4528u, 0xB294A3AAu, 0x3DF92F30u},
+     Face::ThrustBus, Group::Dynamics, &makeThrustBus},
+    {"BRIT BUS", "DIODE BRIDGE COMPRESSOR", "WEIGHT WHAT MATTERS", "Fx|Dynamics",
+     "British bus compressor and limiter: auto recovery, iron drive, thick and smooth",
+     {0xA16BD1C1u, 0xAA0B45A9u, 0xB511151Fu, 0xB398B2F4u}, {0x90C334DAu, 0xD9774D28u, 0x9A84ED2Bu, 0xC7B4235Au},
+     Face::BritBus, Group::Dynamics, &makeBritBus},
+    {"GATE", "GATE / EXPANDER", "SILENCE WHAT DOESN'T", "Fx|Dynamics",
+     "Gate or expander: range, hold, hysteresis, sidechain filters, listen",
+     {0xE0412A84u, 0x2B2544FFu, 0xA67BB3F2u, 0x1369187Fu}, {0xCEA8B3ADu, 0xFACF47CBu, 0x8962EFE7u, 0x4A03D6DFu},
+     Face::Gate, Group::Dynamics, &makeGate},
+    {"MULTIBAND", "THREE-BAND COMPRESSOR", "BALANCE THE BANDS", "Fx|Dynamics",
+     "Three-band compressor: low, mid and high each with their own threshold, ratio and gain",
+     {0x6C8E86E2u, 0x22C9473Cu, 0x998322BCu, 0xB093647Bu}, {0xB1E68B77u, 0x2FBD4391u, 0xA66F0851u, 0x05ABC7A1u},
+     Face::Multiband, Group::Dynamics, &makeMultiband},
 };
 } // namespace
 

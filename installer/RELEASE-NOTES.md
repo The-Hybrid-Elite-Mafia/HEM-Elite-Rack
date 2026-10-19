@@ -1,3 +1,21 @@
+# HEM-Elite-Rack 0.7.0
+
+**Six new dynamics plug-ins — twenty-eight in all**, in the rack and as VST3:
+- **VCA COMP** — clean modern compressor: ratio 1–20, knee, attack, release or AUTO, AUTO GAIN,
+  sidechain HPF, mix.
+- **PUNCH 160** — classic RMS compressor: threshold, compression up to 60:1, OVER EASY; grabs
+  faster the harder it's hit, lets go at a steady ~120 dB per second.
+- **THRUST BUS** — punchy bus compressor: THRUST keeps the bass from pumping it, knee, NEW
+  (feed-forward) or OLD (feedback) style, stereo link.
+- **BRIT BUS** — British diode-bridge bus compressor with a limiter after it, AUTO recovery,
+  iron drive.
+- **GATE** — gate or expander with range, hold, hysteresis, detector filters, listen.
+- **MULTIBAND** — three-band compressor; with nothing compressing the bands add back up flat
+  (tested: within 0.000 dB from 40 Hz to 12 kHz).
+
+**Not in this round:** a DUCKER (it needs a second input — the rack doesn't route a sidechain
+yet), so MULTIBAND took its place.
+
 # HEM-Elite-Rack 0.6.0
 
 **Six new EQs — twenty-two plug-ins in all**, in the rack and as VST3. Each draws its curve on the

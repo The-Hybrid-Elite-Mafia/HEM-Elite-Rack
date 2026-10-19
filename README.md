@@ -30,6 +30,12 @@ C++23 audio framework, as a library.
 | **AIR EQ** | Clean mastering EQ: broad bands at 10 / 40 / 160 / 650 Hz and 2.5 kHz, AIR shelf up to 20 kHz |
 | **GRAPHIC EQ** | Ten bands, 31 Hz – 16 kHz, ±12 dB, constant Q |
 | **TILT** | Darker or brighter with one knob around a pivot, low cut, high cut |
+| **VCA COMP** | Clean modern compressor: ratio 1–20, knee, attack, release or AUTO, auto makeup, sidechain HPF, mix |
+| **PUNCH 160** | Classic RMS compressor: threshold, compression up to 60:1, OVER EASY, program-dependent timing |
+| **THRUST BUS** | Punchy bus compressor: THRUST (bass pumps less), knee, NEW (feed-forward) / OLD (feedback), link |
+| **BRIT BUS** | British diode-bridge bus compressor + limiter: AUTO recovery, iron drive |
+| **GATE** | Gate / expander: range, hold, hysteresis, detector HPF / LPF, listen |
+| **MULTIBAND** | Three-band compressor: Linkwitz-Riley crossovers, threshold / ratio / gain per band |
 
 Our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 

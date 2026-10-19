@@ -15,7 +15,8 @@ namespace hem::rack {
 
 enum class Face : std::uint8_t { EliteEq, Restorer, ConsoleEq, BusGlue, Tape, TubeEq, VariMu, Opto, Fet, Limiter,
                                 DeEsser, Width, Clipper, Exciter, Transient, Meter,
-                                BritPre, AmericanEq, MidEq, AirEq, GraphicEq, Tilt };
+                                BritPre, AmericanEq, MidEq, AirEq, GraphicEq, Tilt,
+                                VcaComp, Punch160, ThrustBus, BritBus, Gate, Multiband };
 
 // Where a plug-in sits in the rack's picker.
 enum class Group : std::uint8_t { Eq, Dynamics, Color, Space, Movement, Tools, kCount };

@@ -67,7 +67,8 @@ float normToDb(double n, float lo, float hi) { return lo + static_cast<float>(n)
 constexpr float kSpecLo = -120.0f, kSpecHi = 0.0f;
 bool isCompressor(rack::Face f) {
     return f == rack::Face::BusGlue || f == rack::Face::VariMu || f == rack::Face::Opto || f == rack::Face::Fet || f == rack::Face::Limiter ||
-           f == rack::Face::DeEsser || f == rack::Face::Clipper;
+           f == rack::Face::DeEsser || f == rack::Face::Clipper || f == rack::Face::VcaComp || f == rack::Face::Punch160 ||
+           f == rack::Face::ThrustBus || f == rack::Face::BritBus || f == rack::Face::Gate || f == rack::Face::Multiband;
 }
 
 // <bundle>/Contents/x86_64-win/<dll> -> <bundle>/Contents/Resources (fonts/, faceplates/, brand/).

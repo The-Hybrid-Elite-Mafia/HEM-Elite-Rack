@@ -17,6 +17,7 @@
 #include "hem/rack/Spectrum.hpp"
 #include "hem/rack/Tools.hpp"
 #include "hem/rack/ClassicEqs.hpp"
+#include "hem/rack/MoreDynamics.hpp"
 #include "hybrid/fx/Dsp.hpp"
 
 #include <algorithm>
@@ -1509,6 +1510,126 @@ void testClassicEqs() {
         const double b2 = h("BRIT PRE", brit::Drive, 2), b3 = h("BRIT PRE", brit::Drive, 3), m2 = h("MID EQ", mideq::Drive, 2), m3 = h("MID EQ", mideq::Drive, 3);
         std::printf("  drive 50 at -14 dBFS: BRIT PRE 2nd %.1f / 3rd %.1f dB, MID EQ 2nd %.1f / 3rd %.1f dB\n", b2, b3, m2, m3);
         CHECK(b3 > b2 + 10.0 && m2 > m3 && m2 > -50.0 && b3 > -50.0);
+    }
+}
+
+} // namespace hem::test
+
+// ---- WAVE 7: VCA COMP, PUNCH 160, THRUST BUS, BRIT BUS, GATE, MULTIBAND ---------------------------
+namespace hem::test {
+namespace {
+// Steady 1 kHz tone level change (dB) after `seconds`, measured over the last 0.25 s.
+double steadyChange(const char* name, std::initializer_list<std::pair<int, float>> v, float amp, double seconds = 1.5) {
+    auto e = fresh(name, v);
+    return toneOut(*e, 1000, amp, seconds);
+}
+} // namespace
+
+void testMoreDynamics() {
+    std::printf("[dynamics 2] VCA COMP, PUNCH 160, THRUST BUS, BRIT BUS, GATE, MULTIBAND\n");
+    for (const char* n : {"VCA COMP", "PUNCH 160", "THRUST BUS", "BRIT BUS", "GATE", "MULTIBAND"}) {
+        const PluginInfo* info = findPlugin(n);
+        CHECK(info != nullptr);
+        if (info) commonRules(*info);
+    }
+    {   // VCA COMP: the static curve. -6 dBFS tone, threshold -20, 4:1, hard knee: 14 over -> 3.5 over = -10.5 dB
+        using namespace vca;
+        const double under = steadyChange("VCA COMP", {{Threshold, -20}, {Knee, 0}}, 0.05f);   // -26 dBFS: under
+        const double over = steadyChange("VCA COMP", {{Threshold, -20}, {Knee, 0}, {Ratio, 4}}, 0.5f);
+        const double autoMk = steadyChange("VCA COMP", {{Threshold, -20}, {Knee, 0}, {Ratio, 4}, {AutoMakeup, 1}}, 0.5f);
+        const double half = steadyChange("VCA COMP", {{Threshold, -20}, {Knee, 0}, {Ratio, 4}, {Mix, 50}}, 0.5f);
+        std::printf("  VCA COMP -20 dB, 4:1: under %.3f dB, -6 dBFS tone %.2f dB (curve -10.50), auto makeup %.2f dB, mix 50 %% %.2f dB\n", under, over, autoMk, half);
+        CHECK(std::fabs(under) < 1e-4);
+        CHECK(std::fabs(over + 10.5) < 0.6);
+        CHECK(std::fabs(autoMk - (over + 7.5)) < 0.3);
+        CHECK(half > over + 3.0 && half < -1.0);
+        // attack: fast grabs a burst sooner than slow
+        auto grabbed = [](float attackMs) {
+            auto e = fresh("VCA COMP", {{Threshold, -30}, {Attack, attackMs}});
+            Stereo s = sine(1000, 0.5, 0.5f);
+            for (std::size_t i = 0; i < s.size(); i += 48) {
+                e->process(s.l.data() + i, s.r.data() + i, 48);
+                if (e->reductionDb() < -6.0f) return static_cast<double>(i) / 48.0;
+            }
+            return 500.0;
+        };
+        const double fast = grabbed(0.5f), slow = grabbed(30.0f);
+        std::printf("  VCA COMP to -6 dB: attack 0.5 ms in %.0f ms, 30 ms in %.0f ms\n", fast, slow);
+        CHECK(fast < 3.0 && slow > 10.0 * std::max(fast, 1.0));
+    }
+    {   // PUNCH 160: RMS on a sine scale, 4:1 at -20: a -6 dBFS tone -> -10.5 dB; it lets go at ~120 dB/s
+        using namespace punch;
+        const double over = steadyChange("PUNCH 160", {{Threshold, -20}, {Compression, 4}}, 0.5f);
+        std::printf("  PUNCH 160 -20 dB, 4:1: -6 dBFS tone %.2f dB (curve -10.50)\n", over);
+        CHECK(std::fabs(over + 10.5) < 0.6);
+        auto e = fresh("PUNCH 160", {{Threshold, -30}, {Compression, 60}});
+        Stereo loud = sine(1000, 0.5, 0.5f);
+        run(*e, loud);
+        const float start = e->reductionDb();
+        Stereo quiet(4800);   // 100 ms of silence
+        run(*e, quiet);
+        const float after = e->reductionDb();
+        std::printf("  PUNCH 160 release: %.1f dB -> %.1f dB after 100 ms of silence (%.0f dB/s)\n", start, after, (after - start) * 10.0f);
+        CHECK(std::fabs((after - start) * 10.0f - 120.0f) < 10.0f);
+    }
+    {   // THRUST BUS: NEW and OLD give the same ratio; LOUD thrust compresses bass far less than NORM
+        using namespace thrust;
+        const double neu = steadyChange("THRUST BUS", {{Threshold, -20}, {Knee, 0}, {Ratio, 3}, {Style, 0}}, 0.5f);
+        const double old = steadyChange("THRUST BUS", {{Threshold, -20}, {Knee, 0}, {Ratio, 3}, {Style, 1}}, 0.5f);
+        std::printf("  THRUST BUS 4:1 at -20, -6 dBFS tone: NEW %.2f dB, OLD %.2f dB (curve -10.50)\n", neu, old);
+        CHECK(std::fabs(neu + 10.5) < 0.6 && std::fabs(old + 10.5) < 1.0);
+        auto bass = [](float thrustSel) {
+            auto e = fresh("THRUST BUS", {{Threshold, -20}, {Thrust, thrustSel}});
+            return toneOut(*e, 60, 0.5f, 1.5);
+        };
+        const double norm = bass(0), loud = bass(2);
+        std::printf("  60 Hz at -6 dBFS: THRUST NORM %.2f dB, LOUD %.2f dB\n", norm, loud);
+        CHECK(loud > norm + 4.0);
+    }
+    {   // BRIT BUS: compresses; the LIMIT section holds the level; AUTO recovers faster after a short hit
+        using namespace britbus;
+        const double c = steadyChange("BRIT BUS", {{Threshold, -20}, {Ratio, 3}, {Drive, 0}}, 0.5f);
+        const double lim = steadyChange("BRIT BUS", {{Threshold, 0}, {Limit, 1}, {LimitLevel, -10}, {Drive, 0}}, 0.5f);
+        std::printf("  BRIT BUS 4:1 at -20: -6 dBFS tone %.2f dB; LIMIT at -10: %.2f dB (wants -4.0)\n", c, lim);
+        CHECK(c < -7.0 && c > -12.0);
+        CHECK(std::fabs(lim + 4.0) < 0.6);
+        auto e = fresh("BRIT BUS", {{Drive, 0}, {Mix, 100}});
+        Stereo s = noise(1.0, 0.05f), ref = s;
+        run(*e, s);
+        const double d = maxDelayedDiff(s, ref, e->latency(), 4800);
+        std::printf("  BRIT BUS under the threshold, no iron: latency %u, max difference %.2e\n", e->latency(), d);
+        CHECK(d < 1e-3);
+    }
+    {   // GATE: closes by RANGE on quiet, opens on loud, holds; EXPAND drops 2 dB per dB under
+        using namespace gate;
+        const double closed = steadyChange("GATE", {{Threshold, -30}, {Range, 40}}, 0.01f);   // -40 dBFS
+        const double open = steadyChange("GATE", {{Threshold, -30}, {Range, 40}}, 0.1f);      // -20 dBFS
+        const double exp = steadyChange("GATE", {{Threshold, -30}, {Range, 60}, {Mode, 1}}, 0.01f);   // 10 under: -20 dB
+        std::printf("  GATE -30: -40 dBFS tone %.2f dB (closed, range 40), -20 dBFS %.3f dB (open); EXPAND 10 dB under %.2f dB\n", closed, open, exp);
+        CHECK(std::fabs(closed + 40.0) < 0.5 && std::fabs(open) < 0.01 && std::fabs(exp + 20.0) < 1.5);
+    }
+    {   // MULTIBAND: no compression -> flat (the bands add back up); a loud low tone is compressed, a mid tone isn't
+        using namespace multiband;
+        double worst = 0;
+        for (double hz : {40.0, 100.0, 150.0, 300.0, 1000.0, 3000.0, 6000.0, 12000.0}) {
+            auto e = fresh("MULTIBAND", {{LowThr, 0}, {MidThr, 0}, {HighThr, 0}});
+            worst = std::max(worst, std::fabs(toneOut(*e, hz, 0.1f, 1.0)));
+        }
+        std::printf("  MULTIBAND at rest, 40 Hz .. 12 kHz: largest deviation from flat %.3f dB\n", worst);
+        CHECK(worst < 0.05);
+        auto e = fresh("MULTIBAND", {{LowThr, -30}, {LowRatio, 4}, {MidThr, 0}, {HighThr, 0}});
+        Stereo s = sine(60, 1.5, 0.3f);
+        add(s, sine(1000, 1.5, 0.05f));
+        run(*e, s);
+        const double lo = db(toneAmp(s.l, 60, 48000, 12000) / 0.3), mid = db(toneAmp(s.l, 1000, 48000, 12000) / 0.05);
+        std::printf("  MULTIBAND low band at -30, 4:1: 60 Hz %.2f dB, 1 kHz %.2f dB, meters %.1f / %.1f / %.1f\n", lo, mid, e->meter(0), e->meter(1), e->meter(2));
+        CHECK(lo < -10.0 && std::fabs(mid) < 0.2 && e->meter(0) < -10.0f && e->meter(1) > -0.1f);
+    }
+    for (const char* n : {"VCA COMP", "PUNCH 160", "THRUST BUS", "BRIT BUS", "GATE", "MULTIBAND"}) {
+        Stereo in = hotMix(1.0);
+        const double d = blockSizeDifference(*findPlugin(n), [](hc::fx::Effect&) {}, in);
+        std::printf("  %s block size 1 vs 512: max difference %.2e\n", n, d);
+        CHECK(d < 1e-5);
     }
 }
 

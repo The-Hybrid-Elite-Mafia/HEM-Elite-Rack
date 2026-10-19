@@ -14,6 +14,7 @@
 #include "hem/rack/Restorer.hpp"
 #include "hem/rack/Tools.hpp"
 #include "hem/rack/ClassicEqs.hpp"
+#include "hem/rack/MoreDynamics.hpp"
 #include "hem/ui/FaceWindow.hpp"
 
 #include <windows.h>
@@ -164,6 +165,19 @@ int main(int argc, char** argv) {
             for (int b = 0; b < 10; ++b) fx->set(b, g[b]);
         } else if (info.face == hem::rack::Face::Tilt) {
             fx->set(hem::rack::tilt::Tilt, 2.5f); fx->set(hem::rack::tilt::LowCut, 2);
+        } else if (info.face == hem::rack::Face::VcaComp) {
+            fx->set(hem::rack::vca::Threshold, -32);
+        } else if (info.face == hem::rack::Face::Punch160) {
+            fx->set(hem::rack::punch::Threshold, -30);
+        } else if (info.face == hem::rack::Face::ThrustBus) {
+            fx->set(hem::rack::thrust::Threshold, -30);
+        } else if (info.face == hem::rack::Face::BritBus) {
+            fx->set(hem::rack::britbus::Threshold, -26);
+        } else if (info.face == hem::rack::Face::Gate) {
+            fx->set(hem::rack::gate::Threshold, -30);
+        } else if (info.face == hem::rack::Face::Multiband) {
+            using namespace hem::rack::multiband;
+            fx->set(LowThr, -30); fx->set(MidThr, -34); fx->set(HighThr, -40);
         } else if (info.face == hem::rack::Face::Restorer) {
             fx->set(hem::rack::restorer::Reduction, 6.0f);
         }
