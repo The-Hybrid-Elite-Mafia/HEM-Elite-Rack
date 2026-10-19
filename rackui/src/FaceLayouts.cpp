@@ -1,0 +1,211 @@
+#include "hem/ui/Face.hpp"
+
+#include "hem/rack/EliteEq.hpp"
+#include "hem/rack/Restorer.hpp"
+
+#include <cmath>
+
+namespace hem::ui {
+namespace {
+
+constexpr float kFooterY = 832.0f;
+
+Widget knob(Rect dial, int param, std::string caption, std::string lo = "", std::string hi = "", bool small = false) {
+    Widget w;
+    w.kind = WKind::Knob;
+    w.r = dial;
+    w.param = param;
+    w.caption = std::move(caption);
+    w.lo = std::move(lo);
+    w.hi = std::move(hi);
+    w.small = small;
+    return w;
+}
+Widget bandKnob(Rect dial, int control, std::string caption) {
+    Widget w = knob(dial, -1, std::move(caption), "", "", true);
+    w.control = control;
+    return w;
+}
+Widget toggle(Rect r, int param, std::string caption) {
+    Widget w;
+    w.kind = WKind::Toggle;
+    w.r = r;
+    w.param = param;
+    w.caption = std::move(caption);
+    return w;
+}
+
+// The parts every HEM-Elite-Rack plate has: header with crown and ghost, footer strip, screws.
+void common(FaceLayout& L, const rack::PluginInfo& info) {
+    L.face = info.face;
+    L.name = info.name;
+    L.suite = info.suite;
+    L.tagline = info.tagline;
+    L.header = {30, 18, kPlateW - 60, 140};
+    L.crown = {68, 20, 132, 132};
+    L.ghost = {kPlateW - 68 - 122, 16, 122, 127};
+    L.footer = {14, kFooterY, kPlateW - 28, kPlateH - kFooterY - 12};
+    L.footerPlate = {kPlateW * 0.5f - 260, kFooterY + 22, 520, 58};
+    L.recesses.push_back({L.footerPlate, 8, 4, false, false});
+    L.grooves.push_back({34, 166, kPlateW - 34, 166});
+    L.screws = {{40, 40}, {kPlateW - 40, 40}, {40, kFooterY + 50}, {kPlateW - 40, kFooterY + 50}};
+}
+
+FaceLayout restorer(const rack::PluginInfo& info) {
+    using namespace rack::restorer;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"CLEANER AUDIO", "TRUE DETAIL"};
+    L.sideNotes = {"LESS NOISE", "MORE MUSIC", "PRESERVE", "DETAIL", "NATURAL", "SOUND"};
+    L.title = {60, 200, 330, 120};
+    L.display = {410, 190, 1020, 316};
+    L.recesses.push_back({L.display, 14, 9, false, true});
+    Widget spec;
+    spec.kind = WKind::Spectrum;
+    spec.r = L.display;
+    L.widgets.push_back(spec);
+    // FREQUENCY RANGE: right under the graph, on the same frequency scale.
+    Widget range;
+    range.kind = WKind::RangeSlider;
+    range.r = {plotArea(L.display).x, 520, plotArea(L.display).w, 40};
+    range.param = LowHz;
+    range.param2 = HighHz;
+    range.caption = "FREQUENCY RANGE";
+    L.recesses.push_back({range.r.inset(-6, 6), 10, 4, false, false});
+    L.widgets.push_back(range);
+    // The three dials of the mockup, plus OUTPUT.
+    L.widgets.push_back(knob({480, 632, 140, 140}, Reduction, "NOISE REDUCTION", "0", "10"));
+    L.widgets.push_back(knob({780, 632, 140, 140}, Focus, "FOCUS", "LO", "HI"));
+    L.widgets.push_back(knob({1080, 632, 140, 140}, Air, "AIR PRESERVE", "0", "10"));
+    L.widgets.push_back(knob({1318, 662, 96, 96}, Output, "OUTPUT", "-24", "+12", true));
+    for (const Widget& w : L.widgets)
+        if (w.kind == WKind::Knob) L.recesses.push_back({w.r.inset(-16), w.r.w * 0.5f + 16, 3, true, false});
+    // Left column under the name: what is being taken out, ADAPT, LISTEN.
+    L.widgets.push_back(toggle({70, 600, 270, 56}, Adapt, "ADAPT"));
+    L.widgets.push_back(toggle({70, 690, 270, 56}, Listen, "LISTEN"));
+    // Right column: ON / BYPASS.
+    Widget byp;
+    byp.kind = WKind::Bypass;
+    byp.r = {1495, 660, 100, 100};
+    byp.caption = "ON / BYPASS";
+    L.widgets.push_back(byp);
+    L.recesses.push_back({byp.r.inset(-12), 62, 4, true, false});
+    L.grooves.push_back({1450, 580, 1450, 800});
+    return L;
+}
+
+FaceLayout eliteEq(const rack::PluginInfo& info) {
+    using namespace rack::eq;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"SURGICAL OR MUSICAL", "16 BANDS  -  DYNAMIC"};
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 182, 1226, 380};
+    L.recesses.push_back({L.display, 14, 9, false, true});
+    Widget g;
+    g.kind = WKind::EqGraph;
+    g.r = L.display;
+    L.widgets.push_back(g);
+    // ±3 / ±6 / ±12 / ±30 dB (inside the graph, top right).
+    for (int i = 0; i < 4; ++i) {
+        Widget b;
+        b.kind = WKind::GraphRange;
+        b.choice = i;
+        b.r = {L.display.right() - 20 - static_cast<float>(4 - i) * 62, L.display.y + 14, 56, 30};
+        L.widgets.push_back(b);
+    }
+    // Band selectors 1..16 under the graph.
+    const float bw = L.display.w / static_cast<float>(kBands);
+    for (int b = 0; b < kBands; ++b) {
+        Widget w;
+        w.kind = WKind::BandButton;
+        w.choice = b;
+        w.r = {L.display.x + static_cast<float>(b) * bw + 3, 572, bw - 6, 36};
+        L.widgets.push_back(w);
+    }
+    // The selected band: ON, TYPE, STEREO, SLOPE (steppers), FREQ, GAIN, Q, then DYNAMIC and its four dials.
+    auto stepper = [&](float y, int control, const char* cap) {
+        Widget w;
+        w.kind = WKind::Stepper;
+        w.control = control;
+        w.caption = cap;
+        w.r = {500, y, 150, 40};
+        L.widgets.push_back(w);
+        L.recesses.push_back({w.r.inset(-4), 9, 4, false, false});
+    };
+    Widget bon;
+    bon.kind = WKind::Toggle;
+    bon.control = On;
+    bon.caption = "BAND";
+    bon.r = {500, 622, 150, 40};
+    L.widgets.push_back(bon);
+    L.recesses.push_back({bon.r.inset(-4), 9, 4, false, false});
+    stepper(672, TypeC, "TYPE");
+    stepper(722, StereoC, "STEREO");
+    stepper(772, Slope, "SLOPE");
+    const float ky = 668, kd = 86;
+    L.widgets.push_back(bandKnob({690, ky, kd, kd}, Freq, "FREQ"));
+    L.widgets.push_back(bandKnob({805, ky, kd, kd}, Gain, "GAIN"));
+    L.widgets.push_back(bandKnob({920, ky, kd, kd}, Q, "Q"));
+    Widget dyn;
+    dyn.kind = WKind::Toggle;
+    dyn.control = Dyn;
+    dyn.caption = "DYNAMIC";
+    dyn.r = {1050, 622, 200, 40};
+    L.widgets.push_back(dyn);
+    L.recesses.push_back({dyn.r.inset(-4), 10, 4, false, false});
+    const float dynPitch = 146;
+    const int dynCtl[4] = {Threshold, Range, Attack, Release};
+    const char* dynCap[4] = {"THRESHOLD", "RANGE", "ATTACK", "RELEASE"};
+    for (int i = 0; i < 4; ++i)
+        L.widgets.push_back(bandKnob({1050 + static_cast<float>(i) * dynPitch + (dynPitch - kd) * 0.5f, ky, kd, kd}, dynCtl[i], dynCap[i]));
+    L.grooves.push_back({1022, 630, 1022, 806});
+    L.grooves.push_back({670, 630, 670, 806});
+    // Left column: CHARACTER, DRIVE, OUTPUT, AUTO GAIN, ON / BYPASS.
+    for (int c = 0; c < 3; ++c) {
+        Widget w;
+        w.kind = WKind::ChoiceButton;
+        w.param = Character;
+        w.choice = c;
+        w.caption = c == 0 ? "CHARACTER" : "";
+        w.r = {70, 410 + static_cast<float>(c) * 46, 270, 40};
+        L.widgets.push_back(w);
+        L.recesses.push_back({w.r.inset(-4), 10, 4, false, false});
+    }
+    L.widgets.push_back(knob({92, 592, 86, 86}, Drive, "DRIVE", "", "", true));
+    L.widgets.push_back(knob({232, 592, 86, 86}, Output, "OUTPUT", "", "", true));
+    for (const Widget& w : L.widgets)
+        if (w.kind == WKind::Knob) L.recesses.push_back({w.r.inset(-12), w.r.w * 0.5f + 12, 3, true, false});
+    L.widgets.push_back(toggle({70, 738, 180, 50}, AutoGain, "AUTO GAIN"));
+    Widget byp;
+    byp.kind = WKind::Bypass;
+    byp.r = {282, 734, 58, 58};
+    byp.caption = "";
+    L.widgets.push_back(byp);
+    L.recesses.push_back({byp.r.inset(-8), 37, 4, true, false});
+    return L;
+}
+
+} // namespace
+
+FaceLayout faceLayout(const rack::PluginInfo& info) {
+    return info.face == rack::Face::EliteEq ? eliteEq(info) : restorer(info);
+}
+
+int widgetParam(const Widget& w, const FaceState& st) noexcept {
+    if (w.control >= 0) return rack::eq::bandParam(std::clamp(st.selectedBand, 0, rack::eq::kBands - 1), w.control);
+    return w.param;
+}
+
+Rect plotArea(const Rect& r) noexcept { return {r.x + 70, r.y + 20, r.w - 90, r.h - 62}; }
+
+float freqToX(const Rect& plot, float hz) noexcept {
+    const float t = std::log(std::clamp(hz, 20.0f, 20000.0f) / 20.0f) / std::log(1000.0f);
+    return plot.x + t * plot.w;
+}
+float xToFreq(const Rect& plot, float x) noexcept {
+    const float t = std::clamp((x - plot.x) / plot.w, 0.0f, 1.0f);
+    return 20.0f * std::pow(1000.0f, t);
+}
+
+} // namespace hem::ui

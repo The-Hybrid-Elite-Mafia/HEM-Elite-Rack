@@ -207,6 +207,25 @@ public:
     }
     float autoGainDb() const noexcept override { return autoPub_.load(std::memory_order_relaxed); }
 
+    // Dims what does nothing for the current band settings (the faceplate greys it out).
+    bool paramActive(int i) const noexcept override {
+        if (i == Drive) return static_cast<int>(p(Character)) != static_cast<int>(Char::Clean);
+        if (i < 0 || i >= kBands * kPerBand) return true;
+        const int b = i / kPerBand, c = i % kPerBand;
+        if (c == On) return true;
+        if (p(bandParam(b, On)) < 0.5f) return false;
+        const Band bd = eq::bandOf(*this, b);
+        switch (c) {
+        case Gain:  return typeHasGain(bd.type);
+        case Slope: return typeHasSlope(bd.type);
+        case Q:     return bd.type != Type::Tilt && !(typeHasSlope(bd.type) && bd.slopeDb == 6);
+        case Dyn:   return typeCanBeDynamic(bd.type);
+        case Threshold: case Range: case Attack: case Release:
+            return typeCanBeDynamic(bd.type) && p(bandParam(b, Dyn)) >= 0.5f;
+        default: return true;
+        }
+    }
+
     void prepare(double fs, std::uint32_t maxBlock) override {
         fs_ = fs;
         const std::uint32_t mb = std::min(std::max<std::uint32_t>(maxBlock, 1), kMaxBlock);

@@ -1,0 +1,38 @@
+HEM-ELITE-RACK — HOW TO USE
+
+1. Start HEM-Elite-Rack (desktop shortcut).
+2. OPEN SONG (top) — or drag a WAV / MP3 / FLAC onto the window.
+   Songs at other sample rates are converted to 48 kHz when they load.
+3. + ADD PLUG-IN (left) — pick ELITE EQ or RESTORER. Up to 8 plug-ins, top to bottom.
+   Each slot: ON / OFF, UP / DOWN (order), DEL (remove). Click a slot to show its faceplate.
+4. PLAY (or the SPACE bar). Click the song strip to jump; LEFT / RIGHT arrows jump 5 s.
+5. A PROCESSED / B ORIGINAL (or the A and B keys) — compare with and without the chain.
+   MATCH LOUDNESS (on by default) brings B to the same loudness as A, so you judge the
+   sound, not the volume.
+6. EXPORT WAV — the whole song through the chain, 24-bit / 48 kHz. The status line then
+   shows the file's integrated loudness (LUFS) and peak.
+
+ELITE EQ
+  Double-click the graph to add a band where you clicked. Drag a dot: frequency and gain.
+  Mouse wheel on a dot: width (Q). Double-click a dot: band off. Bands 1-16 buttons pick a
+  band; its TYPE, STEREO (stereo / mid / side / left / right), SLOPE, FREQ, GAIN, Q are
+  under the graph. DYNAMIC: the band only moves (up to RANGE) when that part of the song
+  goes over THRESHOLD. CHARACTER: CLEAN, CONSOLE or TUBE colour, with DRIVE.
+  AUTO GAIN keeps the loudness where it was so louder never fools you.
+
+RESTORER
+  NOISE REDUCTION: how hard. FOCUS: lean on the lows (hum, rumble) or the highs (hiss).
+  AIR PRESERVE: protects the top end and the attacks. FREQUENCY RANGE: drag the two
+  handles to work only between them. ADAPT: keeps learning the noise (off = freeze it).
+  LISTEN: hear only what is being taken out.
+
+Knobs: drag up / down (hold Shift for fine), mouse wheel, double-click = back to default.
+
+OUTPUT (top right) picks the sound card. HEM-Elite-Rack uses it in exclusive mode
+(lowest latency) — other programs go quiet while it plays.
+
+Your chain, output and folders are remembered in %APPDATA%\HEM-Elite-Rack.
+The VST3 plug-ins (HEM ELITE EQ, HEM RESTORER) are in Common Files\VST3\HEM-Elite-Rack.vst3
+for any DAW that loads VST3.
+
+Needs: Windows 10 / 11 64-bit, a processor with AVX2 (Intel 2013+, AMD 2015+), OpenGL 3.3.

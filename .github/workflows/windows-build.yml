@@ -1,0 +1,75 @@
+name: Windows build
+
+# Manual only (Actions tab -> Windows build -> Run workflow): every run uses build minutes.
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build, test, screenshots, installer, release
+    runs-on: windows-2022
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+
+      - name: Toolchain
+        run: >
+          tools\ci\run-and-report.ps1 -Title "toolchain" -Exe pwsh
+          -ArgList '-NoProfile','-Command','cmake --version; & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property catalog_productDisplayVersion; (Get-CimInstance Win32_Processor).Name; git -C external/HybridCore log -1 --oneline'
+
+      - name: Configure (WASAPI + VST3, no ASIO)
+        run: tools\ci\run-and-report.ps1 -Title "configure" -Exe cmake -ArgList '--preset','rack'
+
+      - name: Build Release (Steinberg's validator runs after the plug-in links)
+        run: tools\ci\run-and-report.ps1 -Title "build" -Exe cmake -ArgList '--build','--preset','rack-release' -WarningSummary
+
+      - name: Unit tests
+        run: tools\ci\run-and-report.ps1 -Title "unit tests" -Exe ctest -ArgList '--test-dir','build/rack','-C','Release','-V'
+
+      - name: VST3 validator
+        run: tools\ci\run-and-report.ps1 -Title "vst3 validator" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-validator.ps1','-BuildDir','build\rack'
+
+      - name: Software OpenGL for screenshots (Mesa llvmpipe, CI only, not shipped)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: tools\ci\run-and-report.ps1 -Title "fetch mesa" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\fetch-mesa.ps1','-TargetDirs','build\rack\tools\rack_snapshot\Release,build\rack\rackapp\Release'
+
+      - name: Faceplates (live spectrum, noise curve, EQ curve)
+        env:
+          GALLIUM_DRIVER: llvmpipe
+        run: tools\ci\run-and-report.ps1 -Title "faceplates" -Exe .\build\rack\tools\rack_snapshot\Release\hem_rack_snapshot.exe -ArgList '--out','shots','--scale','0.75'
+
+      - name: Start the real app and capture its window
+        env:
+          GALLIUM_DRIVER: llvmpipe
+        run: |
+          tools\ci\run-and-report.ps1 -Title "app: ELITE EQ selected" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_elite_eq.png','-Select','2'
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          tools\ci\run-and-report.ps1 -Title "app: RESTORER selected" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_restorer.png','-Select','1'
+
+      - name: Publish screenshots to the ci-screenshots branch
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: tools\ci\run-and-report.ps1 -Title "publish screenshots" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\publish-screenshots.ps1','-Folder','shots'
+
+      - name: Build installer (refuses ASIO code)
+        run: tools\ci\run-and-report.ps1 -Title "installer: build" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\build-installer.ps1'
+
+      - name: Verify installer (install, self-test, upgrade, uninstall)
+        run: tools\ci\run-and-report.ps1 -Title "installer: verify" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\verify-installer.ps1','-Installer',"$env:HEM_INSTALLER"
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: HEM-Elite-Rack-Setup-${{ env.HEM_VERSION }}
+          path: installer/output/*.exe
+
+      - name: Publish GitHub Release (main only)
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: tools\ci\run-and-report.ps1 -Title "release: publish" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\publish-release.ps1'
