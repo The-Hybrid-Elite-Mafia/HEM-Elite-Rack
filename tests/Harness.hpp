@@ -22,7 +22,6 @@ struct AllocScope {
 
 void testEliteEq();
 void testRestorer();
-void testConsoleEq();
 void testBusGlue();
 void testTape();
 void testTubeEq();
@@ -36,7 +35,6 @@ void testClipper();
 void testExciter();
 void testTransient();
 void testLoudnessMeter();
-void testClassicEqs();
 void testMoreDynamics();
 void testColorFx();
 void testSpace();

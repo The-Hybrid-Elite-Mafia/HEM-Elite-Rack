@@ -13,9 +13,8 @@
 
 namespace hem::rack {
 
-enum class Face : std::uint8_t { EliteEq, Restorer, ConsoleEq, BusGlue, Tape, TubeEq, VariMu, Opto, Fet, Limiter,
+enum class Face : std::uint8_t { EliteEq, Restorer, BusGlue, Tape, TubeEq, VariMu, Opto, Fet, Limiter,
                                 DeEsser, Width, Clipper, Exciter, Transient, Meter,
-                                IronPre, PunchEq, MidEq, AirEq, GraphicEq, Tilt,
                                 VcaComp, PunchComp, FocusBus, DiodeBus, Gate, Multiband,
                                 TubeSat, Preamp, Cassette, Vinyl, BitCrusher, Transformer,
                                 Hall, Room, Plate, Spring, TapeEcho, DigitalDelay,

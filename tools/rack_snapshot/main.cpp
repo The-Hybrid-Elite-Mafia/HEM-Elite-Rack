@@ -4,7 +4,6 @@
 //   hem_rack_snapshot [--out <folder>] [--scale 0.75]
 // Exit 3 when a faceplate fails to open or comes out blank.
 #include "hem/rack/BusGlue.hpp"
-#include "hem/rack/ConsoleEq.hpp"
 #include "hem/rack/Dynamics.hpp"
 #include "hem/rack/Tape.hpp"
 #include "hem/rack/TubeEq.hpp"
@@ -13,7 +12,6 @@
 #include "hem/rack/Plugins.hpp"
 #include "hem/rack/Restorer.hpp"
 #include "hem/rack/Tools.hpp"
-#include "hem/rack/ClassicEqs.hpp"
 #include "hem/rack/MoreDynamics.hpp"
 #include "hem/rack/ColorFx.hpp"
 #include "hem/rack/Space.hpp"
@@ -120,11 +118,6 @@ int main(int argc, char** argv) {
             fx->set(bandParam(1, Dyn), 1);
             fx->set(bandParam(1, Threshold), -36);
             fx->set(AutoGain, 1);
-        } else if (info.face == hem::rack::Face::ConsoleEq) {   // a typical channel: low cut, a little low end, scoop, air
-            using namespace hem::rack::console;
-            fx->set(HpfOn, 1); fx->set(HpfHz, 60); fx->set(LfGain, 3); fx->set(LfHz, 90);
-            fx->set(LmfGain, -4); fx->set(LmfHz, 350); fx->set(LmfQ, 1.4f); fx->set(HmfGain, 2.5f); fx->set(HmfHz, 3500);
-            fx->set(HfGain, 4); fx->set(HfHz, 10000); fx->set(Curve, 1); fx->set(Drive, 25);
         } else if (info.face == hem::rack::Face::BusGlue) {     // 4:1, 3 ms, AUTO, working a few dB
             using namespace hem::rack::glue;
             fx->set(Threshold, -18); fx->set(ScHpf, 2); fx->set(Makeup, 2);
@@ -152,23 +145,6 @@ int main(int argc, char** argv) {
             fx->set(hem::rack::exciter::Drive, 60); fx->set(hem::rack::exciter::Mix, 35);
         } else if (info.face == hem::rack::Face::Transient) {
             fx->set(hem::rack::transient::Attack, 60);
-        } else if (info.face == hem::rack::Face::IronPre) {
-            using namespace hem::rack::iron;
-            fx->set(Hpf, 2); fx->set(LowGain, 4); fx->set(MidFreq, 3); fx->set(MidGain, 3); fx->set(HighGain, 5);
-        } else if (info.face == hem::rack::Face::PunchEq) {
-            using namespace hem::rack::punchq;
-            fx->set(LowGain, 4); fx->set(MidFreq, 1); fx->set(MidGain, -4); fx->set(HighGain, 4); fx->set(HighShelf, 1);
-        } else if (info.face == hem::rack::Face::MidEq) {
-            using namespace hem::rack::mideq;
-            fx->set(LowPeak, 3); fx->set(Dip, 4); fx->set(DipFreq, 2); fx->set(HighPeak, 4); fx->set(HighFreq, 3);
-        } else if (info.face == hem::rack::Face::AirEq) {
-            using namespace hem::rack::air;
-            fx->set(B40, 2); fx->set(B160, -1.5f); fx->set(B650, -1); fx->set(AirGain, 4); fx->set(AirFreq, 3);
-        } else if (info.face == hem::rack::Face::GraphicEq) {
-            const float g[10] = {3, 2, 0, -2, -3, -1, 1, 3, 4, 2};
-            for (int b = 0; b < 10; ++b) fx->set(b, g[b]);
-        } else if (info.face == hem::rack::Face::Tilt) {
-            fx->set(hem::rack::tilt::Tilt, 2.5f); fx->set(hem::rack::tilt::LowCut, 2);
         } else if (info.face == hem::rack::Face::VcaComp) {
             fx->set(hem::rack::vca::Threshold, -32);
         } else if (info.face == hem::rack::Face::PunchComp) {

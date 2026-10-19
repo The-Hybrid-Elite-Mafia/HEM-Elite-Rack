@@ -22,7 +22,6 @@ int main(int argc, char** argv) {
     testSpectrum();
     testEliteEq();
     testRestorer();
-    testConsoleEq();
     testBusGlue();
     testTape();
     testTubeEq();
@@ -36,7 +35,6 @@ int main(int argc, char** argv) {
     testExciter();
     testTransient();
     testLoudnessMeter();
-    testClassicEqs();
     testMoreDynamics();
     testColorFx();
     testSpace();

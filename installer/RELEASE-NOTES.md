@@ -1,3 +1,14 @@
+# HEM-Elite-Rack 0.13.0
+
+**A tighter EQ line-up: two EQs instead of nine** — 42 plug-ins in all.
+- **SURGEON** — the big one: 16 bands, every filter type, stereo / mid / side, dynamic bands,
+  character and auto gain.
+- **VELVET** — the tube EQ: broad, warm boosts and the low-end boost-and-cut trick.
+
+BOARDROOM, FOUNDRY, KNUCKLES, MIDTOWN, PENTHOUSE, BLUEPRINT and LEVERAGE are gone from the rack
+and the VST3 bundle; everything they did, SURGEON can do. A saved chain that used one of them
+loads with that slot empty.
+
 # HEM-Elite-Rack 0.12.0
 
 **Every plug-in has its own HEM name now** — all 49, in the rack and as VST3. Nothing borrows a

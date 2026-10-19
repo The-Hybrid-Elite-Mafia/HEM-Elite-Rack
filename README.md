@@ -10,7 +10,6 @@ C++23 audio framework, as a library.
 |---|---|
 | **SURGEON** | 16-band mastering / mixing EQ: bell, shelves, cuts (6–48 dB/oct), notch, tilt; per band stereo / mid / side / left / right; dynamic bands; CLEAN / CONSOLE / TUBE character; auto gain |
 | **THE CLEANER** | Adaptive hiss and noise reduction that keeps the air and the attacks |
-| **BOARDROOM** | Big-console channel EQ: HPF / LPF, LF, LMF, HMF, HF; classic or modern curves; drive |
 | **THE FAMILY** | Console-style mix-bus compressor: 2 / 4 / 10:1, stepped attack and release (+ AUTO), sidechain HPF, mix |
 | **ARCHIVE** | Two-track tape machine: input drive, 15 / 30 IPS, head bump, wow & flutter, hiss, auto trim, VU meters |
 | **VELVET** | Passive tube program EQ: low boost / atten (the low-end trick), high boost with bandwidth, high atten, tube drive |
@@ -24,12 +23,6 @@ C++23 audio framework, as a library.
 | **SPARK** | Adds fresh harmonics above a frequency: TUBE (even) or TAPE (odd), drive, mix |
 | **SUCKER PUNCH** | Transient shaper: more or less ATTACK and SUSTAIN, the same at any level |
 | **THE ACCOUNTANT** | EBU R128 / BS.1770: momentary, short-term, integrated LUFS, loudness range, true peak, correlation, distance to a target |
-| **FOUNDRY** | Console channel: 18 dB/oct high-pass, low shelf, mid bell, 12 kHz high shelf, preamp drive through iron |
-| **KNUCKLES** | Punchy three-band EQ with proportional Q, PEAK or SHELF low / high, 50 Hz–15 kHz band-pass filter, drive |
-| **MIDTOWN** | Tube midrange EQ: low peak, dip and high peak, tube drive |
-| **PENTHOUSE** | Clean mastering EQ: broad bands at 10 / 40 / 160 / 650 Hz and 2.5 kHz, AIR shelf up to 20 kHz |
-| **BLUEPRINT** | Ten bands, 31 Hz – 16 kHz, ±12 dB, constant Q |
-| **LEVERAGE** | Darker or brighter with one knob around a pivot, low cut, high cut |
 | **ENFORCER** | Clean modern compressor: ratio 1–20, knee, attack, release or AUTO, auto makeup, sidechain HPF, mix |
 | **HEAVY HAND** | Classic RMS compressor: threshold, compression up to 60:1, SOFT KNEE, program-dependent timing |
 | **MUSCLE** | Punchy bus compressor: LOW FOCUS (bass pumps less), knee, MODERN (feed-forward) / VINTAGE (feedback), link |
@@ -58,7 +51,7 @@ C++23 audio framework, as a library.
 | **CHOKEHOLD** | Low-end control: tighten boomy notes, punch kick attacks, mono lows |
 | **SPOTLIGHT** | Vocal chain: high-pass, body, one-knob compressor, one-knob de-esser, presence, air |
 
-Forty-nine plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
+Forty-two plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 
 ## Install
 Download `HEM-Elite-Rack-Setup-x.y.z.exe` from **Releases** and run it. Needs Windows 10 / 11

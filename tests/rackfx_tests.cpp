@@ -5,7 +5,6 @@
 #include "Signals.hpp"
 
 #include "hem/rack/BusGlue.hpp"
-#include "hem/rack/ConsoleEq.hpp"
 #include "hem/rack/Dynamics.hpp"
 #include "hem/rack/Tape.hpp"
 #include "hem/rack/TubeEq.hpp"
@@ -16,7 +15,6 @@
 #include "hem/rack/Restorer.hpp"
 #include "hem/rack/Spectrum.hpp"
 #include "hem/rack/Tools.hpp"
-#include "hem/rack/ClassicEqs.hpp"
 #include "hem/rack/MoreDynamics.hpp"
 #include "hem/rack/ColorFx.hpp"
 #include "hem/rack/Space.hpp"
@@ -394,111 +392,10 @@ void testSpectrum() {
 
 } // namespace hem::test
 
-// ---- BOARDROOM ----------------------------------------------------------------------------------
 namespace hem::test {
 namespace {
 using namespace hem::rack;
-
-void setConsole(hc::fx::Effect& e, std::initializer_list<std::pair<int, float>> v) {
-    e.setDefaults();
-    for (const auto& [i, x] : v) e.set(i, x);
-}
-console::Settings consoleSettings(const hc::fx::Effect& e) {
-    float v[console::kCount];
-    for (int i = 0; i < console::kCount; ++i) v[i] = e.get(i);
-    return console::settingsFrom(v);
-}
-// Measured gain at hz, corrected for nothing: the console EQ's latency doesn't change a steady tone's level.
-double consoleGainAt(hc::fx::Effect& e, double hz) {
-    e.reset();
-    Stereo s = sine(hz, 1.2, 0.1f);
-    run(e, s);
-    return db(toneAmp(s.l, hz, 28800, 28800) / 0.1);
-}
 } // namespace
-
-void testConsoleEq() {
-    using namespace console;
-    std::printf("[console eq] BOARDROOM: filters, four bands, classic / modern curves, drive\n");
-    const PluginInfo* info = findPlugin("BOARDROOM");
-    CHECK(info != nullptr);
-    if (!info) return;
-    commonRules(*info);
-    auto e = info->create();
-    e->prepare(kFs, 512);
-
-    {   // flat: output = input delayed 23 samples, exactly
-        setConsole(*e, {});
-        e->reset();
-        Stereo s = noise(1.0, 0.5f, 3), ref = s;
-        run(*e, s);
-        double d = 0;
-        for (std::size_t i = 23; i < s.size(); ++i) d = std::max(d, static_cast<double>(std::fabs(s.l[i] - ref.l[i - 23])));
-        std::printf("  flat (all at 0, filters OUT, drive 0): output = input delayed %u samples, max difference %.2e\n", e->latency(), d);
-        CHECK(e->latency() == 23);
-        CHECK(d < 1e-6);
-    }
-    {   // what you hear is what the faceplate draws, for every kind of setting
-        const std::initializer_list<std::pair<int, float>> cases[] = {
-            {{LfGain, 6}, {LfHz, 100}, {LmfGain, -4}, {LmfHz, 400}, {LmfQ, 1.5f}, {HmfGain, 3}, {HmfHz, 3000}, {HfGain, 5}, {HfHz, 10000}},
-            {{LfGain, -8}, {LfHz, 200}, {LfBell, 1}, {HmfGain, 9}, {HmfHz, 2000}, {HmfQ, 0.7f}, {HfGain, -6}, {HfHz, 6000}, {HfBell, 1}, {Curve, 1}},
-            {{HpfOn, 1}, {HpfHz, 120}, {LpfOn, 1}, {LpfHz, 9000}, {LmfGain, 12}, {LmfHz, 900}, {Curve, 1}},
-        };
-        double worst = 0;
-        for (const auto& c : cases) {
-            setConsole(*e, c);
-            const Settings st = consoleSettings(*e);
-            for (double hz : {40.0, 80.0, 150.0, 300.0, 600.0, 1000.0, 2000.0, 4000.0, 7000.0, 12000.0}) {
-                const double want = curveDb(st, kFs, hz), got = consoleGainAt(*e, hz);
-                if (want > -40) worst = std::max(worst, std::fabs(want - got));
-            }
-        }
-        std::printf("  3 settings x 10 frequencies: measured vs drawn curve, worst difference %.3f dB\n", worst);
-        CHECK(worst < 0.05);
-    }
-    {   // HPF 18 dB/oct
-        setConsole(*e, {{HpfOn, 1}, {HpfHz, 80}});
-        const double at80 = consoleGainAt(*e, 80), at20 = consoleGainAt(*e, 20), at1k = consoleGainAt(*e, 1000);
-        std::printf("  HPF 80 Hz: %.2f dB at 80 Hz, %.1f dB at 20 Hz, %.2f dB at 1 kHz\n", at80, at20, at1k);
-        CHECK(std::fabs(at80 + 3.0) < 0.3);
-        CHECK(at20 < -33.0 && at20 > -39.0);
-        CHECK(std::fabs(at1k) < 0.05);
-    }
-    {   // MODERN: a big boost is narrower than CLASSIC, a small one is wider
-        setConsole(*e, {{LmfGain, 12}, {LmfHz, 1000}, {LmfQ, 1}});
-        const double cBig = consoleGainAt(*e, 2000);
-        setConsole(*e, {{LmfGain, 12}, {LmfHz, 1000}, {LmfQ, 1}, {Curve, 1}});
-        const double mBig = consoleGainAt(*e, 2000);
-        setConsole(*e, {{LmfGain, 3}, {LmfHz, 1000}, {LmfQ, 1}});
-        const double cSmall = consoleGainAt(*e, 2000);
-        setConsole(*e, {{LmfGain, 3}, {LmfHz, 1000}, {LmfQ, 1}, {Curve, 1}});
-        const double mSmall = consoleGainAt(*e, 2000);
-        std::printf("  LMF +12 dB one octave away: classic %.2f, modern %.2f dB;  +3 dB: classic %.2f, modern %.2f dB\n", cBig, mBig, cSmall, mSmall);
-        CHECK(mBig < cBig - 0.5);
-        CHECK(mSmall > cSmall + 0.2);
-    }
-    {   // DRIVE: harmonics only when asked for
-        Stereo s0 = sine(200.0, 1.0, 0.89f), s1 = s0;
-        setConsole(*e, {});
-        e->reset();
-        run(*e, s0);
-        setConsole(*e, {{Drive, 100}});
-        e->reset();
-        run(*e, s1);
-        const double h0 = db(toneAmp(s0.l, 600, 24000, 24000) / 0.89), h1 = db(toneAmp(s1.l, 600, 24000, 24000) / 0.89);
-        std::printf("  -1 dBFS 200 Hz, 3rd harmonic: drive 0 %.1f dB, drive 100 %% %.1f dB\n", h0, h1);
-        CHECK(h0 < -100.0);
-        CHECK(h1 > -40.0);
-    }
-    {
-        Stereo in = noise(1.0, 0.4f, 9);
-        const double d = blockSizeDifference(*info, [](hc::fx::Effect& x) {
-            x.set(HpfOn, 1); x.set(LfGain, 5); x.set(HmfGain, -6); x.set(HfBell, 1); x.set(HfGain, 4); x.set(Curve, 1); x.set(Drive, 40);
-        }, in);
-        std::printf("  block size 1 vs 512: max difference %.2e\n", d);
-        CHECK(d < 1e-6);
-    }
-}
 
 // ---- THE FAMILY -------------------------------------------------------------------------------------
 namespace {
@@ -1416,104 +1313,6 @@ void testLoudnessMeter() {
         std::printf("  -20 LUFS, RESET, then -40: integrated %.2f -> %.2f LUFS, to -16 target %+.2f\n", before, e->meter(Integrated), e->meter(ToTarget));
         CHECK(std::fabs(before + 20.0f) < 0.1f && std::fabs(e->meter(Integrated) + 40.0f) < 0.1f);
         CHECK(std::fabs(e->meter(ToTarget) + 24.0f) < 0.1f);
-    }
-}
-
-} // namespace hem::test
-
-// ---- WAVE 6: FOUNDRY, KNUCKLES, MIDTOWN, PENTHOUSE, BLUEPRINT, LEVERAGE ------------------------------
-namespace hem::test {
-
-void testClassicEqs() {
-    std::printf("[classic eqs] the curve on the faceplate is what you hear\n");
-    const char* names[] = {"FOUNDRY", "KNUCKLES", "MIDTOWN", "PENTHOUSE", "BLUEPRINT", "LEVERAGE"};
-    const double probe[] = {60, 150, 400, 1000, 2500, 6000, 12000};
-    for (const char* name : names) {
-        const PluginInfo* info = findPlugin(name);
-        CHECK(info != nullptr && info->curve != nullptr);
-        if (!info || !info->curve) continue;
-        commonRules(*info);
-        auto proto = info->create();
-        const auto ps = proto->params();
-        auto isColor = [&](std::size_t i) { return std::string(ps[i].id) == "drive" || std::string(ps[i].id) == "output"; };
-        {   // everything at 0 (and no drive): the input, exactly (delayed by the latency)
-            auto e = info->create();
-            for (std::size_t i = 0; i < ps.size(); ++i)
-                if (isColor(i) || ps[i].unit == std::string("dB") || ps[i].unit == std::string("/10")) e->set(static_cast<int>(i), 0.0f);
-            e->prepare(kFs, 512);
-            Stereo s = noise(1.0, 0.3f), ref = s;
-            run(*e, s);
-            const double d = maxDelayedDiff(s, ref, e->latency(), 0);
-            std::printf("  %s flat: latency %u, max difference from the input %.2e\n", name, e->latency(), d);
-            CHECK(d < 1e-6);
-        }
-        double worst = 0;
-        std::mt19937 rng(static_cast<unsigned>(std::strlen(name)) * 31u);
-        std::uniform_real_distribution<float> u(0.0f, 1.0f);
-        for (int trial = 0; trial < 4; ++trial) {   // random settings: measured response == drawn curve
-            float v[hc::fx::Effect::kMaxParams] = {};
-            auto e = info->create();
-            for (std::size_t i = 0; i < ps.size(); ++i) {
-                float x = hc::fx::toPlain(ps[i], u(rng));
-                if (isColor(i)) x = 0.0f;
-                e->set(static_cast<int>(i), x);
-                v[i] = e->get(static_cast<int>(i));
-            }
-            e->prepare(kFs, 512);
-            for (double hz : probe) {
-                const double want = info->curve->db(v, kFs, hz);
-                e->reset();
-                Stereo s = sine(hz, 0.6, 0.05f);
-                run(*e, s);
-                const double got = db(toneAmp(s.l, hz, 14400, 14400) / 0.05);
-                worst = std::max(worst, std::fabs(got - want));
-            }
-        }
-        std::printf("  %s: 4 random settings x 7 frequencies, largest difference between curve and sound %.3f dB\n", name, worst);
-        CHECK(worst < 0.1);
-    }
-    {   // KNUCKLES: proportional Q - a small boost is broader than a big one (relative to its peak)
-        using namespace punchq;
-        auto widthAtHalf = [](float gain) {
-            float v[kCount] = {};
-            v[LowFreq] = 1; v[MidFreq] = 2; v[HighFreq] = 2; v[MidGain] = gain;
-            const double peak = kPunchEqCurve.db(v, kFs, 1500);
-            double lo = 1500;
-            while (lo > 20 && kPunchEqCurve.db(v, kFs, lo) > peak * 0.5) lo /= 1.01;
-            return std::log2(1500 / lo) * 2.0;   // octaves between the half-gain points
-        };
-        const double w3 = widthAtHalf(3), w12 = widthAtHalf(12);
-        std::printf("  KNUCKLES mid: +3 dB is %.2f octaves wide, +12 dB is %.2f octaves wide\n", w3, w12);
-        CHECK(w3 > 1.4 * w12);
-    }
-    {   // LEVERAGE +6: lows -3 dB, highs +3 dB, pivot ~0
-        using namespace tilt;
-        float v[kCount] = {};
-        v[Tilt] = 6; v[Pivot] = 1;
-        const double lo = kTiltCurve.db(v, kFs, 30), mid = kTiltCurve.db(v, kFs, 650), hi = kTiltCurve.db(v, kFs, 18000);
-        std::printf("  LEVERAGE +6 around 650 Hz: 30 Hz %.2f dB, 650 Hz %.2f dB, 18 kHz %.2f dB\n", lo, mid, hi);
-        CHECK(std::fabs(lo + 3.0) < 0.4 && std::fabs(mid) < 0.5 && std::fabs(hi - 3.0) < 0.4);
-    }
-    {   // FOUNDRY high-pass: 18 dB / octave
-        using namespace iron;
-        float v[kCount] = {};
-        v[Hpf] = 3; v[LowFreq] = 1; v[MidFreq] = 2;   // 160 Hz
-        const double a = kIronCurve.db(v, kFs, 40), b = kIronCurve.db(v, kFs, 20);
-        std::printf("  FOUNDRY high-pass 160 Hz: 40 Hz %.1f dB, 20 Hz %.1f dB (%.1f dB / octave)\n", a, b, a - b);
-        CHECK(std::fabs((a - b) - 18.0) < 1.0);
-    }
-    {   // DRIVE at a normal level (-14 dBFS, drive 50): FOUNDRY (iron) odd harmonics, MIDTOWN (tube) even first
-        auto h = [](const char* n, int drive, int k) {
-            auto e = findPlugin(n)->create();
-            e->set(drive, 50);
-            e->prepare(kFs, 512);
-            Stereo s = sine(200, 1.0, 0.2f);
-            run(*e, s);
-            return db(toneAmp(s.l, 200.0 * k, 24000, 24000) / 0.2);
-        };
-        const double b2 = h("FOUNDRY", iron::Drive, 2), b3 = h("FOUNDRY", iron::Drive, 3), m2 = h("MIDTOWN", mideq::Drive, 2), m3 = h("MIDTOWN", mideq::Drive, 3);
-        std::printf("  drive 50 at -14 dBFS: FOUNDRY 2nd %.1f / 3rd %.1f dB, MIDTOWN 2nd %.1f / 3rd %.1f dB\n", b2, b3, m2, m3);
-        CHECK(b3 > b2 + 10.0 && m2 > m3 && m2 > -50.0 && b3 > -50.0);
     }
 }
 

@@ -1,7 +1,6 @@
 #include "hem/ui/Face.hpp"
 
 #include "hem/rack/BusGlue.hpp"
-#include "hem/rack/ConsoleEq.hpp"
 #include "hem/rack/Dynamics.hpp"
 #include "hem/rack/Tape.hpp"
 #include "hem/rack/TubeEq.hpp"
@@ -9,7 +8,6 @@
 #include "hem/rack/Limiter.hpp"
 #include "hem/rack/Restorer.hpp"
 #include "hem/rack/Tools.hpp"
-#include "hem/rack/ClassicEqs.hpp"
 #include "hem/rack/MoreDynamics.hpp"
 #include "hem/rack/ColorFx.hpp"
 #include "hem/rack/Space.hpp"
@@ -215,62 +213,6 @@ Widget choiceButton(Rect r, int param, int choice, std::string caption = "") {
     w.choice = choice;
     w.caption = std::move(caption);
     return w;
-}
-
-FaceLayout consoleEq(const rack::PluginInfo& info) {
-    using namespace rack::console;
-    FaceLayout L;
-    common(L, info);
-    L.leftNotes = {"FOUR BANDS + FILTERS", "CLASSIC OR MODERN"};
-    L.title = {60, 190, 330, 110};
-    L.display = {410, 182, 1226, 250};
-    L.recesses.push_back({L.display, 14, 9, false, true});
-    Widget curve;
-    curve.kind = WKind::CurveDisplay;
-    curve.r = L.display;
-    L.widgets.push_back(curve);
-    // Five channel-strip sections across, each with its name engraved above.
-    const float pitch = L.display.w / 5.0f;
-    const char* names[5] = {"FILTERS", "LF", "LMF", "HMF", "HF"};
-    for (int i = 0; i < 5; ++i) {
-        const float x0 = L.display.x + static_cast<float>(i) * pitch;
-        L.sections.push_back({{x0, 446, pitch, 30}, names[i]});
-        if (i > 0) L.grooves.push_back({x0, 456, x0, 808});
-    }
-    const std::size_t firstKnob = L.widgets.size();
-    auto cx = [&](int i) { return L.display.x + (static_cast<float>(i) + 0.5f) * pitch; };
-    const float gy = 516, gd = 92, ry = 680, rd = 72;
-    // FILTERS
-    L.widgets.push_back(knob({cx(0) - 90, gy + 10, rd, rd}, HpfHz, "HPF", "", "", true));
-    L.widgets.push_back(knob({cx(0) + 18, gy + 10, rd, rd}, LpfHz, "LPF", "", "", true));
-    L.widgets.push_back(toggle({cx(0) - 110, ry + 14, 104, 36}, HpfOn, "HPF"));
-    L.widgets.push_back(toggle({cx(0) + 6, ry + 14, 104, 36}, LpfOn, "LPF"));
-    // LF / HF: gain, frequency and the BELL switch
-    for (const auto& [i, gain, hz, bell] : {std::tuple{1, LfGain, LfHz, LfBell}, std::tuple{4, HfGain, HfHz, HfBell}}) {
-        L.widgets.push_back(knob({cx(i) - gd * 0.5f, gy, gd, gd}, gain, "GAIN", "-15", "+15"));
-        L.widgets.push_back(knob({cx(i) - 90, ry, rd, rd}, hz, "FREQ", "", "", true));
-        L.widgets.push_back(toggle({cx(i) + 6, ry + 18, 104, 36}, bell, "BELL"));
-    }
-    // LMF / HMF: gain, frequency, Q
-    for (const auto& [i, gain, hz, q] : {std::tuple{2, LmfGain, LmfHz, LmfQ}, std::tuple{3, HmfGain, HmfHz, HmfQ}}) {
-        L.widgets.push_back(knob({cx(i) - gd * 0.5f, gy, gd, gd}, gain, "GAIN", "-15", "+15"));
-        L.widgets.push_back(knob({cx(i) - 90, ry, rd, rd}, hz, "FREQ", "", "", true));
-        L.widgets.push_back(knob({cx(i) + 18, ry, rd, rd}, q, "Q", "", "", true));
-    }
-    // Left column: CURVE, DRIVE, OUTPUT, ON / BYPASS.
-    L.widgets.push_back(choiceButton({70, 434, 270, 40}, Curve, 0, "CURVE"));
-    L.widgets.push_back(choiceButton({70, 480, 270, 40}, Curve, 1));
-    L.widgets.push_back(knob({92, 586, 86, 86}, Drive, "DRIVE", "", "", true));
-    L.widgets.push_back(knob({232, 586, 86, 86}, Output, "OUTPUT", "", "", true));
-    seatKnobs(L, firstKnob, 12);
-    for (const Widget& w : L.widgets)
-        if (w.kind == WKind::ChoiceButton || w.kind == WKind::Toggle) L.recesses.push_back({w.r.inset(-4), 10, 4, false, false});
-    Widget byp;
-    byp.kind = WKind::Bypass;
-    byp.r = {160, 722, 90, 90};
-    L.widgets.push_back(byp);
-    L.recesses.push_back({byp.r.inset(-10), 55, 4, true, false});
-    return L;
 }
 
 FaceLayout busGlue(const rack::PluginInfo& info) {
@@ -690,91 +632,6 @@ void leftColumn(FaceLayout& L, const char* caption, std::vector<SecKnob> ks, flo
     bypassAt(L, {160, bypassY, 90, 90});
 }
 
-FaceLayout ironPre(const rack::PluginInfo& info) {
-    using namespace rack::iron;
-    FaceLayout L;
-    common(L, info);
-    L.leftNotes = {"BIG IRON SOUND", "CLASSIC CHANNEL"};
-    curveOnTop(L);
-    sections(L, {{"HIGH-PASS", {{Hpf, "FREQ", false, "", ""}}, {}},
-                 {"LOW", {{LowFreq, "FREQ", false, "", ""}, {LowGain, "GAIN", true, "-16", "+16"}}, {}},
-                 {"MID", {{MidFreq, "FREQ", false, "", ""}, {MidGain, "GAIN", true, "-18", "+18"}}, {}},
-                 {"HIGH 12 kHz", {{HighGain, "GAIN", true, "-16", "+16"}}, {}}});
-    leftColumn(L, "PREAMP", {{Drive, "DRIVE", false, "", ""}, {Output, "OUTPUT", false, "", ""}});
-    return L;
-}
-
-FaceLayout punchEq(const rack::PluginInfo& info) {
-    using namespace rack::punchq;
-    FaceLayout L;
-    common(L, info);
-    L.leftNotes = {"PUNCH AND FORWARD", "PROPORTIONAL Q"};
-    curveOnTop(L);
-    sections(L, {{"LOW", {{LowFreq, "FREQ", false, "", ""}, {LowGain, "GAIN", true, "-12", "+12"}}, {{LowShelf, "SHELF"}}},
-                 {"MID", {{MidFreq, "FREQ", false, "", ""}, {MidGain, "GAIN", true, "-12", "+12"}}, {}},
-                 {"HIGH", {{HighFreq, "FREQ", false, "", ""}, {HighGain, "GAIN", true, "-12", "+12"}}, {{HighShelf, "SHELF"}}}});
-    L.widgets.push_back(toggle({70, 590, 270, 44}, Filter, "FILTER 50 - 15k"));
-    buttonSeats(L);
-    leftColumn(L, "DRIVE", {{Drive, "DRIVE", false, "", ""}, {Output, "OUTPUT", false, "", ""}}, 670);
-    return L;
-}
-
-FaceLayout midEq(const rack::PluginInfo& info) {
-    using namespace rack::mideq;
-    FaceLayout L;
-    common(L, info);
-    L.leftNotes = {"SHAPE THE MIDDLE", "TUBE WARMTH"};
-    curveOnTop(L);
-    sections(L, {{"LOW PEAK", {{LowFreq, "FREQ", false, "", ""}, {LowPeak, "BOOST", true, "0", "10"}}, {}},
-                 {"DIP", {{DipFreq, "FREQ", false, "", ""}, {Dip, "CUT", true, "0", "10"}}, {}},
-                 {"HIGH PEAK", {{HighFreq, "FREQ", false, "", ""}, {HighPeak, "BOOST", true, "0", "10"}}, {}}});
-    leftColumn(L, "TUBE", {{Drive, "DRIVE", false, "", ""}, {Output, "OUTPUT", false, "", ""}});
-    return L;
-}
-
-FaceLayout airEq(const rack::PluginInfo& info) {
-    using namespace rack::air;
-    FaceLayout L;
-    common(L, info);
-    L.leftNotes = {"OPEN AND CLEAN", "MASTERING BANDS"};
-    curveOnTop(L);
-    sections(L, {{"SUB", {{Sub, "10 Hz", true, "-10", "+10"}}, {}},
-                 {"40 Hz", {{B40, "GAIN", true, "-10", "+10"}}, {}},
-                 {"160 Hz", {{B160, "GAIN", true, "-10", "+10"}}, {}},
-                 {"650 Hz", {{B650, "GAIN", true, "-10", "+10"}}, {}},
-                 {"2.5 kHz", {{B2k5, "GAIN", true, "-10", "+10"}}, {}},
-                 {"AIR", {{AirFreq, "FREQ", false, "", ""}, {AirGain, "AIR", false, "0", "10"}}, {}}});
-    leftColumn(L, "OUTPUT", {{Output, "OUTPUT", false, "", ""}});
-    return L;
-}
-
-FaceLayout graphicEq(const rack::PluginInfo& info) {
-    using namespace rack::graphic;
-    FaceLayout L;
-    common(L, info);
-    L.leftNotes = {"TEN BANDS", "QUICK AND CLEAR"};
-    curveOnTop(L);
-    const char* names[kBands] = {"31", "62", "125", "250", "500", "1k", "2k", "4k", "8k", "16k"};
-    std::vector<Sec> secs;
-    for (int b = 0; b < kBands; ++b) secs.push_back({names[b], {{b, "dB", false, "", ""}}, {}});
-    sections(L, secs);
-    leftColumn(L, "OUTPUT", {{Output, "OUTPUT", false, "", ""}});
-    return L;
-}
-
-FaceLayout tiltFace(const rack::PluginInfo& info) {
-    using namespace rack::tilt;
-    FaceLayout L;
-    common(L, info);
-    L.leftNotes = {"ONE KNOB", "DARKER OR BRIGHTER"};
-    curveOnTop(L);
-    sections(L, {{"TILT", {{Tilt, "TILT", true, "DARK", "BRIGHT"}}, {}},
-                 {"PIVOT", {{Pivot, "FREQ", false, "", ""}}, {}},
-                 {"LOW CUT", {{LowCut, "FREQ", false, "OFF", "80"}}, {}},
-                 {"HIGH CUT", {{HighCut, "FREQ", false, "OFF", "8k"}}, {}}});
-    leftColumn(L, "OUTPUT", {{Output, "OUTPUT", false, "", ""}});
-    return L;
-}
 
 // ---- wave 7 dynamics
 // A group of choice buttons anywhere in the right column (x, width), with a caption above.
@@ -1190,7 +1047,6 @@ FaceLayout vocalFace(const rack::PluginInfo& info) {
 FaceLayout faceLayout(const rack::PluginInfo& info) {
     switch (info.face) {
     case rack::Face::EliteEq: return eliteEq(info);
-    case rack::Face::ConsoleEq: return consoleEq(info);
     case rack::Face::BusGlue: return busGlue(info);
     case rack::Face::Tape: return tape(info);
     case rack::Face::TubeEq: return tubeEq(info);
@@ -1204,12 +1060,6 @@ FaceLayout faceLayout(const rack::PluginInfo& info) {
     case rack::Face::Exciter: return exciterFace(info);
     case rack::Face::Transient: return transientFace(info);
     case rack::Face::Meter: return meterFace(info);
-    case rack::Face::IronPre: return ironPre(info);
-    case rack::Face::PunchEq: return punchEq(info);
-    case rack::Face::MidEq: return midEq(info);
-    case rack::Face::AirEq: return airEq(info);
-    case rack::Face::GraphicEq: return graphicEq(info);
-    case rack::Face::Tilt: return tiltFace(info);
     case rack::Face::VcaComp: return vcaFace(info);
     case rack::Face::PunchComp: return punchFace(info);
     case rack::Face::FocusBus: return focusFace(info);

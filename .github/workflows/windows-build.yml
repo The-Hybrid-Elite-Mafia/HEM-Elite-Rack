@@ -56,7 +56,7 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           tools\ci\run-and-report.ps1 -Title "app: THE CLEANER selected" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_the_cleaner.png','-Select','1'
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          tools\ci\run-and-report.ps1 -Title "app: BOARDROOM selected" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_boardroom.png','-Select','3'
+          tools\ci\run-and-report.ps1 -Title "app: VELVET selected" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_velvet.png','-Select','3'
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           tools\ci\run-and-report.ps1 -Title "app: THE FAMILY selected" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_the_family.png','-Select','4'
           if ($LASTEXITCODE) { exit $LASTEXITCODE }

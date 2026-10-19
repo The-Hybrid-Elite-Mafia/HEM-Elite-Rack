@@ -26,11 +26,6 @@ THE CLEANER
   handles to work only between them. ADAPT: keeps learning the noise (off = freeze it).
   LISTEN: hear only what is being taken out.
 
-BOARDROOM
-  A big-desk channel EQ. FILTERS: HPF and LPF, each with its own IN switch. LF and HF: gain,
-  frequency, BELL (instead of shelf). LMF and HMF: gain, frequency, Q. CURVE: CLASSIC keeps the
-  width you set; MODERN makes small moves broad and big moves narrower. DRIVE: console colour.
-
 THE FAMILY
   A mix-bus compressor: a few dB on the needle pulls a mix together. THRESHOLD, RATIO (2, 4,
   10:1), ATTACK, RELEASE (AUTO waits longer after the mix has been working it hard), MAKEUP,
@@ -88,15 +83,6 @@ SPARK
 SUCKER PUNCH
   ATTACK + = more punch on every hit, - = softer. SUSTAIN + = more ring and room, - = drier.
   It follows the notes, not the level, so quiet and loud parts are treated the same.
-
-THE EQs (FOUNDRY, KNUCKLES, MIDTOWN, PENTHOUSE, BLUEPRINT, LEVERAGE)
-  The screen on top shows the curve you are making, and it is exactly what you hear.
-  FOUNDRY: HIGH-PASS, LOW, MID, HIGH, and FRONT MAN DRIVE for that big console grit.
-  KNUCKLES: three bands; small moves are broad, big moves get narrower. SHELF switches
-  LOW / HIGH from a bump to a shelf. FILTER keeps only 50 Hz - 15 kHz.
-  MIDTOWN: LOW PEAK and HIGH PEAK boost, DIP cuts (boxiness, harshness). Tube DRIVE.
-  PENTHOUSE: gentle mastering moves (1 - 2 dB is a lot) and AIR on top. No colour.
-  BLUEPRINT: one knob per band. LEVERAGE: + brighter, - darker, around PIVOT.
 
 ENFORCER
   The all-rounder. THRESHOLD down until the needle moves, RATIO (2 - 4 gentle, 8+ hard), KNEE

@@ -13,7 +13,6 @@
 //  matching larger style, so it stays sharp at any size.
 // =============================================================================
 #include "hem/rack/BusGlue.hpp"
-#include "hem/rack/ConsoleEq.hpp"
 #include "hem/rack/Dynamics.hpp"
 #include "hem/rack/Tape.hpp"
 #include "hem/rack/TubeEq.hpp"
@@ -113,7 +112,7 @@ enum class WKind : std::uint8_t {
     EqGraph,       // ELITE EQ: spectrum + curve + draggable band nodes
     GraphRange,    // ELITE EQ: ±3 / ±6 / ±12 / ±30 dB buttons (choice = index)
     BandButton,    // ELITE EQ: band 1..16 selector (choice = band)
-    CurveDisplay,  // CONSOLE EQ: spectrum + the EQ's curve (display only)
+    CurveDisplay,  // VELVET: spectrum + the EQ's curve (display only)
     GrMeter,       // compressors: gain-reduction needle (display only)
     VuMeter,       // TAPE: VU needle for meter `choice` (display only)
     Readout,       // a big number: meter `choice` of the effect, with `caption` and the meter's unit (display only)

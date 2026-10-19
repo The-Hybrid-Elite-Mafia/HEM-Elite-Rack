@@ -537,11 +537,10 @@ void FaceView::consoleCurve(const Ctx& c, const Widget& w) const {
     const int count = static_cast<int>(std::min<std::size_t>(params_.size(), 32));
     for (int i = 0; i < count; ++i) v[i] = plain(c.host, i);
     const double fs = c.feed.sampleRate();
-    const rack::console::Settings cs = rack::console::settingsFrom(v);
     const rack::tubeeq::Settings ts = rack::tubeeq::settingsFrom(v);
     auto curve = [&](double hz) {
         if (ci) return ci->db(v, fs, hz);
-        return tube ? rack::tubeeq::curveDb(ts, fs, hz) : rack::console::curveDb(cs, fs, hz);
+        return rack::tubeeq::curveDb(ts, fs, hz);
     };
     auto yOf = [&](double db) { return p.cy() - static_cast<float>(std::clamp(db / kRange, -1.04, 1.04)) * p.h * 0.5f; };
     constexpr int kN = 220;
@@ -568,15 +567,10 @@ void FaceView::consoleCurve(const Ctx& c, const Widget& w) const {
         const Rgba cols[3] = {th_.teal, th_.gold, th_.violet};
         nd = ci->dots(v, hz, 12);
         for (int i = 0; i < nd; ++i) dots[static_cast<std::size_t>(i)] = {hz[i], cols[i % 3]};
-    } else if (tube) {
+    } else {
         dots[nd++] = {ts.lowHz, th_.gold};
         dots[nd++] = {ts.highHz, th_.violet};
         dots[nd++] = {ts.attenHz, th_.teal};
-    } else {
-        dots[nd++] = {cs.lfHz, th_.teal};
-        dots[nd++] = {cs.lmfHz, th_.gold};
-        dots[nd++] = {cs.hmfHz, th_.violet};
-        dots[nd++] = {cs.hfHz, th_.teal};
     }
     for (int i = 0; i < nd; ++i) {
         const double hz = std::clamp(dots[static_cast<std::size_t>(i)].hz, 20.0, 20000.0);
