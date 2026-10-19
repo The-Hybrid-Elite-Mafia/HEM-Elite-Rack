@@ -1,3 +1,9 @@
+# HEM-Elite-Rack 0.10.1
+
+Faceplate clean-up only (no change to the sound): the reverb, spring, tape echo and movement
+plates no longer have captions running into knob names; the left-side switches on CASSETTE,
+PREAMP, TAPE ECHO and the movement plates sit clear of the notes above them.
+
 # HEM-Elite-Rack 0.10.0
 
 **Nine more — forty-nine plug-ins in all**, in the rack and as VST3. This finishes the planned

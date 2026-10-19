@@ -941,9 +941,9 @@ FaceLayout preampFace(const rack::PluginInfo& info) {
     common(L, info);
     L.leftNotes = {"GAIN STAGE", "CLEAN, IRON OR TUBE"};
     spectrumOnTop(L);
-    leftChoices(L, "CHARACTER", Character, 3, 420);
-    L.widgets.push_back(toggle({70, 580, 270, 40}, LowCut, "LOW CUT 80"));
-    L.widgets.push_back(toggle({70, 630, 270, 40}, Phase, "PHASE INV"));
+    leftChoices(L, "CHARACTER", Character, 3, 440);
+    L.widgets.push_back(toggle({70, 590, 270, 40}, LowCut, "LOW CUT 80"));
+    L.widgets.push_back(toggle({70, 636, 270, 40}, Phase, "PHASE INV"));
     knobRow(L, {{Gain, "GAIN", 128, "0", "+30", false}, {Output, "OUTPUT", 128, "-30", "+6", false}}, 568);
     buttonSeats(L);
     bypassAt(L, {160, 700, 80, 80});
@@ -956,7 +956,7 @@ FaceLayout cassetteFace(const rack::PluginInfo& info) {
     common(L, info);
     L.leftNotes = {"FOUR-TRACK DAYS", "WOBBLE AND HISS"};
     spectrumOnTop(L);
-    leftChoices(L, "TAPE", Type, 3, 420);
+    leftChoices(L, "TAPE", Type, 3, 450);
     knobRow(L, {{Drive, "DRIVE", 120, "0", "100", false}, {Wow, "WOW", 96, "0", "100", false}, {Flutter, "FLUTTER", 96, "0", "100", false},
                 {Hiss, "HISS", 96, "0", "100", false}, {Age, "AGE", 96, "NEW", "OLD", false}, {Output, "OUTPUT", 86, "", "", true}}, 568);
     buttonSeats(L);
@@ -1014,14 +1014,12 @@ FaceLayout reverbFace(const rack::PluginInfo& info) {
                         : room ? std::vector<std::string>{"REAL ROOMS", "SMALL TO LARGE"} : std::vector<std::string>{"BIG AND LUSH", "CONCERT SPACE"};
     L.title = {60, 190, 330, 110};
     L.display = {410, 182, 1226, 330};
-    L.sections.push_back({{410, 190, 1226, 30}, "THE SPACE"});
-    knobRow(L, {{PreDelay, "PRE-DELAY", 100, "0", room ? "100" : "200", false}, {Size, "SIZE", 110, "SMALL", "LARGE", false},
-                {Decay, "DECAY", 128, "SHORT", "LONG", false}, {Damping, "DAMPING", 100, "BRIGHT", "DARK", false},
-                {Early, plate ? "DIFFUSION" : "EARLY", 100, "0", "100", false}}, 240);
+    knobRow(L, {{PreDelay, "PRE-DELAY", 100, "", "", false}, {Size, "SIZE", 110, "", "", false},
+                {Decay, "DECAY", 128, "", "", false}, {Damping, "DAMPING", 100, "", "", false},
+                {Early, plate ? "DIFFUSION" : "EARLY", 100, "", "", false}}, 240);
     L.grooves.push_back({410, 524, 1636, 524});
-    L.sections.push_back({{410, 532, 1226, 30}, "THE SOUND OF IT"});
-    knobRow(L, {{Mod, "MOD", 96, "0", "100", false}, {Width, "WIDTH", 96, "MONO", "WIDE", false}, {LowCut, "LOW CUT", 96, "20", "500", false},
-                {HighCut, "HIGH CUT", 96, "1k", "20k", false}, {Mix, "MIX", 110, "DRY", "WET", false}}, 590);
+    knobRow(L, {{Mod, "MOD", 96, "", "", false}, {Width, "WIDTH", 96, "", "", false}, {LowCut, "LOW CUT", 96, "", "", false},
+                {HighCut, "HIGH CUT", 96, "", "", false}, {Mix, "MIX", 110, "DRY", "WET", false}}, 590);
     bypassAt(L, {160, 640, 90, 90});
     return L;
 }
@@ -1034,8 +1032,8 @@ FaceLayout springFace(const rack::PluginInfo& info) {
     L.title = {60, 190, 330, 110};
     L.display = {410, 182, 1226, 330};
     L.sections.push_back({{410, 260, 1226, 30}, "TWO SPRINGS IN A TANK"});
-    knobRow(L, {{Decay, "DECAY", 128, "SHORT", "LONG", false}, {Tension, "TENSION", 110, "TIGHT", "LOOSE", false}, {Drip, "DRIP", 110, "SMOOTH", "DRIPPY", false},
-                {Tone, "TONE", 100, "DARK", "BRIGHT", false}, {Mix, "MIX", 110, "DRY", "WET", false}}, 420);
+    knobRow(L, {{Decay, "DECAY", 128, "", "", false}, {Tension, "TENSION", 110, "", "", false}, {Drip, "DRIP", 110, "", "", false},
+                {Tone, "TONE", 100, "", "", false}, {Mix, "MIX", 110, "DRY", "WET", false}}, 420);
     bypassAt(L, {160, 640, 90, 90});
     return L;
 }
@@ -1047,11 +1045,9 @@ FaceLayout tapeEchoFace(const rack::PluginInfo& info) {
     L.leftNotes = {"WARM REPEATS", "THAT RUN AWAY"};
     L.title = {60, 190, 330, 110};
     L.display = {410, 182, 1226, 330};
-    leftChoices(L, "HEADS", Heads, 3, 420);
-    L.sections.push_back({{410, 190, 1226, 30}, "THE LOOP"});
+    leftChoices(L, "HEADS", Heads, 3, 450);
     knobRow(L, {{Time, "TIME", 128, "40", "1000", false}, {Feedback, "FEEDBACK", 128, "0", "110", false}}, 240);
     L.grooves.push_back({410, 524, 1636, 524});
-    L.sections.push_back({{410, 532, 1226, 30}, "THE TAPE"});
     knobRow(L, {{Tone, "TONE", 100, "DARK", "BRIGHT", false}, {Wobble, "WOBBLE", 100, "0", "100", false}, {Saturation, "SATURATION", 100, "0", "100", false},
                 {Mix, "MIX", 110, "DRY", "WET", false}}, 590);
     buttonSeats(L);
@@ -1087,57 +1083,55 @@ FaceLayout movementFace(const rack::PluginInfo& info) {
     case rack::Face::Chorus: {
         using namespace rack::chorus;
         L.leftNotes = {"WIDE AND LUSH", "ONE TO THREE VOICES"};
-        leftChoices(L, "VOICES", Voices, 3, 420);
+        leftChoices(L, "VOICES", Voices, 3, 450);
         knobRow(L, {{Rate, "RATE", 110, "SLOW", "FAST", false}, {Depth, "DEPTH", 110, "0", "100", false}, {Delay, "DELAY", 100, "5", "30", false},
-                    {Width, "WIDTH", 100, "MONO", "WIDE", false}, {Mix, "MIX", 110, "DRY", "WET", false}}, 380);
+                    {Width, "WIDTH", 100, "MONO", "WIDE", false}, {Mix, "MIX", 110, "DRY", "WET", false}}, 470);
         break;
     }
     case rack::Face::Flanger: {
         using namespace rack::flanger;
         L.leftNotes = {"THE JET SWEEP", "+ OR - FEEDBACK"};
         knobRow(L, {{Rate, "RATE", 110, "SLOW", "FAST", false}, {Depth, "DEPTH", 110, "0", "100", false}, {Manual, "MANUAL", 110, "0.1", "10", false},
-                    {Feedback, "FEEDBACK", 110, "-95", "+95", false}, {Mix, "MIX", 110, "DRY", "WET", false}}, 380);
+                    {Feedback, "FEEDBACK", 110, "-95", "+95", false}, {Mix, "MIX", 110, "DRY", "WET", false}}, 470);
         break;
     }
     case rack::Face::Phaser: {
         using namespace rack::phaser;
         L.leftNotes = {"SWIRL AND SWEEP", "4 TO 12 STAGES"};
-        leftChoices(L, "STAGES", Stages, 4, 400);
+        leftChoices(L, "STAGES", Stages, 4, 440);
         knobRow(L, {{Rate, "RATE", 110, "SLOW", "FAST", false}, {Depth, "DEPTH", 110, "0", "100", false}, {Center, "CENTER", 110, "200", "4k", false},
-                    {Feedback, "FEEDBACK", 110, "-90", "+90", false}, {Mix, "MIX", 110, "DRY", "WET", false}}, 380);
+                    {Feedback, "FEEDBACK", 110, "-90", "+90", false}, {Mix, "MIX", 110, "DRY", "WET", false}}, 470);
         break;
     }
     case rack::Face::Tremolo: {
         using namespace rack::tremolo;
         L.leftNotes = {"PULSE AND MOVE", "OR PAN LEFT-RIGHT"};
-        leftChoices(L, "SHAPE", Shape, 3, 400);
-        L.widgets.push_back(toggle({70, 560, 270, 40}, Pan, "AUTO PAN"));
-        knobRow(L, {{Rate, "RATE", 128, "0.1", "20", false}, {Depth, "DEPTH", 128, "0", "100", false}}, 380);
+        leftChoices(L, "SHAPE", Shape, 3, 440);
+        L.widgets.push_back(toggle({70, 590, 270, 40}, Pan, "AUTO PAN"));
+        knobRow(L, {{Rate, "RATE", 128, "0.1", "20", false}, {Depth, "DEPTH", 128, "0", "100", false}}, 470);
         break;
     }
     case rack::Face::Rotary: {
         using namespace rack::rotary;
         L.leftNotes = {"HORN AND DRUM", "SPIN UP, SPIN DOWN"};
-        leftChoices(L, "SPEED", Speed, 2, 420);
+        leftChoices(L, "SPEED", Speed, 2, 450);
         knobRow(L, {{Drive, "DRIVE", 110, "0", "100", false}, {Balance, "BALANCE", 110, "DRUM", "HORN", false}, {Spread, "SPREAD", 110, "0", "100", false},
-                    {Mix, "MIX", 110, "DRY", "WET", false}}, 380);
+                    {Mix, "MIX", 110, "DRY", "WET", false}}, 470);
         break;
     }
     default: {
         using namespace rack::autofilter;
         L.leftNotes = {"FOLLOWS THE MUSIC", "OR THE LFO"};
-        leftChoices(L, "FILTER", Type, 3, 400);
-        L.sections.push_back({{410, 190, 1226, 30}, "THE FILTER"});
+        leftChoices(L, "FILTER", Type, 3, 440);
         knobRow(L, {{Cutoff, "CUTOFF", 128, "40", "16k", false}, {Resonance, "RESONANCE", 110, "0.5", "10", false},
                     {Envelope, "ENVELOPE", 110, "-", "+", false}, {Mix, "MIX", 100, "DRY", "WET", false}}, 240);
         L.grooves.push_back({410, 524, 1636, 524});
-        L.sections.push_back({{410, 532, 1226, 30}, "THE LFO"});
         knobRow(L, {{Rate, "RATE", 100, "SLOW", "FAST", false}, {Depth, "DEPTH", 100, "0", "4 OCT", false}}, 590);
         break;
     }
     }
     buttonSeats(L);
-    bypassAt(L, {160, 680, 90, 90});
+    bypassAt(L, {160, 690, 90, 90});
     return L;
 }
 
