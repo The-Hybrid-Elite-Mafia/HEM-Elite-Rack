@@ -152,11 +152,11 @@ int main(int argc, char** argv) {
             fx->set(hem::rack::exciter::Drive, 60); fx->set(hem::rack::exciter::Mix, 35);
         } else if (info.face == hem::rack::Face::Transient) {
             fx->set(hem::rack::transient::Attack, 60);
-        } else if (info.face == hem::rack::Face::BritPre) {
-            using namespace hem::rack::brit;
+        } else if (info.face == hem::rack::Face::IronPre) {
+            using namespace hem::rack::iron;
             fx->set(Hpf, 2); fx->set(LowGain, 4); fx->set(MidFreq, 3); fx->set(MidGain, 3); fx->set(HighGain, 5);
-        } else if (info.face == hem::rack::Face::AmericanEq) {
-            using namespace hem::rack::american;
+        } else if (info.face == hem::rack::Face::PunchEq) {
+            using namespace hem::rack::punchq;
             fx->set(LowGain, 4); fx->set(MidFreq, 1); fx->set(MidGain, -4); fx->set(HighGain, 4); fx->set(HighShelf, 1);
         } else if (info.face == hem::rack::Face::MidEq) {
             using namespace hem::rack::mideq;
@@ -171,12 +171,12 @@ int main(int argc, char** argv) {
             fx->set(hem::rack::tilt::Tilt, 2.5f); fx->set(hem::rack::tilt::LowCut, 2);
         } else if (info.face == hem::rack::Face::VcaComp) {
             fx->set(hem::rack::vca::Threshold, -32);
-        } else if (info.face == hem::rack::Face::Punch160) {
+        } else if (info.face == hem::rack::Face::PunchComp) {
             fx->set(hem::rack::punch::Threshold, -30);
-        } else if (info.face == hem::rack::Face::ThrustBus) {
-            fx->set(hem::rack::thrust::Threshold, -30);
-        } else if (info.face == hem::rack::Face::BritBus) {
-            fx->set(hem::rack::britbus::Threshold, -26);
+        } else if (info.face == hem::rack::Face::FocusBus) {
+            fx->set(hem::rack::focus::Threshold, -30);
+        } else if (info.face == hem::rack::Face::DiodeBus) {
+            fx->set(hem::rack::diodebus::Threshold, -26);
         } else if (info.face == hem::rack::Face::Gate) {
             fx->set(hem::rack::gate::Threshold, -30);
         } else if (info.face == hem::rack::Face::Multiband) {

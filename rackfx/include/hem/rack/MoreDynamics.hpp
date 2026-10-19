@@ -5,14 +5,14 @@
 //
 //  HEM VCA COMP — a clean, modern compressor: THRESHOLD, RATIO 1..20, KNEE 0..24 dB, ATTACK,
 //    RELEASE (or AUTO), MAKEUP (or AUTO MAKEUP), sidechain HPF, MIX, OUTPUT. Zero latency.
-//  HEM PUNCH 160 — the classic one-knob-per-job RMS compressor: THRESHOLD, COMPRESSION (ratio up
-//    to 60:1), OVER EASY (soft knee), OUTPUT, MIX. Attack and release follow the music: the further
+//  HEM PUNCH COMP — a one-knob-per-job RMS compressor: THRESHOLD, COMPRESSION (ratio up
+//    to 60:1), SOFT KNEE (soft knee), OUTPUT, MIX. Attack and release follow the music: the further
 //    over, the faster it grabs; it lets go at a steady 120 dB per second. Zero latency.
-//  HEM THRUST BUS — a punchy bus compressor: RATIO 1.5..10, stepped ATTACK and RELEASE, KNEE
-//    HARD / MED / SOFT, THRUST (NORM / MED / LOUD: the detector listens less to the low end, so
-//    the bass pumps less), NEW (feed-forward) or OLD (feedback) style, LINK, MAKEUP, MIX, OUTPUT.
+//  HEM FOCUS BUS — a punchy bus compressor: RATIO 1.5..10, stepped ATTACK and RELEASE, KNEE
+//    HARD / MED / SOFT, LOW FOCUS (FLAT / LESS LOW / MUCH LESS: the detector listens less to the low
+//    end, so the bass pumps less), MODERN (feed-forward) or VINTAGE (feedback) style, LINK, MAKEUP, MIX, OUTPUT.
 //    Zero latency.
-//  HEM BRIT BUS — a British diode-bridge bus compressor with a limiter after it: RATIO, THRESHOLD,
+//  HEM DIODE BUS — a Diode-bridge bus compressor with a limiter after it: RATIO, THRESHOLD,
 //    ATTACK FAST / SLOW, RECOVERY 100 ms .. 1.5 s or AUTO 1 / AUTO 2 (release follows the music),
 //    LIMIT on / LEVEL, MAKEUP, iron DRIVE, MIX. Latency 23 samples (the iron is 4x oversampled).
 //  HEM GATE — gate or expander: THRESHOLD (with 4 dB hysteresis so it doesn't chatter), RANGE
@@ -38,18 +38,18 @@ inline constexpr float kScHz[] = {0, 60, 90, 150, 250};
 namespace punch {
 enum P : int { Threshold, Compression, OverEasy, Output, Mix, kCount };
 } // namespace punch
-namespace thrust {
-enum P : int { Threshold, Ratio, Attack, Release, Knee, Thrust, Style, Link, Makeup, Mix, Output, kCount };
+namespace focus {
+enum P : int { Threshold, Ratio, Attack, Release, Knee, LowFocus, Style, Link, Makeup, Mix, Output, kCount };
 inline constexpr float kRatios[] = {1.5f, 2.0f, 3.0f, 4.0f, 6.0f, 10.0f};
 inline constexpr float kAttackMs[] = {0.03f, 0.1f, 0.3f, 1.0f, 3.0f, 10.0f, 30.0f};
 inline constexpr float kReleaseMs[] = {50, 100, 200, 500, 1000, 2000, 3000};
 inline constexpr float kKneeDb[] = {0.0f, 6.0f, 12.0f};
-} // namespace thrust
-namespace britbus {
+} // namespace focus
+namespace diodebus {
 enum P : int { Threshold, Ratio, Attack, Recovery, Limit, LimitLevel, Makeup, Drive, Mix, kCount };
 inline constexpr float kRatios[] = {1.5f, 2.0f, 3.0f, 4.0f, 6.0f};
 inline constexpr float kRecoveryMs[] = {100, 400, 800, 1500};   // 4, 5 = AUTO 1, AUTO 2
-} // namespace britbus
+} // namespace diodebus
 namespace gate {
 enum P : int { Threshold, Range, Attack, Hold, Release, Mode, ScHpf, ScLpf, Listen, kCount };
 inline constexpr float kHpfHz[] = {0, 60, 120, 250, 500};
@@ -61,9 +61,9 @@ enum P : int { LowX, HighX, LowThr, LowRatio, LowGain, MidThr, MidRatio, MidGain
 } // namespace multiband
 
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeVcaComp();
-[[nodiscard]] std::unique_ptr<hc::fx::Effect> makePunch160();
-[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeThrustBus();
-[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeBritBus();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makePunchComp();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeFocusBus();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeDiodeBus();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeGate();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeMultiband();
 

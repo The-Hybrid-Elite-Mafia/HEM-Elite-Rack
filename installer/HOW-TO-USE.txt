@@ -89,10 +89,10 @@ TRANSIENT
   ATTACK + = more punch on every hit, - = softer. SUSTAIN + = more ring and room, - = drier.
   It follows the notes, not the level, so quiet and loud parts are treated the same.
 
-THE CLASSIC EQs (BRIT PRE, AMERICAN EQ, MID EQ, AIR EQ, GRAPHIC EQ, TILT)
+THE CLASSIC EQs (IRON PRE, PUNCH EQ, MID EQ, AIR EQ, GRAPHIC EQ, TILT)
   The screen on top shows the curve you are making, and it is exactly what you hear.
-  BRIT PRE: HIGH-PASS, LOW, MID, HIGH, and PREAMP DRIVE for that big console grit.
-  AMERICAN EQ: three bands; small moves are broad, big moves get narrower. SHELF switches
+  IRON PRE: HIGH-PASS, LOW, MID, HIGH, and PREAMP DRIVE for that big console grit.
+  PUNCH EQ: three bands; small moves are broad, big moves get narrower. SHELF switches
   LOW / HIGH from a bump to a shelf. FILTER keeps only 50 Hz - 15 kHz.
   MID EQ: LOW PEAK and HIGH PEAK boost, DIP cuts (boxiness, harshness). Tube DRIVE.
   AIR EQ: gentle mastering moves (1 - 2 dB is a lot) and AIR on top. No colour.
@@ -103,15 +103,15 @@ VCA COMP
   (higher = smoother), ATTACK (slower lets the punch through), RELEASE or AUTO REL,
   AUTO GAIN gives back about half of what it takes. SIDECHAIN HPF stops the bass pumping it.
 
-PUNCH 160
+PUNCH COMP
   THRESHOLD and COMPRESSION, that's it. It grabs faster the harder it is hit and lets go
-  steadily: great on drums and bass. OVER EASY = a softer start.
+  steadily: great on drums and bass. SOFT KNEE = a softer start.
 
-THRUST BUS
-  On the mix or drum bus. THRUST MED / LOUD makes it listen less to the low end, so the kick
-  and bass don't make everything pump. NEW = modern, tighter; OLD = smoother, vintage.
+FOCUS BUS
+  On the mix or drum bus. LOW FOCUS makes it listen less to the low end, so the kick
+  and bass don't make everything pump. MODERN = tighter; VINTAGE = smoother.
 
-BRIT BUS
+DIODE BUS
   Thick, smooth bus glue. RECOVERY AUTO 1 / AUTO 2 lets go by itself (fast after a hit, slow
   when it's been working). LIMIT catches what's left. IRON adds weight.
 

@@ -690,8 +690,8 @@ void leftColumn(FaceLayout& L, const char* caption, std::vector<SecKnob> ks, flo
     bypassAt(L, {160, bypassY, 90, 90});
 }
 
-FaceLayout britPre(const rack::PluginInfo& info) {
-    using namespace rack::brit;
+FaceLayout ironPre(const rack::PluginInfo& info) {
+    using namespace rack::iron;
     FaceLayout L;
     common(L, info);
     L.leftNotes = {"BIG IRON SOUND", "CLASSIC CHANNEL"};
@@ -704,8 +704,8 @@ FaceLayout britPre(const rack::PluginInfo& info) {
     return L;
 }
 
-FaceLayout americanEq(const rack::PluginInfo& info) {
-    using namespace rack::american;
+FaceLayout punchEq(const rack::PluginInfo& info) {
+    using namespace rack::punchq;
     FaceLayout L;
     common(L, info);
     L.leftNotes = {"PUNCH AND FORWARD", "PROPORTIONAL Q"};
@@ -810,7 +810,7 @@ FaceLayout punchFace(const rack::PluginInfo& info) {
     L.leftNotes = {"PUNCHY DRUMS", "SOLID BASS"};
     L.title = {60, 190, 330, 110};
     needleDisplay(L);
-    L.widgets.push_back(toggle({1150, 236, 486, 44}, OverEasy, "OVER EASY"));
+    L.widgets.push_back(toggle({1150, 236, 486, 44}, OverEasy, "SOFT KNEE"));
     L.sections.push_back({{1150, 196, 486, 30}, "SOFT KNEE"});
     L.sections.push_back({{1150, 316, 486, 30}, "FASTER THE HARDER IT HITS"});
     L.sections.push_back({{1150, 356, 486, 30}, "RELEASES 120 dB PER SECOND"});
@@ -821,15 +821,15 @@ FaceLayout punchFace(const rack::PluginInfo& info) {
     return L;
 }
 
-FaceLayout thrustFace(const rack::PluginInfo& info) {
-    using namespace rack::thrust;
+FaceLayout focusFace(const rack::PluginInfo& info) {
+    using namespace rack::focus;
     FaceLayout L;
     common(L, info);
     L.leftNotes = {"PUNCH THE BUS", "BASS STAYS STEADY"};
     L.title = {60, 190, 330, 110};
     needleDisplay(L);
     buttonRow(L, "RATIO", 236, Ratio, 6);
-    buttonRow(L, "THRUST", 330, Thrust, 3);
+    buttonRow(L, "LOW FOCUS", 330, LowFocus, 3);
     buttonGroup(L, "KNEE", 1150, 290, 424, Knee, 3);
     buttonGroup(L, "STYLE", 1450, 186, 424, Style, 2);
     knobRow(L, {{Threshold, "THRESHOLD", 120, "-40", "0", false}, {Attack, "ATTACK", 96, "FAST", "SLOW", false}, {Release, "RELEASE", 96, "FAST", "SLOW", false},
@@ -840,8 +840,8 @@ FaceLayout thrustFace(const rack::PluginInfo& info) {
     return L;
 }
 
-FaceLayout britBusFace(const rack::PluginInfo& info) {
-    using namespace rack::britbus;
+FaceLayout diodeBusFace(const rack::PluginInfo& info) {
+    using namespace rack::diodebus;
     FaceLayout L;
     common(L, info);
     L.leftNotes = {"THICK AND SMOOTH", "WITH A LIMITER"};
@@ -1204,16 +1204,16 @@ FaceLayout faceLayout(const rack::PluginInfo& info) {
     case rack::Face::Exciter: return exciterFace(info);
     case rack::Face::Transient: return transientFace(info);
     case rack::Face::Meter: return meterFace(info);
-    case rack::Face::BritPre: return britPre(info);
-    case rack::Face::AmericanEq: return americanEq(info);
+    case rack::Face::IronPre: return ironPre(info);
+    case rack::Face::PunchEq: return punchEq(info);
     case rack::Face::MidEq: return midEq(info);
     case rack::Face::AirEq: return airEq(info);
     case rack::Face::GraphicEq: return graphicEq(info);
     case rack::Face::Tilt: return tiltFace(info);
     case rack::Face::VcaComp: return vcaFace(info);
-    case rack::Face::Punch160: return punchFace(info);
-    case rack::Face::ThrustBus: return thrustFace(info);
-    case rack::Face::BritBus: return britBusFace(info);
+    case rack::Face::PunchComp: return punchFace(info);
+    case rack::Face::FocusBus: return focusFace(info);
+    case rack::Face::DiodeBus: return diodeBusFace(info);
     case rack::Face::Gate: return gateFace(info);
     case rack::Face::Multiband: return multibandFace(info);
     case rack::Face::TubeSat: return tubeSatFace(info);

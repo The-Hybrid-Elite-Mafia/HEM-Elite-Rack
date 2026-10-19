@@ -196,9 +196,9 @@ private:
 const char* const kOnOff[] = {"OFF", "ON"};
 int idx(float v, int n) noexcept { return std::clamp(static_cast<int>(std::lround(v)), 0, n - 1); }
 
-// ---- BRIT PRE -------------------------------------------------------------------------------------
+// ---- IRON PRE -------------------------------------------------------------------------------------
 namespace bp {
-using namespace brit;
+using namespace iron;
 const char* const kHpfN[] = {"OFF", "50 Hz", "80 Hz", "160 Hz", "300 Hz"};
 const char* const kLowN[] = {"35 Hz", "60 Hz", "110 Hz", "220 Hz"};
 const char* const kMidN[] = {"360 Hz", "700 Hz", "1.6 kHz", "3.2 kHz", "4.8 kHz", "7.2 kHz"};
@@ -235,9 +235,9 @@ const Spec kSpec{kParams, &design, Drive, Output, Color::Iron};
 double curve(const float* v, double fs, double hz) noexcept { return curveOf(kSpec, v, fs, hz); }
 } // namespace bp
 
-// ---- AMERICAN EQ ----------------------------------------------------------------------------------
+// ---- PUNCH EQ ----------------------------------------------------------------------------------
 namespace am {
-using namespace american;
+using namespace punchq;
 const char* const kLowN[] = {"50 Hz", "100 Hz", "200 Hz", "300 Hz", "400 Hz"};
 const char* const kMidN[] = {"400 Hz", "800 Hz", "1.5 kHz", "3 kHz", "5 kHz"};
 const char* const kHighN[] = {"5 kHz", "7.5 kHz", "10 kHz", "12.5 kHz", "15 kHz"};
@@ -398,15 +398,15 @@ double curve(const float* v, double fs, double hz) noexcept { return curveOf(kSp
 
 } // namespace
 
-std::unique_ptr<hc::fx::Effect> makeBritPre() { return std::make_unique<EqEngine>(bp::kSpec); }
-std::unique_ptr<hc::fx::Effect> makeAmericanEq() { return std::make_unique<EqEngine>(am::kSpec); }
+std::unique_ptr<hc::fx::Effect> makeIronPre() { return std::make_unique<EqEngine>(bp::kSpec); }
+std::unique_ptr<hc::fx::Effect> makePunchEq() { return std::make_unique<EqEngine>(am::kSpec); }
 std::unique_ptr<hc::fx::Effect> makeMidEq() { return std::make_unique<EqEngine>(me::kSpec); }
 std::unique_ptr<hc::fx::Effect> makeAirEq() { return std::make_unique<EqEngine>(ae::kSpec); }
 std::unique_ptr<hc::fx::Effect> makeGraphicEq() { return std::make_unique<EqEngine>(ge::kSpec); }
 std::unique_ptr<hc::fx::Effect> makeTilt() { return std::make_unique<EqEngine>(tl::kSpec); }
 
-const CurveInfo kBritCurve{&bp::curve, &bp::dots, 18.0f};
-const CurveInfo kAmericanCurve{&am::curve, &am::dots, 15.0f};
+const CurveInfo kIronCurve{&bp::curve, &bp::dots, 18.0f};
+const CurveInfo kPunchEqCurve{&am::curve, &am::dots, 15.0f};
 const CurveInfo kMidEqCurve{&me::curve, &me::dots, 12.0f};
 const CurveInfo kAirCurve{&ae::curve, &ae::dots, 12.0f};
 const CurveInfo kGraphicCurve{&ge::curve, &ge::dots, 15.0f};

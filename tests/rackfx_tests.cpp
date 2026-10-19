@@ -1421,12 +1421,12 @@ void testLoudnessMeter() {
 
 } // namespace hem::test
 
-// ---- WAVE 6: BRIT PRE, AMERICAN EQ, MID EQ, AIR EQ, GRAPHIC EQ, TILT ------------------------------
+// ---- WAVE 6: IRON PRE, PUNCH EQ, MID EQ, AIR EQ, GRAPHIC EQ, TILT ------------------------------
 namespace hem::test {
 
 void testClassicEqs() {
     std::printf("[classic eqs] the curve on the faceplate is what you hear\n");
-    const char* names[] = {"BRIT PRE", "AMERICAN EQ", "MID EQ", "AIR EQ", "GRAPHIC EQ", "TILT"};
+    const char* names[] = {"IRON PRE", "PUNCH EQ", "MID EQ", "AIR EQ", "GRAPHIC EQ", "TILT"};
     const double probe[] = {60, 150, 400, 1000, 2500, 6000, 12000};
     for (const char* name : names) {
         const PluginInfo* info = findPlugin(name);
@@ -1472,18 +1472,18 @@ void testClassicEqs() {
         std::printf("  %s: 4 random settings x 7 frequencies, largest difference between curve and sound %.3f dB\n", name, worst);
         CHECK(worst < 0.1);
     }
-    {   // AMERICAN EQ: proportional Q - a small boost is broader than a big one (relative to its peak)
-        using namespace american;
+    {   // PUNCH EQ: proportional Q - a small boost is broader than a big one (relative to its peak)
+        using namespace punchq;
         auto widthAtHalf = [](float gain) {
             float v[kCount] = {};
             v[LowFreq] = 1; v[MidFreq] = 2; v[HighFreq] = 2; v[MidGain] = gain;
-            const double peak = kAmericanCurve.db(v, kFs, 1500);
+            const double peak = kPunchEqCurve.db(v, kFs, 1500);
             double lo = 1500;
-            while (lo > 20 && kAmericanCurve.db(v, kFs, lo) > peak * 0.5) lo /= 1.01;
+            while (lo > 20 && kPunchEqCurve.db(v, kFs, lo) > peak * 0.5) lo /= 1.01;
             return std::log2(1500 / lo) * 2.0;   // octaves between the half-gain points
         };
         const double w3 = widthAtHalf(3), w12 = widthAtHalf(12);
-        std::printf("  AMERICAN EQ mid: +3 dB is %.2f octaves wide, +12 dB is %.2f octaves wide\n", w3, w12);
+        std::printf("  PUNCH EQ mid: +3 dB is %.2f octaves wide, +12 dB is %.2f octaves wide\n", w3, w12);
         CHECK(w3 > 1.4 * w12);
     }
     {   // TILT +6: lows -3 dB, highs +3 dB, pivot ~0
@@ -1494,15 +1494,15 @@ void testClassicEqs() {
         std::printf("  TILT +6 around 650 Hz: 30 Hz %.2f dB, 650 Hz %.2f dB, 18 kHz %.2f dB\n", lo, mid, hi);
         CHECK(std::fabs(lo + 3.0) < 0.4 && std::fabs(mid) < 0.5 && std::fabs(hi - 3.0) < 0.4);
     }
-    {   // BRIT PRE high-pass: 18 dB / octave
-        using namespace brit;
+    {   // IRON PRE high-pass: 18 dB / octave
+        using namespace iron;
         float v[kCount] = {};
         v[Hpf] = 3; v[LowFreq] = 1; v[MidFreq] = 2;   // 160 Hz
-        const double a = kBritCurve.db(v, kFs, 40), b = kBritCurve.db(v, kFs, 20);
-        std::printf("  BRIT PRE high-pass 160 Hz: 40 Hz %.1f dB, 20 Hz %.1f dB (%.1f dB / octave)\n", a, b, a - b);
+        const double a = kIronCurve.db(v, kFs, 40), b = kIronCurve.db(v, kFs, 20);
+        std::printf("  IRON PRE high-pass 160 Hz: 40 Hz %.1f dB, 20 Hz %.1f dB (%.1f dB / octave)\n", a, b, a - b);
         CHECK(std::fabs((a - b) - 18.0) < 1.0);
     }
-    {   // DRIVE at a normal level (-14 dBFS, drive 50): BRIT PRE (iron) odd harmonics, MID EQ (tube) even first
+    {   // DRIVE at a normal level (-14 dBFS, drive 50): IRON PRE (iron) odd harmonics, MID EQ (tube) even first
         auto h = [](const char* n, int drive, int k) {
             auto e = findPlugin(n)->create();
             e->set(drive, 50);
@@ -1511,15 +1511,15 @@ void testClassicEqs() {
             run(*e, s);
             return db(toneAmp(s.l, 200.0 * k, 24000, 24000) / 0.2);
         };
-        const double b2 = h("BRIT PRE", brit::Drive, 2), b3 = h("BRIT PRE", brit::Drive, 3), m2 = h("MID EQ", mideq::Drive, 2), m3 = h("MID EQ", mideq::Drive, 3);
-        std::printf("  drive 50 at -14 dBFS: BRIT PRE 2nd %.1f / 3rd %.1f dB, MID EQ 2nd %.1f / 3rd %.1f dB\n", b2, b3, m2, m3);
+        const double b2 = h("IRON PRE", iron::Drive, 2), b3 = h("IRON PRE", iron::Drive, 3), m2 = h("MID EQ", mideq::Drive, 2), m3 = h("MID EQ", mideq::Drive, 3);
+        std::printf("  drive 50 at -14 dBFS: IRON PRE 2nd %.1f / 3rd %.1f dB, MID EQ 2nd %.1f / 3rd %.1f dB\n", b2, b3, m2, m3);
         CHECK(b3 > b2 + 10.0 && m2 > m3 && m2 > -50.0 && b3 > -50.0);
     }
 }
 
 } // namespace hem::test
 
-// ---- WAVE 7: VCA COMP, PUNCH 160, THRUST BUS, BRIT BUS, GATE, MULTIBAND ---------------------------
+// ---- WAVE 7: VCA COMP, PUNCH COMP, FOCUS BUS, DIODE BUS, GATE, MULTIBAND ---------------------------
 namespace hem::test {
 namespace {
 // Steady 1 kHz tone level change (dB) after `seconds`, measured over the last 0.25 s.
@@ -1530,8 +1530,8 @@ double steadyChange(const char* name, std::initializer_list<std::pair<int, float
 } // namespace
 
 void testMoreDynamics() {
-    std::printf("[dynamics 2] VCA COMP, PUNCH 160, THRUST BUS, BRIT BUS, GATE, MULTIBAND\n");
-    for (const char* n : {"VCA COMP", "PUNCH 160", "THRUST BUS", "BRIT BUS", "GATE", "MULTIBAND"}) {
+    std::printf("[dynamics 2] VCA COMP, PUNCH COMP, FOCUS BUS, DIODE BUS, GATE, MULTIBAND\n");
+    for (const char* n : {"VCA COMP", "PUNCH COMP", "FOCUS BUS", "DIODE BUS", "GATE", "MULTIBAND"}) {
         const PluginInfo* info = findPlugin(n);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
@@ -1561,47 +1561,47 @@ void testMoreDynamics() {
         std::printf("  VCA COMP to -6 dB: attack 0.5 ms in %.0f ms, 30 ms in %.0f ms\n", fast, slow);
         CHECK(fast < 3.0 && slow > 10.0 * std::max(fast, 1.0));
     }
-    {   // PUNCH 160: RMS on a sine scale, 4:1 at -20: a -6 dBFS tone -> -10.5 dB; it lets go at ~120 dB/s
+    {   // PUNCH COMP: RMS on a sine scale, 4:1 at -20: a -6 dBFS tone -> -10.5 dB; it lets go at ~120 dB/s
         using namespace punch;
-        const double over = steadyChange("PUNCH 160", {{Threshold, -20}, {Compression, 4}}, 0.5f);
-        std::printf("  PUNCH 160 -20 dB, 4:1: -6 dBFS tone %.2f dB (curve -10.50)\n", over);
+        const double over = steadyChange("PUNCH COMP", {{Threshold, -20}, {Compression, 4}}, 0.5f);
+        std::printf("  PUNCH COMP -20 dB, 4:1: -6 dBFS tone %.2f dB (curve -10.50)\n", over);
         CHECK(std::fabs(over + 10.5) < 0.6);
-        auto e = fresh("PUNCH 160", {{Threshold, -30}, {Compression, 60}});
+        auto e = fresh("PUNCH COMP", {{Threshold, -30}, {Compression, 60}});
         Stereo loud = sine(1000, 0.5, 0.5f);
         run(*e, loud);
         const float start = e->reductionDb();
         Stereo quiet(4800);   // 100 ms of silence
         run(*e, quiet);
         const float after = e->reductionDb();
-        std::printf("  PUNCH 160 release: %.1f dB -> %.1f dB after 100 ms of silence (%.0f dB/s)\n", start, after, (after - start) * 10.0f);
+        std::printf("  PUNCH COMP release: %.1f dB -> %.1f dB after 100 ms of silence (%.0f dB/s)\n", start, after, (after - start) * 10.0f);
         CHECK(std::fabs((after - start) * 10.0f - 120.0f) < 10.0f);
     }
-    {   // THRUST BUS: NEW and OLD give the same ratio; LOUD thrust compresses bass far less than NORM
-        using namespace thrust;
-        const double neu = steadyChange("THRUST BUS", {{Threshold, -20}, {Knee, 0}, {Ratio, 3}, {Style, 0}}, 0.5f);
-        const double old = steadyChange("THRUST BUS", {{Threshold, -20}, {Knee, 0}, {Ratio, 3}, {Style, 1}}, 0.5f);
-        std::printf("  THRUST BUS 4:1 at -20, -6 dBFS tone: NEW %.2f dB, OLD %.2f dB (curve -10.50)\n", neu, old);
+    {   // FOCUS BUS: MODERN and VINTAGE give the same ratio; MUCH LESS low focus compresses bass far less than NORM
+        using namespace focus;
+        const double neu = steadyChange("FOCUS BUS", {{Threshold, -20}, {Knee, 0}, {Ratio, 3}, {Style, 0}}, 0.5f);
+        const double old = steadyChange("FOCUS BUS", {{Threshold, -20}, {Knee, 0}, {Ratio, 3}, {Style, 1}}, 0.5f);
+        std::printf("  FOCUS BUS 4:1 at -20, -6 dBFS tone: MODERN %.2f dB, VINTAGE %.2f dB (curve -10.50)\n", neu, old);
         CHECK(std::fabs(neu + 10.5) < 0.6 && std::fabs(old + 10.5) < 1.0);
-        auto bass = [](float thrustSel) {
-            auto e = fresh("THRUST BUS", {{Threshold, -20}, {Thrust, thrustSel}});
+        auto bass = [](float focusSel) {
+            auto e = fresh("FOCUS BUS", {{Threshold, -20}, {LowFocus, focusSel}});
             return toneOut(*e, 60, 0.5f, 1.5);
         };
         const double norm = bass(0), loud = bass(2);
-        std::printf("  60 Hz at -6 dBFS: THRUST NORM %.2f dB, LOUD %.2f dB\n", norm, loud);
+        std::printf("  60 Hz at -6 dBFS: LOW FOCUS FLAT %.2f dB, MUCH LESS %.2f dB\n", norm, loud);
         CHECK(loud > norm + 4.0);
     }
-    {   // BRIT BUS: compresses; the LIMIT section holds the level; AUTO recovers faster after a short hit
-        using namespace britbus;
-        const double c = steadyChange("BRIT BUS", {{Threshold, -20}, {Ratio, 3}, {Drive, 0}}, 0.5f);
-        const double lim = steadyChange("BRIT BUS", {{Threshold, 0}, {Limit, 1}, {LimitLevel, -10}, {Drive, 0}}, 0.5f);
-        std::printf("  BRIT BUS 4:1 at -20: -6 dBFS tone %.2f dB; LIMIT at -10: %.2f dB (wants -4.0)\n", c, lim);
+    {   // DIODE BUS: compresses; the LIMIT section holds the level; AUTO recovers faster after a short hit
+        using namespace diodebus;
+        const double c = steadyChange("DIODE BUS", {{Threshold, -20}, {Ratio, 3}, {Drive, 0}}, 0.5f);
+        const double lim = steadyChange("DIODE BUS", {{Threshold, 0}, {Limit, 1}, {LimitLevel, -10}, {Drive, 0}}, 0.5f);
+        std::printf("  DIODE BUS 4:1 at -20: -6 dBFS tone %.2f dB; LIMIT at -10: %.2f dB (wants -4.0)\n", c, lim);
         CHECK(c < -7.0 && c > -12.0);
         CHECK(std::fabs(lim + 4.0) < 0.6);
-        auto e = fresh("BRIT BUS", {{Drive, 0}, {Mix, 100}});
+        auto e = fresh("DIODE BUS", {{Drive, 0}, {Mix, 100}});
         Stereo s = noise(1.0, 0.05f), ref = s;
         run(*e, s);
         const double d = maxDelayedDiff(s, ref, e->latency(), 4800);
-        std::printf("  BRIT BUS under the threshold, no iron: latency %u, max difference %.2e\n", e->latency(), d);
+        std::printf("  DIODE BUS under the threshold, no iron: latency %u, max difference %.2e\n", e->latency(), d);
         CHECK(d < 1e-3);
     }
     {   // GATE: closes by RANGE on quiet, opens on loud, holds; EXPAND drops 2 dB per dB under
@@ -1629,7 +1629,7 @@ void testMoreDynamics() {
         std::printf("  MULTIBAND low band at -30, 4:1: 60 Hz %.2f dB, 1 kHz %.2f dB, meters %.1f / %.1f / %.1f\n", lo, mid, e->meter(0), e->meter(1), e->meter(2));
         CHECK(lo < -10.0 && std::fabs(mid) < 0.2 && e->meter(0) < -10.0f && e->meter(1) > -0.1f);
     }
-    for (const char* n : {"VCA COMP", "PUNCH 160", "THRUST BUS", "BRIT BUS", "GATE", "MULTIBAND"}) {
+    for (const char* n : {"VCA COMP", "PUNCH COMP", "FOCUS BUS", "DIODE BUS", "GATE", "MULTIBAND"}) {
         Stereo in = hotMix(1.0);
         const double d = blockSizeDifference(*findPlugin(n), [](hc::fx::Effect&) {}, in);
         std::printf("  %s block size 1 vs 512: max difference %.2e\n", n, d);

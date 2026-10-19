@@ -1,3 +1,15 @@
+# HEM-Elite-Rack 0.11.0
+
+**New names**, so nothing borrows another company's product names or trademarks (the sound is
+unchanged):
+- BRIT PRE → **IRON PRE**, BRIT BUS → **DIODE BUS**, AMERICAN EQ → **PUNCH EQ**,
+  PUNCH 160 → **PUNCH COMP** (its OVER EASY switch → **SOFT KNEE**),
+  THRUST BUS → **FOCUS BUS** (THRUST → **LOW FOCUS**: FLAT / LESS LOW / MUCH LESS; NEW / OLD →
+  MODERN / VINTAGE).
+
+**Knob labels:** the small end labels under every knob now sit inside the knob's own corners, so
+they can't run into the value or the next knob; a label too wide for its corner is left out.
+
 # HEM-Elite-Rack 0.10.1
 
 Faceplate clean-up only (no change to the sound): the reverb, spring, tape echo and movement
@@ -41,7 +53,7 @@ before and after, so you can see what it adds:
 - **BIT CRUSHER** — bits and downsampling, mix.
 - **TRANSFORMER** — output iron: the lows saturate far more than the highs, weight, nickel / steel.
 
-**Faceplate fixes:** BRIT BUS recovery buttons fit their text; MULTIBAND and VCA COMP labels no
+**Faceplate fixes:** DIODE BUS recovery buttons fit their text; MULTIBAND and VCA COMP labels no
 longer overlap.
 
 # HEM-Elite-Rack 0.7.0
@@ -49,11 +61,11 @@ longer overlap.
 **Six new dynamics plug-ins — twenty-eight in all**, in the rack and as VST3:
 - **VCA COMP** — clean modern compressor: ratio 1–20, knee, attack, release or AUTO, AUTO GAIN,
   sidechain HPF, mix.
-- **PUNCH 160** — classic RMS compressor: threshold, compression up to 60:1, OVER EASY; grabs
+- **PUNCH COMP** — classic RMS compressor: threshold, compression up to 60:1, SOFT KNEE; grabs
   faster the harder it's hit, lets go at a steady ~120 dB per second.
-- **THRUST BUS** — punchy bus compressor: THRUST keeps the bass from pumping it, knee, NEW
-  (feed-forward) or OLD (feedback) style, stereo link.
-- **BRIT BUS** — British diode-bridge bus compressor with a limiter after it, AUTO recovery,
+- **FOCUS BUS** — punchy bus compressor: LOW FOCUS keeps the bass from pumping it, knee, MODERN
+  (feed-forward) or VINTAGE (feedback) style, stereo link.
+- **DIODE BUS** — Diode-bridge bus compressor with a limiter after it, AUTO recovery,
   iron drive.
 - **GATE** — gate or expander with range, hold, hysteresis, detector filters, listen.
 - **MULTIBAND** — three-band compressor; with nothing compressing the bands add back up flat
@@ -66,9 +78,9 @@ yet), so MULTIBAND took its place.
 
 **Six new EQs — twenty-two plug-ins in all**, in the rack and as VST3. Each draws its curve on the
 faceplate, computed by the same code the audio runs (tested: curve and sound agree to 0.000 dB):
-- **BRIT PRE** — British console channel: 18 dB/oct HIGH-PASS, LOW shelf, MID bell (narrows as you
+- **IRON PRE** — Console channel: 18 dB/oct HIGH-PASS, LOW shelf, MID bell (narrows as you
   push it), 12 kHz HIGH shelf, PREAMP drive through iron (odd harmonics).
-- **AMERICAN EQ** — three bands with proportional Q (a +3 dB move is about twice as wide as +12),
+- **PUNCH EQ** — three bands with proportional Q (a +3 dB move is about twice as wide as +12),
   PEAK or SHELF on low and high, FILTER (50 Hz – 15 kHz), DRIVE.
 - **MID EQ** — tube midrange EQ: LOW PEAK, DIP, HIGH PEAK, tube DRIVE (even harmonics).
 - **AIR EQ** — clean, broad mastering bands (10 / 40 / 160 / 650 Hz, 2.5 kHz) and an AIR shelf

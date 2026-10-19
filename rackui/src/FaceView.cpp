@@ -193,11 +193,17 @@ void FaceView::knob(const Ctx& c, const Widget& w, int wi) const {
     const TextStyle vs = c.fit(w.small ? TextStyle::Value : TextStyle::Title, v, dial.w + (w.small ? 26 : 50) * z);
     r.text(vs, v, cx, dial.bottom() + (w.small ? 26 : 32) * z, on ? (hot ? th_.silver : th_.teal) : th_.dim, Align::Center,
            on ? TextFx::NeonCrisp : TextFx::Shadowed);
+    // The scale's end labels sit in the dial's own bottom corners, under the ends of the arc and above
+    // the value, so they can never run into the value or into the next knob. A label too wide for its
+    // corner is left out (both go, so the pair stays balanced) - the value underneath says it anyway.
     if (!w.lo.empty() || !w.hi.empty()) {
         const TextStyle ss = c.ts(TextStyle::Caption);
-        const float rr = R * 1.02f, dy = 20 * z;
-        r.text(ss, w.lo, cx + std::sin(kKnobMin) * rr, cy - std::cos(kKnobMin) * rr + dy, th_.dim, Align::Right, TextFx::Shadowed);
-        r.text(ss, w.hi, cx + std::sin(kKnobMax) * rr, cy - std::cos(kKnobMax) * rr + dy, th_.dim, Align::Left, TextFx::Shadowed);
+        const float room = R * 0.62f;
+        if (r.textWidth(ss, w.lo) <= room && r.textWidth(ss, w.hi) <= room) {
+            const float y = dial.bottom() - 2 * z, dx = R * 0.70f;
+            r.text(ss, w.lo, cx - dx, y, th_.dim, Align::Center, TextFx::Shadowed);
+            r.text(ss, w.hi, cx + dx, y, th_.dim, Align::Center, TextFx::Shadowed);
+        }
     }
 }
 

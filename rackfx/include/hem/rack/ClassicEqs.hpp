@@ -5,10 +5,10 @@
 //  faceplate is computed by the same design function the audio runs, and the ones with a DRIVE
 //  knob run their saturation 4x oversampled (latency 23 samples); the clean ones have none.
 //
-//  HEM BRIT PRE — British console channel: 18 dB/oct HIGH-PASS (OFF / 50 / 80 / 160 / 300 Hz),
+//  HEM IRON PRE — Console channel: 18 dB/oct HIGH-PASS (OFF / 50 / 80 / 160 / 300 Hz),
 //    LOW shelf 35 / 60 / 110 / 220 Hz, MID bell 360 Hz .. 7.2 kHz, HIGH shelf 12 kHz (all ±16 /
 //    ±18 dB), PREAMP drive through iron (transformer-style, odd harmonics), OUTPUT.
-//  HEM AMERICAN EQ — punchy three-band: LOW 50..400 Hz and HIGH 5..15 kHz (PEAK or SHELF),
+//  HEM PUNCH EQ — punchy three-band: LOW 50..400 Hz and HIGH 5..15 kHz (PEAK or SHELF),
 //    MID 400 Hz..5 kHz, ±12 dB each with proportional Q (bigger moves get narrower, like the
 //    originals), FILTER (50 Hz – 15 kHz band-pass), DRIVE, OUTPUT.
 //  HEM MID EQ — tube midrange EQ: LOW PEAK 200 Hz..1 kHz boost, DIP 200 Hz..7 kHz cut,
@@ -25,19 +25,19 @@
 
 namespace hem::rack {
 
-namespace brit {
+namespace iron {
 enum P : int { Hpf, LowFreq, LowGain, MidFreq, MidGain, HighGain, Drive, Output, kCount };
 inline constexpr double kHpfHz[] = {0, 50, 80, 160, 300};
 inline constexpr double kLowHz[] = {35, 60, 110, 220};
 inline constexpr double kMidHz[] = {360, 700, 1600, 3200, 4800, 7200};
 inline constexpr double kHighHz = 12000;
-} // namespace brit
-namespace american {
+} // namespace iron
+namespace punchq {
 enum P : int { LowFreq, LowGain, LowShelf, MidFreq, MidGain, HighFreq, HighGain, HighShelf, Filter, Drive, Output, kCount };
 inline constexpr double kLowHz[] = {50, 100, 200, 300, 400};
 inline constexpr double kMidHz[] = {400, 800, 1500, 3000, 5000};
 inline constexpr double kHighHz[] = {5000, 7500, 10000, 12500, 15000};
-} // namespace american
+} // namespace punchq
 namespace mideq {
 enum P : int { LowFreq, LowPeak, DipFreq, Dip, HighFreq, HighPeak, Drive, Output, kCount };
 inline constexpr double kLowHz[] = {200, 300, 500, 700, 1000};
@@ -61,14 +61,14 @@ inline constexpr double kLowCutHz[] = {0, 20, 30, 40, 60, 80};
 inline constexpr double kHighCutHz[] = {0, 20000, 16000, 12000, 8000};
 } // namespace tilt
 
-[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeBritPre();
-[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeAmericanEq();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeIronPre();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makePunchEq();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeMidEq();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeAirEq();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeGraphicEq();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeTilt();
 
 struct CurveInfo;
-extern const CurveInfo kBritCurve, kAmericanCurve, kMidEqCurve, kAirCurve, kGraphicCurve, kTiltCurve;
+extern const CurveInfo kIronCurve, kPunchEqCurve, kMidEqCurve, kAirCurve, kGraphicCurve, kTiltCurve;
 
 } // namespace hem::rack

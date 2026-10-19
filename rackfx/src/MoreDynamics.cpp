@@ -1,4 +1,4 @@
-// Wave 7 dynamics: VCA COMP, PUNCH 160, THRUST BUS, BRIT BUS, GATE, MULTIBAND (see MoreDynamics.hpp).
+// Wave 7 dynamics: VCA COMP, PUNCH COMP, FOCUS BUS, DIODE BUS, GATE, MULTIBAND (see MoreDynamics.hpp).
 #include "hem/rack/MoreDynamics.hpp"
 
 #include "hybrid/fx/Dsp.hpp"
@@ -130,13 +130,13 @@ private:
 };
 } // namespace vc
 
-// ---- PUNCH 160 ------------------------------------------------------------------------------------
+// ---- PUNCH COMP ------------------------------------------------------------------------------------
 namespace pu {
 using namespace punch;
 const ParamInfo kParams[kCount] = {
     {"threshold", "Threshold", "dB", -40.0f, 0.0f, -18.0f},
     {"compression", "Compression", ":1", 1.0f, 60.0f, 4.0f, Taper::Log},
-    {"overeasy", "Over Easy", "", 0, 1, 0, Taper::Toggle, kOnOff},
+    {"softknee", "Soft Knee", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"output", "Output", "dB", -20.0f, 20.0f, 0.0f},
     {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
 };
@@ -184,22 +184,22 @@ private:
 };
 } // namespace pu
 
-// ---- THRUST BUS -----------------------------------------------------------------------------------
+// ---- FOCUS BUS -----------------------------------------------------------------------------------
 namespace th {
-using namespace thrust;
+using namespace focus;
 const char* const kRatioN[] = {"1.5:1", "2:1", "3:1", "4:1", "6:1", "10:1"};
 const char* const kAttN[] = {"0.03 ms", "0.1 ms", "0.3 ms", "1 ms", "3 ms", "10 ms", "30 ms"};
 const char* const kRelN[] = {"0.05 s", "0.1 s", "0.2 s", "0.5 s", "1 s", "2 s", "3 s"};
 const char* const kKneeN[] = {"HARD", "MED", "SOFT"};
-const char* const kThrustN[] = {"NORM", "MED", "LOUD"};
-const char* const kStyleN[] = {"NEW", "OLD"};
+const char* const kFocusN[] = {"FLAT", "LESS LOW", "MUCH LESS"};
+const char* const kStyleN[] = {"MODERN", "VINTAGE"};
 const ParamInfo kParams[kCount] = {
     {"threshold", "Threshold", "dB", -40.0f, 0.0f, -14.0f},
     {"ratio", "Ratio", "", 0, 5, 3, Taper::Choice, kRatioN},
     {"attack", "Attack", "", 0, 6, 4, Taper::Choice, kAttN},
     {"release", "Release", "", 0, 6, 2, Taper::Choice, kRelN},
     {"knee", "Knee", "", 0, 2, 1, Taper::Choice, kKneeN},
-    {"thrust", "Thrust", "", 0, 2, 0, Taper::Choice, kThrustN},
+    {"focus", "Low Focus", "", 0, 2, 0, Taper::Choice, kFocusN},
     {"style", "Style", "", 0, 1, 0, Taper::Choice, kStyleN},
     {"link", "Link", "%", 0.0f, 100.0f, 100.0f},
     {"makeup", "Makeup", "dB", 0.0f, 20.0f, 0.0f},
@@ -213,7 +213,7 @@ public:
     void prepare(double fs, std::uint32_t) override { fs_ = fs; reset(); }
     void reset() noexcept override {
         for (auto& ch : sc_) for (auto& b : ch) b.clear();
-        thrustIdx_ = -1;
+        focusIdx_ = -1;
         gr_[0] = gr_[1] = 0.0f;
         last_[0] = last_[1] = 0.0f;
         makeup_.prepare(fs_, 30, hc::fx::dbToGain(p(Makeup)));
@@ -222,9 +222,9 @@ public:
         publishReduction(0.0f);
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
-        const int tIdx = std::clamp(static_cast<int>(std::lround(p(Thrust))), 0, 2);
-        if (tIdx != thrustIdx_) {   // what the detector hears: NORM flat, MED less low end, LOUD much less, more top
-            thrustIdx_ = tIdx;
+        const int tIdx = std::clamp(static_cast<int>(std::lround(p(LowFocus))), 0, 2);
+        if (tIdx != focusIdx_) {   // what the detector hears: FLAT, LESS LOW, MUCH LESS (and more top)
+            focusIdx_ = tIdx;
             C a = {1, 0, 0, 0, 0}, b = {1, 0, 0, 0, 0};
             if (tIdx == 1) a = C::make(T::LowShelf, fs_, 200, 0.5, -6.0);
             if (tIdx == 2) { a = C::make(T::HighPass, fs_, 150, 0.7071); b = C::make(T::HighShelf, fs_, 4000, 0.5, 4.0); }
@@ -265,15 +265,15 @@ public:
 private:
     double fs_ = 48000;
     std::array<std::array<hc::fx::Biquad, 2>, 2> sc_{};
-    int thrustIdx_ = -1;
+    int focusIdx_ = -1;
     float gr_[2] = {0, 0}, last_[2] = {0, 0};
     hc::fx::Smoothed makeup_, mix_, out_;
 };
 } // namespace th
 
-// ---- BRIT BUS -------------------------------------------------------------------------------------
+// ---- DIODE BUS -------------------------------------------------------------------------------------
 namespace bb {
-using namespace britbus;
+using namespace diodebus;
 const char* const kRatioN[] = {"1.5:1", "2:1", "3:1", "4:1", "6:1"};
 const char* const kAttN[] = {"FAST", "SLOW"};
 const char* const kRecN[] = {"0.1 s", "0.4 s", "0.8 s", "1.5 s", "AUTO1", "AUTO2"};
@@ -575,9 +575,9 @@ private:
 } // namespace
 
 std::unique_ptr<hc::fx::Effect> makeVcaComp() { return std::make_unique<vc::Impl>(); }
-std::unique_ptr<hc::fx::Effect> makePunch160() { return std::make_unique<pu::Impl>(); }
-std::unique_ptr<hc::fx::Effect> makeThrustBus() { return std::make_unique<th::Impl>(); }
-std::unique_ptr<hc::fx::Effect> makeBritBus() { return std::make_unique<bb::Impl>(); }
+std::unique_ptr<hc::fx::Effect> makePunchComp() { return std::make_unique<pu::Impl>(); }
+std::unique_ptr<hc::fx::Effect> makeFocusBus() { return std::make_unique<th::Impl>(); }
+std::unique_ptr<hc::fx::Effect> makeDiodeBus() { return std::make_unique<bb::Impl>(); }
 std::unique_ptr<hc::fx::Effect> makeGate() { return std::make_unique<ga::Impl>(); }
 std::unique_ptr<hc::fx::Effect> makeMultiband() { return std::make_unique<mb::Impl>(); }
 
