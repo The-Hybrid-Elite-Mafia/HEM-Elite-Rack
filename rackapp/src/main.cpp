@@ -10,6 +10,8 @@
 #include "RackHost.hpp"
 #include "RackView.hpp"
 
+#include "hem/rack/ColorFx.hpp"
+#include "hem/rack/MoreDynamics.hpp"
 #include "hem/rack/Plugins.hpp"
 #include "hem/ui/Face.hpp"
 #include "hem/ui/FaceWindow.hpp"
@@ -75,7 +77,7 @@ fs::path musicDir() {
 struct Options {
     double   exitAfter = 0.0;
     fs::path screenshot, song;
-    bool     offline = false, demo = false, demo2 = false;   // --demo2: the vintage chain (ARCHIVE .. TRIGGER)
+    bool     offline = false, demo = false, demo2 = false;   // --demo2: the vintage chain (ARCHIVE .. LOCKDOWN)
     int      select = 0;
 };
 Options parseOptions() {
@@ -480,17 +482,17 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     if (opts.demo) {   // CI / showing it off: a made-up song and a chain with something to look at
         a.setSong(demoSong(), {}, "made-up test audio - 20 s");
         a.overview = makeOverview(a.rack().song()->left, a.rack().song()->right);
-        if (opts.demo2) {   // the vintage chain: tape, tube EQ, three compressors
+        if (opts.demo2) {   // the vintage chain: tape, tube EQ, tube, compressor, bus glue, limiter
             a.addPlugin("ARCHIVE", 0);
             if (auto* e = a.rack().effect(0)) { e->set(rack::tape::Input, 6); e->set(rack::tape::Wow, 15); }
             a.addPlugin("VELVET", 1);
             if (auto* e = a.rack().effect(1)) { e->set(rack::tubeeq::LowBoost, 6); e->set(rack::tubeeq::LowAtten, 4); e->set(rack::tubeeq::HighBoost, 4); }
-            a.addPlugin("SMOKE", 2);
-            if (auto* e = a.rack().effect(2)) e->set(rack::varimu::Threshold, -26);
-            a.addPlugin("LANTERN", 3);
-            if (auto* e = a.rack().effect(3)) e->set(rack::opto::PeakReduction, 55);
-            a.addPlugin("TRIGGER", 4);
-            if (auto* e = a.rack().effect(4)) { e->set(rack::fet::Input, 20); e->set(rack::fet::Output, -10); }
+            a.addPlugin("FURNACE", 2);
+            if (auto* e = a.rack().effect(2)) e->set(rack::tubesat::Drive, 45);
+            a.addPlugin("ENFORCER", 3);
+            if (auto* e = a.rack().effect(3)) { e->set(rack::vca::Threshold, -26); e->set(rack::vca::AutoMakeup, 1); }
+            a.addPlugin("THE FAMILY", 4);
+            if (auto* e = a.rack().effect(4)) e->set(rack::glue::Threshold, -18);
             a.addPlugin("LOCKDOWN", 5);
             if (auto* e = a.rack().effect(5)) e->set(rack::limiter::Input, 6);
         } else {

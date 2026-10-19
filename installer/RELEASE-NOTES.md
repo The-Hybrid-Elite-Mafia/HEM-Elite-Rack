@@ -1,3 +1,16 @@
+# HEM-Elite-Rack 0.14.0
+
+**A trimmed collection: 22 plug-ins**, in the rack and as VST3:
+- **EQ (2):** SURGEON, VELVET
+- **DYNAMICS (3):** LOCKDOWN (limiter), THE FAMILY (bus glue), ENFORCER (all-round compressor)
+- **COLOR (3):** ARCHIVE (tape), FURNACE (tube), SPARK (exciter)
+- **SPACE (3):** CATHEDRAL (hall), CHROME (plate), REPEAT OFFENDER (delay)
+- **MOVEMENT (6):** THE CREW, GETAWAY, SMOKESCREEN, SHAKEDOWN, CYCLONE, SHAPESHIFTER
+- **TOOLS (5):** THE CLEANER, WIDE LOAD, THE ACCOUNTANT, UNDERGROUND, SPOTLIGHT
+
+The rest were taken out of the rack and the VST3 bundle; they are kept in the project's history, so
+any of them can come back. A saved chain that used one loads with that slot empty.
+
 # HEM-Elite-Rack 0.13.0
 
 **A tighter EQ line-up: two EQs instead of nine** — 42 plug-ins in all.

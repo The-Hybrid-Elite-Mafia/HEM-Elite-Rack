@@ -103,82 +103,6 @@ private:
 };
 } // namespace sb
 
-// ---- BASS TIGHTENER -------------------------------------------------------------------------------
-namespace bt {
-using namespace tightener;
-const ParamInfo kParams[kCount] = {
-    {"freq", "Frequency", "Hz", 60.0f, 250.0f, 120.0f, Taper::Log},
-    {"tighten", "Tighten", "%", 0.0f, 100.0f, 0.0f},
-    {"punch", "Punch", "%", 0.0f, 100.0f, 0.0f},
-    {"mono", "Mono Lows", "", 0, 1, 0, Taper::Toggle, kOnOff},
-    {"lowgain", "Low Gain", "dB", -6.0f, 6.0f, 0.0f},
-    {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
-};
-class Impl final : public hc::fx::Effect {
-public:
-    Impl() { setDefaults(); }
-    std::span<const ParamInfo> params() const noexcept override { return kParams; }
-    void prepare(double fs, std::uint32_t) override { fs_ = fs; reset(); }
-    void reset() noexcept override {
-        for (auto& ch : x_) for (auto& b : ch) b.clear();
-        freq_ = -1.0f;
-        gr_ = 0.0f;
-        fast_ = slow_ = 0.0f;
-        monoMix_ = p(Mono) >= 0.5f ? 1.0f : 0.0f;
-        low_.prepare(fs_, 30, hc::fx::dbToGain(p(LowGain)));
-        out_.prepare(fs_, 30, hc::fx::dbToGain(p(Output)));
-        publishReduction(0.0f);
-    }
-    void process(float* L, float* R, std::uint32_t n) noexcept override {
-        if (p(Freq) != freq_) {
-            freq_ = p(Freq);
-            const C lp = C::make(T::LowPass, fs_, freq_, 0.7071), hp = C::make(T::HighPass, fs_, freq_, 0.7071);
-            for (auto& ch : x_) { ch[0].c = ch[1].c = lp; ch[2].c = ch[3].c = hp; }
-        }
-        const float tighten = p(Tighten) * 0.01f, punch = p(Punch) * 0.01f;
-        // TIGHTEN: a fast compressor on the lows, threshold falling as you turn it up
-        const float thr = -6.0f - 24.0f * tighten, ratio = 1.0f + 5.0f * tighten;
-        const float att = coefFor(fs_, 3.0), rel = coefFor(fs_, 80.0);
-        const float fA = coefFor(fs_, 1.0), sA = coefFor(fs_, 20.0), fR = coefFor(fs_, 40.0);
-        const float step = static_cast<float>(1.0 / (fs_ * 0.02));
-        const bool mono = p(Mono) >= 0.5f;
-        float most = 0.0f;
-        for (std::uint32_t i = 0; i < n; ++i) {
-            float lo[2], hi[2];
-            const float in[2] = {L[i], R[i]};
-            for (int c = 0; c < 2; ++c) {
-                auto& x = x_[static_cast<std::size_t>(c)];
-                lo[c] = static_cast<float>(x[1].tick(x[0].tick(in[c])));
-                hi[c] = static_cast<float>(x[3].tick(x[2].tick(in[c])));
-            }
-            // LR4 low + high sum to an all-pass: flat in level
-            const float lv = std::max(std::fabs(lo[0]), std::fabs(lo[1]));
-            const float target = tighten > 0.0f ? kneeGainDb(dbOf(lv), thr, ratio, 6.0f) : 0.0f;
-            gr_ = target + (target < gr_ ? att : rel) * (gr_ - target);
-            // PUNCH: a fast follower running ahead of a slow one at every low-end attack
-            fast_ = lv + (lv > fast_ ? fA : fR) * (fast_ - lv);
-            slow_ = lv + (lv > slow_ ? sA : fR) * (slow_ - lv);
-            const float onset = std::clamp(dbOf(fast_) - dbOf(slow_), 0.0f, 12.0f);
-            const float g = hc::fx::dbToGain(gr_ + punch * onset) * low_.next(hc::fx::dbToGain(p(LowGain)));
-            most = std::min(most, gr_);
-            monoMix_ = mono ? std::min(1.0f, monoMix_ + step) : std::max(0.0f, monoMix_ - step);
-            const float m = 0.5f * (lo[0] + lo[1]);
-            const float l0 = lo[0] + monoMix_ * (m - lo[0]), l1 = lo[1] + monoMix_ * (m - lo[1]);
-            const float o = out_.next(hc::fx::dbToGain(p(Output)));
-            L[i] = (l0 * g + hi[0]) * o;
-            R[i] = (l1 * g + hi[1]) * o;
-        }
-        if (gr_ > -1e-6f) gr_ = 0.0f;
-        publishReduction(most);
-    }
-private:
-    double fs_ = 48000;
-    std::array<std::array<hc::fx::Biquad, 4>, 2> x_{};
-    float freq_ = -1, gr_ = 0, fast_ = 0, slow_ = 0, monoMix_ = 0;
-    hc::fx::Smoothed low_, out_;
-};
-} // namespace bt
-
 // ---- VOCAL STRIP ----------------------------------------------------------------------------------
 namespace vs {
 using namespace vocal;
@@ -276,7 +200,6 @@ private:
 } // namespace
 
 std::unique_ptr<hc::fx::Effect> makeSub() { return std::make_unique<sb::Impl>(); }
-std::unique_ptr<hc::fx::Effect> makeBassTightener() { return std::make_unique<bt::Impl>(); }
 std::unique_ptr<hc::fx::Effect> makeVocalStrip() { return std::make_unique<vs::Impl>(); }
 
 } // namespace hem::rack

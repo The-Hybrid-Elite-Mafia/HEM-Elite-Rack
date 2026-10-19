@@ -13,7 +13,6 @@
 //  matching larger style, so it stays sharp at any size.
 // =============================================================================
 #include "hem/rack/BusGlue.hpp"
-#include "hem/rack/Dynamics.hpp"
 #include "hem/rack/Tape.hpp"
 #include "hem/rack/TubeEq.hpp"
 #include "hem/rack/EliteEq.hpp"

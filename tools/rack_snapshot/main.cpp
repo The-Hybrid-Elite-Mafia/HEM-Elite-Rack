@@ -4,7 +4,6 @@
 //   hem_rack_snapshot [--out <folder>] [--scale 0.75]
 // Exit 3 when a faceplate fails to open or comes out blank.
 #include "hem/rack/BusGlue.hpp"
-#include "hem/rack/Dynamics.hpp"
 #include "hem/rack/Tape.hpp"
 #include "hem/rack/TubeEq.hpp"
 #include "hem/rack/EliteEq.hpp"
@@ -127,53 +126,18 @@ int main(int argc, char** argv) {
         } else if (info.face == hem::rack::Face::TubeEq) {
             using namespace hem::rack::tubeeq;
             fx->set(LowBoost, 6); fx->set(LowAtten, 4); fx->set(HighBoost, 5); fx->set(Bandwidth, 4); fx->set(HighAtten, 2); fx->set(Drive, 30);
-        } else if (info.face == hem::rack::Face::VariMu) {
-            fx->set(hem::rack::varimu::Threshold, -26);
-        } else if (info.face == hem::rack::Face::Opto) {
-            fx->set(hem::rack::opto::PeakReduction, 60); fx->set(hem::rack::opto::Gain, 4);
-        } else if (info.face == hem::rack::Face::Fet) {
-            fx->set(hem::rack::fet::Input, 24);
         } else if (info.face == hem::rack::Face::Limiter) {
             fx->set(hem::rack::limiter::Input, 8);
-        } else if (info.face == hem::rack::Face::DeEsser) {
-            fx->set(hem::rack::deesser::Threshold, -44);
         } else if (info.face == hem::rack::Face::Width) {
             fx->set(hem::rack::width::Width, 140); fx->set(hem::rack::width::MonoBass, 2);
-        } else if (info.face == hem::rack::Face::Clipper) {
-            fx->set(hem::rack::clipper::Input, 12);
         } else if (info.face == hem::rack::Face::Exciter) {
             fx->set(hem::rack::exciter::Drive, 60); fx->set(hem::rack::exciter::Mix, 35);
-        } else if (info.face == hem::rack::Face::Transient) {
-            fx->set(hem::rack::transient::Attack, 60);
         } else if (info.face == hem::rack::Face::VcaComp) {
             fx->set(hem::rack::vca::Threshold, -32);
-        } else if (info.face == hem::rack::Face::PunchComp) {
-            fx->set(hem::rack::punch::Threshold, -30);
-        } else if (info.face == hem::rack::Face::FocusBus) {
-            fx->set(hem::rack::focus::Threshold, -30);
-        } else if (info.face == hem::rack::Face::DiodeBus) {
-            fx->set(hem::rack::diodebus::Threshold, -26);
-        } else if (info.face == hem::rack::Face::Gate) {
-            fx->set(hem::rack::gate::Threshold, -30);
-        } else if (info.face == hem::rack::Face::Multiband) {
-            using namespace hem::rack::multiband;
-            fx->set(LowThr, -30); fx->set(MidThr, -34); fx->set(HighThr, -40);
         } else if (info.face == hem::rack::Face::TubeSat) {
             fx->set(hem::rack::tubesat::Drive, 70);
-        } else if (info.face == hem::rack::Face::Preamp) {
-            fx->set(hem::rack::preamp::Gain, 12); fx->set(hem::rack::preamp::Output, -10); fx->set(hem::rack::preamp::Character, 2);
-        } else if (info.face == hem::rack::Face::Cassette) {
-            fx->set(hem::rack::cassette::Hiss, 40); fx->set(hem::rack::cassette::Drive, 60);
-        } else if (info.face == hem::rack::Face::Vinyl) {
-            fx->set(hem::rack::vinyl::Crackle, 50); fx->set(hem::rack::vinyl::Noise, 40);
-        } else if (info.face == hem::rack::Face::BitCrusher) {
-            fx->set(hem::rack::crusher::Bits, 6);
-        } else if (info.face == hem::rack::Face::Transformer) {
-            fx->set(hem::rack::transformer::Drive, 80);
         } else if (info.face == hem::rack::Face::Sub) {
             fx->set(hem::rack::sub::Amount, 60);
-        } else if (info.face == hem::rack::Face::BassTightener) {
-            fx->set(hem::rack::tightener::Tighten, 70);
         } else if (info.face == hem::rack::Face::VocalStrip) {
             fx->set(hem::rack::vocal::Compress, 70); fx->set(hem::rack::vocal::Hpf, 2);
         } else if (info.face == hem::rack::Face::Restorer) {

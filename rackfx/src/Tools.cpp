@@ -23,68 +23,6 @@ const char* const kOnOff[] = {"OFF", "ON"};
 inline float dbOf(float lin) noexcept { return 20.0f * std::log10(std::max(lin, 1e-9f)); }
 inline float soft(float v) noexcept { return v / std::cbrt(1.0f + std::fabs(v) * v * v); }
 
-// ---- DE-ESSER -------------------------------------------------------------------------------------
-namespace des {
-using namespace deesser;
-const char* const kModeN[] = {"SPLIT", "WIDE"};
-const ParamInfo kParams[kCount] = {
-    {"freq", "Frequency", "Hz", 3000.0f, 12000.0f, 6500.0f, Taper::Log},
-    {"threshold", "Threshold", "dB", -50.0f, 0.0f, -24.0f},
-    {"range", "Range", "dB", 0.0f, 20.0f, 8.0f},
-    {"mode", "Mode", "", 0, 1, 0, Taper::Choice, kModeN},
-    {"listen", "Listen", "", 0, 1, 0, Taper::Toggle, kOnOff},
-};
-class Impl final : public hc::fx::Effect {
-public:
-    Impl() { setDefaults(); }
-    std::span<const ParamInfo> params() const noexcept override { return kParams; }
-    void prepare(double fs, std::uint32_t) override { fs_ = fs; reset(); }
-    void reset() noexcept override {
-        for (auto& b : lp_) b.clear();
-        for (auto& b : det_) b.clear();
-        freq_ = -1.0f;
-        env_ = 0.0f;
-        gr_ = 0.0f;
-        publishReduction(0.0f);
-    }
-    void process(float* L, float* R, std::uint32_t n) noexcept override {
-        if (p(Freq) != freq_) {
-            freq_ = p(Freq);
-            const C c = C::make(T::LowPass, fs_, freq_, 0.7071), h = C::make(T::HighPass, fs_, freq_, 0.7071);
-            for (auto& b : lp_) b.c = c;
-            for (auto& b : det_) b.c = h;
-        }
-        const float thr = p(Threshold), range = p(Range);
-        const bool wide = p(Mode) >= 0.5f, listen = p(Listen) >= 0.5f;
-        const float att = static_cast<float>(std::exp(-1.0 / (fs_ * 0.0005))), rel = static_cast<float>(std::exp(-1.0 / (fs_ * 0.060)));
-        float most = 0.0f;
-        for (std::uint32_t i = 0; i < n; ++i) {
-            // the ess band = the input minus its low-passed part, so band + rest is exactly the input
-            // and turning the band down never leaves a phase notch or bump around FREQ
-            const float hl = L[i] - lp_[0].tick(L[i]), hr = R[i] - lp_[1].tick(R[i]);
-            // what the detector hears (and LISTEN plays): a steep 24 dB / oct high-pass, so bass never triggers it
-            const float dl = det_[1].tick(det_[0].tick(L[i])), dr = det_[3].tick(det_[2].tick(R[i]));
-            const float lv = std::max(std::fabs(dl), std::fabs(dr));
-            env_ = lv + (lv > env_ ? att : rel) * (env_ - lv);
-            const float over = dbOf(env_) - thr;
-            const float target = over > 0.0f ? -std::min(range, over * 0.75f) : 0.0f;   // 4:1 above the threshold, at most RANGE
-            gr_ = target + (target < gr_ ? att : rel) * (gr_ - target);
-            most = std::min(most, gr_);
-            const float g = hc::fx::dbToGain(gr_);
-            if (listen) { L[i] = dl; R[i] = dr; continue; }
-            if (wide) { L[i] *= g; R[i] *= g; }
-            else { L[i] += hl * (g - 1.0f); R[i] += hr * (g - 1.0f); }   // only the ess band goes down
-        }
-        if (gr_ > -1e-6f) gr_ = 0.0f;
-        publishReduction(most);
-    }
-private:
-    double fs_ = 48000;
-    hc::fx::Biquad lp_[2], det_[4];
-    float freq_ = -1, env_ = 0, gr_ = 0;
-};
-} // namespace des
-
 // ---- STEREO WIDTH ---------------------------------------------------------------------------------
 namespace wid {
 using namespace width;
@@ -155,89 +93,6 @@ private:
     double lr_ = 0, ll_ = 0, rr_ = 0, mm_ = 0, ss_ = 0;
 };
 } // namespace wid
-
-// ---- CLIPPER --------------------------------------------------------------------------------------
-namespace clp {
-using namespace clipper;
-const ParamInfo kParams[kCount] = {
-    {"input", "Input", "dB", 0.0f, 24.0f, 0.0f},
-    {"ceiling", "Ceiling", "dB", -12.0f, 0.0f, -0.3f},
-    {"shape", "Shape", "%", 0.0f, 100.0f, 30.0f},
-    {"output", "Output", "dB", -12.0f, 6.0f, 0.0f},
-};
-// Clips |x| at 1: hard (k = 0) or with a soft knee that starts at 1 - k below it.
-inline float clipShape(float x, float k) noexcept {
-    const float a = std::fabs(x);
-    if (k <= 1e-4f || a <= 1.0f - k) return std::clamp(x, -1.0f, 1.0f);
-    const float t = std::min((a - (1.0f - k)) / (2.0f * k), 1.0f);   // 0..1 across the knee
-    const float y = (1.0f - k) + k * (2.0f * t - t * t) ;            // quadratic ease into 1
-    return std::copysign(std::min(y, 1.0f), x);
-}
-class Impl final : public hc::fx::Effect {
-public:
-    Impl() { setDefaults(); }
-    std::span<const ParamInfo> params() const noexcept override { return kParams; }
-    std::uint32_t latency() const noexcept override { return OS::latency(); }
-    void prepare(double fs, std::uint32_t maxBlock) override {
-        fs_ = fs;
-        const std::uint32_t mb = std::min(std::max<std::uint32_t>(maxBlock, 1), kMaxBlock);
-        up_.assign(static_cast<std::size_t>(mb) * OS::kFactor, 0.0f);
-        reset();
-    }
-    void reset() noexcept override {
-        for (auto& o : os_) o.clear();
-        in_.prepare(fs_, 30, hc::fx::dbToGain(p(Input)));
-        ceil_.prepare(fs_, 30, hc::fx::dbToGain(p(Ceiling)));
-        out_.prepare(fs_, 30, hc::fx::dbToGain(p(Output)));
-        cl_ = ceil_.cur;
-        publishReduction(0.0f);
-    }
-    void process(float* L, float* R, std::uint32_t n) noexcept override {
-        float* io[2] = {L, R};
-        float peakIn = 0.0f, peakOut = 0.0f;
-        const float k = p(Shape) * 0.005f;   // knee 0 .. 0.5 (-6 dB) below the ceiling
-        for (std::uint32_t i = 0; i < n; ++i) {
-            const float g = in_.next(hc::fx::dbToGain(p(Input)));
-            L[i] *= g;
-            R[i] *= g;
-        }
-        for (int c = 0; c < 2; ++c) {
-            os_[c].up(io[c], up_.data(), n);
-            ceil_.cur = cl_;   // both channels step the ceiling glide identically
-            for (std::uint32_t i = 0; i < n; ++i) {
-                const float ce = ceil_.next(hc::fx::dbToGain(p(Ceiling)));
-                for (int q = 0; q < OS::kFactor; ++q) {
-                    float& v = up_[i * OS::kFactor + static_cast<std::uint32_t>(q)];
-                    const float y = clipShape(v / ce, k) * ce;
-                    peakIn = std::max(peakIn, std::fabs(v));
-                    peakOut = std::max(peakOut, std::fabs(y));
-                    v = y;
-                }
-            }
-            os_[c].down(up_.data(), io[c], n);
-            // the down-sampling filter can ring a little past the ceiling on hard clipping: catch it
-            ceil_.cur = cl_;
-            for (std::uint32_t i = 0; i < n; ++i) {
-                const float ce = ceil_.next(hc::fx::dbToGain(p(Ceiling)));
-                io[c][i] = std::clamp(io[c][i], -ce, ce);
-            }
-        }
-        cl_ = ceil_.cur;
-        for (std::uint32_t i = 0; i < n; ++i) {
-            const float o = out_.next(hc::fx::dbToGain(p(Output)));
-            L[i] *= o;
-            R[i] *= o;
-        }
-        publishReduction(peakIn > 0.0f ? std::min(0.0f, dbOf(peakOut) - dbOf(peakIn)) : 0.0f);   // how far the peaks are shaved
-    }
-private:
-    double fs_ = 48000;
-    OS os_[2];
-    std::vector<float> up_;
-    hc::fx::Smoothed in_, ceil_, out_;
-    float cl_ = 1.0f;
-};
-} // namespace clp
 
 // ---- EXCITER --------------------------------------------------------------------------------------
 namespace exc {
@@ -317,72 +172,9 @@ private:
 };
 } // namespace exc
 
-// ---- TRANSIENT ------------------------------------------------------------------------------------
-namespace trn {
-using namespace transient;
-const hc::fx::MeterInfo kMeters[] = {{"GAIN", "dB", -24.0f, 24.0f, true}};
-const ParamInfo kParams[kCount] = {
-    {"attack", "Attack", "%", -100.0f, 100.0f, 0.0f},
-    {"sustain", "Sustain", "%", -100.0f, 100.0f, 0.0f},
-    {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
-};
-struct Env {
-    float a = 0, r = 0, v = 0;
-    void set(double fs, double attMs, double relMs) { a = static_cast<float>(std::exp(-1.0 / (fs * attMs * 0.001))); r = static_cast<float>(std::exp(-1.0 / (fs * relMs * 0.001))); }
-    float tick(float x) noexcept { v = x + (x > v ? a : r) * (v - x); return v; }
-};
-class Impl final : public hc::fx::Effect {
-public:
-    Impl() { setDefaults(); }
-    std::span<const ParamInfo> params() const noexcept override { return kParams; }
-    std::span<const hc::fx::MeterInfo> meters() const noexcept override { return kMeters; }
-    void prepare(double fs, std::uint32_t) override {
-        fs_ = fs;
-        fastA_.set(fs, 0.5, 30);
-        slowA_.set(fs, 15, 30);
-        longS_.set(fs, 0.5, 400);
-        shortS_.set(fs, 0.5, 40);
-        reset();
-    }
-    void reset() noexcept override {
-        fastA_.v = slowA_.v = longS_.v = shortS_.v = 0.0f;
-        gain_ = 0.0f;
-        out_.prepare(fs_, 30, hc::fx::dbToGain(p(Output)));
-        publishMeter(0, 0.0f);
-    }
-    void process(float* L, float* R, std::uint32_t n) noexcept override {
-        const float at = p(Attack) * 0.01f, su = p(Sustain) * 0.01f;
-        const float smooth = static_cast<float>(std::exp(-1.0 / (fs_ * 0.001)));
-        float most = 0.0f;
-        for (std::uint32_t i = 0; i < n; ++i) {
-            const float x = std::max(std::fabs(L[i]), std::fabs(R[i]));
-            // the hit: a fast follower runs ahead of a slow one at every attack
-            const float onset = std::max(0.0f, dbOf(fastA_.tick(x)) - dbOf(slowA_.tick(x)));
-            // the tail: a long-release follower stays up while a short one falls
-            const float tail = std::max(0.0f, dbOf(longS_.tick(x)) - dbOf(shortS_.tick(x)));
-            const float target = std::clamp(at * onset + su * std::min(tail, 24.0f), -24.0f, 24.0f);
-            gain_ = target + smooth * (gain_ - target);
-            const float g = hc::fx::dbToGain(gain_) * out_.next(hc::fx::dbToGain(p(Output)));
-            L[i] *= g;
-            R[i] *= g;
-            if (std::fabs(gain_) > std::fabs(most)) most = gain_;
-        }
-        publishMeter(0, most);   // the biggest move in this block, up or down
-    }
-private:
-    double fs_ = 48000;
-    Env fastA_, slowA_, longS_, shortS_;
-    float gain_ = 0;
-    hc::fx::Smoothed out_;
-};
-} // namespace trn
-
 } // namespace
 
-std::unique_ptr<hc::fx::Effect> makeDeEsser() { return std::make_unique<des::Impl>(); }
 std::unique_ptr<hc::fx::Effect> makeStereoWidth() { return std::make_unique<wid::Impl>(); }
-std::unique_ptr<hc::fx::Effect> makeClipper() { return std::make_unique<clp::Impl>(); }
 std::unique_ptr<hc::fx::Effect> makeExciter() { return std::make_unique<exc::Impl>(); }
-std::unique_ptr<hc::fx::Effect> makeTransient() { return std::make_unique<trn::Impl>(); }
 
 } // namespace hem::rack

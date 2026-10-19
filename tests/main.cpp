@@ -25,15 +25,9 @@ int main(int argc, char** argv) {
     testBusGlue();
     testTape();
     testTubeEq();
-    testVariMu();
-    testOpto();
-    testFet();
     testLimiter();
-    testDeEsser();
     testWidth();
-    testClipper();
     testExciter();
-    testTransient();
     testLoudnessMeter();
     testMoreDynamics();
     testColorFx();

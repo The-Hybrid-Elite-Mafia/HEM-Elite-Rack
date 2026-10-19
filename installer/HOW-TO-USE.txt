@@ -43,93 +43,34 @@ VELVET
   the very bottom and less mud just above. HIGH: frequency, BOOST, WIDTH (sharp .. broad).
   HIGH ATTENUATION: SELECT 5 / 10 / 20 kHz and ATTEN to soften the top. TUBE: DRIVE, OUTPUT.
 
-SMOKE
-  THRESHOLD and INPUT set how hard it works; the ratio grows by itself the harder you push.
-  TIME CONSTANT 1-6 (5 and 6 release by themselves). MODE: STEREO or MID / SIDE (the middle and
-  the sides compressed separately). TUBE, MAKEUP, MIX.
-
-LANTERN
-  PEAK REDUCTION = how much, GAIN = how loud. COMPRESS or LIMIT. EMPHASIS makes it react more
-  to the highs (esses, cymbals). Lets go quickly at first, then slowly - very smooth.
-
-TRIGGER
-  Turn INPUT up for more compression, OUTPUT down to match. ATTACK and RELEASE: 7 is fastest.
-  RATIO 4, 8, 12, 20 or ALL (all buttons in: aggressive and gritty).
-
 LOCKDOWN (put it last in the chain)
   INPUT pushes the song into it: louder. CEILING is the most that ever comes out (-1 dB is a
   safe choice for streaming). TRUE PEAK on keeps the peaks *between* samples under the ceiling
   too. RELEASE (or AUTO), LINK. The readouts show the loudness (LUFS) and the true peak of what
   comes out; the true peak turns red if it is over the ceiling.
 
-HUSH MONEY (on vocals)
-  FREQUENCY = where the esses are (5 - 8 kHz for most voices; LISTEN on helps you find them).
-  THRESHOLD down until the needle moves on the esses only. RANGE = the most it turns down.
-  SPLIT turns down only the ess band; WIDE turns the whole voice down a little (gentler).
-
 WIDE LOAD
   WIDTH 100 % = as it was, 0 % = mono, up to 200 %. MONO BASS keeps the low end in the centre
   (punchier, safe on club systems and phones). CORRELATION: +1 = mono, 0 = wide,
   below 0 = parts cancel in mono (be careful).
 
-RAZOR (just before the LOCKDOWN)
-  INPUT pushes, CEILING is the top. A few dB of shaving makes a mix louder with less pumping
-  from the limiter. SHAPE: HARD (cleaner on transients) to SOFT (rounder).
-
 SPARK
   FREQUENCY = above where new harmonics are added; nothing below it changes. TUBE is warmer,
   TAPE edgier. DRIVE = how much grit, MIX = how much is added. A little goes a long way.
-
-SUCKER PUNCH
-  ATTACK + = more punch on every hit, - = softer. SUSTAIN + = more ring and room, - = drier.
-  It follows the notes, not the level, so quiet and loud parts are treated the same.
 
 ENFORCER
   The all-rounder. THRESHOLD down until the needle moves, RATIO (2 - 4 gentle, 8+ hard), KNEE
   (higher = smoother), ATTACK (slower lets the punch through), RELEASE or AUTO REL,
   AUTO GAIN gives back about half of what it takes. SIDECHAIN HPF stops the bass pumping it.
 
-HEAVY HAND
-  THRESHOLD and COMPRESSION, that's it. It grabs faster the harder it is hit and lets go
-  steadily: great on drums and bass. SOFT KNEE = a softer start.
+FURNACE
+  DRIVE for more tube colour (the level stays about the same), BIAS toward EVEN = warmer.
+  TONE darker or brighter after the tube, MIX to blend.
 
-MUSCLE
-  On the mix or drum bus. LOW FOCUS makes it listen less to the low end, so the kick
-  and bass don't make everything pump. MODERN = tighter; VINTAGE = smoother.
-
-UNDERBOSS
-  Thick, smooth bus glue. RECOVERY AUTO 1 / AUTO 2 lets go by itself (fast after a hit, slow
-  when it's been working). LIMIT catches what's left. IRON adds weight.
-
-BOUNCER
-  THRESHOLD: under it the gate closes by RANGE dB (EXPAND: it turns down gradually). HOLD keeps
-  it open a moment after the hit. The detector filters and LISTEN help it hear only the drum
-  you want (e.g. HPF to ignore the kick bleed on a snare).
-
-TRIAD
-  Three compressors, one per band: LOW / MID and MID / HIGH set where the bands split. Each band
-  has THRESHOLD, RATIO and GAIN; the readouts show how much each band is turned down.
-
-THE COLOUR BOXES (FURNACE, FRONT MAN, MIXTAPE, CRATE DIGGER, SHREDDER, ANVIL)
-  The screen shows BEFORE and AFTER, so you can see the harmonics and noise they add.
-  FURNACE: DRIVE for more colour (the level stays about the same), BIAS toward EVEN = warmer.
-  FRONT MAN: GAIN really makes it louder (like a real preamp) - use OUTPUT to bring it back down.
-  MIXTAPE: TYPE I is the darkest, TYPE IV the brightest. WOW = slow wobble, FLUTTER = fast.
-  CRATE DIGGER: CRACKLE, NOISE, WEAR (duller), WARP (slow pitch wobble). MONO LOWS like a real cut.
-  SHREDDER: BITS down = grittier, DOWNSAMPLE up = more lo-fi aliasing. Use MIX to blend.
-  ANVIL: DRIVE saturates the low end most; WEIGHT adds a low bump; STEEL is thicker.
-
-CATHEDRAL, BACKROOM, CHROME
+CATHEDRAL, CHROME
   DECAY = how many seconds the tail lasts. PRE-DELAY keeps the dry sound clear before the
   reverb starts (20 - 60 ms on vocals). DAMPING makes the tail darker. LOW CUT on the reverb
   keeps the low end clean. For a send-style sound in the rack, keep MIX low (10 - 25 %).
-
-COIL
-  TENSION changes the "boing", DRIP the chirpy splash. Great on guitars, dub, lo-fi.
-
-WIRETAP
-  TIME (moving it bends the pitch, like real tape), FEEDBACK (over 100 % it builds up and
-  saturates - ride it for dub throws), HEADS for rhythmic multi-repeats, WOBBLE, TONE.
 
 REPEAT OFFENDER
   Pick a NOTE (1/4, 1/8, dotted, triplets) and set BPM to your song's tempo, or FREE and TIME in
@@ -143,10 +84,6 @@ THE CREW, GETAWAY, SMOKESCREEN, SHAKEDOWN, CYCLONE, SHAPESHIFTER
 UNDERGROUND
   OCTAVE: a new sub an octave under the bass. HARMONICS: the bass's overtones, so the low end
   comes through on phones and laptops. Start with AMOUNT low - it adds up fast.
-
-CHOKEHOLD
-  FREQUENCY = where "low end" stops. TIGHTEN holds boomy notes down, PUNCH brings the attack
-  of kicks forward, MONO LOWS keeps the bottom centred.
 
 SPOTLIGHT
   Top to bottom of a vocal chain: HIGH-PASS, BODY, COMPRESS (one knob, with makeup), DE-ESS

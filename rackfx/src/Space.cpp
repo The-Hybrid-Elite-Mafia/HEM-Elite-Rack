@@ -24,7 +24,6 @@ using C = hc::fx::BiquadCoefs;
 using T = C::Type;
 constexpr double kTwoPi = 2.0 * std::numbers::pi;
 const char* const kOnOff[] = {"OFF", "ON"};
-inline float soft(float v) noexcept { return v / std::cbrt(1.0f + std::fabs(v) * v * v); }
 inline std::uint32_t samples(double fs, double ms) noexcept { return static_cast<std::uint32_t>(std::lround(fs * ms * 0.001)); }
 
 // Schroeder all-pass (diffuser) with a fixed delay.
@@ -60,13 +59,6 @@ const ParamInfo kHall[kCount] = {
     {"width", "Width", "%", 0.0f, 150.0f, 100.0f},          {"lowcut", "Low Cut", "Hz", 20.0f, 500.0f, 80.0f, Taper::Log},
     {"highcut", "High Cut", "Hz", 1000.0f, 20000.0f, 9000.0f, Taper::Log}, {"mix", "Mix", "%", 0.0f, 100.0f, 25.0f},
 };
-const ParamInfo kRoom[kCount] = {
-    {"predelay", "Pre-Delay", "ms", 0.0f, 100.0f, 5.0f},   {"size", "Size", "%", 0.0f, 100.0f, 50.0f},
-    {"decay", "Decay", "s", 0.2f, 4.0f, 0.8f, Taper::Log},  {"damping", "Damping", "%", 0.0f, 100.0f, 50.0f},
-    {"early", "Early", "%", 0.0f, 100.0f, 70.0f},          {"mod", "Mod", "%", 0.0f, 100.0f, 15.0f},
-    {"width", "Width", "%", 0.0f, 150.0f, 100.0f},          {"lowcut", "Low Cut", "Hz", 20.0f, 500.0f, 100.0f, Taper::Log},
-    {"highcut", "High Cut", "Hz", 1000.0f, 20000.0f, 8000.0f, Taper::Log}, {"mix", "Mix", "%", 0.0f, 100.0f, 20.0f},
-};
 const ParamInfo kPlate[kCount] = {
     {"predelay", "Pre-Delay", "ms", 0.0f, 200.0f, 10.0f},  {"size", "Size", "%", 0.0f, 100.0f, 50.0f},
     {"decay", "Decay", "s", 0.4f, 8.0f, 1.8f, Taper::Log},  {"damping", "Damping", "%", 0.0f, 100.0f, 20.0f},
@@ -78,7 +70,7 @@ const ParamInfo kPlate[kCount] = {
 class Reverb final : public hc::fx::Effect {
 public:
     explicit Reverb(Kind k) : kind_(k) { setDefaults(); }
-    std::span<const ParamInfo> params() const noexcept override { return kind_ == Kind::Hall ? std::span<const ParamInfo>(kHall) : kind_ == Kind::Room ? std::span<const ParamInfo>(kRoom) : std::span<const ParamInfo>(kPlate); }
+    std::span<const ParamInfo> params() const noexcept override { return kind_ == Kind::Hall ? std::span<const ParamInfo>(kHall) : std::span<const ParamInfo>(kPlate); }
 
     void prepare(double fs, std::uint32_t) override {
         fs_ = fs;
@@ -171,7 +163,6 @@ private:
     float scaleFor(float size) const noexcept {
         const float t = size * 0.01f;
         if (kind_ == Kind::Hall) return 1.0f + 1.2f * t;
-        if (kind_ == Kind::Room) return 0.25f + 0.65f * t;
         return 0.6f + 0.6f * t;
     }
     void designEq() noexcept {
@@ -194,162 +185,6 @@ private:
     hc::fx::Smoothed scale_, pd_, mix_;
 };
 } // namespace rv
-
-// ---- SPRING -----------------------------------------------------------------------------------------
-namespace sp {
-using namespace spring;
-const ParamInfo kParams[kCount] = {
-    {"decay", "Decay", "s", 0.5f, 5.0f, 2.0f, Taper::Log},
-    {"tension", "Tension", "%", 0.0f, 100.0f, 50.0f},
-    {"drip", "Drip", "%", 0.0f, 100.0f, 50.0f},
-    {"tone", "Tone", "%", 0.0f, 100.0f, 50.0f},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 25.0f},
-};
-constexpr int kStages = 24;
-class Impl final : public hc::fx::Effect {
-public:
-    Impl() { setDefaults(); }
-    std::span<const ParamInfo> params() const noexcept override { return kParams; }
-    void prepare(double fs, std::uint32_t) override {
-        fs_ = fs;
-        for (auto& d : loop_) d.prepare(samples(fs, 90.0) + 4);
-        reset();
-    }
-    void reset() noexcept override {
-        for (auto& d : loop_) d.clear();
-        for (auto& ch : ap_) ch.fill(0.0f);
-        for (auto& ch : f_) for (auto& b : ch) b.clear();
-        lp_[0] = lp_[1] = 0.0f;
-        toneKey_ = -1.0f;
-        clock_ = 0;
-        len_.prepare(fs_, 100, lenFor());
-        mix_.prepare(fs_, 30, p(Mix) * 0.01f);
-    }
-    void process(float* L, float* R, std::uint32_t n) noexcept override {
-        designTone();
-        // DRIP: how dispersive the spring is (the all-pass coefficient of the chirp chain)
-        const float a = -(0.3f + 0.45f * p(Drip) * 0.01f);
-        const float decay = p(Decay);
-        const float loopLp = static_cast<float>(std::exp(-kTwoPi * 4500.0 / fs_));
-        float* io[2] = {L, R};
-        for (std::uint32_t i = 0; i < n; ++i) {
-            const float len = len_.next(lenFor());
-            if ((clock_++ & 31u) == 0) g_ = static_cast<float>(std::pow(10.0, -3.0 * len / (fs_ * decay)));
-            const float g = g_;
-            const float mx = mix_.next(p(Mix) * 0.01f);
-            for (int c = 0; c < 2; ++c) {
-                const float l = len * (c == 0 ? 1.0f : 1.13f);   // two springs, slightly different
-                const float back = loop_[c].read(l - 1.0f);
-                lp_[c] = back + loopLp * (lp_[c] - back);
-                float v = io[c][i] * 0.6f + g * lp_[c];
-                // the chirp: a chain of first-order all-passes (high frequencies arrive at different times)
-                auto& st = ap_[static_cast<std::size_t>(c)];
-                for (int k = 0; k < kStages; ++k) {
-                    const float y = a * v + st[static_cast<std::size_t>(k)];
-                    st[static_cast<std::size_t>(k)] = v - a * y;
-                    v = y;
-                }
-                loop_[c].write(v);
-                auto& f = f_[static_cast<std::size_t>(c)];
-                const float wet = static_cast<float>(f[1].tick(f[0].tick(v)));
-                io[c][i] += mx * (wet - io[c][i]);
-            }
-        }
-    }
-private:
-    float lenFor() const noexcept { return static_cast<float>((30.0 + 40.0 * p(Tension) * 0.01) * 0.001 * fs_); }
-    void designTone() noexcept {
-        const float t = p(Tone);
-        if (t == toneKey_) return;
-        toneKey_ = t;
-        const C hp = C::make(T::HighPass, fs_, 120, 0.7071), lp = C::make(T::LowPass, fs_, 1800.0 * std::pow(4.0, t * 0.01), 0.7071);   // 1.8 .. 7.2 kHz
-        for (auto& ch : f_) { ch[0].c = hp; ch[1].c = lp; }
-    }
-    double fs_ = 48000;
-    hc::fx::DelayLine loop_[2];
-    std::array<std::array<float, kStages>, 2> ap_{};
-    std::array<std::array<hc::fx::Biquad, 2>, 2> f_{};
-    float lp_[2] = {0, 0}, toneKey_ = -1, g_ = 0;
-    std::uint32_t clock_ = 0;
-    hc::fx::Smoothed len_, mix_;
-};
-} // namespace sp
-
-// ---- TAPE ECHO --------------------------------------------------------------------------------------
-namespace te {
-using namespace tapeecho;
-const char* const kHeadsN[] = {"1", "1+2", "1+2+3"};
-const ParamInfo kParams[kCount] = {
-    {"time", "Time", "ms", 40.0f, 1000.0f, 300.0f, Taper::Log},
-    {"heads", "Heads", "", 0, 2, 0, Taper::Choice, kHeadsN},
-    {"feedback", "Feedback", "%", 0.0f, 110.0f, 40.0f},
-    {"tone", "Tone", "%", 0.0f, 100.0f, 50.0f},
-    {"wobble", "Wobble", "%", 0.0f, 100.0f, 25.0f},
-    {"saturation", "Saturation", "%", 0.0f, 100.0f, 40.0f},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 30.0f},
-};
-class Impl final : public hc::fx::Effect {
-public:
-    Impl() { setDefaults(); }
-    std::span<const ParamInfo> params() const noexcept override { return kParams; }
-    void prepare(double fs, std::uint32_t) override {
-        fs_ = fs;
-        for (auto& d : tape_) d.prepare(samples(fs, 3000.0 * 1.01) + 64);
-        reset();
-    }
-    void reset() noexcept override {
-        for (auto& d : tape_) d.clear();
-        for (auto& ch : f_) for (auto& b : ch) b.clear();
-        toneKey_ = -1.0f;
-        wow_ = flut_ = 0.0;
-        time_.prepare(fs_, 150, static_cast<float>(p(Time) * 0.001 * fs_));   // TIME glides: the pitch bends like tape
-        mix_.prepare(fs_, 30, p(Mix) * 0.01f);
-        fb_.prepare(fs_, 30, p(Feedback) * 0.01f);
-    }
-    void process(float* L, float* R, std::uint32_t n) noexcept override {
-        designTone();
-        const int heads = std::clamp(static_cast<int>(std::lround(p(Heads))), 0, 2) + 1;
-        const float wob = p(Wobble) * 0.01f, sat = 1.0f + 3.0f * p(Saturation) * 0.01f;
-        const double wInc = kTwoPi * 0.7 / fs_, fInc = kTwoPi * 7.3 / fs_;
-        float* io[2] = {L, R};
-        for (std::uint32_t i = 0; i < n; ++i) {
-            const float t = time_.next(static_cast<float>(p(Time) * 0.001 * fs_));
-            wow_ += wInc; if (wow_ > kTwoPi) wow_ -= kTwoPi;
-            flut_ += fInc; if (flut_ > kTwoPi) flut_ -= kTwoPi;
-            const float wobble = wob * static_cast<float>(0.004 * t * std::sin(wow_) + 0.0008 * t * std::sin(flut_));
-            const float fb = fb_.next(p(Feedback) * 0.01f), mx = mix_.next(p(Mix) * 0.01f);
-            for (int c = 0; c < 2; ++c) {
-                // playback heads at 1x, 2x, 3x TIME; the last one feeds back
-                float out = 0, last = 0;
-                for (int h = 1; h <= heads; ++h) {
-                    const float v = tape_[c].read(static_cast<float>(h) * t - 1.0f + wobble);
-                    out += v;
-                    last = v;
-                }
-                out /= static_cast<float>(heads);
-                auto& f = f_[static_cast<std::size_t>(c)];
-                const float back = static_cast<float>(f[1].tick(f[0].tick(last)));
-                // the record head: the input plus the feedback, through the tape's saturation
-                tape_[c].write(soft(sat * (io[c][i] + fb * back)) / sat);
-                io[c][i] += mx * (out - io[c][i]);
-            }
-        }
-    }
-private:
-    void designTone() noexcept {
-        const float t = p(Tone);
-        if (t == toneKey_) return;
-        toneKey_ = t;
-        const C hp = C::make(T::HighPass, fs_, 90, 0.6), lp = C::make(T::LowPass, fs_, 1500.0 * std::pow(6.0, t * 0.01), 0.6);   // 1.5 .. 9 kHz
-        for (auto& ch : f_) { ch[0].c = hp; ch[1].c = lp; }
-    }
-    double fs_ = 48000, wow_ = 0, flut_ = 0;
-    hc::fx::DelayLine tape_[2];
-    std::array<std::array<hc::fx::Biquad, 2>, 2> f_{};
-    float toneKey_ = -1;
-    hc::fx::Smoothed time_, mix_, fb_;
-};
-} // namespace te
 
 // ---- DIGITAL DELAY ----------------------------------------------------------------------------------
 namespace dd {
@@ -432,10 +267,7 @@ private:
 } // namespace
 
 std::unique_ptr<hc::fx::Effect> makeHall() { return std::make_unique<rv::Reverb>(verb::Kind::Hall); }
-std::unique_ptr<hc::fx::Effect> makeRoom() { return std::make_unique<rv::Reverb>(verb::Kind::Room); }
 std::unique_ptr<hc::fx::Effect> makePlate() { return std::make_unique<rv::Reverb>(verb::Kind::Plate); }
-std::unique_ptr<hc::fx::Effect> makeSpring() { return std::make_unique<sp::Impl>(); }
-std::unique_ptr<hc::fx::Effect> makeTapeEcho() { return std::make_unique<te::Impl>(); }
 std::unique_ptr<hc::fx::Effect> makeDigitalDelay() { return std::make_unique<dd::Impl>(); }
 
 } // namespace hem::rack

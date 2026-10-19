@@ -13,13 +13,11 @@
 
 namespace hem::rack {
 
-enum class Face : std::uint8_t { EliteEq, Restorer, BusGlue, Tape, TubeEq, VariMu, Opto, Fet, Limiter,
-                                DeEsser, Width, Clipper, Exciter, Transient, Meter,
-                                VcaComp, PunchComp, FocusBus, DiodeBus, Gate, Multiband,
-                                TubeSat, Preamp, Cassette, Vinyl, BitCrusher, Transformer,
-                                Hall, Room, Plate, Spring, TapeEcho, DigitalDelay,
+enum class Face : std::uint8_t { EliteEq, Restorer, BusGlue, Tape, TubeEq, Limiter,
+                                Width, Exciter, Meter,
+                                VcaComp, TubeSat, Hall, Plate, DigitalDelay,
                                 Chorus, Flanger, Phaser, Tremolo, Rotary, AutoFilter,
-                                Sub, BassTightener, VocalStrip };
+                                Sub, VocalStrip };
 
 // Where a plug-in sits in the rack's picker.
 enum class Group : std::uint8_t { Eq, Dynamics, Color, Space, Movement, Tools, kCount };

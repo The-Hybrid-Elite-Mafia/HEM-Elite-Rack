@@ -13,33 +13,14 @@ C++23 audio framework, as a library.
 | **THE FAMILY** | Console-style mix-bus compressor: 2 / 4 / 10:1, stepped attack and release (+ AUTO), sidechain HPF, mix |
 | **ARCHIVE** | Two-track tape machine: input drive, 15 / 30 IPS, head bump, wow & flutter, hiss, auto trim, VU meters |
 | **VELVET** | Passive tube program EQ: low boost / atten (the low-end trick), high boost with bandwidth, high atten, tube drive |
-| **SMOKE** | Variable-mu tube compressor: ratio grows with level, six time constants, stereo or mid / side, tube |
-| **LANTERN** | Optical leveler: peak reduction and gain, compress / limit, two-stage release, sidechain emphasis |
-| **TRIGGER** | Fast FET limiting amplifier: input / output, attack and release 1–7, ratios 4 / 8 / 12 / 20 / ALL |
 | **LOCKDOWN** | True-peak mastering limiter: input push, ceiling, look-ahead, auto release, stereo link, LUFS and true-peak readouts |
-| **HUSH MONEY** | Tames harsh S / T sounds: frequency, threshold, range; SPLIT (only the ess band) or WIDE; LISTEN |
 | **WIDE LOAD** | Mono to 200 % width, MONO BASS (80–250 Hz), balance; correlation and width readouts |
-| **RAZOR** | 4x oversampled clipper with a hard-to-soft SHAPE: shave peaks before the limiter |
 | **SPARK** | Adds fresh harmonics above a frequency: TUBE (even) or TAPE (odd), drive, mix |
-| **SUCKER PUNCH** | Transient shaper: more or less ATTACK and SUSTAIN, the same at any level |
 | **THE ACCOUNTANT** | EBU R128 / BS.1770: momentary, short-term, integrated LUFS, loudness range, true peak, correlation, distance to a target |
 | **ENFORCER** | Clean modern compressor: ratio 1–20, knee, attack, release or AUTO, auto makeup, sidechain HPF, mix |
-| **HEAVY HAND** | Classic RMS compressor: threshold, compression up to 60:1, SOFT KNEE, program-dependent timing |
-| **MUSCLE** | Punchy bus compressor: LOW FOCUS (bass pumps less), knee, MODERN (feed-forward) / VINTAGE (feedback), link |
-| **UNDERBOSS** | Diode-bridge bus compressor + limiter: AUTO recovery, iron drive |
-| **BOUNCER** | Gate / expander: range, hold, hysteresis, detector HPF / LPF, listen |
-| **TRIAD** | Three-band compressor: Linkwitz-Riley crossovers, threshold / ratio / gain per band |
 | **FURNACE** | Tube stage: drive, bias (even harmonics), tone, mix — colour without a volume jump |
-| **FRONT MAN** | Mic / line preamp: up to +30 dB into CLEAN, IRON or TUBE; low cut, phase invert |
-| **MIXTAPE** | Cassette deck: TYPE I / II / IV, drive, wow, flutter, hiss, age |
-| **CRATE DIGGER** | Record: crackle, surface noise and rumble, wear, warp, mono lows |
-| **SHREDDER** | Bits 1–24, downsample 1–50x, mix |
-| **ANVIL** | Output iron: the lows saturate most, weight, nickel or steel |
 | **CATHEDRAL** | Concert hall reverb: pre-delay, size, decay, damping, early reflections, modulation, width, low / high cut |
-| **BACKROOM** | Room reverb, small to large, early reflections up front |
 | **CHROME** | Bright, dense plate reverb with diffusion control |
-| **COIL** | Spring tank: decay, tension, drip, tone |
-| **WIRETAP** | Tape delay: three heads, feedback to 110 % (saturates, never blows up), wobble, tone |
 | **REPEAT OFFENDER** | Clean stereo delay: note values at a BPM or ms, ping-pong, stereo offset, filtered repeats |
 | **THE CREW** | Stereo chorus: one to three voices, rate, depth, delay, width |
 | **GETAWAY** | Jet flanger: manual, depth, positive or negative feedback |
@@ -48,10 +29,9 @@ C++23 audio framework, as a library.
 | **CYCLONE** | Rotating speaker: slow / fast with real spin-up, drive, horn / drum balance, mic spread |
 | **SHAPESHIFTER** | Resonant low / band / high-pass following the music (envelope) or an LFO |
 | **UNDERGROUND** | More low end: a new sub an octave down, or harmonics small speakers can hear |
-| **CHOKEHOLD** | Low-end control: tighten boomy notes, punch kick attacks, mono lows |
 | **SPOTLIGHT** | Vocal chain: high-pass, body, one-knob compressor, one-knob de-esser, presence, air |
 
-Forty-two plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
+Twenty-two plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 
 ## Install
 Download `HEM-Elite-Rack-Setup-x.y.z.exe` from **Releases** and run it. Needs Windows 10 / 11
