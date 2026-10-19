@@ -42,6 +42,12 @@ C++23 audio framework, as a library.
 | **VINYL** | Record: crackle, surface noise and rumble, wear, warp, mono lows |
 | **BIT CRUSHER** | Bits 1–24, downsample 1–50x, mix |
 | **TRANSFORMER** | Output iron: the lows saturate most, weight, nickel or steel |
+| **HALL** | Concert hall reverb: pre-delay, size, decay, damping, early reflections, modulation, width, low / high cut |
+| **ROOM** | Room reverb, small to large, early reflections up front |
+| **PLATE** | Bright, dense plate reverb with diffusion control |
+| **SPRING** | Spring tank: decay, tension, drip, tone |
+| **TAPE ECHO** | Tape delay: three heads, feedback to 110 % (saturates, never blows up), wobble, tone |
+| **DIGITAL DELAY** | Clean stereo delay: note values at a BPM or ms, ping-pong, stereo offset, filtered repeats |
 
 Our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 

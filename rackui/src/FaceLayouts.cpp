@@ -12,6 +12,7 @@
 #include "hem/rack/ClassicEqs.hpp"
 #include "hem/rack/MoreDynamics.hpp"
 #include "hem/rack/ColorFx.hpp"
+#include "hem/rack/Space.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -1001,6 +1002,79 @@ FaceLayout transformerFace(const rack::PluginInfo& info) {
     return L;
 }
 
+// ---- wave 9 space: two rows of knobs (no screen)
+FaceLayout reverbFace(const rack::PluginInfo& info) {
+    using namespace rack::verb;
+    FaceLayout L;
+    common(L, info);
+    const bool plate = info.face == rack::Face::Plate, room = info.face == rack::Face::Room;
+    L.leftNotes = plate ? std::vector<std::string>{"BRIGHT AND DENSE", "VOCALS AND SNARES"}
+                        : room ? std::vector<std::string>{"REAL ROOMS", "SMALL TO LARGE"} : std::vector<std::string>{"BIG AND LUSH", "CONCERT SPACE"};
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 182, 1226, 330};
+    L.sections.push_back({{410, 190, 1226, 30}, "THE SPACE"});
+    knobRow(L, {{PreDelay, "PRE-DELAY", 100, "0", room ? "100" : "200", false}, {Size, "SIZE", 110, "SMALL", "LARGE", false},
+                {Decay, "DECAY", 128, "SHORT", "LONG", false}, {Damping, "DAMPING", 100, "BRIGHT", "DARK", false},
+                {Early, plate ? "DIFFUSION" : "EARLY", 100, "0", "100", false}}, 240);
+    L.grooves.push_back({410, 524, 1636, 524});
+    L.sections.push_back({{410, 532, 1226, 30}, "THE SOUND OF IT"});
+    knobRow(L, {{Mod, "MOD", 96, "0", "100", false}, {Width, "WIDTH", 96, "MONO", "WIDE", false}, {LowCut, "LOW CUT", 96, "20", "500", false},
+                {HighCut, "HIGH CUT", 96, "1k", "20k", false}, {Mix, "MIX", 110, "DRY", "WET", false}}, 590);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
+FaceLayout springFace(const rack::PluginInfo& info) {
+    using namespace rack::spring;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"DRIP AND BOING", "AMPS AND DUB"};
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 182, 1226, 330};
+    L.sections.push_back({{410, 260, 1226, 30}, "TWO SPRINGS IN A TANK"});
+    knobRow(L, {{Decay, "DECAY", 128, "SHORT", "LONG", false}, {Tension, "TENSION", 110, "TIGHT", "LOOSE", false}, {Drip, "DRIP", 110, "SMOOTH", "DRIPPY", false},
+                {Tone, "TONE", 100, "DARK", "BRIGHT", false}, {Mix, "MIX", 110, "DRY", "WET", false}}, 420);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
+FaceLayout tapeEchoFace(const rack::PluginInfo& info) {
+    using namespace rack::tapeecho;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"WARM REPEATS", "THAT RUN AWAY"};
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 182, 1226, 330};
+    leftChoices(L, "HEADS", Heads, 3, 420);
+    L.sections.push_back({{410, 190, 1226, 30}, "THE LOOP"});
+    knobRow(L, {{Time, "TIME", 128, "40", "1000", false}, {Feedback, "FEEDBACK", 128, "0", "110", false}}, 240);
+    L.grooves.push_back({410, 524, 1636, 524});
+    L.sections.push_back({{410, 532, 1226, 30}, "THE TAPE"});
+    knobRow(L, {{Tone, "TONE", 100, "DARK", "BRIGHT", false}, {Wobble, "WOBBLE", 100, "0", "100", false}, {Saturation, "SATURATION", 100, "0", "100", false},
+                {Mix, "MIX", 110, "DRY", "WET", false}}, 590);
+    buttonSeats(L);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
+FaceLayout digitalDelayFace(const rack::PluginInfo& info) {
+    using namespace rack::ddelay;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"CLEAN REPEATS", "ON THE BEAT"};
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 182, 1226, 330};
+    buttonGroup(L, "NOTE (FREE = TIME IN ms)", 410, 1226, 236, Division, 8);
+    L.widgets.push_back(toggle({70, 434, 270, 44}, PingPong, "PING-PONG"));
+    knobRow(L, {{Bpm, "BPM", 110, "60", "200", false}, {Time, "TIME", 110, "1", "2000", false}, {Feedback, "FEEDBACK", 128, "0", "98", false},
+                {Offset, "OFFSET", 90, "0", "30", false}}, 330);
+    L.grooves.push_back({410, 524, 1636, 524});
+    knobRow(L, {{LowCut, "LOW CUT", 96, "20", "1k", false}, {HighCut, "HIGH CUT", 96, "1k", "20k", false}, {Mix, "MIX", 110, "DRY", "WET", false}}, 590);
+    buttonSeats(L);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
 } // namespace
 
 FaceLayout faceLayout(const rack::PluginInfo& info) {
@@ -1038,6 +1112,12 @@ FaceLayout faceLayout(const rack::PluginInfo& info) {
     case rack::Face::Vinyl: return vinylFace(info);
     case rack::Face::BitCrusher: return crusherFace(info);
     case rack::Face::Transformer: return transformerFace(info);
+    case rack::Face::Hall:
+    case rack::Face::Room:
+    case rack::Face::Plate: return reverbFace(info);
+    case rack::Face::Spring: return springFace(info);
+    case rack::Face::TapeEcho: return tapeEchoFace(info);
+    case rack::Face::DigitalDelay: return digitalDelayFace(info);
     case rack::Face::Restorer: break;
     }
     return restorer(info);

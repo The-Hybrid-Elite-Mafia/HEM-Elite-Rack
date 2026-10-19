@@ -16,6 +16,7 @@
 #include "hem/rack/ClassicEqs.hpp"
 #include "hem/rack/MoreDynamics.hpp"
 #include "hem/rack/ColorFx.hpp"
+#include "hem/rack/Space.hpp"
 #include "hem/ui/FaceWindow.hpp"
 
 #include <windows.h>

@@ -1,3 +1,17 @@
+# HEM-Elite-Rack 0.9.0
+
+**Space: six reverbs and delays — forty plug-ins in all**, in the rack and as VST3:
+- **HALL / ROOM / PLATE** — an 8-line feedback-delay-network reverb voiced three ways. Measured
+  reverb times come out 9–14 % under the DECAY setting (tested: 3.0 s reads 2.63 s, 0.8 s reads
+  0.70 s); the left and right tails are uncorrelated (wide).
+- **SPRING** — two springs with the dispersive "drip".
+- **TAPE ECHO** — three heads, wobble, saturation; feedback up to 110 % stays bounded (tested
+  for 10 s).
+- **DIGITAL DELAY** — note values at a BPM (or ms), ping-pong, stereo offset, filtered repeats.
+  Repeats land on the exact sample.
+
+The rack has no tempo of its own yet, so DIGITAL DELAY takes the BPM as a knob.
+
 # HEM-Elite-Rack 0.8.0
 
 **Six new colour plug-ins — thirty-four in all**, in the rack and as VST3. Each shows the spectrum

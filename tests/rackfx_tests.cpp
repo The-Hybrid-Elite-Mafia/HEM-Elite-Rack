@@ -19,6 +19,7 @@
 #include "hem/rack/ClassicEqs.hpp"
 #include "hem/rack/MoreDynamics.hpp"
 #include "hem/rack/ColorFx.hpp"
+#include "hem/rack/Space.hpp"
 #include "hybrid/fx/Dsp.hpp"
 
 #include <algorithm>
@@ -1750,6 +1751,135 @@ void testColorFx() {
         CHECK(lo > hi + 6.0 && std::fabs(bump - 6.0) < 0.5);
     }
     for (const char* n : {"TUBE SAT", "PREAMP", "CASSETTE", "VINYL", "BIT CRUSHER", "TRANSFORMER"}) {
+        Stereo in = hotMix(1.0);
+        const double d = blockSizeDifference(*findPlugin(n), [](hc::fx::Effect&) {}, in);
+        std::printf("  %s block size 1 vs 512: max difference %.2e\n", n, d);
+        CHECK(d < 1e-5);
+    }
+}
+
+} // namespace hem::test
+
+// ---- WAVE 9: HALL, ROOM, PLATE, SPRING, TAPE ECHO, DIGITAL DELAY ---------------------------------
+namespace hem::test {
+namespace {
+Stereo impulse(double seconds, float amp = 1.0f) {
+    Stereo s(static_cast<std::size_t>(seconds * kFs));
+    s.l[0] = s.r[0] = amp;
+    return s;
+}
+// Reverb time from an impulse response: Schroeder backward integration, the -5 .. -25 dB slope x 3.
+double rt60(const Stereo& s) {
+    std::vector<double> edc(s.size());
+    double acc = 0;
+    for (std::size_t i = s.size(); i-- > 0;) {
+        acc += static_cast<double>(s.l[i]) * s.l[i] + static_cast<double>(s.r[i]) * s.r[i];
+        edc[i] = acc;
+    }
+    const double top = edc[0];
+    double t5 = -1, t25 = -1;
+    for (std::size_t i = 0; i < edc.size(); ++i) {
+        const double d = 10.0 * std::log10(edc[i] / top);
+        if (t5 < 0 && d <= -5.0) t5 = static_cast<double>(i) / kFs;
+        if (t25 < 0 && d <= -25.0) { t25 = static_cast<double>(i) / kFs; break; }
+    }
+    return t25 > 0 && t5 >= 0 ? 3.0 * (t25 - t5) : -1.0;
+}
+double correlation(const Stereo& s, std::size_t from) {
+    double lr = 0, ll = 0, rr = 0;
+    for (std::size_t i = from; i < s.size(); ++i) { lr += s.l[i] * s.r[i]; ll += s.l[i] * s.l[i]; rr += s.r[i] * s.r[i]; }
+    return lr / std::sqrt(std::max(ll * rr, 1e-30));
+}
+std::size_t peakIndex(const std::vector<float>& x, std::size_t from, std::size_t to) {
+    std::size_t k = from;
+    for (std::size_t i = from; i < to && i < x.size(); ++i) if (std::fabs(x[i]) > std::fabs(x[k])) k = i;
+    return k;
+}
+double energyAround(const std::vector<float>& x, std::size_t at, std::size_t half) {
+    double e = 0;
+    for (std::size_t i = at > half ? at - half : 0; i < at + half && i < x.size(); ++i) e += static_cast<double>(x[i]) * x[i];
+    return e;
+}
+} // namespace
+
+void testSpace() {
+    std::printf("[space] HALL, ROOM, PLATE, SPRING, TAPE ECHO, DIGITAL DELAY\n");
+    for (const char* n : {"HALL", "ROOM", "PLATE", "SPRING", "TAPE ECHO", "DIGITAL DELAY"}) {
+        const PluginInfo* info = findPlugin(n);
+        CHECK(info != nullptr);
+        if (info) commonRules(*info);
+    }
+    {   // the reverbs: DECAY is the real reverb time; MIX 0 is the dry signal; the tail is wide
+        using namespace verb;
+        const struct { const char* n; float decay; } cases[] = {{"HALL", 3.0f}, {"HALL", 1.2f}, {"ROOM", 0.8f}, {"PLATE", 2.0f}};
+        for (const auto& c : cases) {
+            auto e = fresh(c.n, {{Decay, c.decay}, {Damping, 0}, {Mod, 0}, {LowCut, 20}, {HighCut, 20000}, {Mix, 100}, {PreDelay, 0}});
+            Stereo s = impulse(c.decay * 2.0 + 0.5);
+            run(*e, s);
+            const double t = rt60(s), corr = correlation(s, 4800);
+            std::printf("  %s decay %.1f s: measured reverb time %.2f s, left / right correlation %.2f\n", c.n, c.decay, t, corr);
+            CHECK(t > c.decay * 0.75 && t < c.decay * 1.25);
+            CHECK(std::fabs(corr) < 0.5);
+        }
+        auto dry = fresh("HALL", {{Mix, 0}});
+        Stereo s = noise(1.0, 0.3f), ref = s;
+        run(*dry, s);
+        CHECK(maxDelayedDiff(s, ref, 0, 0) == 0.0);
+        auto dark = fresh("HALL", {{Damping, 100}, {Mix, 100}}), bright = fresh("HALL", {{Damping, 0}, {Mix, 100}});
+        Stereo a = noise(1.0, 0.3f), b = a;
+        run(*dark, a);
+        run(*bright, b);
+        const double hd = bandLevelDb(a.l, 6000, 12000, 24000, 24000), hb = bandLevelDb(b.l, 6000, 12000, 24000, 24000);
+        std::printf("  HALL 6-12 kHz in the tail: damping 100 %% %.1f dB, damping 0 %% %.1f dB\n", hd, hb);
+        CHECK(hd < hb - 6.0);
+    }
+    {   // SPRING: it rings and dies away within DECAY
+        using namespace spring;
+        auto e = fresh("SPRING", {{Decay, 2.0f}, {Mix, 100}});
+        Stereo s = impulse(3.0);
+        run(*e, s);
+        const double early = rms(s.l, 4800, 24000), late = rms(s.l, 96000, 24000);
+        std::printf("  SPRING decay 2 s: level 0.1-0.6 s %.1f dB, 2.0-2.5 s %.1f dB\n", db(early), db(late));
+        CHECK(db(early) > -60.0 && db(late) < db(early) - 30.0);
+    }
+    {   // TAPE ECHO: the first repeat lands exactly at TIME; the heads at 2x and 3x; 110 % feedback stays bounded
+        using namespace tapeecho;
+        auto e = fresh("TAPE ECHO", {{Time, 250}, {Wobble, 0}, {Feedback, 0}, {Mix, 100}});
+        Stereo s = impulse(1.0, 0.5f);
+        run(*e, s);
+        const std::size_t k = peakIndex(s.l, 1, s.size());
+        auto e3 = fresh("TAPE ECHO", {{Time, 100}, {Heads, 2}, {Wobble, 0}, {Feedback, 0}, {Mix, 100}});
+        Stereo t = impulse(1.0, 0.5f);
+        run(*e3, t);
+        const std::size_t h2 = peakIndex(t.l, 6000, 12000), h3 = peakIndex(t.l, 12000, 18000);
+        auto run110 = fresh("TAPE ECHO", {{Time, 120}, {Feedback, 110}, {Mix, 100}});
+        Stereo u = impulse(10.0, 0.5f);
+        run(*run110, u);
+        std::printf("  TAPE ECHO: 250 ms repeat at sample %zu (12000); heads 2 and 3 at %zu and %zu (9600, 14400); 110 %% feedback for 10 s peaks at %.2f\n", k, h2, h3, peak(u));
+        CHECK(k == 12000 && h2 == 9600 && h3 == 14400);
+        CHECK(finite(u) && peak(u) < 1.5f && peak(u) > 0.1f);
+    }
+    {   // DIGITAL DELAY: exact time, feedback level, note values at BPM, ping-pong alternates sides
+        using namespace ddelay;
+        auto e = fresh("DIGITAL DELAY", {{Division, 0}, {Time, 250}, {Feedback, 50}, {Mix, 100}, {LowCut, 20}, {HighCut, 20000}});
+        Stereo s = impulse(1.0);
+        run(*e, s);
+        const std::size_t k = peakIndex(s.l, 1, 18000);
+        const double second = 10.0 * std::log10(energyAround(s.l, 24000, 400) / energyAround(s.l, 12000, 400));
+        auto q = fresh("DIGITAL DELAY", {{Division, 1}, {Bpm, 120}, {Feedback, 0}, {Mix, 100}});
+        Stereo t = impulse(1.0);
+        run(*q, t);
+        const std::size_t kq = peakIndex(t.l, 1, t.size());
+        auto pp = fresh("DIGITAL DELAY", {{Division, 0}, {Time, 100}, {Feedback, 60}, {PingPong, 1}, {Mix, 100}});
+        Stereo u = impulse(1.0);
+        run(*pp, u);
+        const double l1 = energyAround(u.l, 4800, 200), r1 = energyAround(u.r, 4800, 200), l2 = energyAround(u.l, 9600, 200), r2 = energyAround(u.r, 9600, 200);
+        std::printf("  DIGITAL DELAY: 250 ms echo at %zu (12000), value %.3f, second repeat %.1f dB (feedback 50 %% = -6.0); 1/4 at 120 BPM at %zu (24000); ping-pong 1st L/R %.2f / %.2f, 2nd %.2f / %.2f\n",
+                    k, s.l[k], second, kq, l1, r1, l2, r2);
+        CHECK(k == 12000 && std::fabs(s.l[k] - 1.0f) < 1e-6f && std::fabs(second + 6.0) < 1.5 && kq == 24000);
+        CHECK(l1 > 0.1 && r1 < 1e-6 && r2 > 0.05 && l2 < 1e-6);
+    }
+    for (const char* n : {"HALL", "ROOM", "PLATE", "SPRING", "TAPE ECHO", "DIGITAL DELAY"}) {
         Stereo in = hotMix(1.0);
         const double d = blockSizeDifference(*findPlugin(n), [](hc::fx::Effect&) {}, in);
         std::printf("  %s block size 1 vs 512: max difference %.2e\n", n, d);

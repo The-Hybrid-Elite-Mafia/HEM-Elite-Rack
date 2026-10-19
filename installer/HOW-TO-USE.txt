@@ -133,6 +133,22 @@ THE COLOUR BOXES (TUBE SAT, PREAMP, CASSETTE, VINYL, BIT CRUSHER, TRANSFORMER)
   BIT CRUSHER: BITS down = grittier, DOWNSAMPLE up = more lo-fi aliasing. Use MIX to blend.
   TRANSFORMER: DRIVE saturates the low end most; WEIGHT adds a low bump; STEEL is thicker.
 
+HALL, ROOM, PLATE
+  DECAY = how many seconds the tail lasts. PRE-DELAY keeps the dry sound clear before the
+  reverb starts (20 - 60 ms on vocals). DAMPING makes the tail darker. LOW CUT on the reverb
+  keeps the low end clean. For a send-style sound in the rack, keep MIX low (10 - 25 %).
+
+SPRING
+  TENSION changes the "boing", DRIP the chirpy splash. Great on guitars, dub, lo-fi.
+
+TAPE ECHO
+  TIME (moving it bends the pitch, like real tape), FEEDBACK (over 100 % it builds up and
+  saturates - ride it for dub throws), HEADS for rhythmic multi-repeats, WOBBLE, TONE.
+
+DIGITAL DELAY
+  Pick a NOTE (1/4, 1/8, dotted, triplets) and set BPM to your song's tempo, or FREE and TIME in
+  ms. PING-PONG bounces the repeats left and right. LOW / HIGH CUT shape the repeats.
+
 LOUDNESS METER (measures only, changes nothing)
   INTEGRATED = the whole song since RESET (play it all the way through). SHORT-TERM = the last
   3 seconds, MOMENTARY = the last 0.4 s. LOUDNESS RANGE = how much it moves (LU).

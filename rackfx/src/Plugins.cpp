@@ -12,6 +12,7 @@
 #include "hem/rack/ClassicEqs.hpp"
 #include "hem/rack/MoreDynamics.hpp"
 #include "hem/rack/ColorFx.hpp"
+#include "hem/rack/Space.hpp"
 
 #include <cstring>
 
@@ -154,6 +155,30 @@ const PluginInfo kPlugins[] = {
      "Output transformer: low-end saturation, weight, nickel or steel",
      {0x08343753u, 0x77654ABBu, 0x97A35049u, 0x668FC2FAu}, {0x0AA1C5EEu, 0xEACA4B1Au, 0xA8B5C910u, 0x61ECBEBCu},
      Face::Transformer, Group::Color, &makeTransformer},
+    {"HALL", "CONCERT HALL REVERB", "SPACE WHAT MATTERS", "Fx|Reverb",
+     "Big, lush hall: pre-delay, size, decay, damping, early reflections, modulation",
+     {0x385E671Fu, 0x66FF4D76u, 0x9B107E22u, 0x61F3B9D4u}, {0x562C6642u, 0x032845B0u, 0x9CD3E930u, 0x24DD7BBCu},
+     Face::Hall, Group::Space, &makeHall},
+    {"ROOM", "ROOM REVERB", "PLACE WHAT MATTERS", "Fx|Reverb",
+     "Real rooms, small to large: early reflections up front, short natural tails",
+     {0x2F23BDA8u, 0x7B124386u, 0x99C07C3Eu, 0x7AEC270Du}, {0xB4DE8A75u, 0x2BF746C5u, 0x9ECB3175u, 0x526A3354u},
+     Face::Room, Group::Space, &makeRoom},
+    {"PLATE", "PLATE REVERB", "SHINE WHAT MATTERS", "Fx|Reverb",
+     "Bright, dense plate: instant smooth tail for vocals and snares",
+     {0x41724663u, 0x5F744FE1u, 0x974108DDu, 0xFD3E46F9u}, {0x71F19E30u, 0xEE154D54u, 0x96B15612u, 0x9B0E28D4u},
+     Face::Plate, Group::Space, &makePlate},
+    {"SPRING", "SPRING REVERB", "BOUNCE WHAT MATTERS", "Fx|Reverb",
+     "Spring tank: the drip and boing of guitar amps and dub",
+     {0x3027751Fu, 0xC0A243AAu, 0x842319B6u, 0x0EFF1565u}, {0x1037B8BFu, 0xD9BC40A6u, 0x811DC5A8u, 0x9613D54Bu},
+     Face::Spring, Group::Space, &makeSpring},
+    {"TAPE ECHO", "TAPE DELAY", "REPEAT WHAT MATTERS", "Fx|Delay",
+     "Tape echo: three heads, wobble, saturation, feedback that runs away musically",
+     {0xF465CDD4u, 0x6BCB47DFu, 0xAECE6509u, 0xFE212163u}, {0x218085E2u, 0xB48343CBu, 0xBF9959F0u, 0xBF2F469Cu},
+     Face::TapeEcho, Group::Space, &makeTapeEcho},
+    {"DIGITAL DELAY", "STEREO DELAY", "ECHO WHAT MATTERS", "Fx|Delay",
+     "Clean stereo delay: note values at a BPM, ping-pong, filters in the repeats",
+     {0x72B3AE16u, 0x72E34303u, 0xBD88785Fu, 0x7CFF75D3u}, {0x0D7A0C5Bu, 0x2A184EE2u, 0xB500AA8Du, 0x0D36A023u},
+     Face::DigitalDelay, Group::Space, &makeDigitalDelay},
 };
 } // namespace
 

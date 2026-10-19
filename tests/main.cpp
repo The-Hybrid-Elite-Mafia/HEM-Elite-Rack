@@ -39,6 +39,7 @@ int main(int argc, char** argv) {
     testClassicEqs();
     testMoreDynamics();
     testColorFx();
+    testSpace();
     testFaces();
     testChain();
     testRackSession();
