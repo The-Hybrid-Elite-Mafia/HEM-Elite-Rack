@@ -616,12 +616,12 @@ void FaceView::readout(const Ctx& c, const Widget& w) const {
     const float v = c.feed.meterDb(w.choice);
     const TextStyle cs = c.ts(TextStyle::Caption);
     r.text(cs, w.caption, b.x + 18 * z, b.y + 30 * z, th_.label, Align::Left, TextFx::Shadowed);
-    r.text(cs, w.lo, b.right() - 18 * z, b.y + 30 * z, th_.dim, Align::Right, TextFx::Shadowed);   // the unit
+    r.text(cs, w.lo, b.x + 18 * z, b.y + 60 * z, th_.teal, Align::Left, TextFx::NeonCrisp);   // the unit, under the name
     char t[24];
     if (v > -99.0f) std::snprintf(t, sizeof t, "%.1f", static_cast<double>(v));
     else std::snprintf(t, sizeof t, "--");
     const bool over = w.choice == 1 && v > plain(c.host, rack::limiter::Ceiling) + 0.05f;   // true peak above the ceiling
-    const TextStyle big = c.fit(TextStyle::Display, t, b.w - 36 * z);
+    const TextStyle big = c.fit(TextStyle::Display, t, b.w * 0.55f);   // the left side keeps the name and unit
     r.text(big, t, b.right() - 18 * z, b.bottom() - 18 * z, over ? th_.red : th_.teal, Align::Right, TextFx::Neon);
 }
 
