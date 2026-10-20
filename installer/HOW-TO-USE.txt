@@ -400,6 +400,22 @@ COLD CASE
   DENSITY (the right side's echoes later), HI TAME (darker), LOOP FILTER. The wet sound: HIGH CUT,
   WIDTH, ROTATE, PRE-DELAY, WET MODE (STEREO, MONO, MONO FLIP), MIX, GAIN.
 
+MOUTHPIECE
+  A vocal leveler in one move. PRESS down = the voice is held steadier and comes forward (the level is
+  made up for you). CEILING = the most that ever comes out. GATE brings the quiet room noise between
+  lines down (all the way left = off). TOTAL shows how much it's working; RESET clears the peaks.
+
+SLINGER
+  For guitar. THRESHOLD down = more even (the harder it works the stronger it gets; it lets go by itself,
+  slowly after long chords, quickly after single notes). ATTACK longer = the pick comes through.
+  GAIN = the level out (high settings push the output limiter: watch the LIMITER readout).
+
+STREET TEAM
+  A whole channel on one plate. INPUT first (all the way down = off), then the four-band EQ: each band
+  ON, TYPE, FREQ, GAIN, and Q for bells (band 1 can be a HIGH-PASS, band 4 a LOW-PASS). Then the GATE
+  (OFF all the way down; FLOOR = how far it closes; G ATTACK / G RELEASE) and the compressor (COMP
+  threshold, RATIO - under 1 it expands the loud parts instead -, C ATTACK, C RELEASE), and OUTPUT.
+
 THE INFORMANT
   Talk or sing into it and its own synth "speaks" your words. Play the synth on the 48 KEYS (up to
   eight at once): HOLD = a key sounds while you hold it (drag across for a glide), LATCH = a click

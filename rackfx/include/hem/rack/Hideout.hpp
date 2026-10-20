@@ -58,6 +58,17 @@
 //                wet sound: WIDTH 0–200 %, ROTATE ±45°, HIGH CUT (on, 1–20 kHz), PRE-DELAY 0–100 ms, WET MODE
 //                STEREO / MONO / MONO FLIP (left flipped, then summed), MIX 0–100 %, GAIN ±18 dB. Peaks L / R
 //                with RESET. Zero latency. Its own ranges: the original's manual does not give them.
+//  MOUTHPIECE    vocal leveler in one move: GATE -80..0 dB (a soft downward expander under it; -80 = off), PRESS 0..-36 dB
+//                (down = more compression, made up so the voice comes forward), CEILING -36..0 dB (the most that ever comes
+//                out: a limiter). Readouts: TOTAL (compressor and gate together), OUTPUT, INPUT; RESET clears their peaks.
+//  SLINGER       guitar compressor: THRESHOLD -60..0 dBFS (the ratio grows as it goes down; the release follows the
+//                playing), ATTACK 0–50 ms (longer lets the pick through), GAIN -30..0 dB (the level out: higher drives
+//                the output limiter harder). Readouts: INPUT, ATTEN (compressor and limiter), OUTPUT, LIMITER; RESET.
+//  STREET TEAM   channel: INPUT (-60 = off ..0 dB), a four-band EQ (ON, TYPE, FREQ 16 Hz–21.4 kHz, GAIN ±18, Q 0.5–30
+//                for bells; band 1 HIGH-PASS / LO SHELF / BELL / HI SHELF, 2–3 LO SHELF / BELL / HI SHELF, band 4 LO
+//                SHELF / BELL / HI SHELF / LOW-PASS), a gate (THRESHOLD -96 = off ..0, FLOOR -96..0, ATTACK, RELEASE) and
+//                a compressor (THRESHOLD -52..0, RATIO 0.5:1 (expands) .. 40:1, ATTACK 0.1–1000 ms, RELEASE 1–10000 ms),
+//                OUTPUT -24..+12 dB. Meters: ENERGY (after the EQ), COMP and GATE gain change, OUTPUT. Zero latency.
 //  THE INFORMANT vocoder: the MODULATOR (L+R, LEFT or RIGHT of the input: the words) shapes the CARRIER (its own
 //                SYNTH, or the input's LEFT, RIGHT or STEREO). The synth: 48 keys (C2–B5, eight voices: more held keys
 //                than voices are ignored), LATCH (HOLD: a key sounds while held; LATCH: a click latches it),
@@ -145,6 +156,18 @@ enum P : int { Notches, Half, Depth, NotchFlip, StereoSpread, LowCutOn, LowCut, 
                LoopOn, Decay, LoopFlip, Delay, Density, HiTame, LoopFilter, LoopFreq, Width, Rotate, HighCutOn, HighCut, PreDelay,
                WetMode, Mix, Gain, Reset, kCount };
 } // namespace coldcase
+namespace mouthpiece {
+enum P : int { Gate, Press, Ceiling, Reset, kCount };
+} // namespace mouthpiece
+namespace slinger {
+enum P : int { Threshold, Attack, Gain, Reset, kCount };
+} // namespace slinger
+namespace streetteam {
+inline constexpr int kBands = 4, kStride = 5;
+enum BandP : int { On, Type, Freq, BandGain, Q };   // band b's control k: b * kStride + k
+enum P : int { Input = kBands * kStride, Output, CompThreshold, Ratio, CompAttack, CompRelease, GateThreshold, Floor, GateAttack, GateRelease, kCount };
+constexpr int band(int b, int k) noexcept { return b * kStride + k; }
+} // namespace streetteam
 namespace informant {
 inline constexpr int kEqBands = 5, kEqStride = 4, kKeys = 48, kLowKey = 36;   // keys: MIDI 36 (C2) .. 83 (B5)
 inline constexpr int kPaths = 4, CarrierPath = 0, ModPath = 1, NoisePath = 2, MorphPath = 3;
@@ -173,6 +196,11 @@ enum P : int { Sync, Bpm, Time, Note, Tap, Dual, TimeR, NoteR, Feedback, PingPon
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeDeadDrop();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeSwerve();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeColdCase();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeMouthpiece();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeSlinger();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeStreetTeam();
+struct CurveInfo;
+namespace streetteam { extern const CurveInfo kCurve; }
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeSixShooter();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeBackAlley();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeDriveBy();

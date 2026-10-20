@@ -1,5 +1,8 @@
 # HEM-Elite-Rack 0.30.0
 
+- **MOUTHPIECE** (new) — vocal leveler in one move: gate, press, ceiling, with total / output / input readouts.
+- **SLINGER** (new) — guitar compressor: threshold, attack, gain into a limiter, with input / attenuation / output / limiter readouts.
+- **STREET TEAM** (new) — channel strip: input, four-band EQ, gate with floor, compressor / expander, output.
 - **COLD CASE** (new) — swept notches and a ringing loop, every control on its own plate: notches, depth, flip, stereo, low cut;
   the sweep's run, wave, rate, multiplier, tempo and range; the loop's decay, flip, delay, density, hi tame and filter; high cut,
   width, rotate, pre-delay, wet mode, mix, gain. (Its ranges are our own: the original's manual does not give them.)

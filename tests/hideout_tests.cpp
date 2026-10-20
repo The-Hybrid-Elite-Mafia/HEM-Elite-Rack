@@ -51,7 +51,7 @@ double peakIn(const std::vector<float>& x, std::size_t from, std::size_t to) {
 }
 
 void allRules() {
-    for (const char* name : {"COLD CASE", "SWERVE", "THE FIXER", "SIX SHOOTER", "DEAD DROP", "BACK ALLEY", "DRIVE-BY", "BODY DOUBLE", "HUSTLE", "THE INFORMANT", "STRAPPED", "SAFE HOUSE"}) {
+    for (const char* name : {"MOUTHPIECE", "SLINGER", "STREET TEAM", "COLD CASE", "SWERVE", "THE FIXER", "SIX SHOOTER", "DEAD DROP", "BACK ALLEY", "DRIVE-BY", "BODY DOUBLE", "HUSTLE", "THE INFORMANT", "STRAPPED", "SAFE HOUSE"}) {
         const PluginInfo* info = findPlugin(name);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
@@ -556,6 +556,89 @@ void testColdCase() {
     }
 }
 
+double outDb(hc::fx::Effect& e, double hz, float amp) {   // the steady level (dBFS) of a sine through e
+    e.reset();
+    Stereo s = sine(hz, 1.5, amp);
+    run(e, s);
+    return db(toneAmp(s.l, hz, s.size() - 12000, 12000));
+}
+
+void testVoiceDynamics() {
+    {
+        using namespace mouthpiece;
+        auto flat = make("MOUTHPIECE");
+        std::printf("  MOUTHPIECE at rest, -12 dBFS in: %.2f dBFS out\n", outDb(*flat, 1000, 0.25f));
+        CHECK(std::fabs(outDb(*flat, 1000, 0.25f) - db(0.25)) < 0.1);
+        auto e = make("MOUTHPIECE", {{Press, -30}});
+        const double lo = outDb(*e, 1000, 0.03f), hi = outDb(*e, 1000, 0.5f);
+        std::printf("  MOUTHPIECE press -30: 24 dB apart in, %.1f dB apart out\n", hi - lo);
+        CHECK(hi - lo < 14.0);
+        auto c = make("MOUTHPIECE", {{Ceiling, -12}});
+        Stereo s = sine(1000, 1.0, 0.9f);
+        run(*c, s);
+        std::printf("  MOUTHPIECE ceiling -12: peak %.2f dBFS\n", db(peakIn(s.l, 4800, s.size())));
+        CHECK(db(peakIn(s.l, 4800, s.size())) < -11.9);
+        auto g = make("MOUTHPIECE", {{Gate, -40}});
+        std::printf("  MOUTHPIECE gate -40, a -60 dBFS tone: %.1f dB down\n", -(outDb(*g, 1000, 0.001f) + 60.0));
+        CHECK(outDb(*g, 1000, 0.001f) < -75.0);
+    }
+    {
+        using namespace slinger;
+        auto flat = make("SLINGER");
+        CHECK(std::fabs(outDb(*flat, 440, 0.25f) - db(0.25)) < 0.1);
+        auto e = make("SLINGER", {{Threshold, -40}});
+        const double lo = outDb(*e, 440, 0.02f), hi = outDb(*e, 440, 0.5f);
+        std::printf("  SLINGER threshold -40: 28 dB apart in, %.1f dB apart out\n", hi - lo);
+        CHECK(hi - lo < 14.0);
+        auto g = make("SLINGER", {{Gain, -10}});
+        std::printf("  SLINGER gain -10: %.2f dB\n", outDb(*g, 440, 0.25f) - db(0.25));
+        CHECK(std::fabs(outDb(*g, 440, 0.25f) - db(0.25) + 10.0) < 0.1);
+        // ATTACK: a slow attack lets the start of a note through louder
+        auto fast = make("SLINGER", {{Threshold, -40}, {Attack, 0}}), slow = make("SLINGER", {{Threshold, -40}, {Attack, 50}});
+        Stereo a(12000), b(12000);
+        for (std::size_t i = 4800; i < 12000; ++i) a.l[i] = a.r[i] = b.l[i] = b.r[i] = 0.5f * static_cast<float>(std::sin(2.0 * std::numbers::pi * 440.0 * i / 48000.0));
+        run(*fast, a);
+        run(*slow, b);
+        const double pf = peakIn(a.l, 4800, 5280), ps = peakIn(b.l, 4800, 5280);
+        std::printf("  SLINGER the first 10 ms of a note: attack 0 peak %.3f, attack 50 peak %.3f\n", pf, ps);
+        CHECK(ps > pf * 1.3);
+    }
+    {
+        using namespace streetteam;
+        auto flat = make("STREET TEAM");
+        Stereo s = noise(0.3, 0.2f), ref = s;
+        run(*flat, s);
+        double d = 0;
+        for (std::size_t i = 0; i < s.size(); ++i) d = std::max(d, static_cast<double>(std::fabs(s.l[i] - ref.l[i])));
+        std::printf("  STREET TEAM at rest: largest change %.2e\n", d);
+        CHECK(d < 1e-5);
+        auto bell = make("STREET TEAM", {{band(2, On), 1}, {band(2, Type), 1}, {band(2, Freq), 1000}, {band(2, BandGain), 12}, {band(2, Q), 6}});
+        const double at = toneGain(*bell, 1000, 0.05f), off = toneGain(*bell, 2000, 0.05f);
+        std::printf("  STREET TEAM bell +12 at 1 kHz Q 6: 1 kHz %+.1f dB, 2 kHz %+.1f dB\n", at, off);
+        CHECK(std::fabs(at - 12.0) < 0.3 && std::fabs(off) < 1.0);
+        auto hp = make("STREET TEAM", {{band(0, On), 1}, {band(0, Type), 0}, {band(0, Freq), 200}});
+        std::printf("  STREET TEAM high-pass 200 Hz: 50 Hz %.1f dB\n", toneGain(*hp, 50, 0.1f));
+        CHECK(toneGain(*hp, 50, 0.1f) < -20.0);
+        auto comp = make("STREET TEAM", {{CompThreshold, -30}, {Ratio, 4}});
+        std::printf("  STREET TEAM comp -30, 4:1, -6 dBFS in: %.1f dB down\n", -(outDb(*comp, 1000, 0.5f) - db(0.5)));
+        CHECK(std::fabs((outDb(*comp, 1000, 0.5f) - db(0.5)) + 18.0) < 2.5);
+        auto ex = make("STREET TEAM", {{CompThreshold, -30}, {Ratio, 0.5f}, {Output, -12}});
+        std::printf("  STREET TEAM ratio 0.5 (expands), -20 dBFS in: %+.1f dB (output -12)\n", outDb(*ex, 1000, 0.1f) - db(0.1));
+        CHECK(outDb(*ex, 1000, 0.1f) - db(0.1) > -4.0);
+        auto gate = make("STREET TEAM", {{GateThreshold, -40}});
+        auto floorG = make("STREET TEAM", {{GateThreshold, -40}, {Floor, -20}});
+        const double g1 = outDb(*gate, 1000, 0.001f) + 60.0, g2 = outDb(*floorG, 1000, 0.001f) + 60.0;
+        std::printf("  STREET TEAM gate -40 on a -60 dBFS tone: floor -96 %.1f dB, floor -20 %.1f dB\n", g1, g2);
+        CHECK(g1 < -80.0 && std::fabs(g2 + 20.0) < 0.5);
+        auto mute = make("STREET TEAM", {{Input, -60}});
+        Stereo m = noise(0.3, 0.2f);
+        run(*mute, m);
+        CHECK(peakIn(m.l, 2400, m.size()) < 1e-6);
+        auto up = make("STREET TEAM", {{Output, 6}});
+        CHECK(std::fabs(outDb(*up, 1000, 0.1f) - db(0.1) - 6.0) < 0.1);
+    }
+}
+
 void testInformant() {
     using namespace informant;
     // a talking-like modulator: noise in short bursts; the morph only (no noise path)
@@ -785,6 +868,7 @@ void testHideout() {
     testDeadDrop();
     testSwerve();
     testColdCase();
+    testVoiceDynamics();
     testSixShooter();
     testBackAlley();
     testDriveBy();

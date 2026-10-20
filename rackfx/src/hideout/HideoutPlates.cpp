@@ -83,6 +83,30 @@ constexpr PlateToggle leftToggles[] = {{LoopFlip, "LOOP FLIP"}, {WetFlip, "WET F
 constexpr PlateChoice steppers[] = {{Wave, "WAVE"}, {FilterType, "FILTER"}};
 } // namespace sw
 
+// ---- MOUTHPIECE / SLINGER / STREET TEAM
+namespace mp {
+using namespace mouthpiece;
+constexpr PlateReadout readouts[] = {{0, "TOTAL", "dB", "+"}, {1, "OUTPUT", "dBFS", "+"}, {2, "INPUT", "dBFS", "+"}};
+constexpr PlateToggle toggles[] = {{Reset, "RESET PEAKS", true}};
+constexpr PlateKnob row1[] = {{Gate, "GATE", "OFF", "0"}, {Press, "PRESS", "0", "-36", K::Big}, {Ceiling, "CEILING", "-36", "0", K::Big}};
+} // namespace mp
+namespace sl {
+using namespace slinger;
+constexpr PlateReadout readouts[] = {{0, "INPUT", "dBFS", "+"}, {1, "ATTEN", "dB", "+"}, {2, "OUTPUT", "dBFS", "+"}, {3, "LIMITER", "dB", "+"}};
+constexpr PlateToggle toggles[] = {{Reset, "RESET PEAKS", true}};
+constexpr PlateKnob row1[] = {{Threshold, "THRESHOLD", "-60", "0", K::Big}, {Attack, "ATTACK", "0", "50"}, {Gain, "GAIN", "-30", "0", K::Big}};
+} // namespace sl
+namespace st2 {
+using namespace streetteam;
+constexpr PlateChoice bandSteppers[] = {{Type, "TYPE"}};
+constexpr PlateKnob bandKnobs[] = {{Freq, "FREQ"}, {BandGain, "GAIN"}, {Q, "Q"}};
+constexpr PlateToggle bandToggles[] = {{On, "BAND"}};
+constexpr PlateBands bands{.count = kBands, .first = 0, .stride = kStride, .knobs = bandKnobs, .steppers = bandSteppers, .toggles = bandToggles};
+constexpr PlateKnob row1[] = {{Input, "INPUT", "OFF", "0"}, {GateThreshold, "GATE", "OFF", "0"}, {Floor, "FLOOR"}, {GateAttack, "G ATTACK"},
+                              {GateRelease, "G RELEASE"}, {CompThreshold, "COMP"}, {Ratio, "RATIO"}, {CompAttack, "C ATTACK"},
+                              {CompRelease, "C RELEASE"}, {Output, "OUTPUT"}};
+} // namespace st2
+
 // ---- STRAPPED
 namespace st {
 using namespace strapped;
@@ -131,6 +155,20 @@ const PlateSpec kSwerve{.note1 = "THE JET SWOOSH", .note2 = "BENT IN TIME", .scr
                         .choices = sw::choices, .toggles = sw::toggles, .row1 = sw::row1, .row2 = sw::row2, .leftToggles = sw::leftToggles,
                         .steppers = sw::steppers,
                         .demo = [](hc::fx::Effect& e) { using namespace swerve; e.set(Feedback, 70); e.set(StereoOffset, 90); e.set(Rate, 0.5f); }};
+const PlateSpec kMouthpiece{.note1 = "THE VOICE UP FRONT", .note2 = "ONE MOVE", .screen = Screen::Readouts, .readouts = mp::readouts,
+                            .toggles = mp::toggles, .row1 = mp::row1, .reportsReduction = true,
+                            .demo = [](hc::fx::Effect& e) { e.set(mouthpiece::Press, -14); e.set(mouthpiece::Gate, -50); }};
+const PlateSpec kSlinger{.note1 = "THE PICK COMES", .note2 = "THROUGH", .screen = Screen::Readouts, .readouts = sl::readouts,
+                         .toggles = sl::toggles, .row1 = sl::row1, .reportsReduction = true,
+                         .demo = [](hc::fx::Effect& e) { e.set(slinger::Threshold, -24); e.set(slinger::Attack, 12); }};
+const PlateSpec kStreetTeam{.note1 = "THE WHOLE CHANNEL", .note2 = "ONE PLATE", .screen = Screen::Curve, .row1 = st2::row1, .bands = &st2::bands,
+                            .reportsReduction = true,
+                            .demo = [](hc::fx::Effect& e) {
+                                using namespace streetteam;
+                                e.set(band(0, On), 1); e.set(band(0, Type), 0); e.set(band(0, Freq), 90);
+                                e.set(band(2, On), 1); e.set(band(2, BandGain), 4); e.set(band(2, Q), 2);
+                                e.set(CompThreshold, -20); e.set(Ratio, 3);
+                            }};
 const PlateSpec kStrapped{.note1 = "THE GUITAR", .note2 = "READY FOR THE MIX", .screen = Screen::None, .toggles = st::toggles,
                           .row1 = st::row1, .steppers = st::steppers, .bands = &st::bands, .reportsReduction = true,
                           .demo = [](hc::fx::Effect& e) {
