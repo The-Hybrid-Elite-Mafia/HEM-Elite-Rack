@@ -15,9 +15,11 @@
 //                MODE: every tap back to the input, or its own DELAY; GAIN %, 50 = -6 dB; ROTATE; FILTER low-pass,
 //                low shelf or low decay, its FREQ and GAIN). OUTPUT ±12, held peaks with RESET. Setting the
 //                taps by tapping a rhythm is not possible here. Zero latency.
-//  BACK ALLEY    lo-fi space: a SPRING or PLATE style reverb and a worn tape-style echo, both
-//                through GRIT (narrow band, saturation); REVERB, DECAY, ECHO, TIME, FEEDBACK,
-//                WOBBLE (wow and flutter on the echo), NARROW (the whole stereo image), MIX, OUTPUT.
+//  BACK ALLEY    lo-fi space: a worn ECHO (on, TIME in ms or a NOTE: SYNC BPM / MS / HOST, BPM, FEEDBACK, PING PONG,
+//                LEVEL) and a SPRING or PLATE reverb (on, LENGTH 0.5–20 s, LEVEL), both through the master HI-PASS
+//                (30 Hz–1.5 kHz) and LO-PASS (1.5–21 kHz); MONO (10 = the stereo as it was, 0 = mono), MIX. The
+//                wear (a narrower band, saturation, a slow wobble) is part of its sound and has no knob, as on
+//                the original. Zero latency.
 //  DRIVE-BY      a sound passing by: the pitch bends as it comes and goes, it gets louder
 //                and quieter and swings across. MANUAL (POSITION knob) or AUTO (passes on the beat).
 //                SPEED (how fast: how far the pitch bends), DISTANCE (how close it passes), AIR (far =
@@ -37,6 +39,13 @@
 //  SAFE HOUSE    speakers in your headphones: each ear hears both speakers, the far one later and
 //                darker, plus the room. ROOM DRY / STUDIO / LIVE, ANGLE (how wide the speakers sit),
 //                CROSSFEED, ROOM level, BASS, OUTPUT. For listening only: bypass it before exporting.
+//  DEAD DROP     hybrid delay: TIME (1 ms–3.5 s, or a NOTE when SYNC is HOST or BPM; TAP sets it from two
+//                presses: the time in MS, the tempo in BPM, the nearest note in HOST), DUAL (a separate right
+//                time), FEEDBACK 0–200 % (past 100 it builds up, held in by the analog stage), PING PONG (and which
+//                side it starts on), PHASE L / R, HI-PASS (off, 20 Hz–20 kHz) and LO-PASS (20 Hz–20 kHz, off)
+//                with FILTER LINK (moves both by the same factor), MOD DEPTH / RATE (the time wobbles), ANALOG
+//                (OFF, 1–4: more saturation, a little noise and a darker loop), LOFI (a lower sample rate),
+//                MIX, OUTPUT ±18, the peak. Zero latency.
 // =============================================================================
 #include "hybrid/fx/Fx.hpp"
 
@@ -62,7 +71,8 @@ constexpr int tap(int t, int k) noexcept { return t * kStride + k; }
 } // namespace sixshooter
 
 namespace backalley {
-enum P : int { Space, Reverb, Decay, Echo, Time, Feedback, Wobble, Grit, Narrow, Mix, Output, kCount };
+enum P : int { EchoOn, Sync, Bpm, Time, Note, Feedback, PingPong, EchoLevel, ReverbOn, Length, Type, ReverbLevel, HighPass, LowPass, Mono, Mix,
+               kCount };
 } // namespace backalley
 
 namespace driveby {
@@ -89,7 +99,13 @@ namespace safehouse {
 enum P : int { Room, Angle, Crossfeed, RoomLevel, Bass, Output, kCount };
 } // namespace safehouse
 
+namespace deaddrop {
+enum P : int { Sync, Bpm, Time, Note, Tap, Dual, TimeR, NoteR, Feedback, PingPong, PingStart, PhaseL, PhaseR, HighPass, LowPass, Link,
+               ModDepth, ModRate, Analog, LoFi, Mix, Output, kCount };
+} // namespace deaddrop
+
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeFixer();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeDeadDrop();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeSixShooter();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeBackAlley();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeDriveBy();

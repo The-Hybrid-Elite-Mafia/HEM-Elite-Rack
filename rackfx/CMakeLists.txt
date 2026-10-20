@@ -60,6 +60,7 @@ add_library(hem_rackfx STATIC
     src/tone/TonePlates.cpp
     src/hideout/Fixer.cpp
     src/hideout/SixShooter.cpp
+    src/hideout/DeadDrop.cpp
     src/hideout/BackAlley.cpp
     src/hideout/DriveBy.cpp
     src/hideout/BodyDouble.cpp

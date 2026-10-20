@@ -21,13 +21,27 @@ constexpr PlateKnob row1[] = {{Input, "INPUT"}, {Output, "OUTPUT"}};
 // ---- SIX SHOOTER
 
 
+// ---- DEAD DROP
+namespace dd {
+using namespace deaddrop;
+constexpr PlateReadout readouts[] = {{0, "OUTPUT", "dBFS", "+"}};
+constexpr PlateChoice choices[] = {{Sync, "SYNC"}};
+constexpr PlateToggle toggles[] = {{Dual, "DUAL"}, {PingPong, "PING PONG"}, {LoFi, "LOFI"}, {Tap, "TAP", true}};
+constexpr PlateChoice steppers[] = {{PingStart, "START"}, {Analog, "ANALOG"}};
+constexpr PlateToggle leftToggles[] = {{PhaseL, "PHASE L"}, {PhaseR, "PHASE R"}};
+constexpr PlateKnob row1[] = {{Time, "TIME"}, {Note, "NOTE"}, {Bpm, "BPM"}, {TimeR, "TIME R"}, {NoteR, "NOTE R"}, {Feedback, "FEEDBACK", "0", "200"}};
+constexpr PlateKnob row2[] = {{HighPass, "HI-PASS", "OFF", "20K"}, {LowPass, "LO-PASS", "20", "OFF"}, {Link, "FILTER LINK"}, {ModDepth, "MOD DEPTH"},
+                              {ModRate, "MOD RATE"}, {Mix, "MIX"}, {Output, "OUTPUT"}};
+} // namespace dd
+
 // ---- BACK ALLEY
 namespace ba {
 using namespace backalley;
-constexpr PlateChoice choices[] = {{Space, "SPACE"}};
-constexpr PlateKnob row1[] = {{Reverb, "REVERB"}, {Decay, "DECAY"}, {Echo, "ECHO"}, {Time, "TIME"}, {Feedback, "FEEDBACK"}};
-constexpr PlateKnob row2[] = {{Wobble, "WOBBLE", "", "", K::Small}, {Grit, "GRIT", "", "", K::Small}, {Narrow, "NARROW", "", "", K::Small},
-                              {Mix, "MIX", "", "", K::Small}, {Output, "OUTPUT", "", "", K::Small}};
+constexpr PlateChoice choices[] = {{Sync, "SYNC"}, {Type, "REVERB"}};
+constexpr PlateToggle toggles[] = {{EchoOn, "ECHO"}, {ReverbOn, "REVERB"}, {PingPong, "PING PONG"}};
+constexpr PlateKnob row1[] = {{Time, "TIME"}, {Note, "NOTE"}, {Bpm, "BPM"}, {Feedback, "FEEDBACK"}, {EchoLevel, "ECHO LEVEL", "OFF", "0"},
+                              {Length, "LENGTH"}, {ReverbLevel, "REVERB LEVEL", "OFF", "0"}};
+constexpr PlateKnob row2[] = {{HighPass, "HI-PASS"}, {LowPass, "LO-PASS"}, {Mono, "MONO", "0", "10"}, {Mix, "MIX", "DRY", "WET"}};
 } // namespace ba
 
 // ---- DRIVE-BY
@@ -91,9 +105,13 @@ const PlateSpec kFixer{.note1 = "FIXES WHAT'S NASTY", .note2 = "ONLY WHEN IT IS"
                            e.set(band(0, Amount), 60); e.set(band(1, Amount), 70); e.set(band(2, Amount), 75);
                        }};
 
-const PlateSpec kBackAlley{.note1 = "WORN OUT ROOM", .note2 = "WORN OUT TAPE", .screen = Screen::None, .choices = ba::choices,
+const PlateSpec kDeadDrop{.note1 = "THE DROP COMES BACK", .note2 = "CLEAN OR DIRTY", .screen = Screen::Readouts, .readouts = dd::readouts,
+                          .choices = dd::choices, .toggles = dd::toggles, .row1 = dd::row1, .row2 = dd::row2, .leftToggles = dd::leftToggles,
+                          .steppers = dd::steppers,
+                          .demo = [](hc::fx::Effect& e) { using namespace deaddrop; e.set(PingPong, 1); e.set(LowPass, 6000); e.set(ModDepth, 20); }};
+const PlateSpec kBackAlley{.note1 = "WORN ECHO", .note2 = "SPRING OR PLATE", .screen = Screen::None, .choices = ba::choices, .toggles = ba::toggles,
                            .row1 = ba::row1, .row2 = ba::row2,
-                           .demo = [](hc::fx::Effect& e) { using namespace backalley; e.set(Grit, 60); e.set(Wobble, 50); }};
+                           .demo = [](hc::fx::Effect& e) { using namespace backalley; e.set(PingPong, 1); e.set(LowPass, 6000); }};
 const PlateSpec kDriveBy{.note1 = "HERE IT COMES", .note2 = "THERE IT GOES", .screen = Screen::None, .choices = db::choices,
                          .row1 = db::row1, .row2 = db::row2, .left = db::left,
                          .demo = [](hc::fx::Effect& e) { using namespace driveby; e.set(Mode, 0); e.set(Position, -35); }};

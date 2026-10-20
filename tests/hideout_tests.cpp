@@ -51,7 +51,7 @@ double peakIn(const std::vector<float>& x, std::size_t from, std::size_t to) {
 }
 
 void allRules() {
-    for (const char* name : {"THE FIXER", "SIX SHOOTER", "BACK ALLEY", "DRIVE-BY", "BODY DOUBLE", "HUSTLE", "THE INFORMANT", "STRAPPED", "SAFE HOUSE"}) {
+    for (const char* name : {"THE FIXER", "SIX SHOOTER", "DEAD DROP", "BACK ALLEY", "DRIVE-BY", "BODY DOUBLE", "HUSTLE", "THE INFORMANT", "STRAPPED", "SAFE HOUSE"}) {
         const PluginInfo* info = findPlugin(name);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
@@ -77,6 +77,53 @@ void testFixer() {
     const double d = blockSizeDifference(*findPlugin("THE FIXER"), [](hc::fx::Effect& x) { x.set(band(0, Amount), 70); x.set(band(1, Amount), 70); },
                                          noise(0.6, 0.5f));
     std::printf("  THE FIXER block size 512 vs 1: %.2e\n", d);
+    CHECK(d < 1e-5);
+}
+
+void testDeadDrop() {
+    using namespace deaddrop;
+    // MS 250, feedback 50 %, clean: repeats at 250 / 500 ms, 6 dB apart
+    {
+        auto e = make("DEAD DROP", {{Sync, 2}, {Time, 250}, {Feedback, 50}, {Analog, 0}, {Mix, 100}});
+        Stereo s = impulse(30000);
+        run(*e, s);
+        const std::size_t a = peakAt(s.l, 1000, 18000) - 100, b = peakAt(s.l, 18000, 30000) - 100;
+        const double fall = db(peakIn(s.l, 1000, 18000) / peakIn(s.l, 18000, 30000));
+        std::printf("  DEAD DROP 250 ms, feedback 50 %%: repeats at %.1f / %.1f ms, %.1f dB apart\n", a / 48.0, b / 48.0, fall);
+        CHECK(a == 12000 && b == 24000 && std::fabs(fall - 6.02) < 0.3);
+    }
+    // HOST sync, 1/8 D at 120 BPM = 375 ms; DUAL: right at 1/4 = 500 ms
+    {
+        auto e = make("DEAD DROP", {{Sync, 0}, {Note, 8}, {Dual, 1}, {NoteR, 10}, {Feedback, 0}, {Analog, 0}});
+        e->setTempo(120);
+        Stereo s = impulse(30000);
+        run(*e, s);
+        const std::size_t a = peakAt(s.l, 1000, 30000) - 100, b = peakAt(s.r, 1000, 30000) - 100;
+        std::printf("  DEAD DROP HOST 120 BPM: 1/8 D left at %.1f ms, DUAL 1/4 right at %.1f ms\n", a / 48.0, b / 48.0);
+        CHECK(a == 18000 && b == 24000);
+    }
+    // feedback 150 % builds up but the analog stage holds it in
+    {
+        auto e = make("DEAD DROP", {{Sync, 2}, {Time, 50}, {Feedback, 150}, {Analog, 2}});
+        Stereo s = noise(3.0, 0.1f);
+        run(*e, s);
+        double pk = 0;
+        for (float v : s.l) pk = std::max(pk, static_cast<double>(std::fabs(v)));
+        std::printf("  DEAD DROP feedback 150 %%, analog 2: peak after 3 s %.2f (it builds, it doesn't run away)\n", pk);
+        CHECK(pk > 0.3 && pk < 4.0 && std::isfinite(pk));
+    }
+    // PING PONG from the left: first repeat left, the next one right
+    {
+        auto e = make("DEAD DROP", {{Sync, 2}, {Time, 100}, {Feedback, 80}, {PingPong, 1}, {Analog, 0}});
+        Stereo s = impulse(20000);
+        run(*e, s);
+        const double l1 = peakIn(s.l, 4000, 6000), r1 = peakIn(s.r, 4000, 6000), r2 = peakIn(s.r, 9000, 11000), l2 = peakIn(s.l, 9000, 11000);
+        std::printf("  DEAD DROP PING PONG: first repeat L %.2f / R %.2f, second L %.2f / R %.2f\n", l1, r1, l2, r2);
+        CHECK(l1 > 0.3 && r1 < 1e-4 && r2 > 0.2 && l2 < 1e-4);
+    }
+    const double d = blockSizeDifference(*findPlugin("DEAD DROP"), [](hc::fx::Effect& x) { x.set(ModDepth, 30); x.set(LowPass, 5000); x.set(LoFi, 1); },
+                                         noise(1.0, 0.3f));
+    std::printf("  DEAD DROP block size 512 vs 1: %.2e\n", d);
     CHECK(d < 1e-5);
 }
 
@@ -140,32 +187,40 @@ void testSixShooter() {
 void testBackAlley() {
     using namespace backalley;
     {
-        auto e = make("BACK ALLEY", {{Reverb, 0}, {Echo, 100}, {Time, 200}, {Wobble, 0}, {Feedback, 0}, {Mix, 100}, {Narrow, 0}, {Grit, 0}});
+        auto e = make("BACK ALLEY", {{ReverbOn, 0}, {Sync, 1}, {Time, 200}, {Feedback, 0}, {EchoLevel, 0}, {Mix, 100}});
         Stereo s = impulse(24000);
         run(*e, s);
         const std::size_t a = peakAt(s.l, 2000, 20000);
-        std::printf("  BACK ALLEY echo at 200 ms: found at %.1f ms\n", (a - 100) / 48.0);
-        CHECK(a > 9690 && a < 9720);
+        std::printf("  BACK ALLEY echo at 200 ms (it wobbles a little): found at %.1f ms\n", (a - 100) / 48.0);
+        CHECK(a > 9620 && a < 9780);
     }
     {
-        auto e = make("BACK ALLEY", {{Reverb, 100}, {Echo, 0}, {Decay, 1.0f}, {Mix, 100}});
+        auto e = make("BACK ALLEY", {{EchoOn, 0}, {Length, 1.0f}, {ReverbLevel, 0}, {Mix, 100}});
         Stereo s = noise(0.2, 0.5f);
         s.l.resize(96000, 0.0f);
         s.r.resize(96000, 0.0f);
         run(*e, s);
         const double early = rms(s.l, 9600, 9600), late = rms(s.l, 9600 + 48000, 9600);
-        std::printf("  BACK ALLEY reverb (decay 1 s): tail just after %.1f dB, one second later %.1f dB\n", db(early), db(late));
+        std::printf("  BACK ALLEY reverb (length 1 s): tail just after %.1f dB, one second later %.1f dB\n", db(early), db(late));
         CHECK(db(early) > -40.0 && db(late) < db(early) - 40.0);
     }
     {
-        auto e = make("BACK ALLEY", {{Narrow, 100}});
+        auto e = make("BACK ALLEY", {{Mono, 0}});
         Stereo s = noise(0.5, 0.3f);
         run(*e, s);
         double diff = 0;
         for (std::size_t i = 0; i < s.size(); ++i) diff = std::max(diff, static_cast<double>(std::fabs(s.l[i] - s.r[i])));
-        std::printf("  BACK ALLEY narrow 100: largest left/right difference %.2e\n", diff);
-        CHECK(diff < 1e-5);
+        auto m = make("BACK ALLEY", {{Mix, 0}});
+        Stereo t = noise(0.5, 0.3f), ref = t;
+        run(*m, t);
+        double dry = 0;
+        for (std::size_t i = 0; i < t.size(); ++i) dry = std::max(dry, static_cast<double>(std::fabs(t.l[i] - ref.l[i])));
+        std::printf("  BACK ALLEY MONO 0: largest left/right difference %.2e; MIX 0: off the input by %.1e\n", diff, dry);
+        CHECK(diff < 1e-5 && dry < 1e-6);
     }
+    const double d = blockSizeDifference(*findPlugin("BACK ALLEY"), [](hc::fx::Effect& x) { x.set(PingPong, 1); x.set(Type, 1); }, noise(1.0, 0.3f));
+    std::printf("  BACK ALLEY block size 512 vs 1: %.2e\n", d);
+    CHECK(d < 1e-5);
 }
 
 // average frequency (Hz) from the zero crossings in [from, from + len)
@@ -315,6 +370,7 @@ void testHideout() {
     std::printf("[the hideout]\n");
     allRules();
     testFixer();
+    testDeadDrop();
     testSixShooter();
     testBackAlley();
     testDriveBy();
