@@ -1,3 +1,24 @@
+# HEM-Elite-Rack 0.33.0
+
+**Wave 4 — colour, tape, drums and guitar.** Each built to the full control set of one original:
+- **HEAVY HITTER** (new) — drum enhancer: drum, sensitivity, thump, treble, snap, output, meter in / out.
+- **REEL MONEY** (new) — tube tape machine: speed, monitor, bias, into / off tape with link, tape level, wobble, hiss, the tape
+  echo (time, slap or repeats, level, tone), VU with its zero.
+- **PAWN SHOP** (new, its own plate) — lo-fi box: device (sound, tone, squash, ringer, decade, mix), space (echo with sync / note /
+  BPM / ping pong / feedback, spring or plate reverb, mix), noise (twelve of our own, duck or gate, threshold, pre / post, level),
+  mechanics (wow, wobble, speed for A and B), master (input, output, low cut, high cut, mono). The original plays 64 recorded
+  noises; ours are twelve we generate.
+- **HOTHEAD** (new) — one-knob overdrive (the original's guide names no other control).
+- **HOT WIRE** (new) — guitar head: five amps, three channels, focus, gate and speed, the tone stack, depth, presence, six cabinet
+  pairs with cab tone, room, cab off, an output limiter with readouts. (The original's preset locks belong to its own preset
+  system, not to a rack.)
+- **BOTTOM FEEDER** (new) — bass rig: two amps, DI tone / level / blend / flip, a drive pedal, voice, five-knob EQ, cabinet tone,
+  room, cab off, output limiter.
+- **TORCH** rebuilt — ten amp types, drive, the tone stack, presence, master, input, output; two cabinet paths (eight cabinets,
+  six mic placements, volume, pan, phase on B), dual or stereo routing. Its old GATE and ROOM are gone (the original has neither).
+- **THE SNITCH** rebuilt — tuning modes (chromatic, guitar, drop D, open G / D / E, DADGAD, half down, your own notes), reference
+  A ±6 cents, twelve note switches. Its old MUTE is gone (the original has none).
+
 # HEM-Elite-Rack 0.32.0
 
 **The eight retired plug-ins are back** (with their old IDs, so old sessions find them):

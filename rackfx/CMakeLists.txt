@@ -82,6 +82,8 @@ add_library(hem_rackfx STATIC
     src/hideout/SafeHouse.cpp
     src/hideout/HideoutPlates.cpp
     src/streets/Torch.cpp
+    src/streets/HotWire.cpp
+    src/streets/BottomFeeder.cpp
     src/streets/Racket.cpp
     src/streets/Snitch.cpp
     src/streets/Promotion.cpp

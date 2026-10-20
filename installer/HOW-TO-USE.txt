@@ -63,6 +63,30 @@ MIDTOWN
   to it), DIP cuts one; all three can be used together. 10 on LOW PEAK or DIP = 10 dB, on HIGH PEAK
   8 dB. EQ OUT to compare, HUM adds the tube box's hum (50 or 60 Hz).
 
+REEL MONEY
+  A tube tape machine. INTO TAPE is how hard you hit it (with LINK on, OFF TAPE takes the level back
+  down so you hear the colour, not the volume). TAPE LEVEL (185 = normal) pushes the tape itself
+  harder. SPEED 15 IPS is cleaner and brighter, 7.5 darker with more low bump. BIAS HOT = smoother
+  top, NORMAL = brighter and a bit dirtier. WOBBLE (50 = a healthy machine). HISS (OFF all the way down).
+  The echo comes off the tape: ECHO LEVEL (OFF = none), ECHO TIME, SLAP (one repeat) or REPEATS, ECHO
+  TONE. MONITOR INPUT = only the tube stage before the tape. The VU shows IN or OUT; VU ZERO sets what
+  reads 0.
+
+PAWN SHOP
+  Four modules, each with its own switch. DEVICE: SOUND (the band of an old radio, phone or speaker),
+  TONE (darker to brighter), SQUASH (minus squeezes, plus pushes the loud parts out), RINGER (ring
+  modulation and digital clipping), DECADE (the 50s to the 80s), MIX. SPACE: the echo (SYNC to a BPM,
+  to the song, or MS; NOTE or TIME; ECHO level; PING PONG; FEEDBACK: 100 repeats forever) and the
+  reverb (SPRING or PLATE, LEVEL, LENGTH), SPACE MIX. NOISE: twelve kinds (we make them; the original
+  plays recordings), FOLLOWS DUCK (quieter while the music plays) or GATE (only with the music) above
+  THRESHOLD (-60 = always on), PLACE PRE (into the space) or POST, LEVEL. MECHANICS: WOW (pitch),
+  WOBBLE (level) and SPEED for A (tape-like) and B (record-like). Then INPUT, OUTPUT, LOW CUT, HIGH CUT
+  and MONO (10 = the stereo as it was).
+
+HOTHEAD
+  One knob: DRIVE. 0 leaves the sound alone; up from there a light overdrive turns into full
+  distortion, darker as it goes, at about the same level.
+
 MIXTAPE
   A cassette deck. DRIVE pushes the tape, TAPE picks TYPE I (darkest, saturates first), II or IV
   (brightest, cleanest). WOW = slow pitch drift, FLUTTER = fast, HISS, AGE = a worn, duller tape.
@@ -316,6 +340,11 @@ INSIDE MAN
   follow the music; a RATIO under 1 makes the loud parts louder. ORDER: EQ first or the dynamics
   first. PLACE turns the stereo picture. Nothing ever goes over 0 dB (the clip guard rounds it).
 
+HEAVY HITTER
+  Pick the DRUM first: it decides where THUMP (the low end) and TREBLE (the top) work and how SNAP
+  hears a hit. SENSITIVITY is the level in (the INPUT window: aim for about -12 to -6 dBFS). SNAP pushes
+  the front of every hit out. OUTPUT. METER picks what the LEVEL window shows: IN or OUT.
+
 KINGPIN
   For drums. Pick the drum with TYPE first: it sets how the compressor moves and where BASS and TREBLE
   work. PICKUP = how hard the drum hits the compressor, COMPRESS = how much. GATE only on KICK (all the
@@ -504,6 +533,21 @@ TORCH
   VOLUME (0 = off) and PAN; PHASE B flips B (try it when the two sound thin together). ROUTING DUAL
   feeds both cabinets the amp; STEREO sends the left side to A and the right to B (pan them apart).
   The old GATE and ROOM are gone: the original has neither.
+
+HOT WIRE
+  A guitar head and its cabinets. AMP picks one of five, CHANNEL CLEAN / DRIVE / LEAD how hard it
+  breaks up, GAIN how hard you hit it. FOCUS (0 = off) lifts one band, from low mids up to bite. GATE
+  (OFF all the way down) quiets the hiss between notes; GATE SPEED is how fast it closes. BASS, MIDDLE,
+  TREBLE, VOLUME; DEPTH (low thump) and PRESENCE (top edge) are the power amp's. CABINET picks a pair of
+  takes of one box: CAB TONE mixes the darker and the brighter one. ROOM adds the room's first
+  reflections. CAB OFF if you use your own cabinet. The output never goes past -0.1 dBFS: CLIPS counts
+  the times it had to stop a peak (CLEAR resets it).
+
+BOTTOM FEEDER
+  A bass rig: the amp and the DI (the clean direct sound). BLEND mixes them (0 = all amp, 10 = all DI).
+  DI TONE (0 = clean) adds growl to the DI, DI LEVEL, DI FLIP if the two fight. DRIVE: a pedal before the
+  amp (FAT, TIGHT, SHARP) with its TONE, GAIN and MIX. VOICE 1 / 2 / 3: a mid lift from narrow to wide.
+  GAIN, BASS, MID, HI MID, HIGH. CAB TONE, ROOM, CAB OFF and the output limiter work as on HOT WIRE.
 
 THE RACKET
   A drive pedal. TYPE: OVERDRIVE (warm), DISTORTION (harder), FUZZ (square and wild) or OCTAVE (fuzz

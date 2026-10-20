@@ -6,6 +6,7 @@
 
 #include "hem/rack/Plugins.hpp"
 #include "hem/rack/Streets.hpp"
+#include "hem/rack/Garage.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -50,7 +51,7 @@ Stereo chord(std::initializer_list<double> hz, double seconds, float amp) {
 }
 
 void allRules() {
-    for (const char* name : {"TORCH", "THE RACKET", "THE SNITCH", "PROMOTION", "WISEGUYS", "MADE MAN", "THE DETECTIVE", "THE WITNESS", "LIVE WIRE"}) {
+    for (const char* name : {"TORCH", "HOT WIRE", "BOTTOM FEEDER", "THE RACKET", "THE SNITCH", "PROMOTION", "WISEGUYS", "MADE MAN", "THE DETECTIVE", "THE WITNESS", "LIVE WIRE"}) {
         const PluginInfo* info = findPlugin(name);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
@@ -97,6 +98,78 @@ void testTorch() {
     const double d = blockSizeDifference(*findPlugin("TORCH"), [](hc::fx::Effect& x) { x.set(Drive, 7); x.set(VolB, 4); }, noise(0.5, 0.3f));
     std::printf("  TORCH block size 512 vs 1: %.2e\n", d);
     CHECK(d < 1e-5);
+}
+
+void testHotWire() {
+    using namespace hotwire;
+    {   // the limiter: never past -0.1 dBFS, and it counts what it caught
+        auto e = make("HOT WIRE", {{Input, 12}, {Output, 12}, {Channel, Lead}, {Gain, 10}});
+        Stereo s = sine(200, 1.0, 0.8f);
+        run(*e, s);
+        std::printf("  HOT WIRE flat out: peak %.4f (ceiling 0.9886), clips counted %.0f\n", peak(s), e->meter(2));
+        CHECK(peak(s) <= 0.98856f && e->meter(2) > 0.0f);
+        Stereo q(48000);
+        run(*e, q);   // let the ringing die away, then CLEAR
+        e->set(Clear, 1);
+        Stereo q2(480);
+        run(*e, q2);
+        CHECK(e->meter(2) == 0.0f);
+    }
+    {   // the channels: LEAD clips more than CLEAN at the same GAIN
+        auto c = make("HOT WIRE", {{Channel, Clean}, {Gain, 5}, {CabOff, 1}}), l = make("HOT WIRE", {{Channel, Lead}, {Gain, 5}, {CabOff, 1}});
+        const double hc = componentDb(*c, 200, 0.05f, 600) - componentDb(*c, 200, 0.05f, 200);
+        const double hl = componentDb(*l, 200, 0.05f, 600) - componentDb(*l, 200, 0.05f, 200);
+        std::printf("  HOT WIRE 3rd harmonic, clean %.1f dB, lead %.1f dB\n", hc, hl);
+        CHECK(hl > hc + 10.0);
+    }
+    {   // CAB TONE: the brighter take has more top; CAB OFF has the most
+        auto d = make("HOT WIRE", {{Channel, Clean}, {Gain, 0}, {CabTone, 0}}), b = make("HOT WIRE", {{Channel, Clean}, {Gain, 0}, {CabTone, 100}});
+        auto o = make("HOT WIRE", {{Channel, Clean}, {Gain, 0}, {CabOff, 1}});
+        const double rd = componentDb(*d, 4000, 0.01f, 4000) - componentDb(*d, 500, 0.01f, 500);
+        const double rb = componentDb(*b, 4000, 0.01f, 4000) - componentDb(*b, 500, 0.01f, 500);
+        const double ro = componentDb(*o, 8000, 0.01f, 8000) - componentDb(*o, 500, 0.01f, 500);
+        std::printf("  HOT WIRE 4 kHz vs 500 Hz: dark %.1f, bright %.1f dB; no cabinet 8 kHz vs 500 Hz %.1f dB\n", rd, rb, ro);
+        CHECK(rb > rd + 4.0 && ro > rb);
+    }
+    {   // the GATE closes on a quiet hum; FOCUS lifts its band
+        auto gt = make("HOT WIRE", {{Gate, -30}, {Channel, Clean}, {Gain, 0}});
+        Stereo s = sine(200, 1.0, 0.003f);
+        run(*gt, s);
+        auto f0 = make("HOT WIRE", {{Channel, Clean}, {Gain, 0}, {CabOff, 1}}), f5 = make("HOT WIRE", {{Channel, Clean}, {Gain, 0}, {CabOff, 1}, {Focus, 5}});
+        const double hz = 250.0 * std::pow(16.0, 0.5);
+        const double lift = componentDb(*f5, hz, 0.01f, hz) - componentDb(*f0, hz, 0.01f, hz);
+        std::printf("  HOT WIRE gate -30 on a -50 dBFS tone: %.1f dB left; focus 5 at %.0f Hz %+.1f dB\n", db(rms(s.l, 24000, 24000) / 0.0021), hz, lift);
+        CHECK(rms(s.l, 24000, 24000) < 1e-5 && lift > 3.0);
+    }
+}
+
+void testBottomFeeder() {
+    using namespace bottomfeeder;
+    {   // BLEND all DI, DI TONE 0: the input, 23 samples late; DI FLIP turns it over
+        auto e = make("BOTTOM FEEDER", {{Blend, 10}});
+        CHECK(e->latency() == 23);
+        Stereo s = noise(0.3, 0.2f), ref = s;
+        run(*e, s);
+        double d = 0;
+        for (std::size_t i = 23; i < s.size(); ++i) d = std::max(d, static_cast<double>(std::fabs(s.l[i] - ref.l[i - 23])));
+        auto f = make("BOTTOM FEEDER", {{Blend, 10}, {DiFlip, 1}});
+        Stereo t = noise(0.3, 0.2f);
+        run(*f, t);
+        double fl = 0;
+        for (std::size_t i = 23; i < t.size(); ++i) fl = std::max(fl, static_cast<double>(std::fabs(t.l[i] + ref.l[i - 23])));
+        std::printf("  BOTTOM FEEDER all DI: largest change %.1e; flipped %.1e\n", d, fl);
+        CHECK(d < 1e-5 && fl < 1e-5);
+    }
+    {   // the DRIVE pedal adds grit; VOICE 1 is narrower than 3
+        auto off = make("BOTTOM FEEDER", {{Blend, 0}, {CabOff, 1}, {Gain, 0}}), fat = make("BOTTOM FEEDER", {{Blend, 0}, {CabOff, 1}, {Gain, 0}, {DriveType, Fat}, {DriveMix, 10}});
+        const double h0 = componentDb(*off, 110, 0.1f, 330) - componentDb(*off, 110, 0.1f, 110);
+        const double h1 = componentDb(*fat, 110, 0.1f, 330) - componentDb(*fat, 110, 0.1f, 110);
+        auto v1 = make("BOTTOM FEEDER", {{Blend, 0}, {CabOff, 1}, {Gain, 0}, {Voice, 0}}), v3 = make("BOTTOM FEEDER", {{Blend, 0}, {CabOff, 1}, {Gain, 0}, {Voice, 2}});
+        const double n1 = componentDb(*v1, 1100, 0.01f, 1100) - componentDb(*v1, 500, 0.01f, 500);
+        const double n3 = componentDb(*v3, 1100, 0.01f, 1100) - componentDb(*v3, 500, 0.01f, 500);
+        std::printf("  BOTTOM FEEDER 3rd harmonic: drive off %.1f, fat %.1f dB; 1.1 kHz vs 500 Hz: voice 1 %.1f, voice 3 %.1f dB\n", h0, h1, n1, n3);
+        CHECK(h1 > h0 + 10.0 && n1 < n3 - 1.0);
+    }
 }
 
 void testRacket() {
@@ -252,6 +325,8 @@ void testStreets() {
     std::printf("[the streets]\n");
     allRules();
     testTorch();
+    testHotWire();
+    testBottomFeeder();
     testRacket();
     testSnitch();
     testPromotion();

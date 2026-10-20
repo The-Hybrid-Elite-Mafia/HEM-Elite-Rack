@@ -144,6 +144,31 @@ private:
     std::array<hc::fx::DelayLine, 2> d_;
 };
 
+// The output stage of the Voltage-style amps: never past -0.1 dBFS (instant catch, 60 ms let-go), counting
+// the blocks where it had to catch a peak.
+class OutLimit {
+public:
+    void prepare(double fs) { rel_ = coefMs(fs, 60.0); clear(); }
+    void clear() noexcept { g_ = 1.0f; }
+    // returns true when it caught something in this block
+    bool run(float* L, float* R, std::uint32_t n) noexcept {
+        constexpr float kCeil = 0.98855309f;   // -0.1 dBFS
+        bool caught = false;
+        for (std::uint32_t i = 0; i < n; ++i) {
+            const float pk = std::max(std::fabs(L[i]), std::fabs(R[i]));
+            const float want = pk > kCeil ? kCeil / pk : 1.0f;
+            if (want < 1.0f) caught = true;
+            g_ = want < g_ ? want : want + rel_ * (g_ - want);
+            L[i] *= g_;
+            R[i] *= g_;
+        }
+        return caught;
+    }
+
+private:
+    float g_ = 1.0f, rel_ = 0.0f;
+};
+
 // 0..10 knobs: 5 = flat; each step = `perStep` dB
 inline float knobDb(float v, float perStep = 2.4f) noexcept { return (v - 5.0f) * perStep; }
 // 0..10 volume knobs: 5 = unity, 0 = silent, 10 = +6 dB

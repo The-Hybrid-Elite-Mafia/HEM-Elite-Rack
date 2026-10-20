@@ -2,6 +2,7 @@
 #include "../arsenal/Plates.hpp"
 
 #include "hem/rack/Streets.hpp"
+#include "hem/rack/Garage.hpp"
 
 namespace hem::rack::plates {
 namespace {
@@ -17,6 +18,29 @@ constexpr PlateKnob row2[] = {{CabA, "CAB A", "", "", K::Small}, {MicA, "MIC A",
                               {PanA, "PAN A", "L", "R", K::Small}, {CabB, "CAB B", "", "", K::Small}, {MicB, "MIC B", "", "", K::Small},
                               {VolB, "VOLUME B", "0", "10", K::Small}, {PanB, "PAN B", "L", "R", K::Small}};
 } // namespace to
+
+namespace hw {
+using namespace hotwire;
+constexpr PlateReadout readouts[] = {{0, "INPUT", "dBFS", "+"}, {1, "OUTPUT", "dBFS", "+"}, {2, "CLIPS", "", "0"}};
+constexpr PlateToggle toggles[] = {{CabOff, "CAB OFF"}, {Clear, "CLEAR", true}};
+constexpr PlateChoice steppers[] = {{Amp, "AMP"}, {Channel, "CHANNEL"}, {Cabinet, "CABINET"}};
+constexpr PlateKnob row1[] = {{Input, "INPUT", "-12", "+12"}, {Gain, "GAIN", "0", "10", K::Big}, {Bass, "BASS", "0", "10"}, {Middle, "MIDDLE", "0", "10"},
+                              {Treble, "TREBLE", "0", "10"}, {Volume, "VOLUME", "0", "10"}, {Output, "OUTPUT", "-12", "+12"}};
+constexpr PlateKnob row2[] = {{Focus, "FOCUS", "OFF", "10", K::Small}, {Gate, "GATE", "OFF", "0", K::Small}, {GateSpeed, "GATE SPEED", "0", "10", K::Small},
+                              {Depth, "DEPTH", "0", "10", K::Small}, {Presence, "PRESENCE", "0", "10", K::Small}, {CabTone, "CAB TONE", "DARK", "BRIGHT", K::Small},
+                              {Room, "ROOM", "OFF", "100", K::Small}};
+} // namespace hw
+namespace bf {
+using namespace bottomfeeder;
+constexpr PlateReadout readouts[] = {{0, "INPUT", "dBFS", "+"}, {1, "OUTPUT", "dBFS", "+"}, {2, "CLIPS", "", "0"}};
+constexpr PlateToggle toggles[] = {{DiFlip, "DI FLIP"}, {CabOff, "CAB OFF"}, {Clear, "CLEAR", true}};
+constexpr PlateChoice steppers[] = {{Amp, "AMP"}, {DriveType, "DRIVE"}, {Voice, "VOICE"}};
+constexpr PlateKnob row1[] = {{Input, "INPUT", "-12", "+12"}, {Gain, "GAIN", "0", "10", K::Big}, {Bass, "BASS", "0", "10"}, {Mid, "MID", "0", "10"},
+                              {HiMid, "HI MID", "0", "10"}, {High, "HIGH", "0", "10"}, {Output, "OUTPUT", "-12", "+12"}};
+constexpr PlateKnob row2[] = {{DiTone, "DI TONE", "0", "10", K::Small}, {DiLevel, "DI LEVEL", "0", "10", K::Small}, {Blend, "BLEND", "AMP", "DI", K::Small},
+                              {DriveTone, "DRIVE TONE", "0", "10", K::Small}, {DriveGain, "DRIVE GAIN", "0", "10", K::Small},
+                              {DriveMix, "DRIVE MIX", "0", "10", K::Small}, {CabTone, "CAB TONE", "DARK", "BRIGHT", K::Small}, {Room, "ROOM", "OFF", "100", K::Small}};
+} // namespace bf
 
 namespace rk {
 using namespace racket;
@@ -81,6 +105,12 @@ constexpr PlateToggle leftT[] = {{On, "TONE"}};
 const PlateSpec kTorch{.note1 = "LIGHT IT UP", .note2 = "AMP AND TWO CABINETS", .screen = Screen::None, .toggles = to::toggles,
                        .row1 = to::row1, .row2 = to::row2, .steppers = to::steppers,
                        .demo = [](hc::fx::Effect& e) { using namespace torch; e.set(Type, Crunch); e.set(Drive, 7); e.set(VolB, 4); }};
+const PlateSpec kHotWire{.note1 = "THE HEAD", .note2 = "AND THE BOX", .screen = Screen::Readouts, .readouts = hw::readouts, .toggles = hw::toggles,
+                         .row1 = hw::row1, .row2 = hw::row2, .steppers = hw::steppers,
+                         .demo = [](hc::fx::Effect& e) { e.set(hotwire::Gain, 7); e.set(hotwire::Room, 30); }};
+const PlateSpec kBottomFeeder{.note1 = "THE LOW END", .note2 = "AMP AND DI", .screen = Screen::Readouts, .readouts = bf::readouts, .toggles = bf::toggles,
+                              .row1 = bf::row1, .row2 = bf::row2, .steppers = bf::steppers,
+                              .demo = [](hc::fx::Effect& e) { e.set(bottomfeeder::DriveType, 1); e.set(bottomfeeder::DriveMix, 4); }};
 const PlateSpec kRacket{.note1 = "MAKE SOME NOISE", .note2 = "STEP ON IT", .screen = Screen::None, .choices = rk::choices, .row1 = rk::row1,
                         .demo = [](hc::fx::Effect& e) { using namespace racket; e.set(Type, 2); e.set(Drive, 70); }};
 const PlateSpec kSnitch{.note1 = "TELLS YOU", .note2 = "WHEN YOU'RE OFF", .screen = Screen::Readouts, .readouts = sn::readouts,

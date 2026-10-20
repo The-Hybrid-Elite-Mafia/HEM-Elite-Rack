@@ -63,6 +63,7 @@ C++23 audio framework, as a library.
 | **THE SETUP** | A filter played by an LFO, a 16-step sequencer and a follower: low / high / band pass, notch, comb, level; drive, crush, spread, delay |
 | **THE BOSS** | British-console channel: mic / line preamp, stepped 10 kHz shelf, mid boost / cut, low shelf, 50 Hz cut, hum and hiss, VU |
 | **INSIDE MAN** | Channel strip: gate / expander and compressor with key filters, four-band EQ, order, phase, output, place, clip guard |
+| **HEAVY HITTER** | Drum enhancer: pick the drum (kick, snare top / under, hats, toms, overheads, room), then sensitivity, thump, treble, snap, output; meter in or out |
 | **KINGPIN** | Drum channel: pick the drum (kick … room), then pickup, compress, gate, ambience, bass, treble |
 | **GOLD CHAIN** | One-knob tone: warmth, density and sheen together; input, link, output, hum |
 | **IVORIES** | Piano tone: one VOICING knob, slap and thicken (on + level), input, output, hum |
@@ -92,6 +93,8 @@ C++23 audio framework, as a library.
 | **STRAPPED** | Guitar mix desk: clean tone / edge / high gain, re-amp, then six faders with a style each: bass, treble, compress, reverb, delay, pitch |
 | **SAFE HOUSE** | Speakers in your headphones: room, speaker angle, head turn, head size, ear to ear, mute left / right (for listening; bypass before export) |
 | **TORCH** | Guitar amp: ten amp types, drive, bass / mid / treble, presence, master, input, output; two cabinet paths (eight cabinets, six mic placements, volume, pan, phase), dual or stereo |
+| **HOT WIRE** | Guitar head: five amps, clean / drive / lead, focus, gate and gate speed, gain, bass, middle, treble, volume, depth, presence; six cabinet pairs with cab tone, room, cab off; output limiter with readouts |
+| **BOTTOM FEEDER** | Bass rig: two amps; DI tone, level, blend and flip; a drive pedal (fat, tight, sharp) with tone, gain, mix; voice; gain, bass, mid, hi mid, high; cabinet tone, room, cab off; output limiter |
 | **THE RACKET** | Drive pedal: overdrive, distortion, fuzz or octave fuzz; drive, tone, level, mix |
 | **THE SNITCH** | Tuner: chromatic, guitar and six other tunings or your own notes (twelve switches); reference A ±6 cents; note, cents and frequency |
 | **PROMOTION** | Pitch shifter: ±12 semitones and cents, smooth or tight |
@@ -101,6 +104,9 @@ C++23 audio framework, as a library.
 | **THE WITNESS** | VU and peak meters for left and right, calibration, peak hold |
 | **LIVE WIRE** | Test tones: sine, square, saw, triangle, white / pink noise, sweeps; left / right / both / opposed |
 | **FURNACE** | Tube stage: drive, bias (even harmonics), tone, mix — colour without a volume jump |
+| **REEL MONEY** | Tube tape machine: 7.5 / 15 IPS, tape or input monitor, normal or hot bias, into / off tape with link, tape level, wobble, hiss, slap or repeating tape echo with tone, VU with its zero |
+| **PAWN SHOP** | Lo-fi box in four modules: an old device (sound, tone, squash, ringer, decade, mix), space (synced echo, ping pong, feedback, spring or plate), twelve noises (duck or gate, pre or post), tape and record mechanics; low / high cut, mono, in / out |
+| **HOTHEAD** | One-knob overdrive: from untouched to full distortion |
 | **MIXTAPE** | Cassette deck: tape type I / II / IV, drive, wow, flutter, hiss, age |
 | **CRATE DIGGER** | Record player: crackle, surface noise and rumble, wear, warp, mono lows |
 | **SHREDDER** | Bits and sample rate down: bits, downsample, mix |
@@ -117,7 +123,7 @@ C++23 audio framework, as a library.
 | **UNDERGROUND** | More low end: a new sub an octave down, or harmonics small speakers can hear |
 | **SPOTLIGHT** | Vocal chain: high-pass, body, one-knob compressor, one-knob de-esser, presence, air |
 
-One hundred and eight plug-ins, under our own names and in our own words. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
+One hundred and fifteen plug-ins, under our own names and in our own words. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 
 ## Install
 Download `HEM-Elite-Rack-Setup-x.y.z.exe` from **Releases** and run it. Needs Windows 10 / 11

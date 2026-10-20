@@ -32,6 +32,19 @@
 //                        (level), SPEED (how fast they move).
 //                MASTER  INPUT ±18 dB, OUTPUT ±18 dB, LOW CUT 30..1500 Hz, HIGH CUT 15..21 kHz, MONO 0..10 (10 = the
 //                        stereo as it was). Readouts: IN and OUT peaks. Constant latency (kPawnLatency).
+//  HOT WIRE      guitar amp head and cabinets: INPUT ±12 dB, AMP (five of our own: CLASSIC, CROWN, STEEL, BLAZE,
+//                BEAST), CHANNEL CLEAN / DRIVE / LEAD, FOCUS 0..10 (0 = off; up from there a lift sweeping 250 Hz to
+//                4 kHz), GATE -60..0 dB (-60 = off) and GATE SPEED 0..10, GAIN, BASS, MIDDLE, TREBLE, VOLUME, DEPTH
+//                and PRESENCE (0..10), CABINET (six pairs: each a darker and a brighter cabinet), CAB TONE 0..100
+//                (the mix of the pair, 50 = equal), ROOM 0..100 (early reflections; 0 = off), CAB OFF (for your own
+//                cabinet), OUTPUT ±12 dB; the output never passes -0.1 dBFS (a limiter). Readouts: INPUT, OUTPUT,
+//                CLIPS (times the limiter caught a peak) with CLEAR. The original's preset locks are not in a rack.
+//                4x oversampled; latency 23.
+//  BOTTOM FEEDER bass amp and cabinet: INPUT ±12 dB, AMP WARM / DARK; the direct (DI) side: DI TONE 0..10 (0 =
+//                untouched), DI LEVEL 0..10, BLEND 0..10 (0 = all amp, 10 = all DI), DI FLIP; the drive: DRIVE
+//                TYPE OFF / FAT / TIGHT / SHARP, DRIVE TONE, DRIVE GAIN, DRIVE MIX (0..10); VOICE 1 / 2 / 3 (a mid
+//                lift from narrow to wide); GAIN, BASS, MID, HI MID, HIGH (0..10); CAB TONE, ROOM, CAB OFF, OUTPUT;
+//                the output limiter and readouts as on HOT WIRE. 4x oversampled; latency 23.
 //  HOTHEAD       one-knob overdrive: DRIVE 0..10 (0 = untouched; up from there a mid push, the clipping and a
 //                warmth filter that closes as it goes, the level kept about the same). The original's guide
 //                names no other control. Latency 23 samples (the clipping is 4x oversampled).
@@ -69,7 +82,20 @@ enum P : int { Drive, kCount };
 inline constexpr std::uint32_t kLatency = 23;
 } // namespace hothead
 
+namespace hotwire {
+enum P : int { Input, Amp, Channel, Focus, Gate, GateSpeed, Gain, Bass, Middle, Treble, Volume, Depth, Presence,
+               Cabinet, CabTone, Room, CabOff, Output, Clear, kCount };
+enum Ch : int { Clean, Drive, Lead };
+} // namespace hotwire
+namespace bottomfeeder {
+enum P : int { Input, Amp, DiTone, DiLevel, Blend, DiFlip, DriveType, DriveTone, DriveGain, DriveMix, Voice,
+               Gain, Bass, Mid, HiMid, High, CabTone, Room, CabOff, Output, Clear, kCount };
+enum Drive : int { DriveOff, Fat, Tight, Sharp };
+} // namespace bottomfeeder
+
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeHeavyHitter();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeHotWire();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeBottomFeeder();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeHothead();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makePawnShop();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeReelMoney();
