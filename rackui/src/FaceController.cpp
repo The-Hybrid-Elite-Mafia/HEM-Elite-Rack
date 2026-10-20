@@ -183,6 +183,7 @@ void FaceController::mouseDown(float x, float y, bool doubleClick, bool fine) {
     }
     case WKind::Bypass: host_.setBypassed(!host_.bypassed()); return;
     case WKind::GraphRange: st_.graphRange = std::clamp(w.choice, 0, 3); return;
+    case WKind::PageTab: st_.page = w.choice; return;
     case WKind::BandButton:
         st_.selectedBand = w.choice;
         if (doubleClick) {

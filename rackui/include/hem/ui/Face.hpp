@@ -116,6 +116,7 @@ enum class WKind : std::uint8_t {
     VuMeter,       // TAPE: VU needle for meter `choice` (display only)
     Readout,       // a big number: meter `choice` of the effect, with `caption` and the meter's unit (display only)
     History,       // the last few seconds of meters 0 and 1 (gain reduction) and 2 (input level), scrolling (display only)
+    PageTab,       // which page the paged controls edit (choice = page, caption = its name); a plate setting, not a parameter
 };
 
 struct Widget {
@@ -129,6 +130,7 @@ struct Widget {
     std::string lo, hi;            // knob scale labels ("0" .. "10", "LO" .. "HI")
     bool        small = false;
     int         meter = -1;        // needle with a meter selector (param2): the input VU meter (output = meter + 1)
+    int         pageStride = 0;    // > 0: the control edits param + page * pageStride (the plate's page tabs pick the page)
 };
 
 struct Recess { Rect r; float radius = 10; float depth = 8; bool round = false; bool glass = false; };
@@ -165,6 +167,7 @@ struct FaceState {
     int active = -1;            // widget being dragged
     int hoverNode = -1;         // EQ band under the mouse
     int dragNode = -1;          // EQ band being dragged
+    int page = 0;               // the page the paged controls edit (PageTab)
 };
 inline constexpr std::array<float, 4> kGraphRanges{3.0f, 6.0f, 12.0f, 30.0f};
 

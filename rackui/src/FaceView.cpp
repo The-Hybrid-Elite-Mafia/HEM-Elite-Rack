@@ -520,19 +520,20 @@ void FaceView::consoleCurve(const Ctx& c, const Widget& w) const {
     const float z = c.z;
     const Rect plot = plotArea(w.r);
     const Rect p = c.T(plot);
-    spectrumBehind(c, plot, 0.16f);
     const bool tube = L_.face == rack::Face::TubeEq;
     const rack::PluginInfo* info = rack::findPlugin(L_.name.c_str());
     const rack::CurveInfo* ci = info ? info->curve : nullptr;   // the classic EQs describe their own curve
-    const float kRange = ci ? ci->range : tube ? 20.0f : 18.0f;
-    grid(c, plot, kRange, -kRange, kRange >= 18.0f ? 6.0f : kRange >= 15.0f ? 5.0f : 3.0f, true);
-    float v[32] = {};
-    const int count = static_cast<int>(std::min<std::size_t>(params_.size(), 32));
+    if (!ci || ci->spectrumParam < 0 || plain(c.host, ci->spectrumParam) >= 0.5f) spectrumBehind(c, plot, 0.16f);
+    float kRange = ci ? ci->range : tube ? 20.0f : 18.0f;
+    if (ci && ci->scaleParam >= 0) kRange = plain(c.host, ci->scaleParam) >= 0.5f ? 30.0f : 12.0f;
+    grid(c, plot, kRange, -kRange, kRange >= 30.0f ? 10.0f : kRange >= 18.0f ? 6.0f : kRange >= 15.0f ? 5.0f : 3.0f, true);
+    std::array<float, hc::fx::Effect::kMaxParams> v{};
+    const int count = static_cast<int>(std::min<std::size_t>(params_.size(), v.size()));
     for (int i = 0; i < count; ++i) v[i] = plain(c.host, i);
     const double fs = c.feed.sampleRate();
-    const rack::tubeeq::Settings ts = rack::tubeeq::settingsFrom(v);
+    const rack::tubeeq::Settings ts = rack::tubeeq::settingsFrom(v.data());
     auto curve = [&](double hz) {
-        if (ci) return ci->db(v, fs, hz);
+        if (ci) return ci->db(v.data(), fs, hz);
         return rack::tubeeq::curveDb(ts, fs, hz);
     };
     auto yOf = [&](double db) { return p.cy() - static_cast<float>(std::clamp(db / kRange, -1.04, 1.04)) * p.h * 0.5f; };
@@ -550,6 +551,15 @@ void FaceView::consoleCurve(const Ctx& c, const Widget& w) const {
         r.colorQuad(qx, qy, cols, Blend::Over, false);
     }
     r.polyline(xs, ys, kN, 2.8f * z, th_.teal, Blend::Over, false);
+    if (ci && ci->dbRight) {   // the right side, in gold, when it isn't the same as the left
+        float yr[kN];
+        bool differs = false;
+        for (int i = 0; i < kN; ++i) {
+            yr[i] = yOf(ci->dbRight(v.data(), fs, xToFreq(plot, plot.x + plot.w * static_cast<float>(i) / static_cast<float>(kN - 1))));
+            differs = differs || std::fabs(yr[i] - ys[i]) > 0.5f;
+        }
+        if (differs) r.polyline(xs, yr, kN, 2.2f * z, th_.gold, Blend::Over, false);
+    }
     // A dot on the curve at each band's frequency.
     struct Dot { double hz; Rgba col; };
     std::array<Dot, 12> dots{};
@@ -557,7 +567,7 @@ void FaceView::consoleCurve(const Ctx& c, const Widget& w) const {
     if (ci) {
         double hz[12];
         const Rgba cols[3] = {th_.teal, th_.gold, th_.violet};
-        nd = ci->dots(v, hz, 12);
+        nd = ci->dots(v.data(), hz, 12);
         for (int i = 0; i < nd; ++i) dots[static_cast<std::size_t>(i)] = {hz[i], cols[i % 3]};
     } else {
         dots[nd++] = {ts.lowHz, th_.gold};
@@ -889,6 +899,7 @@ void FaceView::draw(Renderer& r, const PanelHost& host, const FaceFeed& feed, co
             button(c, c.T(w.r), t, st.graphRange == w.choice, hot, false, th_.teal);
             break;
         }
+        case WKind::PageTab: button(c, c.T(w.r), w.caption, st.page == w.choice, hot, false, th_.teal); break;
         case WKind::BandButton: {
             using namespace rack::eq;
             const bool on = plain(host, bandParam(w.choice, On)) >= 0.5f;

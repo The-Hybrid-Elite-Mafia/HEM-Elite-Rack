@@ -68,6 +68,10 @@ struct PlateBands {
     std::span<const PlateKnob>   borders{};     // knobs on the borders between the columns (absolute parameters)
     int meter = -1;                             // band b's readout on top is meter `meter + b` (-1: none)
     bool lastIsMaster = false;                  // the last column is MASTER: its knobs only (offsets for every band)
+    // pages: the grid edits one of `pages` sets (e.g. LEFT / RIGHT); set p's controls are pageStride further on
+    int pages = 1;
+    int pageStride = 0;
+    std::span<const char* const> pageNames{};
 };
 
 struct PlateSpec {

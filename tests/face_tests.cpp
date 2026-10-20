@@ -61,6 +61,11 @@ void layoutRules(const rack::PluginInfo& info) {
         const Widget& w = L.widgets[i];
         if (w.r.x < 0 || w.r.y < 0 || w.r.right() > kPlateW || w.r.bottom() > L.footer.y) inside = false;
         if (w.param >= count || w.param2 >= count) paramsOk = false;
+        if (w.pageStride > 0) {   // every page's control exists
+            int pg = 0;
+            for (const Widget& o : L.widgets) pg += o.kind == WKind::PageTab ? 1 : 0;
+            if (w.param + (std::max(pg, 1) - 1) * w.pageStride >= count) paramsOk = false;
+        }
         if (w.kind == WKind::Spectrum || w.kind == WKind::EqGraph || w.kind == WKind::GraphRange) continue;
         for (std::size_t j = i + 1; j < L.widgets.size(); ++j) {
             const Widget& o = L.widgets[j];
@@ -76,7 +81,11 @@ void layoutRules(const rack::PluginInfo& info) {
     CHECK(textroom::crampedButtons(L, fx->params(), info.name) == 0);
     // Every parameter can be reached from the faceplate.
     std::set<int> reach;
+    int pages = 0;
+    for (const Widget& w : L.widgets) pages += w.kind == WKind::PageTab ? 1 : 0;
     for (const Widget& w : L.widgets) {
+        if (w.param >= 0 && w.pageStride > 0)
+            for (int pg = 0; pg < std::max(pages, 1); ++pg) reach.insert(w.param + pg * w.pageStride);
         if (w.param >= 0) reach.insert(w.param);
         if (w.param2 >= 0) reach.insert(w.param2);
         if (w.control >= 0) for (int b = 0; b < rack::eq::kBands; ++b) reach.insert(rack::eq::bandParam(b, w.control));

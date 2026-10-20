@@ -982,6 +982,7 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
         for (int b = 0; b < n; ++b) {
             const float c = cx(static_cast<float>(b));
             L.widgets.push_back(knob({c - kd * 0.5f, y + 2, kd, kd}, B.first + b * B.stride + k.param, "", k.lo, k.hi, true));
+            if (B.pages > 1) L.widgets.back().pageStride = B.pageStride;
         }
         y += knobRowH;
     }
@@ -995,6 +996,7 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
             w.param = B.first + b * B.stride + st.param;
             const float sw = std::min(colW - 12.0f, 200.0f);
             w.r = {cx(static_cast<float>(b)) - sw * 0.5f, y + 4, sw, 40};
+            if (B.pages > 1) w.pageStride = B.pageStride;
             L.widgets.push_back(w);
             L.recesses.push_back({w.r.inset(-4), 9, 4, false, false});
         }
@@ -1005,10 +1007,24 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
         for (int b = 0; b < n; ++b) {
             if (B.lastIsMaster && b == n - 1) continue;
             L.widgets.push_back(toggle({colX(b) + 10, y + 4, colW - 20, 42}, B.first + b * B.stride + t.param, ""));
+            if (B.pages > 1) L.widgets.back().pageStride = B.pageStride;
         }
         y += rowH;
     }
     for (int b = 1; b < n; ++b) L.grooves.push_back({colX(b), 360, colX(b), y});
+    // the page tabs (which set the grid edits), in the left column under the name
+    if (B.pages > 1) {
+        const float tw = (270.0f - 8.0f * static_cast<float>(B.pages - 1)) / static_cast<float>(B.pages);
+        for (int pg = 0; pg < B.pages; ++pg) {
+            Widget t;
+            t.kind = WKind::PageTab;
+            t.choice = pg;
+            t.caption = pg < static_cast<int>(B.pageNames.size()) ? B.pageNames[static_cast<std::size_t>(pg)] : std::to_string(pg + 1);
+            t.r = {70 + static_cast<float>(pg) * (tw + 8.0f), 396, tw, 40};
+            L.widgets.push_back(t);
+            L.recesses.push_back({t.r.inset(-4), 10, 4, false, false});
+        }
+    }
 }
 
 FaceLayout specFace(const rack::PluginInfo& info) {
@@ -1187,6 +1203,7 @@ FaceLayout faceLayout(const rack::PluginInfo& info) {
 
 int widgetParam(const Widget& w, const FaceState& st) noexcept {
     if (w.control >= 0) return rack::eq::bandParam(std::clamp(st.selectedBand, 0, rack::eq::kBands - 1), w.control);
+    if (w.pageStride > 0 && w.param >= 0) return w.param + std::max(st.page, 0) * w.pageStride;
     return w.param;
 }
 

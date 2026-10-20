@@ -31,6 +31,9 @@ struct CurveInfo {
     double (*db)(const float* plain, double sampleRate, double hz) noexcept;
     int (*dots)(const float* plain, double* hz, int max) noexcept;   // a dot on the curve per band
     float range;                                                      // ± dB shown
+    double (*dbRight)(const float* plain, double sampleRate, double hz) noexcept = nullptr;   // the right side's curve, when it has its own
+    int scaleParam = -1;      // a choice: 0 = ±12 dB shown, 1 = ±30 dB (instead of `range`)
+    int spectrumParam = -1;   // a switch: the music behind the curve on / off
 };
 
 struct PluginInfo {
