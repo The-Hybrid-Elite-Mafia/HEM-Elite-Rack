@@ -82,6 +82,19 @@
 //                    the highs (over 4 kHz) and the hits (while they rise) follows: 0 the CENTER fader, 100
 //                    the SIDES fader. Meters: 0 how much of what comes out is centre (%), 1 / 2 the output
 //                    peaks L / R. Zero latency.
+//  THE SETUP         a filter played by three movers. TYPE: LO PASS, HI PASS, BAND PASS, NOTCH (FREQ 30 Hz–
+//                    18 kHz, RES, SLOPE 12 / 24), COMB (DELAY 11–28 ms, FEEDBACK) or AMP (GAIN -80..0). SPREAD
+//                    pulls left and right apart (±50 %), DRIVE pushes the filter's input, CRUSH lowers the
+//                    sample rate after it, SMOOTH rounds off the movers' jumps. The movers: an LFO (SINE,
+//                    TRIANGLE, PULSE, SAW, RANDOM; RATE free or a note of the tempo), a 16-step SEQUENCER
+//                    (each step -100..+100 %, LAST step, SWING, RATE free or a note) and a FOLLOWER (the
+//                    input's level). Each mover has a DEPTH (±100 %) on the three targets: the frequency
+//                    (±5 octaves; COMB: its delay, AMP: its gain), the resonance (COMB: feedback) and the
+//                    delay TIME. The DELAY: TIME (50 ms–1 s, or a note), RIGHT (100 / 150 / 200 % of the
+//                    left), FEEDBACK, DRY / WET, ANALOG (time changes glide: the pitch bends) or DIGITAL,
+//                    ROUTE: before the filter, or with the filter inside its feedback. MIX, INPUT, OUTPUT
+//                    (-40..+10). MIDI keyboard tracking and the outside sidechain are not possible in the rack.
+//                    Zero latency.
 //  LOW RIDER         a new low octave: RANGE (20–120 Hz: the low-pass that picks what is used), LOW AIR (the
 //                    new signal an octave down, off..+30 dB), LO (the low-passed original, off..+30 dB; both
 //                    saturate softly above 0 dB and never pass full scale), DIRECT (the untouched sound,
@@ -111,9 +124,12 @@
 //                    The input first: INPUT 0..-24 dB, WIDTH 0 (mono)..1 (as it was), ROTATION ±45°, POLARITY
 //                    L / R, SWAP. Meters: the highest peak left and right (or middle and sides, METER), held
 //                    until RESET. Done on 2048-point frames; latency 2047 samples (43 ms), always.
-//  CUTTHROAT         filter: SWEEP is the one-knob move (left: the highs close down, right: the lows
-//                    thin out), LOW CUT and HIGH CUT set the resting edges, RESONANCE, SLOPE 12 / 24 dB,
-//                    DRIVE, MIX, OUTPUT. Zero latency.
+//  CUTTHROAT         high-pass and low-pass, 18 dB per octave, a left and a right set: HIGH-PASS (on, and
+//                    16 Hz–21.4 kHz), LOW-PASS (on, and its frequency); the LEFT / RIGHT tabs pick the set the
+//                    knobs show; LINK makes the right side follow the left. Frequencies glide (no zipper).
+//                    Zero latency.
+//  TUNNEL VISION     one-knob filter: FILTER 0–10 (10 = open; down from there a low-pass closes from 20 kHz
+//                    to 120 Hz), RESONANCE (OFF / LOW / MID / HIGH: a peak at the edge). Zero latency.
 // =============================================================================
 #include "hem/rack/Plugins.hpp"
 #include "hybrid/fx/Fx.hpp"
@@ -231,6 +247,26 @@ enum P : int { Low, High, Punch, Master, Center, Sides, kCount };
 inline constexpr float kLowHz = 200.0f, kHighHz = 4000.0f;
 } // namespace middleman
 
+namespace tunnelvision {
+enum P : int { Filter, Resonance, kCount };
+[[nodiscard]] double curveDb(const float* plain, double fs, double hz) noexcept;
+extern const CurveInfo kCurve;
+} // namespace tunnelvision
+
+namespace thesetup {
+enum Type : int { LowPass, HighPass, BandPass, Notch, Comb, Amp, kTypes };
+enum Mover : int { Lfo, Seq, Follow, kMovers };
+enum Target : int { ToFreq, ToRes, ToTime, kTargets };
+inline constexpr int kSteps = 16;
+enum P : int { Kind, Freq, CombDelay, Gain, Res, CombFeedback, Slope, Spread, Smooth, Drive, Crush,
+               LfoRate, LfoNote, LfoSync, LfoWave, SeqRate, SeqNote, SeqSync, Swing, Last, Step1,
+               DelayTime = Step1 + kSteps, DelayNote, DelaySync, DelayRight, DelayFeedback, DelayMix, DelayAnalog, DelayRoute,
+               Depth0, Mix = Depth0 + kMovers * kTargets, Input, Output, kCount };
+constexpr int depth(int mover, int target) noexcept { return Depth0 + target * kMovers + mover; }
+[[nodiscard]] double curveDb(const float* plain, double fs, double hz) noexcept;   // the filter at rest (no movers)
+extern const CurveInfo kCurve;
+} // namespace thesetup
+
 namespace lowrider {
 enum P : int { Range, LowAir, Lo, Direct, Output, Trim, Align, kCount };
 inline constexpr double kLatencyS = 0.07;
@@ -256,10 +292,11 @@ inline constexpr std::uint32_t kFrame = 2048, kHop = 512, kLatency = kFrame - 1;
 } // namespace doublecross
 
 namespace cutthroat {
-enum P : int { Sweep, LowCut, HighCut, Resonance, Slope, Drive, Mix, Output, kCount };
-// where the filters sit for these plain values (SWEEP folded in)
-void edges(const float* plain, double& hpHz, double& lpHz, double& q) noexcept;
-[[nodiscard]] double curveDb(const float* plain, double fs, double hz) noexcept;
+// the left set (HP on, HP freq, LP on, LP freq), then the right set, then LINK
+inline constexpr int kSide = 4;
+enum P : int { HpOn, HpFreq, LpOn, LpFreq, RHpOn = kSide, RHpFreq, RLpOn, RLpFreq, Link = 2 * kSide, kCount };
+[[nodiscard]] double curveDb(const float* plain, double fs, double hz) noexcept;        // the left side
+[[nodiscard]] double curveRightDb(const float* plain, double fs, double hz) noexcept;
 extern const CurveInfo kCurve;
 } // namespace cutthroat
 
@@ -273,6 +310,8 @@ extern const CurveInfo kCurve;
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeUndertow();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeDeepPockets();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeLowProfile();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeTunnelVision();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeTheSetup();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeTheBoss();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeKingpin();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeGoldChain();

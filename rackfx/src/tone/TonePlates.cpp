@@ -154,10 +154,18 @@ constexpr PlateKnob row2[] = {{FCenter, "F CENTER"}, {FDensity, "F DENSITY", "-1
 // ---- CUTTHROAT: the curve, the slope beside it, the sweep first
 namespace ct {
 using namespace cutthroat;
-constexpr PlateChoice choices[] = {{Slope, "SLOPE"}};
-constexpr PlateKnob row1[] = {{Sweep, "SWEEP", "DARK", "THIN", K::Big}, {LowCut, "LOW CUT"}, {HighCut, "HIGH CUT"}, {Resonance, "RESONANCE"},
-                              {Drive, "DRIVE"}, {Mix, "MIX", "", "", K::Small}, {Output, "OUTPUT", "", "", K::Small}};
+constexpr const char* pageNames[] = {"LEFT", "RIGHT"};
+constexpr PlateKnob bandKnobs[] = {{1, "FREQ"}};
+constexpr PlateToggle bandToggles[] = {{0, "ON"}};
+constexpr PlateBands bands{.count = 2, .first = 0, .stride = 2, .knobs = bandKnobs, .toggles = bandToggles, .pages = 2, .pageStride = kSide,
+                           .pageNames = pageNames};
+constexpr PlateToggle left[] = {{Link, "LINK"}};
 } // namespace ct
+namespace tvn {
+using namespace tunnelvision;
+constexpr PlateChoice choices[] = {{Resonance, "RESONANCE"}};
+constexpr PlateKnob row1[] = {{Filter, "FILTER", "0", "10", K::Big}};
+} // namespace tvn
 
 } // namespace
 
@@ -233,7 +241,10 @@ const PlateSpec kMiddleman{.note1 = "THE MIDDLE", .note2 = "AND THE SIDES", .scr
 const PlateSpec kDoubleCross{.note1 = "ONE IN", .note2 = "TWO OUT", .screen = Screen::Readouts, .readouts = dc::readouts, .choices = dc::choices,
                              .toggles = dc::toggles, .row1 = dc::row1, .row2 = dc::row2, .left = dc::left,
                              .demo = [](hc::fx::Effect& e) { e.set(doublecross::Sweeps, 10); e.set(doublecross::FDensity, 0.3f); }};
-const PlateSpec kCutthroat{.note1 = "CUT THE LOWS", .note2 = "CUT THE HIGHS", .screen = Screen::Curve, .choices = ct::choices, .row1 = ct::row1,
-                           .demo = [](hc::fx::Effect& e) { using namespace cutthroat; e.set(Sweep, -45); e.set(Resonance, 40); e.set(Slope, 1); }};
+const PlateSpec kCutthroat{.note1 = "HIGH-PASS, LOW-PASS", .note2 = "LEFT AND RIGHT", .screen = Screen::Curve, .leftToggles = ct::left,
+                           .bands = &ct::bands,
+                           .demo = [](hc::fx::Effect& e) { using namespace cutthroat; e.set(HpFreq, 120); e.set(LpFreq, 9000); }};
+const PlateSpec kTunnelVision{.note1 = "ONE KNOB", .note2 = "CLOSE IT DOWN", .screen = Screen::Curve, .choices = tvn::choices, .row1 = tvn::row1,
+                              .demo = [](hc::fx::Effect& e) { e.set(tunnelvision::Filter, 5.5f); e.set(tunnelvision::Resonance, 2); }};
 
 } // namespace hem::rack::plates

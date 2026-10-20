@@ -601,6 +601,18 @@ void testTubeEq() {
         CHECK(a < -100.0);
         CHECK(b > -40.0);
     }
+    {   // EQ OUT: flat again (the tube off too: the input comes out, delayed); ANALOG hum far under the music
+        auto e = fresh("VELVET", {{Drive, 0}, {LowBoost, 8}, {HighBoost, 6}, {EqIn, 0}});
+        Stereo s = noise(1.0, 0.4f, 6), ref = s;
+        run(*e, s);
+        const double d = maxDelayedDiff(s, ref, e->latency(), 0);
+        auto h = fresh("VELVET", {{Drive, 0}, {Analog, 2}});
+        Stereo t = sine(1000, 1.5, 0.25f);
+        run(*h, t);
+        const double hum = db(toneAmp(t.l, 60, 36000, 24000) / 0.25);
+        std::printf("  EQ out (boosts set): max difference from the input %.2e; ANALOG 60 Hz hum %.1f dB under the music\n", d, -hum);
+        CHECK(d < 1e-6 && hum < -55.0);
+    }
     Stereo in = noise(1.0, 0.3f, 8);
     const double d = blockSizeDifference(*info, [](hc::fx::Effect& x) { x.set(LowBoost, 6); x.set(HighBoost, 4); x.set(HighAtten, 3); x.set(Drive, 50); }, in);
     std::printf("  block size 1 vs 512: max difference %.2e\n", d);

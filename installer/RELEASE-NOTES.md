@@ -1,3 +1,15 @@
+# HEM-Elite-Rack 0.28.0
+
+**Filters and VELVET, the end of wave 2** — one plug-in per original, every control:
+- **CUTTHROAT** — rebuilt: HIGH-PASS and LOW-PASS (18 dB per octave), each with ON, a left and a right set, LINK
+- **TUNNEL VISION** (new) — the one-knob filter: FILTER 0-10, RESONANCE in four steps
+- **THE SETUP** (new) — the filter with movers: six types, slope, spread, smooth, drive, crush; LFO, 16-step sequencer
+  and follower with depths on frequency, resonance and delay time; a delay with right ratio, feedback, style and route
+- **VELVET** — added EQ IN / OUT and ANALOG hum (your saved settings keep working)
+
+Not possible in the rack (said plainly): THE SETUP's MIDI keyboard tracking and outside sidechain.
+EQ and filter glides are finer, so a fast move doesn't ring. Readout numbers on narrow windows leave the name room.
+
 # HEM-Elite-Rack 0.27.0
 
 **Bass and stereo, wave 2 part 3** — one plug-in per original, every control:

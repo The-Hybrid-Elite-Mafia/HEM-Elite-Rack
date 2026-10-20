@@ -48,7 +48,7 @@ double rmsDb(const std::vector<float>& x, std::size_t from, std::size_t len) { r
 
 void allRules() {
     for (const char* name : {"STRAIGHT SHOOTER", "BOTTOM LINE", "TEN TOES", "FOUR CORNERS", "SMOOTH TALKER", "INSIDE MAN", "LOW RIDER", "UNDERTOW", "DEEP POCKETS", "LOW PROFILE", "THE BOSS", "KINGPIN", "GOLD CHAIN", "IVORIES", "HIGH ROLLER", "THE MIDDLEMAN", "DOUBLE CROSS",
-                             "CUTTHROAT"}) {
+                             "CUTTHROAT", "TUNNEL VISION", "THE SETUP"}) {
         const PluginInfo* info = findPlugin(name);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
@@ -570,6 +570,85 @@ void testBassMakers() {
     }
 }
 
+void testTheSetup() {
+    using namespace thesetup;
+    auto peakAt = [](const std::vector<float>& x, std::size_t from, std::size_t to) {
+        double pk = 0;
+        std::size_t where = from;
+        for (std::size_t i = from; i < to && i < x.size(); ++i)
+            if (std::fabs(x[i]) > pk) { pk = std::fabs(x[i]); where = i; }
+        return where;
+    };
+    // at rest the audio follows the drawn curve
+    {
+        auto e = make("THE SETUP", {{Freq, 1500}, {Res, 40}, {Slope, 1}});
+        float v[kCount];
+        for (int i = 0; i < kCount; ++i) v[i] = e->get(i);
+        double worst = 0;
+        for (double hz : {200.0, 1000.0, 1500.0, 3000.0}) worst = std::max(worst, std::fabs(toneGain(*e, hz, 0.05f) - curveDb(v, kFs, hz)));
+        std::printf("  THE SETUP at rest (24 dB low-pass, 1.5 kHz, res 40): audio vs drawn curve, worst %.3f dB\n", worst);
+        CHECK(worst < 0.1);
+    }
+    // the LFO sweeps the frequency: a 3 kHz tone through a 1 kHz low-pass comes and goes
+    auto swing = [](hc::fx::Effect& e, double hz, double seconds) {
+        e.reset();
+        Stereo s = sine(hz, seconds, 0.2f);
+        run(e, s);
+        double lo = 1e9, hi = 0;
+        for (std::size_t at = 24000; at + 960 < s.size(); at += 960) {
+            const double r = rms(s.l, at, 960);
+            lo = std::min(lo, r);
+            hi = std::max(hi, r);
+        }
+        return db(hi / std::max(lo, 1e-12));
+    };
+    {
+        auto e = make("THE SETUP", {{Freq, 1000}, {LfoSync, 0}, {LfoRate, 2}, {depth(Lfo, ToFreq), 60}});
+        auto still = make("THE SETUP", {{Freq, 1000}});
+        const double moving = swing(*e, 3000, 2.0), rest = swing(*still, 3000, 2.0);
+        std::printf("  THE SETUP LFO > FREQ 60 %%: a 3 kHz tone swings %.1f dB (without: %.2f dB)\n", moving, rest);
+        CHECK(moving > 15.0 && rest < 0.5);
+    }
+    // the sequencer: steps +100 / -100 at 10 Hz
+    {
+        auto e = make("THE SETUP", {{Freq, 1000}, {SeqSync, 0}, {SeqRate, 10}, {Last, 2}, {Step1, 100}, {Step1 + 1, -100}, {depth(Seq, ToFreq), 40}});
+        const double moving = swing(*e, 2000, 2.0);
+        std::printf("  THE SETUP SEQUENCER two steps > FREQ 40 %%: a 2 kHz tone swings %.1f dB\n", moving);
+        CHECK(moving > 15.0);
+    }
+    // the follower opens AMP: loud passes louder than quiet
+    {
+        auto e = make("THE SETUP", {{Kind, Amp}, {Gain, -40}, {depth(Follow, ToFreq), 100}});
+        const double loud = toneGain(*e, 1000, 0.5f), quiet = toneGain(*e, 1000, 0.005f);
+        std::printf("  THE SETUP AMP -40 with FOLLOW > 100 %%: a -6 dBFS tone %+.1f dB, a -46 dBFS tone %+.1f dB\n", loud, quiet);
+        CHECK(loud > quiet + 20.0);
+    }
+    // the comb: peaks at 1 / DELAY
+    {
+        auto e = make("THE SETUP", {{Kind, Comb}, {CombDelay, 15}, {CombFeedback, 90}});
+        const double on = toneGain(*e, 1000.0 / 15.0 * 3.0, 0.02f), off = toneGain(*e, 1000.0 / 15.0 * 3.5, 0.02f);
+        std::printf("  THE SETUP COMB 15 ms, feedback 90: on a peak %+.1f dB, between %+.1f dB\n", on, off);
+        CHECK(on > off + 12.0);
+    }
+    // the delay: left at TIME, right at 150 %
+    {
+        auto e = make("THE SETUP", {{Kind, Amp}, {DelaySync, 0}, {DelayTime, 200}, {DelayRight, 1}, {DelayMix, 100}});
+        Stereo s = impulse(30000);
+        run(*e, s);
+        const std::size_t l = peakAt(s.l, 2000, 30000) - 100, r = peakAt(s.r, 2000, 30000) - 100;
+        std::printf("  THE SETUP DELAY 200 ms, RIGHT 150 %%: left after %.1f ms, right after %.1f ms\n", l / 48.0, r / 48.0);
+        CHECK(l > 9550 && l < 9650 && r > 14350 && r < 14450);
+    }
+    const double d = blockSizeDifference(*findPlugin("THE SETUP"),
+                                         [](hc::fx::Effect& x) {
+                                             x.set(Freq, 800); x.set(depth(Lfo, ToFreq), 50); x.set(depth(Seq, ToRes), 30); x.set(Crush, 30);
+                                             x.set(DelayMix, 40); x.set(DelayFeedback, 40); x.set(DelayAnalog, 1);
+                                         },
+                                         noise(1.0, 0.3f));
+    std::printf("  THE SETUP block size 512 vs 1: %.2e\n", d);
+    CHECK(d < 1e-5);
+}
+
 // Drum-like hits: a 120 Hz thump with a sharp attack every 0.5 s.
 Stereo hits(double seconds, float amp) {
     Stereo s(static_cast<std::size_t>(seconds * kFs));
@@ -885,33 +964,74 @@ void testDoubleCross() {
 
 void testCutthroat() {
     using namespace cutthroat;
+    // both filters off: untouched; the curves (left and right) are what the audio does
     {
-        auto e = make("CUTTHROAT");
+        auto e = make("CUTTHROAT", {{HpOn, 0}, {LpOn, 0}, {RHpOn, 0}, {RLpOn, 0}});
         Stereo s = noise(0.5, 0.3f), ref = s;
         run(*e, s);
         double diff = 0;
         for (std::size_t i = 0; i < s.size(); ++i) diff = std::max(diff, static_cast<double>(std::fabs(s.l[i] - ref.l[i])));
-        std::printf("  CUTTHROAT at its defaults: largest change %.2e\n", diff);
+        std::printf("  CUTTHROAT both off: largest change %.2e\n", diff);
         CHECK(diff < 1e-6);
     }
     {
-        auto dark = make("CUTTHROAT", {{Sweep, -100}}), thin = make("CUTTHROAT", {{Sweep, 100}});
-        const double a = toneGain(*dark, 1000, 0.2f), b = toneGain(*thin, 1000, 0.2f);
-        std::printf("  CUTTHROAT 1 kHz: SWEEP all left %.1f dB, all right %.1f dB\n", a, b);
-        CHECK(a < -30.0 && b < -30.0);
-    }
-    {
-        auto e = make("CUTTHROAT", {{LowCut, 200}, {HighCut, 5000}, {Resonance, 30}, {Slope, 1}});
+        auto e = make("CUTTHROAT", {{HpFreq, 200}, {LpFreq, 5000}, {Link, 0}, {RHpFreq, 60}, {RLpFreq, 12000}});
         float v[kCount];
         for (int i = 0; i < kCount; ++i) v[i] = e->get(i);
         double worst = 0;
-        for (double hz : {100.0, 200.0, 1000.0, 5000.0, 9000.0}) worst = std::max(worst, std::fabs(toneGain(*e, hz, 0.1f) - curveDb(v, kFs, hz)));
-        std::printf("  CUTTHROAT audio vs drawn curve: worst %.2f dB\n", worst);
-        CHECK(worst < 0.3);
+        for (double hz : {50.0, 100.0, 200.0, 1000.0, 5000.0, 9000.0}) {
+            worst = std::max(worst, std::fabs(toneGain(*e, hz, 0.1f) - curveDb(v, kFs, hz)));
+            worst = std::max(worst, std::fabs(toneGain(*e, hz, 0.1f, true) - curveRightDb(v, kFs, hz)));
+        }
+        const double slope = curveDb(v, kFs, 50) - curveDb(v, kFs, 100);
+        std::printf("  CUTTHROAT audio vs drawn curves (left, right): worst %.3f dB; the high-pass an octave down: %.1f dB per octave\n", worst, slope);
+        CHECK(worst < 0.05 && slope < -15.0 && slope > -19.0);
+        e->set(Link, 1);
+        v[Link] = 1;
+        const double linked = toneGain(*e, 100, 0.1f, true);
+        std::printf("  CUTTHROAT linked: right side at 100 Hz %+.2f dB (left curve %+.2f)\n", linked, curveDb(v, kFs, 100));
+        CHECK(std::fabs(linked - curveDb(v, kFs, 100)) < 0.05);
     }
-    const double d = blockSizeDifference(*findPlugin("CUTTHROAT"), [](hc::fx::Effect& x) { x.set(Sweep, -40); x.set(Resonance, 60); x.set(Drive, 50); },
+    // a frequency jump glides: no sample steps out of line
+    {
+        auto e = make("CUTTHROAT", {{LpFreq, 20000}, {HpOn, 0}});
+        Stereo a = sine(300, 0.3, 0.5f);
+        run(*e, a);
+        e->set(LpFreq, 400);
+        Stereo c(14400);
+        for (std::size_t i = 0; i < c.size(); ++i) c.l[i] = c.r[i] = 0.5f * static_cast<float>(std::sin(2.0 * std::numbers::pi * 300.0 * (i + a.size()) / kFs));
+        run(*e, c);
+        float step = 0;
+        for (std::size_t i = 1; i < c.size(); ++i) step = std::max(step, std::fabs(c.l[i] - c.l[i - 1]));
+        std::printf("  CUTTHROAT low-pass 20 kHz -> 400 Hz while playing: largest sample step %.4f\n", step);
+        CHECK(step < 0.05f);
+    }
+    const double d = blockSizeDifference(*findPlugin("CUTTHROAT"), [](hc::fx::Effect& x) { x.set(HpFreq, 300); x.set(LpFreq, 3000); x.set(Link, 0); },
                                          noise(0.6, 0.3f));
     std::printf("  CUTTHROAT block size 512 vs 1: %.2e\n", d);
+    CHECK(d < 1e-5);
+}
+
+void testTunnelVision() {
+    using namespace tunnelvision;
+    {
+        auto e = make("TUNNEL VISION");
+        Stereo s = noise(0.5, 0.3f), ref = s;
+        run(*e, s);
+        double diff = 0;
+        for (std::size_t i = 0; i < s.size(); ++i) diff = std::max(diff, static_cast<double>(std::fabs(s.l[i] - ref.l[i])));
+        auto c = make("TUNNEL VISION", {{Filter, 5}});
+        float v[kCount] = {5.0f, 0.0f};
+        const double at1k = toneGain(*c, 1000, 0.1f), at5k = toneGain(*c, 5000, 0.1f);
+        auto r = make("TUNNEL VISION", {{Filter, 5}, {Resonance, 3}});
+        float vr[kCount] = {5.0f, 3.0f};
+        const double edge = toneGain(*r, 1549.2, 0.05f);
+        std::printf("  TUNNEL VISION open: largest change %.1e; FILTER 5 (1.55 kHz): 1 kHz %+.1f (drawn %+.1f), 5 kHz %.1f dB; RESONANCE HIGH at the edge %+.1f dB (drawn %+.1f)\n",
+                    diff, at1k, curveDb(v, kFs, 1000), at5k, edge, curveDb(vr, kFs, 1549.2));
+        CHECK(diff < 1e-6 && at5k < -30.0 && std::fabs(at1k - curveDb(v, kFs, 1000)) < 0.05 && edge > 10.0 && std::fabs(edge - curveDb(vr, kFs, 1549.2)) < 0.1);
+    }
+    const double d = blockSizeDifference(*findPlugin("TUNNEL VISION"), [](hc::fx::Effect& x) { x.set(Filter, 4); x.set(Resonance, 1); }, noise(0.6, 0.3f));
+    std::printf("  TUNNEL VISION block size 512 vs 1: %.2e\n", d);
     CHECK(d < 1e-5);
 }
 
@@ -967,6 +1087,8 @@ void testToneShop() {
     testMiddleman();
     testDoubleCross();
     testCutthroat();
+    testTunnelVision();
+    testTheSetup();
     testWideLoadAdditions();
 }
 

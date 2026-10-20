@@ -373,7 +373,15 @@ FaceLayout tubeEq(const rack::PluginInfo& info) {
     L.widgets.push_back(knob({92, 468, 86, 86}, Drive, "DRIVE", "", "", true));
     L.widgets.push_back(knob({232, 468, 86, 86}, Output, "OUTPUT", "", "", true));
     seatKnobs(L, first, 12);
-    bypassAt(L, {160, 640, 90, 90});
+    L.widgets.push_back(toggle({70, 600, 270, 40}, EqIn, "EQ"));
+    Widget an;
+    an.kind = WKind::Stepper;
+    an.param = Analog;
+    an.caption = "ANALOG";
+    an.r = {170, 652, 170, 40};
+    L.widgets.push_back(an);
+    L.recesses.push_back({an.r.inset(-4), 9, 4, false, false});
+    bypassAt(L, {160, 712, 80, 80});
     return L;
 }
 
@@ -991,6 +999,94 @@ FaceLayout channelFace(const rack::PluginInfo& info) {
     return L;
 }
 
+// ---- THE SETUP: the curve and the filter on top; the three movers with their depths; the sixteen steps;
+// the delay; input, output and mix down the left.
+FaceLayout moversFace(const rack::PluginInfo& info) {
+    using namespace rack::thesetup;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"THE FILTER MOVES", "YOU CALL THE MOVES"};
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 180, 350, 150};
+    Widget cv;
+    cv.kind = WKind::CurveDisplay;
+    cv.r = L.display;
+    L.widgets.push_back(cv);
+    L.recesses.push_back({cv.r, 14, 9, false, true});
+    auto stepper = [&](Rect r, int param, const char* caption = "") {
+        Widget st;
+        st.kind = WKind::Stepper;
+        st.param = param;
+        st.caption = caption;
+        st.r = r;
+        L.widgets.push_back(st);
+        L.recesses.push_back({st.r.inset(-4), 9, 4, false, false});
+    };
+    struct K { int p; const char* cap; };
+    auto knobs = [&](float x0, float w, float y, float d, std::initializer_list<K> ks) {
+        const std::size_t first = L.widgets.size();
+        const float pitch = w / static_cast<float>(ks.size());
+        int k = 0;
+        for (const K& kk : ks) {
+            const float cx = x0 + (static_cast<float>(k++) + 0.5f) * pitch;
+            L.widgets.push_back(knob({cx - d * 0.5f, y, d, d}, kk.p, kk.cap, "", "", true));
+        }
+        seatKnobs(L, first, 5);
+    };
+    // the filter
+    stepper({850, 186, 210, 38}, Kind, "TYPE");
+    stepper({1160, 186, 150, 38}, Slope, "SLOPE");
+    knobs(770, 866, 268, 40, {{Freq, "FREQ"}, {CombDelay, "DELAY"}, {Gain, "GAIN"}, {Res, "RES"}, {CombFeedback, "FDBCK"}, {Spread, "SPREAD"},
+                              {Smooth, "SMOOTH"}, {Drive, "DRIVE"}, {Crush, "CRUSH"}});
+    L.grooves.push_back({410, 344, 1636, 344});
+    // the movers
+    L.sections.push_back({{410, 350, 400, 22}, "LFO"});
+    L.sections.push_back({{822, 350, 404, 22}, "SEQUENCER"});
+    L.sections.push_back({{1238, 350, 398, 22}, "FOLLOWER"});
+    knobs(410, 400, 400, 38, {{LfoRate, "RATE"}, {depth(Lfo, ToFreq), "> FREQ"}, {depth(Lfo, ToRes), "> RES"}, {depth(Lfo, ToTime), "> TIME"}});
+    knobs(822, 404, 400, 38, {{SeqRate, "RATE"}, {Swing, "SWING"}, {Last, "LAST"}, {depth(Seq, ToFreq), "> FREQ"}, {depth(Seq, ToRes), "> RES"},
+                              {depth(Seq, ToTime), "> TIME"}});
+    knobs(1238, 398, 400, 38, {{depth(Follow, ToFreq), "> FREQ"}, {depth(Follow, ToRes), "> RES"}, {depth(Follow, ToTime), "> TIME"}});
+    L.widgets.push_back(toggle({414, 470, 118, 36}, LfoSync, "SYNC"));
+    stepper({540, 470, 120, 36}, LfoNote);
+    stepper({668, 470, 138, 36}, LfoWave);
+    L.widgets.push_back(toggle({826, 470, 118, 36}, SeqSync, "SYNC"));
+    stepper({952, 470, 120, 36}, SeqNote);
+    L.grooves.push_back({816, 352, 816, 506});
+    L.grooves.push_back({1232, 352, 1232, 506});
+    L.grooves.push_back({410, 514, 1636, 514});
+    // the steps
+    {
+        const std::size_t first = L.widgets.size();
+        static const char* const kNum[kSteps] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"};
+        const float pitch = 1226.0f / kSteps;
+        for (int k = 0; k < kSteps; ++k) {
+            const float cx = 410 + (static_cast<float>(k) + 0.5f) * pitch;
+            L.widgets.push_back(knob({cx - 16, 548, 32, 32}, Step1 + k, kNum[k], "", "", true));
+        }
+        seatKnobs(L, first, 4);
+    }
+    L.grooves.push_back({410, 612, 1636, 612});
+    // the delay
+    L.sections.push_back({{410, 618, 1226, 22}, "DELAY"});
+    knobs(410, 560, 670, 40, {{DelayTime, "TIME"}, {DelayFeedback, "FEEDBACK"}, {DelayMix, "DRY / WET"}});
+    const struct { int p; const char* cap; bool stepper; } sw[5] = {
+        {DelaySync, "SYNC", false}, {DelayNote, "NOTE", true}, {DelayRight, "RIGHT", true}, {DelayAnalog, "STYLE", true}, {DelayRoute, "ROUTE", true}};
+    for (int k = 0; k < 5; ++k) {
+        const float x = 980 + static_cast<float>(k) * 131.0f;
+        L.sections.push_back({{x, 646, 127, 22}, sw[k].cap});
+        const Rect r{x + 2, 672, 123, 38};
+        if (sw[k].stepper) stepper(r, sw[k].p);
+        else L.widgets.push_back(toggle(r, sw[k].p, ""));
+    }
+    // the left column
+    knobs(70, 270, 470, 52, {{Input, "INPUT"}, {Output, "OUTPUT"}});
+    knobs(70, 270, 578, 52, {{Mix, "MIX"}});
+    buttonSeats(L);
+    bypassAt(L, {160, 712, 80, 80});
+    return L;
+}
+
 // ---- plates laid out from a PlateSpec (Face::Spec) -------------------------------------------
 // The parts go where the plate's content leaves room: a screen (or none) on top, a column of
 // buttons and switches beside it, one or two rows of knobs under it, choice lists down the left.
@@ -1329,6 +1425,7 @@ FaceLayout faceLayout(const rack::PluginInfo& info) {
     case rack::Face::Hitman: return hitmanFace(info);
     case rack::Face::Compander: return companderFace(info);
     case rack::Face::Channel: return channelFace(info);
+    case rack::Face::Movers: return moversFace(info);
     case rack::Face::Spec: if (info.plate) return specFace(info); break;
     case rack::Face::Restorer: break;
     }

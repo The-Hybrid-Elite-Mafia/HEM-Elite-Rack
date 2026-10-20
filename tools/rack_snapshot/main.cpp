@@ -157,6 +157,10 @@ int main(int argc, char** argv) {
         } else if (info.face == hem::rack::Face::Channel) {
             using namespace hem::rack::insideman;
             fx->set(GateOn, 1); fx->set(CompOn, 1); fx->set(CompThreshold, -24); fx->set(B1Gain, 3); fx->set(B3Gain, 2.5f);
+        } else if (info.face == hem::rack::Face::Movers) {
+            using namespace hem::rack::thesetup;
+            fx->set(Freq, 1200); fx->set(Res, 45); fx->set(depth(Seq, ToFreq), 60);
+            for (int k = 0; k < kSteps; ++k) fx->set(Step1 + k, (k % 4 == 0) ? 80.0f : (k % 2 ? -30.0f : 20.0f));
         } else if (info.face == hem::rack::Face::Spec && info.plate && info.plate->demo) {
             info.plate->demo(*fx);
         } else if (info.face == hem::rack::Face::Restorer) {

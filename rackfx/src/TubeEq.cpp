@@ -1,6 +1,7 @@
 #include "hem/rack/TubeEq.hpp"
 
 #include "hem/rack/Spectrum.hpp"
+#include "arsenal/Vintage.hpp"
 #include "hybrid/fx/Dsp.hpp"
 
 #include <algorithm>
@@ -18,6 +19,7 @@ using hc::fx::Taper;
 const char* const kLowN[] = {"20 Hz", "30 Hz", "60 Hz", "100 Hz"};
 const char* const kHighN[] = {"3 kHz", "4 kHz", "5 kHz", "8 kHz", "10 kHz", "12 kHz", "16 kHz"};
 const char* const kAttenN[] = {"5 kHz", "10 kHz", "20 kHz"};
+const char* const kInOutN[] = {"OUT", "IN"};
 const ParamInfo kParams[kCount] = {
     {"lowfreq", "Low Frequency", "", 0, 3, 2, Taper::Choice, kLowN},
     {"lowboost", "Low Boost", "/10", 0.0f, 10.0f, 0.0f},
@@ -29,6 +31,8 @@ const ParamInfo kParams[kCount] = {
     {"attensel", "Atten Select", "", 0, 2, 1, Taper::Choice, kAttenN},
     {"drive", "Tube Drive", "%", 0.0f, 100.0f, 20.0f},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
+    {"eqin", "EQ", "", 0, 1, 1, Taper::Toggle, kInOutN},
+    {"analog", "Analog", "", 0, 2, 0, Taper::Choice, arsenal::kMainsN},
 };
 eq::Section fromRbj(const hc::fx::BiquadCoefs& c) { return {c.b0, c.b1, c.b2, c.a1, c.a2}; }
 double sectionDb(const eq::Section& c, double fs, double hz) {
@@ -50,6 +54,7 @@ Settings settingsFrom(const float* v) noexcept {
     s.bandwidth = v[Bandwidth];
     s.highAtten = v[HighAtten];
     s.attenHz = kAttenHz[std::clamp(static_cast<int>(std::lround(v[AttenSel])), 0, 2)];
+    if (v[EqIn] < 0.5f) s.lowBoost = s.lowAtten = s.highBoost = s.highAtten = 0.0;   // EQ out: flat
     return s;
 }
 
@@ -99,10 +104,12 @@ public:
         for (auto& d : delay_) d.prepare(OS::latency() + 1);
         before_.prepare(fs);
         after_.prepare(fs);
+        hum_.prepare(fs);
         reset();
     }
 
     void reset() noexcept override {
+        hum_.clear();
         for (auto& ch : f_) for (auto& b : ch) b.clear();
         for (auto& o : os_) o.clear();
         for (auto& d : delay_) d.clear();
@@ -134,10 +141,12 @@ public:
             done += m;
         }
         drive(L, R, n);
+        const int mains = std::clamp(static_cast<int>(std::lround(p(Analog))), 0, 2);
         for (std::uint32_t i = 0; i < n; ++i) {
             const float g = out_.next(hc::fx::dbToGain(p(Output)));
             L[i] *= g;
             R[i] *= g;
+            hum_.tick(mains, 1.0f, L[i], R[i]);
         }
         after_.push(L, R, n);
     }
@@ -148,7 +157,7 @@ private:
     void glide() noexcept {
         float v[kCount];
         for (int i = 0; i < kCount; ++i) v[i] = p(i);
-        const Settings t = settingsFrom(v);
+        Settings t = settingsFrom(v);
         const double k = 1.0 - std::exp(-static_cast<double>(kStep) / (fs_ * 0.03));
         auto lin = [k](double& c, double x) { c += (x - c) * k; if (std::fabs(x - c) < 1e-6) c = x; };
         auto lg = [k](double& c, double x) {
@@ -216,6 +225,7 @@ private:
     hc::fx::DelayLine delay_[2];
     std::array<std::vector<float>, 2> up_, sat_;
     SpectrumMeter before_, after_;
+    arsenal::Hum hum_;
 };
 
 } // namespace

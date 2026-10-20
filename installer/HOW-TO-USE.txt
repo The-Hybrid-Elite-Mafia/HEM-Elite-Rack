@@ -42,6 +42,7 @@ VELVET
   LOW: pick a frequency, BOOST and/or ATTEN. Both together = the classic trick: more weight at
   the very bottom and less mud just above. HIGH: frequency, BOOST, WIDTH (sharp .. broad).
   HIGH ATTENUATION: SELECT 5 / 10 / 20 kHz and ATTEN to soften the top. TUBE: DRIVE, OUTPUT.
+  EQ switches the EQ out (to compare; the tube stays). ANALOG adds the old box's hum (50 or 60 Hz).
 
 LOCKDOWN (put it last in the chain)
   INPUT pushes the song into it: louder. CEILING is the most that ever comes out (-1 dB is a
@@ -254,9 +255,20 @@ SMOOTH TALKER
   music behind the curve on or off. OUTPUT (all the way left = off) and TRIM.
 
 CUTTHROAT
-  Turn SWEEP left and the highs close down, right and the lows thin out (filter rides, builds,
-  breakdowns). LOW CUT / HIGH CUT are where the filters rest. RESONANCE adds the whistle at the edge,
-  SLOPE 24 dB is steeper, DRIVE dirties it up first.
+  A high-pass (cuts the lows) and a low-pass (cuts the highs), each with its ON. LEFT / RIGHT pick the
+  side the knobs show; with LINK on the right follows the left. The gold line is the right side.
+
+TUNNEL VISION
+  One knob: FILTER 10 = open, turn it down and the highs close in. RESONANCE adds a whistle at the edge.
+
+THE SETUP
+  A filter that moves by itself. Pick the TYPE (low / high / band pass, notch, comb, amp) and set it,
+  then give it a mover: the LFO (a wave), the SEQUENCER (16 steps, each up or down; LAST = how many) or
+  the FOLLOWER (how loud the track is). Each mover has three depth knobs: > FREQ, > RES, > TIME (the
+  delay). SYNC locks a mover to the tempo (pick the NOTE). SMOOTH rounds off the steps. DRIVE, CRUSH
+  (lo-fi) and SPREAD (left and right apart). The DELAY: TIME, FEEDBACK, DRY / WET, RIGHT (the right
+  side later), STYLE ANALOG bends the pitch when the time moves, ROUTE IN FEEDBACK puts the filter
+  inside the echoes.
 
 THE BOSS
   A British console channel. SOURCE MIC or LINE; on MIC the PREAMP knob (20-70) drives the input

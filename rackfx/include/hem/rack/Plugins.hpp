@@ -20,7 +20,8 @@ enum class Face : std::uint8_t { EliteEq, Restorer, BusGlue, Tape, TubeEq, Limit
                                 Chorus, Flanger, Phaser, Tremolo, Rotary, AutoFilter,
                                 Sub, VocalStrip, Hitman, Compander,
                                 Spec,     // laid out from PluginInfo::plate
-                                Channel };   // INSIDE MAN's channel-strip plate
+                                Channel,     // INSIDE MAN's channel-strip plate
+                                Movers };    // THE SETUP's filter-with-movers plate
 
 // Where a plug-in sits in the rack's picker.
 enum class Group : std::uint8_t { Eq, Dynamics, Color, Space, Movement, Tools, kCount };

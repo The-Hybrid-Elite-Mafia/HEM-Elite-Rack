@@ -241,14 +241,14 @@ struct BandSet {
 };
 
 // Up to kMax biquads per side. Each band's frequency, gain and Q are eased toward their targets
-// (about 20 ms) and the coefficients refreshed every 16 samples while they move; a change of shape
+// (about 20 ms) and the coefficients refreshed every 4 samples while they move; a change of shape
 // or switching a band crossfades it in or out over 20 ms instead of jumping.
 template <int kMax>
 class IirBands {
 public:
     void prepare(double fs) noexcept {
         fs_ = fs;
-        ease_ = 1.0f - std::exp(-16.0f / static_cast<float>(fs * 0.020));
+        ease_ = 1.0f - std::exp(-4.0f / static_cast<float>(fs * 0.020));
         fadeStep_ = static_cast<float>(1.0 / (fs * 0.020));
         clear();
     }
@@ -276,13 +276,13 @@ public:
     }
     // call once per sample, before run() for both sides
     void step() noexcept {
-        if (++tick_ < 16) return;
+        if (++tick_ < 4) return;
         tick_ = 0;
         for (int b = 0; b < used_; ++b) {
             BandSet& c = cur_[b];
             const BandSet& w = want_[b];
             if (w.shape != c.shape) {   // fade out, switch, fade in
-                mix_[b] = std::max(0.0f, mix_[b] - 16.0f * fadeStep_);
+                mix_[b] = std::max(0.0f, mix_[b] - 4.0f * fadeStep_);
                 if (mix_[b] <= 0.0f) {
                     c = w;
                     bq_[b][0].clear();
@@ -291,7 +291,7 @@ public:
                 }
                 continue;
             }
-            if (c.shape != Shape::Off && mix_[b] < 1.0f) mix_[b] = std::min(1.0f, mix_[b] + 16.0f * fadeStep_);
+            if (c.shape != Shape::Off && mix_[b] < 1.0f) mix_[b] = std::min(1.0f, mix_[b] + 4.0f * fadeStep_);
             if (c == w) continue;
             auto toward = [&](float& v, float t, bool logScale) {
                 if (logScale) v = std::exp(std::log(v) + ease_ * (std::log(t) - std::log(v)));

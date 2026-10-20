@@ -12,7 +12,7 @@ C++23 audio framework, as a library.
 | **THE CLEANER** | Adaptive hiss and noise reduction that keeps the air and the attacks |
 | **THE FAMILY** | Console-style mix-bus compressor: 2 / 4 / 10:1, stepped attack and release (+ AUTO), sidechain HPF, mix |
 | **ARCHIVE** | Two-track tape machine: input drive, 15 / 30 IPS, head bump, wow & flutter, hiss, auto trim, VU meters |
-| **VELVET** | Passive tube program EQ: low boost / atten (the low-end trick), high boost with bandwidth, high atten, tube drive |
+| **VELVET** | Passive tube program EQ: low boost / atten (the low-end trick), high boost with bandwidth, high atten, tube drive, EQ in / out, analog hum |
 | **LOCKDOWN** | True-peak mastering limiter: input push, ceiling, look-ahead, auto release, stereo link, LUFS and true-peak readouts |
 | **WIDE LOAD** | Mono to 200 % width, MONO BASS (80–250 Hz), shuffle and its frequency, bass trim, rotation, asymmetry, balance, polarity, swap, M / S in; correlation, width and L / R or M / S meters |
 | **SPARK** | Adds fresh harmonics above a frequency: TUBE (even) or TAPE (odd), drive, mix |
@@ -55,7 +55,9 @@ C++23 audio framework, as a library.
 | **TEN TOES** | Ten-band EQ with separate left / right sets: bells, shelves, cuts, tight bells; input, phase and output per side |
 | **FOUR CORNERS** | Four-filter EQ with separate left / right sets: bells, shelves, resonant shelves, cuts |
 | **SMOOTH TALKER** | Six-band EQ with separate left / right sets, resonant shelves, spectrum on / off, trim |
-| **CUTTHROAT** | Sweep filter: high-pass + low-pass, one-knob SWEEP, resonance, 12 / 24 dB, drive, mix |
+| **CUTTHROAT** | High-pass + low-pass, 18 dB / oct, separate left / right sets with link |
+| **TUNNEL VISION** | One-knob filter: a low-pass closing from wide open, resonance in four steps |
+| **THE SETUP** | A filter played by an LFO, a 16-step sequencer and a follower: low / high / band pass, notch, comb, amp; drive, crush, spread, delay |
 | **THE BOSS** | British-console channel: mic / line preamp, stepped 10 kHz shelf, mid boost / cut, low shelf, 50 Hz cut, analog noise, VU |
 | **INSIDE MAN** | Channel strip: gate / expander and compressor with key filters, four-band EQ, order, phase, output, rotate, clip guard |
 | **KINGPIN** | Drum channel: pick the drum (kick … room), then sensitivity, compress, gate, FX ambience, bass, treble |
@@ -99,7 +101,7 @@ C++23 audio framework, as a library.
 | **UNDERGROUND** | More low end: a new sub an octave down, or harmonics small speakers can hear |
 | **SPOTLIGHT** | Vocal chain: high-pass, body, one-knob compressor, one-knob de-esser, presence, air |
 
-Ninety plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
+Ninety-two plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 
 ## Install
 Download `HEM-Elite-Rack-Setup-x.y.z.exe` from **Releases** and run it. Needs Windows 10 / 11

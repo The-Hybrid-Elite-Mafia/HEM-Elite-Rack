@@ -659,7 +659,10 @@ void FaceView::readout(const Ctx& c, const Widget& w) const {
         std::snprintf(t, sizeof t, f, static_cast<double>(v));
     }
     const bool over = w.hi == "CEIL" && v > plain(c.host, rack::limiter::Ceiling) + 0.05f;   // true peak above the ceiling
-    const TextStyle big = c.fit(small ? TextStyle::Panel : TextStyle::Display, t, b.w * (small ? 0.5f : 0.55f));   // the left side keeps the name and unit
+    // the left side keeps the name and unit; on a narrow window the number gets only what they leave
+    const float words = std::max(r.textWidth(cs, w.caption), r.textWidth(cs, w.lo));
+    const float room = std::max(b.w - 36 * z - words - 14 * z, b.w * 0.3f);
+    const TextStyle big = c.fit(small ? TextStyle::Panel : TextStyle::Display, t, std::min(b.w * (small ? 0.5f : 0.55f), room));
     r.text(big, t, b.right() - 18 * z, b.bottom() - (small ? 14 : 18) * z, over ? th_.red : th_.teal, Align::Right, TextFx::Shadowed);
 }
 
