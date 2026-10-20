@@ -128,6 +128,7 @@ struct Widget {
     std::string caption;           // above the control
     std::string lo, hi;            // knob scale labels ("0" .. "10", "LO" .. "HI")
     bool        small = false;
+    int         meter = -1;        // needle with a meter selector (param2): the input VU meter (output = meter + 1)
 };
 
 struct Recess { Rect r; float radius = 10; float depth = 8; bool round = false; bool glass = false; };
@@ -231,6 +232,7 @@ private:
     void eqGraph(const Ctx& c, const Widget& w) const;
     void consoleCurve(const Ctx& c, const Widget& w) const;
     void grMeter(const Ctx& c, const Widget& w) const;
+    void vuMeter(const Ctx& c, const Widget& w, int meter, const char* caption) const;
     void vuMeter(const Ctx& c, const Widget& w) const;
     void readout(const Ctx& c, const Widget& w) const;
     void history(const Ctx& c, const Widget& w) const;

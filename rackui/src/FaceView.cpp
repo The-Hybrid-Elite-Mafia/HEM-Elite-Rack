@@ -722,7 +722,56 @@ void FaceView::history(const Ctx& c, const Widget& w) const {
 }
 
 // Compressors: a gain-reduction needle with a console-meter scale (0 on the right, -20 on the left).
+// The same needle reading a VU level (-20 .. +3), when the plate's meter selector says IN or OUT.
+void FaceView::vuMeter(const Ctx& c, const Widget& w, int meter, const char* caption) const {
+    Renderer& r = c.r;
+    const float z = c.z;
+    const Rect d = c.T(w.r);
+    const float target = std::clamp(c.feed.meterDb(meter), -20.0f, 3.0f);
+    needle_ += (target - needle_) * 0.35f;
+    const TextStyle ls = c.ts(TextStyle::Caption), ts = c.ts(TextStyle::Caption), big = c.ts(TextStyle::Panel);
+    const float px = d.cx(), py = d.bottom() - 34 * z, bigBaseline = d.y + 52 * z;
+    const float R = std::min(d.w * 0.42f, d.h * 0.78f);
+    auto angle = [](float db) {   // the VU scale: even in voltage, -20 at -50 degrees, +3 at +50
+        const float v = std::pow(10.0f, std::clamp(db, -20.0f, 3.0f) / 20.0f), lo = 0.1f, hi = std::pow(10.0f, 3.0f / 20.0f);
+        return (-50.0f + 100.0f * (v - lo) / (hi - lo)) * kPi / 180.0f;
+    };
+    r.arc(px, py, R, 3.0f * z, angle(-20.0f), angle(0.0f), th_.teal.withAlpha(0.35f), false);
+    r.arc(px, py, R, 5.0f * z, angle(0.0f), angle(3.0f), rgb8(0xD04040).withAlpha(0.85f), false);
+    constexpr float kMarks[] = {-20.0f, -10.0f, -7.0f, -5.0f, -3.0f, -2.0f, -1.0f, 0.0f, 1.0f, 2.0f, 3.0f};
+    const float capH = r.capHeight(ts);
+    float lastRight = -1e9f;
+    for (float m : kMarks) {
+        const float a = angle(m), sx = std::sin(a), sy = -std::cos(a);
+        const float xs[2] = {px + sx * (R - 14 * z), px + sx * (R + 8 * z)}, ys[2] = {py + sy * (R - 14 * z), py + sy * (R + 8 * z)};
+        r.polyline(xs, ys, 2, 2.2f * z, th_.silver.withAlpha(0.8f), Blend::Over, false);
+        char t[8];
+        std::snprintf(t, sizeof t, m > 0 ? "+%.0f" : "%.0f", static_cast<double>(m));
+        const float tw = r.textWidth(ts, t), cx = px + sx * (R + 30 * z), cy = py + sy * (R + 30 * z);
+        if (cx - tw * 0.5f < lastRight + 4 * z) continue;   // no number touches the one before it
+        lastRight = cx + tw * 0.5f;
+        r.text(ts, t, cx, cy + capH * 0.5f, m > 0 ? rgb8(0xE06060) : th_.label, Align::Center, TextFx::Shadowed);
+    }
+    const float a = angle(needle_);
+    const float nx[2] = {px, px + std::sin(a) * R * 0.97f}, ny[2] = {py, py - std::cos(a) * R * 0.97f};
+    r.polyline(nx, ny, 2, 2.6f * z, th_.silver, Blend::Over, false);
+    r.fillRound({px - 13 * z, py - 13 * z, 26 * z, 26 * z}, 13 * z, rgb8(0x9AA4AA), Blend::Over);
+    r.fillRound({px - 6 * z, py - 6 * z, 12 * z, 12 * z}, 6 * z, th_.tealDeep, Blend::Over, false);
+    r.text(ls, caption, d.x + 20 * z, d.bottom() - 18 * z, th_.label, Align::Left, TextFx::Shadowed);
+    char b[32];
+    std::snprintf(b, sizeof b, "%+.1f", static_cast<double>(target));
+    r.text(big, b, d.right() - 24 * z, bigBaseline, th_.teal, Align::Right, TextFx::Shadowed);
+}
+
 void FaceView::grMeter(const Ctx& c, const Widget& w) const {
+    if (w.param2 >= 0 && w.meter >= 0) {   // a meter selector: 0 IN, 1 GR, 2 OUT
+        const int sel = std::clamp(static_cast<int>(std::lround(plain(c.host, w.param2))), 0, 2);
+        if (sel != 1) {
+            vuMeter(c, w, w.meter + (sel == 2 ? 1 : 0), sel == 0 ? "INPUT  VU" : "OUTPUT  VU");
+            return;
+        }
+        if (needle_ > 0.0f) needle_ = 0.0f;   // back from a VU reading: start from rest
+    }
     Renderer& r = c.r;
     const float z = c.z;
     const Rect d = c.T(w.r);

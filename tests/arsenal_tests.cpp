@@ -5,6 +5,8 @@
 #include "Signals.hpp"
 
 #include "hem/rack/Arsenal.hpp"
+
+#include <string>
 #include "hem/rack/MoreDynamics.hpp"
 #include "hem/rack/Plugins.hpp"
 #include "hybrid/fx/Dsp.hpp"
@@ -75,8 +77,8 @@ void hitAndTail(const Stereo& s, std::uint32_t lat, double& hitDb, double& tailD
 }
 
 void allRules() {
-    for (const char* name : {"SWITCHBLADE", "TERRITORY", "CONSIGLIERE", "HEAVYWEIGHT", "THE DON", "SLOW BURN", "IRON FIST", "KNOCKOUT",
-                             "FULL HOUSE", "WHEELMAN", "SILENCER", "BREATHLESS", "TOMMY GUN"}) {
+    for (const char* name : {"SWITCHBLADE", "TERRITORY", "CONSIGLIERE", "STONE COLD", "HEAVYWEIGHT", "THE DON", "SLOW BURN", "LONE WOLF",
+                             "IRON FIST", "QUICK DRAW", "OLD MONEY", "KNOCKOUT", "FULL HOUSE", "WHEELMAN", "SILENCER", "BREATHLESS", "TOMMY GUN"}) {
         const PluginInfo* info = findPlugin(name);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
@@ -159,81 +161,188 @@ void testTerritory() {
 }
 
 void testLevelers() {
-    {   using namespace consigliere;
-        auto light = make("CONSIGLIERE", {{PeakReduction, 30}}), hard = make("CONSIGLIERE", {{PeakReduction, 70}});
-        auto lim = make("CONSIGLIERE", {{PeakReduction, 70}, {Mode, 1}});
-        auto solid = make("CONSIGLIERE", {{PeakReduction, 70}, {Model, 1}});
-        const double a = toneOut(*light, 1000, 0.3f, 3.0), b = toneOut(*hard, 1000, 0.3f, 3.0), c = toneOut(*lim, 1000, 0.3f, 3.0);
-        const double d = toneOut(*solid, 1000, 0.3f, 3.0);
-        std::printf("  CONSIGLIERE -10 dBFS tone: PR 30 %.1f dB, PR 70 %.1f dB, PR 70 LIMIT %.1f dB, PR 70 SOLID %.1f dB\n", a, b, c, d);
-        CHECK(b < a - 3.0 && c < b - 2.0 && d < -3.0);
-        auto dry = make("CONSIGLIERE", {{PeakReduction, 90}, {Mix, 0}});
-        Stereo s = noise(0.5, 0.5f), ref = s;
-        run(*dry, s);
-        CHECK(maxDelayedDiff(s, ref, 0, 0) < 1e-6);
+    {   using namespace opto;
+        for (const char* name : {"CONSIGLIERE", "STONE COLD"}) {
+            const float k = std::string(name) == "STONE COLD" ? 0.1f : 1.0f;   // its dials go 0..10
+            auto light = make(name, {{PeakReduction, 30 * k}}), hard = make(name, {{PeakReduction, 70 * k}});
+            auto lim = make(name, {{PeakReduction, 70 * k}, {Mode, 1}});
+            const double a = toneOut(*light, 1000, 0.3f, 3.0), b = toneOut(*hard, 1000, 0.3f, 3.0), c = toneOut(*lim, 1000, 0.3f, 3.0);
+            std::printf("  %s -10 dBFS tone: PR 30 %%  %.1f dB, PR 70 %% %.1f dB, PR 70 %% LIMIT %.1f dB\n", name, a, b, c);
+            CHECK(b < a - 3.0 && c < b - 2.0);
+            // AUTO MAKEUP gives back what it takes, on average
+            auto mk = make(name, {{PeakReduction, 70 * k}, {AutoMakeup, 1}});
+            const double m = toneOut(*mk, 1000, 0.3f, 6.0);
+            std::printf("  %s PR 70 %% with AUTO MAKEUP: %.1f dB\n", name, m);
+            CHECK(std::fabs(m) < 1.5);
+            // GAIN: the dial's full turn is +40 dB
+            auto g = make(name, {{Gain, 25 * k}, {PeakReduction, 0}});
+            CHECK(std::fabs(toneOut(*g, 1000, 0.01f) - 10.0) < 0.3);
+            auto dry = make(name, {{PeakReduction, 90 * k}, {Mix, 0}});
+            Stereo s = noise(0.5, 0.5f), ref = s;
+            run(*dry, s);
+            CHECK(maxDelayedDiff(s, ref, 0, 0) < 1e-6);
+        }
+        // the meters: a -18 dBFS RMS tone reads 0 VU
+        auto e = make("CONSIGLIERE", {{PeakReduction, 0}});
+        Stereo s = sine(1000, 1.0, 0.1259f * 1.4142f);
+        run(*e, s);
+        const float vu = e->meter(0);
+        std::printf("  CONSIGLIERE: a -18 dBFS RMS tone reads %+.2f VU\n", vu);
+        CHECK(std::fabs(vu) < 0.3f);
+        // ANALOG: hum under the music, nothing on silence
+        auto hum = make("CONSIGLIERE", {{PeakReduction, 0}, {Analog, 2}});
+        Stereo t = sine(1000, 2.0, 0.3f);
+        run(*hum, t);
+        const double h60 = db(toneAmp(t.l, 60, 48000, 48000) / 0.3);
+        std::printf("  CONSIGLIERE ANALOG 60 HZ: hum %.1f dB under the music\n", h60);
+        CHECK(h60 < -55.0 && h60 > -80.0);
     }
     {   using namespace thedon;
-        auto soft = make("THE DON", {{Threshold, -24}, {Ratio, 0}}), hard = make("THE DON", {{Threshold, -24}, {Ratio, 5}});
-        const double a = toneOut(*soft, 500, 0.5f, 3.0), b = toneOut(*hard, 500, 0.5f, 3.0);
-        std::printf("  THE DON -6 dBFS tone over -24: ratio 1.5 %.1f dB, LIMIT %.1f dB\n", a, b);
-        CHECK(a < -2.0 && b < a - 6.0);
+        auto gentle = make("THE DON", {{Threshold, 6}, {Ratio, 1}}), hard = make("THE DON", {{Threshold, 6}, {Ratio, 4}});
+        auto none = make("THE DON", {{Threshold, 6}, {Ratio, 0}});
+        const double a = toneOut(*gentle, 500, 0.5f, 3.0), b = toneOut(*hard, 500, 0.5f, 3.0), c = toneOut(*none, 500, 0.5f, 3.0);
+        // threshold -12 on the dial = -30 dBFS (VU CALIBRATE 18)
+        std::printf("  THE DON -6 dBFS tone, threshold -12: 1:1 %.1f dB, 2:1 %.1f dB, LIMIT %.1f dB\n", c, a, b);
+        CHECK(std::fabs(c) < 0.6 && a < -4.0 && b < a - 6.0);
+        auto cal = make("THE DON", {{Threshold, 6}, {Ratio, 2}, {VuCal, 8}});
+        CHECK(toneOut(*cal, 500, 0.5f, 3.0) > toneOut(*make("THE DON", {{Threshold, 6}, {Ratio, 2}}), 500, 0.5f, 3.0) + 3.0);
     }
     {   using namespace slowburn;
-        // DUAL: a tone only on the left leaves the right alone; LINKED pulls both
+        // SEPARATE: a tone only on the left leaves the right alone; LINKED pulls both
         auto run1 = [&](float link) {
-            auto e = make("SLOW BURN", {{Threshold, -30}, {Link, link}, {Tube, 0}});
+            auto e = make("SLOW BURN", {{Threshold, 7.5f}, {Link, link}});
             Stereo s = sine(500, 3.0, 0.5f);
             Stereo r = sine(300, 3.0, 0.02f);
             for (std::size_t i = 0; i < s.size(); ++i) s.r[i] = r.l[i];
             run(*e, s);
             return db(toneAmp(s.r, 300, s.size() - 12000, 12000) / 0.02);
         };
-        const double linked = run1(0), dual = run1(1);
-        std::printf("  SLOW BURN quiet right while left is loud: LINKED %.1f dB, DUAL %.1f dB\n", linked, dual);
-        CHECK(linked < -6.0 && std::fabs(dual) < 0.5);
-        auto e = make("SLOW BURN", {{Threshold, -30}});
-        CHECK(e->latency() == hc::fx::Oversampler4::latency());
+        const double linked = run1(1), separate = run1(0);
+        std::printf("  SLOW BURN quiet right while left is loud: LINKED %.1f dB, SEPARATE %.1f dB\n", linked, separate);
+        CHECK(linked < -6.0 && std::fabs(separate) < 0.5);
+        auto unity = make("SLOW BURN");   // INPUT -14 = unity, THRESHOLD 0 = no compression
+        CHECK(std::fabs(toneOut(*unity, 500, 0.2f)) < 0.5);
+        auto off = make("SLOW BURN", {{Threshold, 9}, {Compress, 0}});
+        CHECK(std::fabs(toneOut(*off, 500, 0.2f)) < 0.5);
+        CHECK(unity->latency() == hc::fx::Oversampler4::latency());
+        using namespace lonewolf;
+        auto wolf = make("LONE WOLF", {{lonewolf::Threshold, 7.5f}});
+        const double w = toneOut(*wolf, 500, 0.5f, 3.0);
+        std::printf("  LONE WOLF threshold 7.5, -6 dBFS tone: %.1f dB\n", w);
+        CHECK(w < -6.0);
+    }
+    {   using namespace oldmoney;
+        auto c = make("OLD MONEY", {{Threshold, -30}, {Ratio, 4}});
+        const double out = toneOut(*c, 1000, 0.5f, 2.0);
+        std::printf("  OLD MONEY 4:1 at -30: a -6 dBFS tone comes out %.1f dB\n", out);
+        CHECK(std::fabs(out + 18.0) < 2.0);
+        auto up = make("OLD MONEY", {{Threshold, -30}, {Ratio, 0.5f}, {Output, -12}});
+        const double u = toneOut(*up, 1000, 0.1f, 2.0);   // -20 dBFS, 10 over: lifted 10 dB, then -12
+        std::printf("  OLD MONEY ratio 0.5 (lift) at -30, -20 dBFS tone, output -12: %.1f dB\n", u);
+        CHECK(std::fabs(u - (10.0 - 12.0)) < 2.0);
+        auto lim = make("OLD MONEY", {{Output, 30}});
+        Stereo n = noise(1.0, 0.5f);
+        run(*lim, n);
+        CHECK(peakDb(n, 0) <= 0.0);
+        // ELECTRO lets go faster than OPTO near the end of the release
+        auto rel = [](float behavior) {
+            auto e = make("OLD MONEY", {{Threshold, -30}, {Ratio, 4}, {ReleaseMode, 1}, {Release, 300}, {Behavior, behavior}});
+            Stereo s = sine(1000, 0.5, 0.5f);
+            Stereo q = sine(1000, 1.0, 0.02f);
+            s.l.insert(s.l.end(), q.l.begin(), q.l.end());
+            s.r.insert(s.r.end(), q.r.begin(), q.r.end());
+            run(*e, s);
+            return db(toneAmp(s.l, 1000, 24000 + 19200, 9600) / 0.02);
+        };
+        const double el = rel(0), op = rel(1);
+        std::printf("  OLD MONEY 400-600 ms after a loud part: ELECTRO %.1f dB, OPTO %.1f dB\n", el, op);
+        CHECK(el > op + 1.0);
     }
 }
 
 void testPunchers() {
     {   using namespace heavyweight;
-        auto e = make("HEAVYWEIGHT", {{Threshold, -30}, {Ratio, 4}});
+        auto e = make("HEAVYWEIGHT", {{Threshold, -30}, {Ratio, 4}, {Analog, 0}});
         const double out = toneOut(*e, 1000, 0.5f);
         // auto makeup gives back half of what a full-scale signal loses: 4:1 over -30 at 0 dBFS = -22.5, +11.25
         std::printf("  HEAVYWEIGHT 4:1 at -30: a -6 dBFS tone comes out %.1f dB (auto makeup)\n", out);
         CHECK(std::fabs(out - (-18.0 + 11.25)) < 2.0);
-        // PUNCH lets the hits through: the attack peak stays higher with PUNCH 100
+        // PUNCH lets the hits through: the attack peak stays higher with PUNCH 30
         double h0, t0, h1, t1;
-        auto p0 = make("HEAVYWEIGHT", {{Threshold, -36}, {Ratio, 8}, {Attack, 0.5f}, {Punch, 0}});
-        auto p1 = make("HEAVYWEIGHT", {{Threshold, -36}, {Ratio, 8}, {Attack, 0.5f}, {Punch, 100}});
+        auto p0 = make("HEAVYWEIGHT", {{Threshold, -36}, {Ratio, 8}, {Attack, 0.5f}, {Punch, 0}, {Analog, 0}});
+        auto p1 = make("HEAVYWEIGHT", {{Threshold, -36}, {Ratio, 8}, {Attack, 0.5f}, {Punch, 30}, {Analog, 0}});
         Stereo a = hits(3.0, 0.8f), b = a;
         run(*p0, a);
         run(*p1, b);
         hitAndTail(a, p0->latency(), h0, t0);
         hitAndTail(b, p1->latency(), h1, t1);
-        std::printf("  HEAVYWEIGHT hits: peak PUNCH 0 %.1f dB, PUNCH 100 %.1f dB\n", h0, h1);
+        std::printf("  HEAVYWEIGHT hits: peak PUNCH 0 %.1f dB, PUNCH 30 %.1f dB\n", h0, h1);
         CHECK(h1 > h0 + 3.0);
-        // LIMIT: nothing over -0.3 dBFS
-        auto lim = make("HEAVYWEIGHT", {{Limit, 1}, {Output, 18}});
+        // LIMITER on: nothing over -0.3 dBFS; off: the clipper holds 0 dBFS
+        auto lim = make("HEAVYWEIGHT", {{Limiter, 1}, {Output, 18}});
         Stereo c = noise(1.0, 0.9f);
         run(*lim, c);
         CHECK(peakDb(c, 0) < -0.29);
-        // release on the beat follows the tempo
-        auto sy = make("HEAVYWEIGHT", {{Sync, 4}, {SyncSource, 1}, {Bpm, 60}});
-        CHECK(sy->paramActive(Bpm) && !sy->paramActive(Release));
+        auto clip = make("HEAVYWEIGHT", {{Limiter, 0}, {Output, 18}});
+        Stereo d = noise(1.0, 0.9f);
+        run(*clip, d);
+        CHECK(peakDb(d, 0) <= 0.0);
+        // the ANALOG flavours colour the sound differently (3rd harmonic of a hot tone)
+        double h3[5];
+        for (int f = 0; f < 5; ++f) {
+            auto x = make("HEAVYWEIGHT", {{Threshold, 0}, {Analog, static_cast<float>(f)}});
+            h3[f] = harmonicDb(*x, 200, 3, 0.7f);
+        }
+        std::printf("  HEAVYWEIGHT 3rd harmonic at -3 dBFS: OFF %.0f, 1 %.0f, 2 %.0f, 3 %.0f, 4 %.0f dB\n", h3[0], h3[1], h3[2], h3[3], h3[4]);
+        CHECK(h3[0] < -80.0 && h3[2] > h3[1] && h3[4] > h3[2]);
+        // release on the beat: BPM active only in BPM mode, the NOTE when synced
+        auto sy = make("HEAVYWEIGHT", {{Sync, 2}, {Bpm, 60}});
+        CHECK(sy->paramActive(Bpm) && sy->paramActive(Note) && !sy->paramActive(Release));
         CHECK(e->latency() == hc::fx::Oversampler4::latency());
     }
     {   using namespace ironfist;
-        auto a = make("IRON FIST", {{Input, 0}, {Iron, 0}}), b = make("IRON FIST", {{Input, 20}, {Iron, 0}, {Output, -20}});
+        auto a = make("IRON FIST", {{Input, 0}, {Analog, 0}}), b = make("IRON FIST", {{Input, 18}, {Analog, 0}, {Output, -18}});
         const double qa = toneOut(*a, 1000, 0.1f), qb = toneOut(*b, 1000, 0.1f);
-        std::printf("  IRON FIST -20 dBFS tone: INPUT 0 %.1f dB, INPUT +20 (output -20) %.1f dB\n", qa, qb);
-        CHECK(std::fabs(qa) < 1.0 && qb < -6.0);
-        auto lim = make("IRON FIST", {{Input, 25}, {Limit, 1}, {LimitLevel, -10}, {Iron, 0}});
+        std::printf("  IRON FIST -20 dBFS tone: INPUT 0 %.1f dB, INPUT +18 (output -18) %.1f dB\n", qa, qb);
+        CHECK(std::fabs(qa) < 1.5 && qb < -6.0);
+        auto am = make("IRON FIST", {{Input, 18}, {Analog, 0}, {AutoMakeup, 1}});
+        const double qm = toneOut(*am, 1000, 0.1f);
+        std::printf("  IRON FIST INPUT +18 with AUTO MAKEUP: %.1f dB\n", qm);
+        CHECK(qm < qa && qm > qb + 3.0);
+        auto lim = make("IRON FIST", {{Input, 18}, {Compress, 0}, {Limiter, 1}, {LimitLevel, 8}, {LimitAttack, 1}, {Analog, 0}});
         Stereo c = noise(1.0, 0.5f);
         run(*lim, c);
-        std::printf("  IRON FIST limiter at -10: peaks %.1f dBFS\n", peakDb(c, 9600));
-        CHECK(peakDb(c, 9600) < -7.5);
+        std::printf("  IRON FIST limiter at +8 dBu (-14 dBFS): peaks %.1f dBFS\n", peakDb(c, 9600));
+        CHECK(peakDb(c, 9600) < -11.5);
+        // DE-ESS: the compressor only hears the highs
+        auto de = make("IRON FIST", {{Input, 18}, {DeEss, 1}, {Analog, 0}, {Output, -18}});
+        const double lo = toneOut(*de, 300, 0.1f), hi = toneOut(*de, 8000, 0.1f);
+        std::printf("  IRON FIST DE-ESS (input +18, output -18): 300 Hz %.1f dB, 8 kHz %.1f dB\n", lo, hi);
+        CHECK(lo > hi + 6.0);
+    }
+    {   using namespace quickdraw;
+        auto unity = make("QUICK DRAW", {{Compress, 0}});
+        const double u = toneOut(*unity, 1000, 0.05f);
+        auto hard = make("QUICK DRAW", {{Input, 0}, {Output, -48}});
+        const double h = toneOut(*hard, 1000, 0.05f, 2.0);
+        std::printf("  QUICK DRAW -26 dBFS tone: COMPRESS OFF %.1f dB; INPUT 0 / OUTPUT -48 %.1f dB (30 dB in, 30 out)\n", u, h);
+        CHECK(std::fabs(u) < 0.5 && h < -6.0);
+        double r4, r20;
+        auto a4 = make("QUICK DRAW", {{Input, -10}, {Ratio, 0}}), a20 = make("QUICK DRAW", {{Input, -10}, {Ratio, 3}});
+        r4 = toneOut(*a4, 1000, 0.2f, 2.0);
+        r20 = toneOut(*a20, 1000, 0.2f, 2.0);
+        std::printf("  QUICK DRAW input -10, -14 dBFS tone: 4:1 %.1f dB, 20:1 %.1f dB\n", r4, r20);
+        CHECK(r20 < r4 - 1.0);
+        // faster ATTACK (7) catches the start of a hit more than slow (1)
+        double hs, ts, hf, tf;
+        auto slow = make("QUICK DRAW", {{Input, 0}, {Attack, 1}, {Mix, 100}}), fast = make("QUICK DRAW", {{Input, 0}, {Attack, 7}});
+        Stereo x = hits(2.0, 0.5f), y = x;
+        run(*slow, x);
+        run(*fast, y);
+        hitAndTail(x, slow->latency(), hs, ts);
+        hitAndTail(y, fast->latency(), hf, tf);
+        std::printf("  QUICK DRAW hit peaks: attack 1 %.1f dB, attack 7 %.1f dB\n", hs, hf);
+        CHECK(hf < hs);
     }
     {   using namespace knockout;
         Stereo dry = hits(3.0, 0.5f);

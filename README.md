@@ -21,11 +21,15 @@ C++23 audio framework, as a library.
 | **HITMAN** | Dual FET peak compressor: L/R or M/S, attack / release 1–7, ratios 4 / 8 / 12 / 20 / ALL, lookahead, sidechain EQ, external sidechain (VST3), saturation (clip, warm, triode, tape), mix, gain-reduction history |
 | **SWITCHBLADE** | Channel compressor + gate (open / close levels, range, hold) + a filter that steers the detector or limits the work to one band; look-ahead, listen |
 | **TERRITORY** | 4- or 5-band dynamics: each band turned down or lifted up (range), threshold, gain; natural or linear phase |
-| **CONSIGLIERE** | Two-knob leveler: smooth light-cell or firmer solid-state, compress or limit, high emphasis, mix |
-| **HEAVYWEIGHT** | Punch compressor: holds the body and lets the hits through, analog stage, release on the beat, soft limit |
-| **THE DON** | Old-school broadcast bus compressor that listens to its own output; stepped ratio, attack, decay or AUTO; warmth |
-| **SLOW BURN** | Variable-mu tube limiter: six time settings, linked / dual / mid-side, tube drive |
-| **IRON FIST** | Console channel compressor you drive with INPUT; limiter, de-ess, output iron |
+| **CONSIGLIERE** | Light-cell leveler: gain, peak reduction, compress / limit, hi freq, auto makeup, analog hum, mix, trim, IN / GR / OUT meter |
+| **STONE COLD** | Solid-state light-cell leveler: quicker and firmer, the same controls on 0-10 dials |
+| **HEAVYWEIGHT** | Punch compressor: threshold, ratio, attack, punch, release in ms or on the beat, four analog flavours, limiter or clipper, mix, meter |
+| **THE DON** | Old-school broadcast bus compressor (listens to its own output): stepped threshold, ratio, decay; VU meter with calibration, analog hum |
+| **SLOW BURN** | Stereo variable-mu tube limiter: input, threshold, six time constants, separate / linked / mid-side, mains, compress on / off |
+| **LONE WOLF** | One-channel variable-mu tube limiter: input, threshold, six time constants, mains, compress on / off |
+| **IRON FIST** | Console channel compressor + limiter you drive with INPUT: ratio, release, de-ess, limit level / attack / release, analog, auto makeup, mix, trim |
+| **QUICK DRAW** | Fast transistor limiting amp: input, output, attack and release 1-7, 4 / 8 / 12 / 20 / ALL, two revisions, auto makeup, mix, trim |
+| **OLD MONEY** | Smooth all-purpose compressor: ratio 0.5-50, auto or manual release, electro or opto, warm or smooth, output limiter, mix, trim |
 | **KNOCKOUT** | Transient designer: attack and sustain up or down, wide or four bands, guard (clip / limit) |
 | **FULL HOUSE** | Loudness without squash: gate, lift the quiet parts, leveler, hold the loud parts |
 | **WHEELMAN** | Automatic level rider for a vocal or a bass: target, max boost / cut, holds still in the gaps |
@@ -79,7 +83,7 @@ C++23 audio framework, as a library.
 | **UNDERGROUND** | More low end: a new sub an octave down, or harmonics small speakers can hear |
 | **SPOTLIGHT** | Vocal chain: high-pass, body, one-knob compressor, one-knob de-esser, presence, air |
 
-Seventy plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
+Seventy-four plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 
 ## Install
 Download `HEM-Elite-Rack-Setup-x.y.z.exe` from **Releases** and run it. Needs Windows 10 / 11

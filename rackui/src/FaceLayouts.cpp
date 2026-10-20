@@ -908,7 +908,8 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
     L.display = {410, 182, 1226, 68};
     if (B.meter >= 0)
         for (int b = 0; b < n && b < 8; ++b)
-            readoutAt(L, {410 + static_cast<float>(b) * colW + 8, 182, colW - 16, 68}, B.meter + b, kNames[b], "dB", "+");
+            readoutAt(L, {410 + static_cast<float>(b) * colW + 8, 182, colW - 16, 68}, B.meter + b,
+                      B.lastIsMaster && b == n - 1 ? "MASTER" : kNames[b], "dB", "+");
     // the top row
     const std::size_t first = L.widgets.size();
     constexpr float d = 60.0f;
@@ -943,7 +944,8 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
             L.widgets.push_back(knob({x - bd * 0.5f, y, bd, bd}, base + k.param, k.caption, k.lo, k.hi, true));
             if (!pairs || i % 2 == 1 || i + 1 == B.knobs.size()) y += rowH;
         }
-        for (const rack::PlateChoice& st : B.steppers) {   // the value says what it is (no caption: no room beside it)
+        const bool master = B.lastIsMaster && b == n - 1;
+        for (const rack::PlateChoice& st : master ? std::span<const rack::PlateChoice>{} : B.steppers) {   // the value says what it is
             Widget w;
             w.kind = WKind::Stepper;
             w.param = base + st.param;
@@ -954,7 +956,7 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
             y += 52;
         }
         // the switches: side by side in wide columns, one above the other in narrow ones
-        const int nt = static_cast<int>(B.toggles.size());
+        const int nt = master ? 0 : static_cast<int>(B.toggles.size());
         const bool side = colW >= 230.0f;
         const float tw = side ? (colW - 12.0f - 8.0f * static_cast<float>(nt - 1)) / static_cast<float>(std::max(nt, 1)) : colW - 12.0f;
         for (int t = 0; t < nt; ++t) {
@@ -991,6 +993,8 @@ FaceLayout specFace(const rack::PluginInfo& info) {
             Widget gr;
             gr.kind = WKind::GrMeter;
             gr.r = scr;
+            gr.param2 = S.meterSelect;
+            gr.meter = S.vuMeter;
             L.widgets.push_back(gr);
             L.recesses.push_back({scr, 14, 9, false, true});
             break;

@@ -66,6 +66,7 @@ struct PlateBands {
     std::span<const PlateToggle> toggles{};     // per band, side by side at the bottom
     std::span<const PlateKnob>   borders{};     // knobs on the borders between the columns (absolute parameters)
     int meter = -1;                             // band b's readout on top is meter `meter + b` (-1: none)
+    bool lastIsMaster = false;                  // the last column is MASTER: its knobs only (offsets for every band)
 };
 
 struct PlateSpec {
@@ -84,6 +85,8 @@ struct PlateSpec {
     const char* historyB = "";
     const PlateBands* bands = nullptr;          // multiband: the columns; row1 and toggles go on the top row
     bool        reportsReduction = false;       // publishes gain reduction (hosts get a GR meter)
+    int         meterSelect = -1;               // Needle: a choice IN / GR / OUT says what the needle reads
+    int         vuMeter = -1;                   // ... the input VU level is this meter, the output VU level the next
     void (*demo)(hc::fx::Effect&) = nullptr;    // settings for the CI screenshot (something to see)
 };
 

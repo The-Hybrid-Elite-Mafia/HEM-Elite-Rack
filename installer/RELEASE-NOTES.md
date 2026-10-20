@@ -1,3 +1,21 @@
+# HEM-Elite-Rack 0.22.0
+
+**The hardware-style compressors, rebuilt with every control** — one plug-in per original:
+- **CONSIGLIERE** — light-cell leveler, now with AUTO MAKEUP, HI FREQ, ANALOG, TRIM and an IN / GR / OUT meter
+- **STONE COLD** (new) — the solid-state light-cell leveler (its own plug-in now, not a CONSIGLIERE mode)
+- **HEAVYWEIGHT** — release in ms or on the host / BPM tempo with a NOTE, four ANALOG flavours, limiter or clipper, meter
+- **THE DON** — stepped THRESHOLD, RATIO and DECAY like the hardware, VU meter and VU CALIBRATE, ANALOG
+- **SLOW BURN** — INPUT, THRESHOLD 0-10, six time constants, SEPARATE / LINKED / MID-SIDE, MAINS, COMPRESS on / off
+- **LONE WOLF** (new) — one channel of SLOW BURN's circuit
+- **IRON FIST** — COMPRESS, RELEASE, DE-ESS switch, LIMITER with LEVEL / ATTACK / RELEASE, ANALOG, AUTO MAKEUP, MIX, TRIM
+- **QUICK DRAW** (new) — fast transistor limiting amp: attack / release 1-7, 4 / 8 / 12 / 20 / ALL, two revisions
+- **OLD MONEY** (new) — smooth all-purpose compressor: auto / manual release, electro / opto, warm / smooth
+
+The needle on these plates can show the input or output VU level (METER IN / OUT) as well as the gain
+reduction. ANALOG hum follows the music, so silence stays silent.
+
+Also: the maximizer plates got roomier band columns, and TOP DOG / QUICK CASH show input and output peaks.
+
 # HEM-Elite-Rack 0.21.0
 
 **The maximizers, rebuilt: seven plug-ins, each with its full set of controls** (in the rack and as VST3):

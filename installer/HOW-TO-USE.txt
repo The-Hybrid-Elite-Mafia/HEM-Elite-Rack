@@ -89,28 +89,45 @@ TERRITORY
   SPLIT 1-4 move the borders. PHASE LINEAR splits the bands with no phase shift (more latency).
   LISTEN plays one band alone. The windows on top show each band's move right now.
 
-CONSIGLIERE
-  Two knobs: PEAK REDUCTION (how much) and GAIN (make the level back up). OPTO is smooth and slow,
-  SOLID is quicker and firmer. LIMIT for harder control, EMPHASIS so it reacts more to the highs.
+THE HARDWARE-STYLE COMPRESSORS - most have a METER switch: IN and OUT show VU level on the needle
+(0 VU = -18 dBFS), GR shows how much it's turning down. ANALOG / MAINS 50 or 60 HZ adds the faint hum
+of the hardware under the music (never on silence).
+
+CONSIGLIERE / STONE COLD
+  PEAK REDUCTION (how much) and GAIN (level back up), or AUTO MAKEUP to keep the level put. MODE
+  COMPRESS or LIMIT. HI FREQ makes it react more to the highs. MIX for parallel, TRIM after it.
+  CONSIGLIERE is smooth and slow; STONE COLD is quicker and firmer, with a bit of grit.
 
 HEAVYWEIGHT
-  THRESHOLD, RATIO, ATTACK, RELEASE as usual (it makes up the level by itself). PUNCH lets the hits
-  through while the body is held. ANALOG adds weight and grit. RELEASE ON THE BEAT ties the release to
-  the song's tempo (TEMPO FROM HOST in a DAW; BPM knob in the rack). LIMIT keeps peaks under 0 dBFS.
+  THRESHOLD, RATIO, ATTACK, RELEASE (it makes up the level by itself). PUNCH lets the hits through
+  while the body is held. RELEASE IN: MS (the RELEASE knob), HOST (the song's tempo, with NOTE) or
+  BPM (the BPM knob, with NOTE). ANALOG 1-4 adds weight and grit (4 has no hiss). LIMITER on rounds
+  peaks under -0.3 dBFS; off, a clipper stops them at 0 dBFS.
 
 THE DON
-  The old broadcast bus sound: it listens to its own output, so it breathes. THRESHOLD down until
-  the needle moves, pick RATIO, ATTACK and DECAY (AUTO follows the music). WARMTH for the output stage.
+  The old broadcast bus sound: it listens to its own output, so it breathes. THRESHOLD steps down
+  until the needle moves, pick RATIO and DECAY (1 = fast, 32 = slow). VU CALIBRATE sets where 0 VU
+  sits (and so where the threshold sits).
 
-SLOW BURN
-  Tube limiting that gets firmer the harder you push. INPUT and THRESHOLD set how much, TIME 1-6
-  sets the speed (5 and 6 let go by themselves). LINK: LINKED, DUAL (each side on its own) or
-  MID / SIDE. TUBE for colour.
+SLOW BURN / LONE WOLF
+  Tube limiting that gets firmer the harder you push. INPUT at -14 = no level change; THRESHOLD up
+  from 0 to start compressing. TIME CONSTANT 1-6 sets the speed (5 and 6 let go by themselves).
+  SLOW BURN's LINK: SEPARATE, LINKED or MID / SIDE. COMPRESS OFF leaves just the tubes.
 
 IRON FIST
-  Like a console channel: turn INPUT up to compress harder, OUTPUT to set the level. RATIO, ATTACK,
-  RECOVERY (AUTO follows the music). LIMITER + LIMIT LEVEL catch the peaks, DE-ESS makes it react to
-  esses, IRON is the output transformer.
+  Like a console channel: turn INPUT up to compress harder, OUTPUT to set the level (AUTO MAKEUP
+  does that for you). RATIO, RELEASE (AUTO follows the music), DE-ESS makes it react only to esses.
+  LIMITER with LIMIT LEVEL / ATTACK / RELEASE catches the peaks. ANALOG = the output iron and hum.
+
+QUICK DRAW
+  More INPUT = more limiting (-30 is where it starts); OUTPUT sets the level (-18 = no change).
+  ATTACK and RELEASE: 7 is the fastest. RATIO 4 to 20, or ALL for the famous over-the-top smash.
+  REVISION EARLY colours more than LATE.
+
+OLD MONEY
+  A clean, smooth all-rounder. RATIO under 1 makes loud parts louder. RELEASE AUTO follows the
+  music; ELECTRO lets go quicker (more level), OPTO smoother. WARM adds a touch of colour. OUTPUT has
+  a soft limiter after it so it never goes over.
 
 KNOCKOUT
   ATTACK + makes hits snap, - softens them. SUSTAIN + brings up the ring and room, - dries it.

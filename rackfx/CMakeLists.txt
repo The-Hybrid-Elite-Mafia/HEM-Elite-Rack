@@ -33,6 +33,9 @@ add_library(hem_rackfx STATIC
     src/arsenal/Breathless.cpp
     src/arsenal/TommyGun.cpp
     src/arsenal/Plates.cpp
+    src/arsenal/QuickDraw.cpp
+    src/arsenal/OldMoney.cpp
+    src/arsenal/CompPlates.cpp
     src/maxim/BigShot.cpp
     src/maxim/LastWord.cpp
     src/maxim/MultiMax.cpp
