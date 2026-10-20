@@ -87,9 +87,9 @@ constexpr PlateToggle toggles[] = {{Reset, "RESET"}};
 
 namespace wi {
 using namespace witness;
-constexpr PlateReadout readouts[] = {{0, "LEFT", "VU", "+"}, {1, "RIGHT", "VU", "+"}, {2, "PEAK LEFT", "dBFS"}, {3, "PEAK RIGHT", "dBFS"}};
-constexpr PlateKnob row1[] = {{Calibration, "0 VU AT", "-24", "-8"}};
-constexpr PlateChoice left[] = {{Hold, "PEAK HOLD"}};
+constexpr PlateReadout readouts[] = {{0, "LEFT", "VU", "+"}, {1, "RIGHT", "VU", "+"}, {2, "CLIP LEFT", "", "0"}, {3, "CLIP RIGHT", "", "0"}};
+constexpr PlateToggle toggles[] = {{Clear, "CLEAR", true}};
+constexpr PlateKnob row1[] = {{Headroom, "HEADROOM", "4", "26"}, {DisplayDelay, "DISPLAY DELAY", "0", "1000"}};
 } // namespace wi
 
 namespace lw {
@@ -126,7 +126,7 @@ const PlateSpec kMadeMan{.note1 = "EVERY NOTE", .note2 = "FALLS IN LINE", .scree
 const PlateSpec kDetective{.note1 = "WHAT KEY", .note2 = "IS IT IN?", .screen = Screen::Readouts, .readouts = dt::readouts,
                            .choices = dt::choices, .toggles = dt::toggles, .demo = nullptr};
 const PlateSpec kWitness{.note1 = "SAW EVERYTHING", .note2 = "SAYS IT STRAIGHT", .screen = Screen::Readouts, .readouts = wi::readouts,
-                         .row1 = wi::row1, .left = wi::left, .demo = nullptr};
+                         .toggles = wi::toggles, .row1 = wi::row1, .demo = nullptr};
 const PlateSpec kLiveWire{.note1 = "TEST TONES", .note2 = "SWEEPS AND NOISE", .screen = Screen::None, .choices = lw::choices,
                           .row1 = lw::row1, .leftToggles = lw::leftT, .steppers = lw::steppers,
                           .demo = [](hc::fx::Effect& e) { e.set(livewire::Wave, 6); }};

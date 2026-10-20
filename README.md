@@ -101,7 +101,7 @@ C++23 audio framework, as a library.
 | **WISEGUYS** | Harmonizer: three voices with their own interval, level and pan |
 | **MADE MAN** | Pitch correction for one voice: key, scale, speed, amount |
 | **THE DETECTIVE** | Key finder: names the song's key and how sure it is |
-| **THE WITNESS** | VU and peak meters for left and right, calibration, peak hold |
+| **THE WITNESS** | VU meters for left and right: headroom, display delay, clip lights with clear |
 | **LIVE WIRE** | Test tones: sine, square, saw, triangle, white / pink noise, sweeps; left / right / both / opposed |
 | **FURNACE** | Tube stage: drive, bias (even harmonics), tone, mix — colour without a volume jump |
 | **REEL MONEY** | Tube tape machine: 7.5 / 15 IPS, tape or input monitor, normal or hot bias, into / off tape with link, tape level, wobble, hiss, slap or repeating tape echo with tone, VU with its zero |

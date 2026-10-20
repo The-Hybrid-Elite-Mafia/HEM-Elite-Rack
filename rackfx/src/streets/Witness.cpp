@@ -1,4 +1,8 @@
-// THE WITNESS — VU and peak meters (see Streets.hpp). The sound passes untouched.
+// THE WITNESS — VU meters with clip lights (see Streets.hpp). The sound passes untouched.
+//
+// The needle follows the rectified average (a VU's 300 ms rise: a time constant of about 65 ms), read against
+// a sine's peak so a sine HEADROOM dB under full scale reads 0 VU. Every 64 samples the needles' values go into
+// a one-second history; DISPLAY DELAY shows them from that far back.
 #include "hem/rack/Streets.hpp"
 
 #include "../arsenal/Common.hpp"
@@ -8,13 +12,16 @@ namespace witness {
 namespace {
 using namespace arsenal;
 
-const char* const kHoldN[] = {"OFF", "1 S", "3 S"};
+const char* const kPushN[] = {"A", "B"};
 const ParamInfo kParams[kCount] = {
-    {"calibration", "Calibration", "dBFS", -24.0f, -8.0f, -18.0f},
-    {"hold", "Peak Hold", "", 0, 2, 1, Taper::Choice, kHoldN},
+    {"headroom", "Headroom", "dB", 4.0f, 26.0f, 18.0f},
+    {"displaydelay", "Display Delay", "ms", 0.0f, 1000.0f, 0.0f},
+    {"clear", "Clear", "", 0, 1, 0, Taper::Toggle, kPushN},
 };
-const hc::fx::MeterInfo kMeters[] = {{"VU L", "VU", -40.0f, 6.0f}, {"VU R", "VU", -40.0f, 6.0f}, {"PEAK L", "dBFS", -60.0f, 0.0f}, {"PEAK R", "dBFS", -60.0f, 0.0f}};
-constexpr double kHoldS[] = {0.0, 1.0, 3.0};
+const hc::fx::MeterInfo kMeters[] = {{"VU L", "VU", -40.0f, 6.0f}, {"VU R", "VU", -40.0f, 6.0f}, {"CLIP L", "", 0.0f, 1.0f}, {"CLIP R", "", 0.0f, 1.0f}};
+constexpr std::uint32_t kStep = 64;
+constexpr std::size_t kHistory = 1024;   // > 1 s of steps at 48 kHz
+constexpr float kClip = 0.99896f;        // -0.009 dBFS
 
 class Impl final : public hc::fx::Effect {
 public:
@@ -24,49 +31,58 @@ public:
 
     void prepare(double fs, std::uint32_t) override {
         fs_ = fs;
-        // a VU needle reaches 99 % of a step in 300 ms: a time constant of about 65 ms
         vuK_ = static_cast<float>(1.0 - std::exp(-1.0 / (0.065 * fs)));
-        fall_ = static_cast<float>(20.0 / fs);   // the peak falls 20 dB a second after its hold
         reset();
     }
     void reset() noexcept override {
-        for (int c = 0; c < 2; ++c) {
-            avg_[c] = 0.0f;
-            peak_[c] = -100.0f;
-            held_[c] = 0;
-            publishMeter(c, -100.0f);
-            publishMeter(2 + c, -100.0f);
-        }
+        avg_[0] = avg_[1] = 0.0f;
+        clip_[0] = clip_[1] = 0.0f;
+        for (auto& h : hist_) h.fill(0.0f);
+        head_ = 0;
+        clock_ = 0;
+        push_ = p(Clear);
+        publishMeter(0, -100.0f);
+        publishMeter(1, -100.0f);
+        publishMeter(2, 0.0f);
+        publishMeter(3, 0.0f);
     }
 
     void process(float* L, float* R, std::uint32_t n) noexcept override {
-        const auto holdN = static_cast<std::uint32_t>(kHoldS[std::clamp(static_cast<int>(std::lround(p(Hold))), 0, 2)] * fs_);
+        if (p(Clear) != push_) {
+            push_ = p(Clear);
+            clip_[0] = clip_[1] = 0.0f;
+        }
         const float* io[2] = {L, R};
-        for (int c = 0; c < 2; ++c) {
-            float a = avg_[c], pk = peak_[c];
-            std::uint32_t h = held_[c];
-            for (std::uint32_t i = 0; i < n; ++i) {
+        for (std::uint32_t i = 0; i < n; ++i) {
+            for (int c = 0; c < 2; ++c) {
                 const float x = std::fabs(io[c][i]);
-                a += (x - a) * vuK_;
-                const float d = dbOf(x);
-                if (d >= pk) { pk = d; h = holdN; }
-                else if (h > 0) --h;
-                else pk = std::max(pk - fall_, -100.0f);
+                avg_[c] += (x - avg_[c]) * vuK_;
+                if (x >= kClip) clip_[c] = 1.0f;
             }
-            avg_[c] = a;
-            peak_[c] = pk;
-            held_[c] = h;
-            // a sine's average is 2/pi of its peak: read the peak-referenced level, against the calibration
+            if (++clock_ == kStep) {
+                clock_ = 0;
+                head_ = (head_ + 1) % kHistory;
+                hist_[0][head_] = avg_[0];
+                hist_[1][head_] = avg_[1];
+            }
+        }
+        const auto back = static_cast<std::size_t>(std::lround(p(DisplayDelay) * 0.001 * fs_ / kStep));
+        const std::size_t at = (head_ + kHistory - std::min(back, kHistory - 1)) % kHistory;
+        for (int c = 0; c < 2; ++c) {
+            // a sine's average is 2/pi of its peak: read the peak-referenced level, against HEADROOM
+            const float a = back == 0 ? avg_[c] : hist_[c][at];
             const float lv = dbOf(a * static_cast<float>(std::numbers::pi) * 0.5f);
-            publishMeter(c, lv < -99.0f ? -100.0f : lv - p(Calibration));
-            publishMeter(2 + c, pk < -99.0f ? -100.0f : pk);
+            publishMeter(c, lv < -99.0f ? -100.0f : lv + p(Headroom));
+            publishMeter(2 + c, clip_[c]);
         }
     }
 
 private:
     double fs_ = 48000.0;
-    float vuK_ = 0.0f, fall_ = 0.0f, avg_[2]{}, peak_[2]{-100.0f, -100.0f};
-    std::uint32_t held_[2]{};
+    float vuK_ = 0.0f, avg_[2]{}, clip_[2]{}, push_ = 0.0f;
+    std::array<std::array<float, kHistory>, 2> hist_{};
+    std::size_t head_ = 0;
+    std::uint32_t clock_ = 0;
 };
 
 } // namespace

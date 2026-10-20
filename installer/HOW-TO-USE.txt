@@ -578,8 +578,10 @@ THE DETECTIVE
   how much it remembers (the last 10 s, 30 s, or the whole song). RESET starts over.
 
 THE WITNESS
-  VU meters (slow, like the needles on a desk) and peak meters for left and right. 0 VU AT sets the
-  level that reads 0 (-18 dBFS is the usual). PEAK HOLD keeps the highest peak up for a moment.
+  VU meters for left and right (slow, like the needles on a desk). HEADROOM sets how far under full
+  scale 0 VU sits (18 dB is the usual). DISPLAY DELAY holds the needles back (up to 1 s) so meters on
+  buses that come out later line up. The CLIP windows light up when a side touches the top; CLEAR puts
+  them out. The old peak meters and PEAK HOLD are gone: the original has neither.
 
 LIVE WIRE
   Test tones, off until you switch TONE ON. WAVE: sine, square, saw, triangle, white or pink noise, or

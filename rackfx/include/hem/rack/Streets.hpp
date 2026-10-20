@@ -26,8 +26,10 @@
 //  THE DETECTIVE listens and names the song's KEY (and how sure it is). LISTEN 10 s / 30 s / WHOLE SONG,
 //                RESET starts over. The sound passes untouched. Meters: 0 key (0..11 major,
 //                12..23 minor, -1 = not sure yet), 1 sureness (%).
-//  THE WITNESS   VU meters and peak meters for left and right: CALIBRATION (the dBFS level that reads 0 VU),
-//                PEAK HOLD. The sound passes untouched. Meters: 0 / 1 VU left / right, 2 / 3 peak left / right.
+//  THE WITNESS   VU meters for left and right: HEADROOM 4..26 dB (0 VU = a sine that far under full scale),
+//                DISPLAY DELAY 0..1000 ms (holds the needles back to line up with buses that come out later), and
+//                a clip light per side (a sample at -0.009 dBFS or more) that CLEAR puts out. The sound passes
+//                untouched. Meters: 0 / 1 VU left / right, 2 / 3 clip left / right (1 = lit).
 //  LIVE WIRE     test tones: ON, WAVE SINE / SQUARE / SAW / TRIANGLE / WHITE / PINK / SWEEP, FREQ, LEVEL
 //                (dBFS), SWEEP TIME, MODE REPLACE (only the tone) or ADD (tone on top), CHANNELS BOTH /
 //                LEFT / RIGHT / OPPOSED (right upside down). Off by default; when ON it makes sound out of
@@ -73,7 +75,7 @@ enum P : int { Listen, Reset, kCount };
 } // namespace detective
 
 namespace witness {
-enum P : int { Calibration, Hold, kCount };
+enum P : int { Headroom, DisplayDelay, Clear, kCount };
 } // namespace witness
 
 namespace livewire {

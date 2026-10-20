@@ -290,8 +290,28 @@ void testWitness() {
     run(*e, s);
     double diff = 0;
     for (std::size_t i = 0; i < s.size(); ++i) diff = std::max(diff, static_cast<double>(std::fabs(s.l[i] - ref.l[i])));
-    std::printf("  THE WITNESS: a -18 dBFS sine reads %+.2f VU, peak %.2f dBFS; sound changed by %.1e\n", e->meter(0), e->meter(2), diff);
-    CHECK(std::fabs(e->meter(0)) < 0.3f && std::fabs(e->meter(2) + 18.0f) < 0.1f && diff == 0.0);
+    std::printf("  THE WITNESS: a -18 dBFS sine reads %+.2f VU, clip light %.0f; sound changed by %.1e\n", e->meter(0), e->meter(2), diff);
+    CHECK(std::fabs(e->meter(0)) < 0.3f && e->meter(2) == 0.0f && diff == 0.0);
+    // HEADROOM 10: the same sine reads -8 VU; a full-scale sample lights the clip light, CLEAR puts it out
+    auto h = make("THE WITNESS", {{Headroom, 10}});
+    Stereo t = sine(1000, 2.0, amp);
+    t.l[1000] = 1.0f;
+    run(*h, t);
+    const float vu = h->meter(0), lit = h->meter(2), right = h->meter(3);
+    h->set(Clear, 1);
+    Stereo q = sine(1000, 0.1, amp);
+    run(*h, q);
+    // DISPLAY DELAY 500 ms: a tone that starts now shows half a second later
+    auto d = make("THE WITNESS", {{DisplayDelay, 500}});
+    Stereo u(36000);
+    for (std::size_t i = 12000; i < u.size(); ++i) u.l[i] = u.r[i] = amp * static_cast<float>(std::sin(2.0 * 3.14159265358979 * 1000.0 * i / 48000.0));
+    run(*d, u);
+    const float early = d->meter(0);
+    Stereo u2 = sine(1000, 0.5, amp);
+    run(*d, u2);
+    std::printf("  THE WITNESS headroom 10: %+.2f VU; clip L %.0f R %.0f, after CLEAR %.0f; delay 500 ms: 0.5 s in %.1f VU, 1 s in %+.2f VU\n", vu, lit,
+                right, h->meter(2), early, d->meter(0));
+    CHECK(std::fabs(vu + 8.0f) < 0.3f && lit == 1.0f && right == 0.0f && h->meter(2) == 0.0f && early < -20.0f && std::fabs(d->meter(0)) < 0.5f);
 }
 
 void testLiveWire() {
