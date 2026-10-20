@@ -78,6 +78,7 @@ C++23 audio framework, as a library.
 | **BODY DOUBLE** | Doubler: four voices with gain, pan, delay, detune, feedback, octave and wobble; dry, in time, feed, lowest note, low / high shelves |
 | **HUSTLE** | One LFO for level, pitch and position: rate (or the tempo) x multiplier, five waves, phase per move, gain, mix |
 | **SWERVE** | Flanger: delay, depth, rate or sweeps per beat, sine / triangle, tie, hold, stereo, feedback and mix with flips, filter, tape (through zero), gain, peaks |
+| **COLD CASE** | Swept notches with a ringing loop: pairs, half, depth, flip, stereo, low cut; sweep run, wave, rate x multiplier, tempo, low / high; loop decay, flip, delay, density, hi tame, filter; high cut, width, rotate, pre-delay, wet mode, mix, gain |
 | **THE INFORMANT** | Vocoder with its own 8-voice synth on 48 keys (hold or latch), ten sounds, tune, spread; noise with its filter; squeeze, formant, lag, hold; five-band EQ; carrier / modulator / noise / vocoded mixer with solo and mute |
 | **STRAPPED** | Guitar mix desk: clean tone / edge / high gain, re-amp, then six faders with a style each: bass, treble, compress, reverb, delay, pitch |
 | **SAFE HOUSE** | Speakers in your headphones: room, speaker angle, head turn, head size, ear to ear, mute left / right (for listening; bypass before export) |

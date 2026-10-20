@@ -165,6 +165,9 @@ int main(int argc, char** argv) {
             using namespace hem::rack::informant;
             for (int k : {12, 16, 19}) fx->set(Key0 + k, 1.0f);   // a C major chord in the third octave
             fx->set(Spread, 0.6f); fx->set(eq(1, EqGain), 4.0f);
+        } else if (info.face == hem::rack::Face::Notches) {
+            using namespace hem::rack::coldcase;
+            fx->set(Decay, 60); fx->set(StereoSpread, 50); fx->set(Mix, 70);
         } else if (info.face == hem::rack::Face::Taps) {
             using namespace hem::rack::sixshooter;
             fx->set(tap(1, EqOn), 1); fx->set(tap(1, EqType), 5); fx->set(FbOn, 1); fx->set(ModOn, 1);

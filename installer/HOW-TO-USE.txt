@@ -391,6 +391,15 @@ SWERVE
   (WET FLIP for the other set of notches). FILTER LOW-PASS or HIGH-PASS on the swept sound. TAPE lets the
   sweep pass through zero like two tape machines (the whole sound is then late by DELAY). GAIN at the end.
 
+COLD CASE
+  Moving notches that dig holes in the sound, plus a loop that makes them ring. PAIRS = how many notches
+  (HALF adds one more at the top), DEPTH = how deep, FLIP turns the holes into bumps, STEREO pulls the
+  right side's notches apart from the left, LOW CUT keeps the bass out. The sweep: RUN (on / paused),
+  WAVE, RATE x MULTIPLIER (sweeps per beat), TEMPO HOST or its own BPM, LOW and HIGH = where it sweeps
+  (set them equal and it stands still). The loop: LOOP on, DECAY = how long it rings, FLIP, DELAY,
+  DENSITY (the right side's echoes later), HI TAME (darker), LOOP FILTER. The wet sound: HIGH CUT,
+  WIDTH, ROTATE, PRE-DELAY, WET MODE (STEREO, MONO, MONO FLIP), MIX, GAIN.
+
 THE INFORMANT
   Talk or sing into it and its own synth "speaks" your words. Play the synth on the 48 KEYS (up to
   eight at once): HOLD = a key sounds while you hold it (drag across for a glide), LATCH = a click

@@ -1332,6 +1332,67 @@ FaceLayout keysFace(const rack::PluginInfo& info) {
     return L;
 }
 
+FaceLayout notchesFace(const rack::PluginInfo& info) {
+    using namespace rack::coldcase;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"THE NOTCHES MOVE", "THE LOOP RINGS"};
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 180, 1226, 640};
+    auto stepper = [&](Rect r, int param, const char* label) {
+        L.sections.push_back({{r.x, r.y - 26, r.w, 22}, label});
+        Widget st;
+        st.kind = WKind::Stepper;
+        st.param = param;
+        st.r = r;
+        L.widgets.push_back(st);
+        L.recesses.push_back({st.r.inset(-4), 9, 4, false, false});
+    };
+    struct K { int p; const char* cap; };
+    auto knobs = [&](float x0, float w, float y, std::initializer_list<K> ks) {
+        const std::size_t first = L.widgets.size();
+        const float pitch = w / static_cast<float>(ks.size());
+        int k = 0;
+        for (const K& kk : ks) {
+            const float cx = x0 + (static_cast<float>(k++) + 0.5f) * pitch;
+            L.widgets.push_back(knob({cx - 19, y, 38, 38}, kk.p, kk.cap, "", "", true));
+        }
+        seatKnobs(L, first, 4);
+    };
+    // the notches
+    stepper({410, 210, 120, 32}, Notches, "PAIRS");
+    L.widgets.push_back(toggle({540, 210, 110, 32}, Half, "HALF"));
+    L.widgets.push_back(toggle({660, 210, 110, 32}, NotchFlip, "FLIP"));
+    L.widgets.push_back(toggle({780, 210, 220, 32}, LowCutOn, "LOW CUT"));
+    knobs(410, 590, 276, {{Depth, "DEPTH"}, {StereoSpread, "STEREO"}, {LowCut, "LOW CUT HZ"}});
+    L.grooves.push_back({1012, 184, 1012, 344});
+    // the sweep
+    L.widgets.push_back(toggle({1024, 210, 110, 32}, Run, "RUN"));
+    stepper({1144, 210, 150, 32}, Wave, "WAVE");
+    stepper({1304, 210, 160, 32}, Multiplier, "MULTIPLIER");
+    stepper({1474, 210, 162, 32}, Tempo, "TEMPO");
+    knobs(1024, 612, 276, {{Rate, "RATE"}, {Bpm, "BPM"}, {LowHz, "LOW"}, {HighHz, "HIGH"}});
+    L.grooves.push_back({410, 352, 1636, 352});
+    // the loop
+    L.widgets.push_back(toggle({410, 392, 140, 32}, LoopOn, "LOOP"));
+    L.widgets.push_back(toggle({560, 392, 140, 32}, LoopFlip, "FLIP"));
+    stepper({710, 392, 170, 32}, LoopFilter, "LOOP FILTER");
+    knobs(890, 746, 380, {{Decay, "DECAY"}, {Delay, "DELAY"}, {Density, "DENSITY"}, {HiTame, "HI TAME"}, {LoopFreq, "FILTER HZ"}});
+    L.grooves.push_back({410, 472, 1636, 472});
+    // the wet sound
+    L.widgets.push_back(toggle({410, 520, 180, 32}, HighCutOn, "HIGH CUT"));
+    stepper({600, 520, 180, 32}, WetMode, "WET MODE");
+    knobs(790, 846, 510, {{HighCut, "HIGH CUT HZ"}, {Width, "WIDTH"}, {Rotate, "ROTATE"}, {PreDelay, "PRE-DELAY"}, {Mix, "MIX"}, {Gain, "GAIN"}});
+    // the left column
+    readoutAt(L, {70, 404, 270, 64}, 0, "PEAK L", "dBFS", "+");
+    readoutAt(L, {70, 478, 270, 64}, 1, "PEAK R", "dBFS", "+");
+    L.widgets.push_back(toggle({70, 554, 270, 36}, Reset, "RESET PEAKS"));
+    L.widgets.back().hi = "PRESS";
+    buttonSeats(L);
+    bypassAt(L, {160, 650, 90, 90});
+    return L;
+}
+
 // ---- plates laid out from a PlateSpec (Face::Spec) -------------------------------------------
 // The parts go where the plate's content leaves room: a screen (or none) on top, a column of
 // buttons and switches beside it, one or two rows of knobs under it, choice lists down the left.
@@ -1679,6 +1740,7 @@ FaceLayout faceLayout(const rack::PluginInfo& info) {
     case rack::Face::Taps: return tapsFace(info);
     case rack::Face::Voices: return voicesFace(info);
     case rack::Face::Keys: return keysFace(info);
+    case rack::Face::Notches: return notchesFace(info);
     case rack::Face::Spec: if (info.plate) return specFace(info); break;
     case rack::Face::Restorer: break;
     }

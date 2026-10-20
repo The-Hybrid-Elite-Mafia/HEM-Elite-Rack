@@ -1,5 +1,8 @@
 # HEM-Elite-Rack 0.30.0
 
+- **COLD CASE** (new) — swept notches and a ringing loop, every control on its own plate: notches, depth, flip, stereo, low cut;
+  the sweep's run, wave, rate, multiplier, tempo and range; the loop's decay, flip, delay, density, hi tame and filter; high cut,
+  width, rotate, pre-delay, wet mode, mix, gain. (Its ranges are our own: the original's manual does not give them.)
 - **SWERVE** (new) — flanger with every control: delay, depth, rate (or sweeps per beat), sine / triangle, tie, hold,
   stereo, feedback with loop flip, mix with wet flip, filter, tape through-zero, gain, peaks. (Its filter is an ordinary one, with
   a little phase shift, where the original's has none.)

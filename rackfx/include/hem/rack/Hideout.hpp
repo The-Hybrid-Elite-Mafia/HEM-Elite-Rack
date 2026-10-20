@@ -47,6 +47,17 @@
 //                FLIP, FILTER (OFF, LOW-PASS or HIGH-PASS; FREQ 20 Hz–20 kHz) in the wet path and the loop, TAPE (the dry
 //                waits as long as DELAY, so the sweep goes through zero: the whole sound is late by DELAY), GAIN ±12 dB.
 //                Peaks L / R with RESET. Zero latency.
+//  COLD CASE     swept notches with a feedback loop. NOTCHES 1–6 pairs (+ HALF: one more at the top), DEPTH 0–100 (0 =
+//                no notches: the loop alone), NOTCH FLIP (peaks instead of notches), STEREO 0–100 (the right side's
+//                notches up to an octave apart from the left), LOW CUT (on, 20 Hz–1 kHz: what the notches get).
+//                The sweep: RUN (on / paused), WAVE SAW UP / SAW DOWN / TRIANGLE / SINE / SQUARE, RATE 0.01–16
+//                sweeps per beat x MULTIPLIER (x1/4 .. x16), TEMPO HOST or OWN (BPM 20–300), LOW and HIGH
+//                (20 Hz–20 kHz: where it sweeps; equal = it stands still). The loop: LOOP (on), DECAY 0–100 (how
+//                long it rings), LOOP FLIP, DELAY 0.1–100 ms, DENSITY 0–100 (the right side's echoes longer: 0 =
+//                mono), HI TAME 0–1 (darker repeats), LOOP FILTER OFF / LOW-PASS / HIGH-PASS with its FREQ. The
+//                wet sound: WIDTH 0–200 %, ROTATE ±45°, HIGH CUT (on, 1–20 kHz), PRE-DELAY 0–100 ms, WET MODE
+//                STEREO / MONO / MONO FLIP (left flipped, then summed), MIX 0–100 %, GAIN ±18 dB. Peaks L / R
+//                with RESET. Zero latency. Its own ranges: the original's manual does not give them.
 //  THE INFORMANT vocoder: the MODULATOR (L+R, LEFT or RIGHT of the input: the words) shapes the CARRIER (its own
 //                SYNTH, or the input's LEFT, RIGHT or STEREO). The synth: 48 keys (C2–B5, eight voices: more held keys
 //                than voices are ignored), LATCH (HOLD: a key sounds while held; LATCH: a click latches it),
@@ -129,6 +140,11 @@ namespace swerve {
 enum P : int { Delay, Depth, Rate, Sync, Wave, Tie, Hold, StereoOffset, Feedback, LoopFlip, Mix, WetFlip, FilterType, FilterFreq, Tape,
                Gain, Reset, kCount };
 } // namespace swerve
+namespace coldcase {
+enum P : int { Notches, Half, Depth, NotchFlip, StereoSpread, LowCutOn, LowCut, Run, Wave, Rate, Multiplier, Tempo, Bpm, LowHz, HighHz,
+               LoopOn, Decay, LoopFlip, Delay, Density, HiTame, LoopFilter, LoopFreq, Width, Rotate, HighCutOn, HighCut, PreDelay,
+               WetMode, Mix, Gain, Reset, kCount };
+} // namespace coldcase
 namespace informant {
 inline constexpr int kEqBands = 5, kEqStride = 4, kKeys = 48, kLowKey = 36;   // keys: MIDI 36 (C2) .. 83 (B5)
 inline constexpr int kPaths = 4, CarrierPath = 0, ModPath = 1, NoisePath = 2, MorphPath = 3;
@@ -156,6 +172,7 @@ enum P : int { Sync, Bpm, Time, Note, Tap, Dual, TimeR, NoteR, Feedback, PingPon
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeFixer();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeDeadDrop();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeSwerve();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeColdCase();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeSixShooter();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeBackAlley();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeDriveBy();

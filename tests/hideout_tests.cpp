@@ -51,7 +51,7 @@ double peakIn(const std::vector<float>& x, std::size_t from, std::size_t to) {
 }
 
 void allRules() {
-    for (const char* name : {"SWERVE", "THE FIXER", "SIX SHOOTER", "DEAD DROP", "BACK ALLEY", "DRIVE-BY", "BODY DOUBLE", "HUSTLE", "THE INFORMANT", "STRAPPED", "SAFE HOUSE"}) {
+    for (const char* name : {"COLD CASE", "SWERVE", "THE FIXER", "SIX SHOOTER", "DEAD DROP", "BACK ALLEY", "DRIVE-BY", "BODY DOUBLE", "HUSTLE", "THE INFORMANT", "STRAPPED", "SAFE HOUSE"}) {
         const PluginInfo* info = findPlugin(name);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
@@ -471,6 +471,91 @@ void testSwerve() {
     }
 }
 
+void testColdCase() {
+    using namespace coldcase;
+    auto still = [](std::initializer_list<std::pair<int, float>> more) {   // no sweep, no loop, all wet, at 1 kHz
+        auto e = findPlugin("COLD CASE")->create();
+        for (const auto& [i, v] : std::initializer_list<std::pair<int, float>>{{Run, 0}, {LowHz, 1000}, {HighHz, 1000}, {LoopOn, 0}, {Mix, 100}, {Depth, 100}, {Notches, 0}})
+            e->set(i, v);
+        for (const auto& [i, v] : more) e->set(i, v);
+        e->prepare(kFs, 512);
+        return e;
+    };
+    {
+        auto e = still({});
+        auto f = still({{NotchFlip, 1}});
+        const double a = toneGain(*e, 1000, 0.2f), b = toneGain(*f, 1000, 0.2f);
+        std::printf("  COLD CASE notch at 1 kHz: %.1f dB; flipped: %+.1f dB\n", a, b);
+        CHECK(a < -25.0 && std::fabs(b - 6.0) < 0.3);
+    }
+    {   // DEPTH 0, no loop: untouched
+        auto e = still({{Depth, 0}});
+        Stereo s = noise(0.3, 0.2f), ref = s;
+        run(*e, s);
+        double d = 0;
+        for (std::size_t i = 0; i < s.size(); ++i) d = std::max(d, static_cast<double>(std::fabs(s.l[i] - ref.l[i])));
+        std::printf("  COLD CASE depth 0: largest change %.2e\n", d);
+        CHECK(d < 1e-5);
+    }
+    {   // the loop: an echo DELAY later; DENSITY 100 makes the right one twice as late
+        auto e = still({{Depth, 0}, {LoopOn, 1}, {Decay, 80}, {Delay, 5}, {Density, 100}, {HiTame, 0}});
+        Stereo s = impulse(4800);
+        run(*e, s);
+        const std::size_t l = peakAt(s.l, 110, 4800), r = peakAt(s.r, 110, 4800);
+        std::printf("  COLD CASE loop 5 ms, density 100: left echo %.2f ms, right %.2f ms after\n", (l - 100) / 48.0, (r - 100) / 48.0);
+        CHECK(l >= 339 && l <= 341 && r >= 579 && r <= 581);
+    }
+    {   // PRE-DELAY 10 ms
+        auto e = still({{Depth, 0}, {PreDelay, 10}});
+        Stereo s = impulse(4800);
+        run(*e, s);
+        const std::size_t a = peakAt(s.l, 0, 4800);
+        std::printf("  COLD CASE pre-delay 10 ms: %.2f ms\n", (a - 100) / 48.0);
+        CHECK(a == 580);
+    }
+    {   // WET MODE MONO: both sides the same; MONO FLIP of a mono input: nothing left
+        auto e = still({{Depth, 0}, {WetMode, 1}});
+        auto f = still({{Depth, 0}, {WetMode, 2}});
+        Stereo a = noise(0.3, 0.2f), b = a;
+        for (std::size_t i = 0; i < b.size(); ++i) b.r[i] = b.l[i];
+        run(*e, a);
+        run(*f, b);
+        double d = 0, z = 0;
+        for (std::size_t i = 0; i < a.size(); ++i) { d = std::max(d, static_cast<double>(std::fabs(a.l[i] - a.r[i]))); z = std::max(z, static_cast<double>(std::fabs(b.l[i]))); }
+        std::printf("  COLD CASE wet mono: L-R %.1e; mono flip of mono: %.1e\n", d, z);
+        CHECK(d < 1e-6 && z < 1e-6);
+    }
+    {   // the sweep moves the notch: 1 kHz comes and goes; RUN off holds it
+        auto moving = still({{Run, 1}, {LowHz, 300}, {HighHz, 3000}, {Rate, 0.5f}});   // one sweep a second
+        Stereo s = sine(1000.0, 2.0, 0.2f);
+        run(*moving, s);
+        double lo = 1e9, hi = 0;
+        for (std::size_t b = 4800; b + 960 <= s.size(); b += 960) { const double v = rms(s.l, b, 960); lo = std::min(lo, v); hi = std::max(hi, v); }
+        std::printf("  COLD CASE sweeping: 1 kHz level moves over %.1f dB\n", db(hi / std::max(lo, 1e-12)));
+        CHECK(db(hi / std::max(lo, 1e-12)) > 10.0);
+    }
+    {   // TEMPO OWN at 60 BPM with RATE x2 = HOST (120 BPM) at RATE x1
+        auto own = still({{Run, 1}, {LowHz, 300}, {HighHz, 3000}, {Tempo, 1}, {Bpm, 60}, {Rate, 0.5f}});
+        auto host = still({{Run, 1}, {LowHz, 300}, {HighHz, 3000}, {Tempo, 0}, {Rate, 0.25f}});
+        Stereo a = noise(0.5, 0.2f), b = a;
+        run(*own, a);
+        run(*host, b);
+        double d = 0;
+        for (std::size_t i = 0; i < a.size(); ++i) d = std::max(d, static_cast<double>(std::fabs(a.l[i] - b.l[i])));
+        std::printf("  COLD CASE own tempo 60 x2 = host 120: largest difference %.2e\n", d);
+        CHECK(d < 1e-5);
+    }
+    {   // MIX 0: dry
+        auto e = still({{Mix, 0}, {LoopOn, 1}});
+        Stereo s = noise(0.3, 0.2f), ref = s;
+        run(*e, s);
+        double d = 0;
+        for (std::size_t i = 0; i < s.size(); ++i) d = std::max(d, static_cast<double>(std::fabs(s.l[i] - ref.l[i])));
+        std::printf("  COLD CASE mix 0: largest change %.2e\n", d);
+        CHECK(d < 1e-6);
+    }
+}
+
 void testInformant() {
     using namespace informant;
     // a talking-like modulator: noise in short bursts; the morph only (no noise path)
@@ -699,6 +784,7 @@ void testHideout() {
     testFixer();
     testDeadDrop();
     testSwerve();
+    testColdCase();
     testSixShooter();
     testBackAlley();
     testDriveBy();
