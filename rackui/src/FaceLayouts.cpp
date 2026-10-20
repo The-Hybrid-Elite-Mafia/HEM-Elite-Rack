@@ -17,6 +17,7 @@
 #include "hem/rack/ToneShop.hpp"
 #include "hem/rack/Hideout.hpp"
 #include "hem/rack/Garage.hpp"
+#include "hem/rack/Analyzer.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -1523,6 +1524,71 @@ FaceLayout auditFace(const rack::PluginInfo& info) {
     return L;
 }
 
+// STAKEOUT: the bands on the left, the stereo position on the right, the meters and settings under them.
+FaceLayout stakeoutFace(const rack::PluginInfo& info) {
+    using namespace rack::stakeout;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"EYES ON", "EVERY BAND"};
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 180, 1226, 640};
+    auto stepper = [&](Rect r, int param, const char* label) {
+        L.sections.push_back({{r.x, r.y - 26, r.w, 22}, label});
+        Widget st;
+        st.kind = WKind::Stepper;
+        st.param = param;
+        st.r = r;
+        L.widgets.push_back(st);
+        L.recesses.push_back({st.r.inset(-4), 9, 4, false, false});
+    };
+    Widget rtaW;
+    rtaW.kind = WKind::Rta;
+    rtaW.r = {410, 180, 820, 380};
+    L.recesses.push_back({rtaW.r, 14, 9, false, true});
+    L.widgets.push_back(rtaW);
+    Widget pol;
+    pol.kind = WKind::Polar;
+    pol.r = {1240, 180, 396, 300};
+    L.recesses.push_back({pol.r, 14, 9, false, true});
+    L.widgets.push_back(pol);
+    readoutAt(L, {1240, 490, 196, 70}, ClipL, "CLIP L", "", "0");
+    readoutAt(L, {1440, 490, 196, 70}, ClipR, "CLIP R", "", "0");
+    // the meters
+    readoutAt(L, {410, 580, 198, 64}, PeakL, "PEAK L", "dBFS", "+");
+    readoutAt(L, {614, 580, 198, 64}, PeakR, "PEAK R", "dBFS", "+");
+    readoutAt(L, {818, 580, 198, 64}, Sum, "SUM", "dB", "+");
+    readoutAt(L, {1022, 580, 198, 64}, HoldPeakL, "HOLD L", "dBFS", "+");
+    readoutAt(L, {1226, 580, 200, 64}, HoldPeakR, "HOLD R", "dBFS", "+");
+    readoutAt(L, {1432, 580, 204, 64}, HoldSumM, "HOLD SUM", "dB", "+");
+    // the settings
+    stepper({410, 700, 130, 32}, Resolution, "LF RESOLUTION");
+    stepper({550, 700, 110, 32}, Mode, "MODE");
+    stepper({670, 700, 120, 32}, Channels, "CHANNELS");
+    stepper({800, 700, 110, 32}, Weighting, "WEIGHTING");
+    stepper({920, 700, 110, 32}, MeterMode, "SUM METER");
+    L.widgets.push_back(toggle({1040, 700, 140, 32}, Freeze, "FREEZE"));
+    L.widgets.push_back(toggle({1190, 700, 160, 32}, ShowMax, "MAX LINE"));
+    {
+        const std::size_t first = L.widgets.size();
+        L.widgets.push_back(knob({1460, 688, 38, 38}, Response, "RESPONSE", "", "", true));
+        seatKnobs(L, first, 4);
+    }
+    // the left column: the resets
+    L.widgets.push_back(toggle({70, 404, 130, 36}, ClearMax, "MAX"));
+    L.widgets.back().hi = "PRESS";
+    L.widgets.push_back(toggle({210, 404, 130, 36}, ClearClips, "CLIPS"));
+    L.widgets.back().hi = "PRESS";
+    L.widgets.push_back(toggle({70, 452, 85, 36}, HoldL, "HOLD L"));
+    L.widgets.back().hi = "PRESS";
+    L.widgets.push_back(toggle({162, 452, 85, 36}, HoldR, "HOLD R"));
+    L.widgets.back().hi = "PRESS";
+    L.widgets.push_back(toggle({254, 452, 86, 36}, HoldSum, "SUM"));
+    L.widgets.back().hi = "PRESS";
+    buttonSeats(L);
+    bypassAt(L, {160, 650, 90, 90});
+    return L;
+}
+
 // ---- plates laid out from a PlateSpec (Face::Spec) -------------------------------------------
 // The parts go where the plate's content leaves room: a screen (or none) on top, a column of
 // buttons and switches beside it, one or two rows of knobs under it, choice lists down the left.
@@ -1873,6 +1939,7 @@ FaceLayout faceLayout(const rack::PluginInfo& info) {
     case rack::Face::Notches: return notchesFace(info);
     case rack::Face::Pawn: return pawnFace(info);
     case rack::Face::Audit: return auditFace(info);
+    case rack::Face::Stakeout: return stakeoutFace(info);
     case rack::Face::Spec: if (info.plate) return specFace(info); break;
     case rack::Face::Restorer: break;
     }

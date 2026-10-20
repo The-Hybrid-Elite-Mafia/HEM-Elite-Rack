@@ -12,6 +12,7 @@
 #include "hem/rack/KWeight.hpp"
 
 #include "../arsenal/Common.hpp"
+#include "WeightKit.hpp"
 
 #include <complex>
 #include <vector>
@@ -20,6 +21,8 @@ namespace hem::rack {
 namespace auditor {
 namespace {
 using namespace arsenal;
+using weights::onePole;
+using weights::r468;
 
 const char* const kMethodN[] = {"EBU", "LM1", "DIAL"};
 const char* const kChanN[] = {"BOTH", "LEFT", "RIGHT"};
@@ -62,24 +65,6 @@ constexpr int kBins = 800;        // -70 .. +10 in 0.1 steps
 constexpr std::uint32_t kLook = 48;
 constexpr int kFir = 1023;        // LEQ(M): the 468 curve as a linear-phase FIR (measurement only)
 inline double lufsOf(double ms) { return ms > 0.0 ? -0.691 + 10.0 * std::log10(ms) : -100.0; }
-
-// first-order sections by the bilinear transform, the corner pre-warped
-C onePole(double fs, double hz, bool highPass) noexcept {
-    const double k = std::tan(std::numbers::pi * std::min(hz, fs * 0.49) / fs);
-    C c;
-    c.b0 = highPass ? 1.0 / (1.0 + k) : k / (1.0 + k);
-    c.b1 = highPass ? -c.b0 : c.b0;
-    c.b2 = 0.0;
-    c.a1 = (k - 1.0) / (k + 1.0);
-    c.a2 = 0.0;
-    return c;
-}
-// ITU-R 468 response (linear), from its published formula
-double r468(double f) noexcept {
-    const double h1 = -4.737338981378384e-24 * std::pow(f, 6) + 2.043828333606125e-15 * std::pow(f, 4) - 1.363894795463638e-7 * f * f + 1.0;
-    const double h2 = 1.306612257412824e-19 * std::pow(f, 5) - 2.118150887518656e-11 * std::pow(f, 3) + 5.559488023498642e-4 * f;
-    return 1.246332637532143e-4 * f / std::sqrt(h1 * h1 + h2 * h2);
-}
 
 class Impl final : public hc::fx::Effect {
 public:

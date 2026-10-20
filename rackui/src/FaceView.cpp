@@ -692,6 +692,97 @@ void FaceView::readout(const Ctx& c, const Widget& w) const {
     r.text(big, t, b.right() - 18 * z, b.bottom() - (small ? 14 : 18) * z, over ? th_.red : th_.teal, Align::Right, TextFx::Shadowed);
 }
 
+// STAKEOUT: the frequency bands as bars from the floor (-90 dB) to their level; with L / R two thin bars per
+// band (left teal, right gold), otherwise one; the max line over them when it's on.
+void FaceView::rta(const Ctx& c, const Widget& w) const {
+    Renderer& r = c.r;
+    const float z = c.z;
+    const Rect plot = plotArea(w.r);
+    const Rect p = c.T(plot);
+    constexpr float kTop = 0.0f, kBottom = -90.0f;
+    grid(c, plot, kTop, kBottom, 10.0f, false);
+    if (!c.feed.hasAnalyzer()) return;
+    const int res = std::clamp(static_cast<int>(std::lround(plain(c.host, rack::stakeout::Resolution))), 0, 2);
+    const bool dual = plain(c.host, rack::stakeout::Channels) < 0.5f, showMax = plain(c.host, rack::stakeout::ShowMax) >= 0.5f;
+    const int nb = rack::stakeout::bandCount(res), low = rack::stakeout::lowBands(res);
+    auto yOf = [&](float db) { return p.y + std::clamp((kTop - db) / (kTop - kBottom), 0.0f, 1.0f) * p.h; };
+    float mx[2][rack::kRtaMaxBands], my[2][rack::kRtaMaxBands];
+    for (int b = 0; b < nb; ++b) {
+        const float hz = rack::stakeout::bandHz(res, b);
+        const float lo = b < low ? hz - 0.5f * rack::stakeout::kLowStep[res] : b == low ? 240.0f + 0.5f * rack::stakeout::kLowStep[res]
+                                                                                       : std::sqrt(rack::stakeout::bandHz(res, b - 1) * hz);
+        const float hi = b < low ? hz + 0.5f * rack::stakeout::kLowStep[res] : b + 1 < nb ? std::sqrt(hz * rack::stakeout::bandHz(res, b + 1)) : 21000.0f;
+        float x0 = c.X(freqToX(plot, std::max(lo, 20.0f))), x1 = c.X(freqToX(plot, std::min(hi, 20000.0f)));
+        x0 += 0.6f * z;
+        x1 -= 0.6f * z;
+        if (x1 <= x0) continue;
+        const int sides = dual ? 2 : 1;
+        for (int sd = 0; sd < sides; ++sd) {
+            const float a = dual ? x0 + (x1 - x0) * 0.5f * static_cast<float>(sd) : x0, e = dual ? a + (x1 - x0) * 0.5f : x1;
+            const float y = yOf(c.feed.rtaLevel(sd, b));
+            const Rgba col = sd == 0 ? th_.teal : th_.gold;
+            if (y < p.bottom() - 0.5f) r.fillRound({a, y, std::max(e - a - 0.4f * z, 0.6f * z), p.bottom() - y}, 0.0f, col.withAlpha(0.75f), Blend::Over);
+            mx[sd][b] = 0.5f * (a + e);
+            my[sd][b] = yOf(c.feed.rtaMax(sd, b));
+        }
+    }
+    if (showMax)
+        for (int sd = 0; sd < (dual ? 2 : 1); ++sd) r.polyline(mx[sd], my[sd], nb, 1.4f * z, (sd == 0 ? th_.label : th_.gold).withAlpha(0.8f), Blend::Over, false);
+    const TextStyle s = c.ts(TextStyle::Caption);
+    r.text(s, dual ? "LEFT" : "L+R", p.x + 14 * z, p.y + 26 * z, th_.teal, Align::Left, TextFx::Shadowed);
+    if (dual) r.text(s, "RIGHT", p.x + 90 * z, p.y + 26 * z, th_.gold, Align::Left, TextFx::Shadowed);
+}
+
+// STAKEOUT: a half circle; straight up = the middle, the dashed lines at 45 degrees = hard left / right, red past
+// 60 degrees = out of phase. Each band is a dot: its angle where it sits, its distance how loud (rings 20 dB apart).
+void FaceView::polar(const Ctx& c, const Widget& w) const {
+    Renderer& r = c.r;
+    const float z = c.z;
+    const Rect b = c.T(w.r);
+    const float cx = b.cx(), cy = b.bottom() - 30 * z, rad = std::min(b.w * 0.5f - 20 * z, b.h - 60 * z);
+    constexpr float kRange = 80.0f;   // dB from the rim to the centre
+    const float d2r = 3.14159265f / 180.0f;
+    // the out-of-phase zones
+    for (int sd = -1; sd <= 1; sd += 2)
+        for (int k = 0; k < 15; ++k) {
+            const float a0 = (60.0f + 2.0f * static_cast<float>(k)) * d2r * static_cast<float>(sd), a1 = (62.0f + 2.0f * static_cast<float>(k)) * d2r * static_cast<float>(sd);
+            const float qx[4] = {cx, cx + rad * std::sin(a0), cx + rad * std::sin(a1), cx}, qy[4] = {cy, cy - rad * std::cos(a0), cy - rad * std::cos(a1), cy};
+            const Rgba red = th_.red.withAlpha(0.16f);
+            const Rgba cols[4] = {red, red, red, red};
+            r.colorQuad(qx, qy, cols, Blend::Over, false);
+        }
+    // the rings and the 0 / 45 degree lines
+    for (int ring = 0; ring <= 3; ++ring) {
+        const float rr = rad * (1.0f - 20.0f * static_cast<float>(ring) / kRange);
+        float xs[61], ys[61];
+        for (int k = 0; k <= 60; ++k) {
+            const float a = (-90.0f + 3.0f * static_cast<float>(k)) * d2r;
+            xs[k] = cx + rr * std::sin(a);
+            ys[k] = cy - rr * std::cos(a);
+        }
+        r.polyline(xs, ys, 61, 1.0f * z, Rgba{1, 1, 1, ring == 0 ? 0.18f : 0.08f}, Blend::Over, false);
+    }
+    for (float deg : {-90.0f, -45.0f, 0.0f, 45.0f, 90.0f}) {
+        const float lx[2] = {cx, cx + rad * std::sin(deg * d2r)}, ly[2] = {cy, cy - rad * std::cos(deg * d2r)};
+        r.polyline(lx, ly, 2, 1.0f * z, Rgba{1, 1, 1, deg == 0.0f ? 0.16f : 0.08f}, Blend::Over, false);
+    }
+    const TextStyle s = c.ts(TextStyle::Caption);
+    r.text(s, "L", cx - rad * 0.74f, cy - rad * 0.74f - 8 * z, th_.label, Align::Center, TextFx::Shadowed);
+    r.text(s, "R", cx + rad * 0.74f, cy - rad * 0.74f - 8 * z, th_.label, Align::Center, TextFx::Shadowed);
+    r.text(s, "MONO", cx, cy - rad - 10 * z, th_.label, Align::Center, TextFx::Shadowed);
+    if (!c.feed.hasAnalyzer()) return;
+    const int res = std::clamp(static_cast<int>(std::lround(plain(c.host, rack::stakeout::Resolution))), 0, 2);
+    const int nb = rack::stakeout::bandCount(res);
+    for (int k = 0; k < nb; ++k) {
+        const float lv = c.feed.spdLevel(k);
+        if (lv < -kRange) continue;
+        const float rr = rad * std::clamp(1.0f + lv / kRange, 0.0f, 1.0f), a = std::clamp(c.feed.spdAngle(k), -90.0f, 90.0f) * d2r;
+        const float px = cx + rr * std::sin(a), py = cy - rr * std::cos(a);
+        const bool out = std::fabs(c.feed.spdAngle(k)) > 45.0f;
+        r.fillRound({px - 3.0f * z, py - 3.0f * z, 6.0f * z, 6.0f * z}, 3.0f * z, (out ? th_.red : th_.teal).withAlpha(0.9f), Blend::Over);
+    }
+}
+
 // HITMAN: the last few seconds, scrolling right to left — gain reduction of both channels hanging
 // from the top (0 dB at the top, -24 at the bottom) over the input level (0 dBFS at the top, -60 at the bottom).
 void FaceView::history(const Ctx& c, const Widget& w) const {
@@ -933,6 +1024,8 @@ void FaceView::draw(Renderer& r, const PanelHost& host, const FaceFeed& feed, co
         case WKind::VuMeter: vuMeter(c, w); break;
         case WKind::Readout: readout(c, w); break;
         case WKind::History: history(c, w); break;
+        case WKind::Rta: rta(c, w); break;
+        case WKind::Polar: polar(c, w); break;
         case WKind::Keyboard: keyboard(c, w); break;
         case WKind::GraphRange: {
             const std::string t = fmt("%.0f dB", kGraphRanges[static_cast<std::size_t>(w.choice)]);

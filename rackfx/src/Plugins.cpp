@@ -19,6 +19,7 @@
 #include "hem/rack/Streets.hpp"
 #include "hem/rack/Comeback.hpp"
 #include "hem/rack/Garage.hpp"
+#include "hem/rack/Analyzer.hpp"
 #include "arsenal/Plates.hpp"
 
 #include <cstring>
@@ -479,6 +480,10 @@ const PluginInfo kPlugins[] = {
      "Loudness meter: EBU / LM1 / DIAL, six weightings, short / long term, range, true peak, overs / unders, target and trim, gain, true-peak limiter",
      {0x858A2398u, 0xF958413Au, 0xB44E36E9u, 0x49A83694u}, {0x64D4006Du, 0xB4564C16u, 0x965B7CABu, 0xB13DA6C3u},
      Face::Audit, Group::Tools, &makeAuditor},
+    {"STAKEOUT", "ANALYZER", "WATCH WHAT MATTERS", "Fx|Analyzer",
+     "Analyzer: frequency bands (peak or RMS, L / R or sum, weighting, freeze, max line), stereo position, peak and sum meters with holds, clip lights",
+     {0x6438215Au, 0xD19C47CBu, 0x9B609168u, 0x1CAA6502u}, {0xD06E40C9u, 0xE12E4B96u, 0xB723EB79u, 0x21239093u},
+     Face::Stakeout, Group::Tools, &makeStakeout},
     {"THE WITNESS", "VU AND PEAK METERS", "WATCH WHAT MATTERS", "Fx|Analyzer",
      "VU and peak meters for left and right, with calibration and peak hold",
      {0xF3B88685u, 0x60DC43DDu, 0xAA072FADu, 0xCF34E94Bu}, {0x46675020u, 0x926345CCu, 0xBB525165u, 0x0F862B4Eu},

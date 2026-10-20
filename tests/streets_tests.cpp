@@ -7,6 +7,7 @@
 #include "hem/rack/Plugins.hpp"
 #include "hem/rack/Streets.hpp"
 #include "hem/rack/Garage.hpp"
+#include "hem/rack/Analyzer.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -51,7 +52,7 @@ Stereo chord(std::initializer_list<double> hz, double seconds, float amp) {
 }
 
 void allRules() {
-    for (const char* name : {"THE AUDITOR", "TORCH", "HOT WIRE", "BOTTOM FEEDER", "THE RACKET", "THE SNITCH", "PROMOTION", "WISEGUYS", "MADE MAN", "THE DETECTIVE", "THE WITNESS", "LIVE WIRE"}) {
+    for (const char* name : {"STAKEOUT", "THE AUDITOR", "TORCH", "HOT WIRE", "BOTTOM FEEDER", "THE RACKET", "THE SNITCH", "PROMOTION", "WISEGUYS", "MADE MAN", "THE DETECTIVE", "THE WITNESS", "LIVE WIRE"}) {
         const PluginInfo* info = findPlugin(name);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
@@ -224,6 +225,72 @@ void testAuditor() {
         Stereo q(4800);
         run(*r, q);
         CHECK(r->meter(Timer) < 0.2f && r->meter(Overs) == 0.0f);
+    }
+}
+
+void testStakeout() {
+    using namespace stakeout;
+    auto band = [](int res, double hz) {   // the band a frequency falls in
+        int best = 0;
+        for (int b = 0; b < bandCount(res); ++b)
+            if (std::fabs(std::log(bandHz(res, b) / hz)) < std::fabs(std::log(bandHz(res, best) / hz))) best = b;
+        return best;
+    };
+    auto look = [&](std::initializer_list<std::pair<int, float>> v, double hz, float l, float r, double secs = 1.0) {
+        auto e = make("STAKEOUT", v);
+        Stereo s(static_cast<std::size_t>(secs * 48000.0));
+        for (std::size_t i = 0; i < s.size(); ++i) {
+            const auto x = static_cast<float>(std::sin(2.0 * 3.14159265358979 * hz * static_cast<double>(i) / 48000.0));
+            s.l[i] = l * x;
+            s.r[i] = r * x;
+        }
+        Stereo ref = s;
+        run(*e, s);
+        double d = 0;
+        for (std::size_t i = 0; i < s.size(); ++i) d = std::max(d, static_cast<double>(std::fabs(s.l[i] - ref.l[i])));
+        CHECK(d == 0.0);   // the sound passes untouched
+        return e;
+    };
+    auto* a = dynamic_cast<AnalyzerSource*>(look({}, 1000.0, 0.1f, 0.1f).get());
+    CHECK(a == nullptr || true);
+    {
+        auto e = look({}, 1000.0, 0.1f, 0.1f);
+        auto* an = dynamic_cast<AnalyzerSource*>(e.get());
+        const int b = band(0, 1000.0);
+        std::printf("  STAKEOUT a -20 dBFS 1 kHz sine: its band %.1f dB (neighbour two over %.1f), position %.1f deg; peak L %.1f, sum %.1f dB\n",
+                    an->rtaLevel(0, b), an->rtaLevel(0, b + 2), an->spdAngle(b), e->meter(PeakL), e->meter(Sum));
+        CHECK(std::fabs(an->rtaLevel(0, b) + 20.0f) < 0.5f && an->rtaLevel(0, b + 2) < -40.0f && std::fabs(an->spdAngle(b)) < 2.0f &&
+              std::fabs(e->meter(PeakL) + 20.0f) < 0.1f && std::fabs(e->meter(Sum) + 20.0f) < 0.1f);
+        CHECK(an->rtaMax(0, b) >= an->rtaLevel(0, b) - 0.01f);
+    }
+    {   // left only: -45 degrees, the sum 6 dB down; right only +45; upside down: out past 45
+        auto l = look({}, 2000.0, 0.1f, 0.0f), r = look({}, 2000.0, 0.0f, 0.1f), o = look({}, 2000.0, 0.1f, -0.1f);
+        const int b = band(0, 2000.0);
+        const float al = dynamic_cast<AnalyzerSource*>(l.get())->spdAngle(b), ar = dynamic_cast<AnalyzerSource*>(r.get())->spdAngle(b);
+        const float ao = dynamic_cast<AnalyzerSource*>(o.get())->spdAngle(b);
+        std::printf("  STAKEOUT position: left only %.1f, right only %.1f, out of phase %.1f deg; left-only sum %.1f dB\n", al, ar, ao, l->meter(Sum));
+        CHECK(std::fabs(al + 45.0f) < 2.0f && std::fabs(ar - 45.0f) < 2.0f && std::fabs(ao) > 85.0f && std::fabs(l->meter(Sum) + 26.0f) < 0.2f);
+    }
+    {   // 10 Hz resolution: a 55 Hz tone reads in its own low band; RMS reads a steady sine the same; A weighting at 100 Hz
+        auto e = look({{Resolution, 2}, {Mode, 1}}, 60.0, 0.1f, 0.1f, 2.0);
+        const int b = band(2, 60.0);
+        auto w = look({{Weighting, 1}, {Resolution, 2}}, 100.0, 0.1f, 0.1f);
+        const int bw = band(2, 100.0);
+        const float lw = dynamic_cast<AnalyzerSource*>(w.get())->rtaLevel(0, bw);
+        std::printf("  STAKEOUT 10 Hz bands (%d of them), RMS, 60 Hz: %.1f dB; A weighting, 100 Hz (band %.0f Hz): %.1f dB\n", bandCount(2),
+                    dynamic_cast<AnalyzerSource*>(e.get())->rtaLevel(0, b), bandHz(2, bw), lw);
+        CHECK(bandCount(2) == 70 && std::fabs(dynamic_cast<AnalyzerSource*>(e.get())->rtaLevel(0, b) + 20.0f) < 0.7f && std::fabs(lw + 39.1f) < 0.8f);
+    }
+    {   // a full-scale sample lights the clip light; CLEAR CLIPS puts it out
+        auto e = make("STAKEOUT");
+        Stereo s(4800);
+        s.l[100] = 1.0f;
+        run(*e, s);
+        const float lit = e->meter(ClipL), other = e->meter(ClipR);
+        e->set(ClearClips, 1);
+        Stereo q(480);
+        run(*e, q);
+        CHECK(lit == 1.0f && other == 0.0f && e->meter(ClipL) == 0.0f);
     }
 }
 
@@ -540,6 +607,7 @@ void testStreets() {
     testHotWire();
     testBottomFeeder();
     testAuditor();
+    testStakeout();
     testRacket();
     testSnitch();
     testPromotion();

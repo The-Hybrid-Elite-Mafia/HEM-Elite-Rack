@@ -85,6 +85,7 @@ add_library(hem_rackfx STATIC
     src/streets/HotWire.cpp
     src/streets/BottomFeeder.cpp
     src/streets/Auditor.cpp
+    src/streets/Stakeout.cpp
     src/streets/Racket.cpp
     src/streets/Snitch.cpp
     src/streets/Promotion.cpp

@@ -1,3 +1,9 @@
+# HEM-Elite-Rack 0.35.0
+
+- **STAKEOUT** (new, its own plate) — analyzer with its original's full control set: frequency bands (LF resolution 40 / 20 / 10 Hz,
+  peak or RMS, response, L / R or sum, weighting A / B / C, freeze, max line with clear), the stereo position display, and peak
+  L / R and sum meters (peak or RMS, weighted) with holds and clip lights. Wave 5 is complete.
+
 # HEM-Elite-Rack 0.34.0
 
 **Wave 5 — pitch and meters.** Rebuilt to their originals' full control sets:

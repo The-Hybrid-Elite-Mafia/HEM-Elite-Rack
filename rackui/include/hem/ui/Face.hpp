@@ -12,6 +12,7 @@
 //  Everything is drawn at a zoom (plate units × zoom = renderer design units); text picks the
 //  matching larger style, so it stays sharp at any size.
 // =============================================================================
+#include "hem/rack/Analyzer.hpp"
 #include "hem/rack/BusGlue.hpp"
 #include "hem/rack/Tape.hpp"
 #include "hem/rack/TubeEq.hpp"
@@ -70,6 +71,12 @@ public:
     [[nodiscard]] virtual float autoGainDb() const { return 0.0f; }
     [[nodiscard]] virtual float reductionDb() const { return 0.0f; }    // compressors: gain reduction now (<= 0)
     [[nodiscard]] virtual float meterDb(int) const { return -100.0f; }  // the effect's own meters (TAPE: VU L / R)
+    // STAKEOUT's display (rack::AnalyzerSource): band levels and maxima per side, and the stereo position per band
+    [[nodiscard]] virtual bool  hasAnalyzer() const { return false; }
+    [[nodiscard]] virtual float rtaLevel(int, int) const { return -120.0f; }
+    [[nodiscard]] virtual float rtaMax(int, int) const { return -120.0f; }
+    [[nodiscard]] virtual float spdAngle(int) const { return 0.0f; }
+    [[nodiscard]] virtual float spdLevel(int) const { return -120.0f; }
     [[nodiscard]] virtual double sampleRate() const { return 48000.0; }
 };
 
@@ -88,6 +95,11 @@ public:
     float autoGainDb() const override;
     float reductionDb() const override { return fx_->reductionDb(); }
     float meterDb(int i) const override { return fx_->meter(i); }
+    bool  hasAnalyzer() const override { return analyzer_ != nullptr; }
+    float rtaLevel(int side, int b) const override;
+    float rtaMax(int side, int b) const override;
+    float spdAngle(int b) const override;
+    float spdLevel(int b) const override;
     double sampleRate() const override { return rate_; }
     void setSampleRate(double fs) noexcept { rate_ = fs; }
 
@@ -96,6 +108,7 @@ private:
     rack::SpectrumSource*     spectrum_ = nullptr;
     rack::NoiseProfileSource* noise_ = nullptr;
     rack::EliteEqView*        eq_ = nullptr;
+    rack::AnalyzerSource*     analyzer_ = nullptr;
     double rate_ = 48000.0;
 };
 
@@ -119,6 +132,8 @@ enum class WKind : std::uint8_t {
     PageTab,       // which page the paged controls edit (choice = page, caption = its name); a plate setting, not a parameter
     Keyboard,      // piano keys: key k is the on / off parameter param + k (choice = how many keys, from a C);
                    // param2 = the sustain switch (off: a key sounds while the mouse holds it; on: a click latches it)
+    Rta,           // STAKEOUT: the frequency bands as bars (one set, or left and right), with the max line (display only)
+    Polar,         // STAKEOUT: the stereo position of each band on a half circle (display only)
 };
 
 struct Widget {
@@ -245,6 +260,8 @@ private:
     void readout(const Ctx& c, const Widget& w) const;
     void keyboard(const Ctx& c, const Widget& w) const;
     void history(const Ctx& c, const Widget& w) const;
+    void rta(const Ctx& c, const Widget& w) const;
+    void polar(const Ctx& c, const Widget& w) const;
     void spectrumBehind(const Ctx& c, Rect plot, float alpha) const;
     void grid(const Ctx& c, Rect plot, float dbTop, float dbBottom, float dbStep, bool signedLabels) const;
     [[nodiscard]] float plain(const PanelHost& host, int param) const;

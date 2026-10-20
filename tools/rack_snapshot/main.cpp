@@ -20,6 +20,7 @@
 #include "hem/rack/Specialty.hpp"
 #include "hem/rack/Hideout.hpp"
 #include "hem/rack/Garage.hpp"
+#include "hem/rack/Analyzer.hpp"
 #include "hem/ui/FaceWindow.hpp"
 
 #include <windows.h>

@@ -603,6 +603,16 @@ THE AUDITOR
   TRUE PEAK MAX (no make-up). MEASURE PAUSE stops the counting. The original's TRIM button sets the gain
   for you and it can log to a file; here you read TRIM and set GAIN yourself.
 
+STAKEOUT
+  Watches the sound (it passes untouched). The big window shows the frequencies as bars: LF RESOLUTION
+  sets how fine the bars are under 250 Hz (40 / 20 / 10 Hz), MODE PEAK (the bars fall back over
+  RESPONSE) or RMS (an average over RESPONSE), CHANNELS L / R (two bars per band, left teal, right gold)
+  or L+R, WEIGHTING (A, B, C: closer to how loud we hear it), FREEZE holds the picture, MAX LINE shows the
+  most each band reached (MAX clears it). The half circle shows where each band sits: straight up = the
+  middle, the 45-degree lines = hard left / right, the red zones = out of phase (it may vanish in mono).
+  The meters: PEAK L / R, SUM (half of left plus right, as PEAK or RMS, through the weighting) and their
+  HOLDs (each resets with its own button), CLIP L / R (CLIPS puts them out).
+
 THE WITNESS
   VU meters for left and right (slow, like the needles on a desk). HEADROOM sets how far under full
   scale 0 VU sits (18 dB is the usual). DISPLAY DELAY holds the needles back (up to 1 s) so meters on

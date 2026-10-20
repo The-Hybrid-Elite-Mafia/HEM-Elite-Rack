@@ -12,6 +12,7 @@
 // =============================================================================
 #include "hem/rack/EliteEq.hpp"
 #include "hem/rack/Plugins.hpp"
+#include "hem/rack/Analyzer.hpp"
 #include "hem/rack/Sidechain.hpp"
 #include "hem/rack/Restorer.hpp"
 #include "hem/rack/Spectrum.hpp"
@@ -59,6 +60,12 @@ constexpr Vst::ParamID kDynBase    = 1100;   // + band: SURGEON dynamic gain, -3
 constexpr Vst::ParamID kBeforeBase = 1200;   // + i: spectrum before (kSent bins)
 constexpr Vst::ParamID kAfterBase  = 1300;   // + i: spectrum after
 constexpr Vst::ParamID kNoiseBase  = 1400;   // + i: THE CLEANER noise curve
+constexpr Vst::ParamID kRtaBase    = 1600;   // + side * kRtaMaxBands + band: STAKEOUT band levels (-120..0 dB)
+constexpr Vst::ParamID kRtaMaxBase = 1750;   // + side * kRtaMaxBands + band: STAKEOUT band maxima
+constexpr Vst::ParamID kSpdAngBase = 1900;   // + band: STAKEOUT stereo position (-90..90 degrees)
+constexpr Vst::ParamID kSpdLvlBase = 1980;   // + band: STAKEOUT stereo position level (-120..0 dB)
+static_assert(kRtaBase + 2 * rack::kRtaMaxBands <= kRtaMaxBase && kRtaMaxBase + 2 * rack::kRtaMaxBands <= kSpdAngBase &&
+              kSpdAngBase + rack::kRtaMaxBands <= kSpdLvlBase);
 constexpr int kSent = rack::kSpectrumBins / 2;   // every other display bin; the editor interpolates
 static_assert(kSent <= 100);
 
@@ -138,6 +145,7 @@ public:
         noise_ = dynamic_cast<rack::NoiseProfileSource*>(fx_.get());
         eq_ = dynamic_cast<rack::EliteEqView*>(fx_.get());
         sc_ = dynamic_cast<rack::SidechainSink*>(fx_.get());
+        analyzer_ = dynamic_cast<rack::AnalyzerSource*>(fx_.get());
     }
     static FUnknown* createInstance(void* ctx) { return static_cast<Vst::IAudioProcessor*>(new Processor(static_cast<const rack::PluginInfo*>(ctx))); }
 
@@ -289,6 +297,18 @@ private:
             for (int b = 0; b < rack::eq::kBands; ++b) send(c, kDynBase + static_cast<Vst::ParamID>(b), dbToNorm(eq_->dynamicGainDb(b), -30.0f, 30.0f));
             send(c, kAutoGainId, dbToNorm(eq_->autoGainDb(), -24.0f, 24.0f));
         }
+        if (analyzer_) {
+            for (int sd = 0; sd < 2; ++sd)
+                for (int b = 0; b < rack::kRtaMaxBands; ++b) {
+                    const auto k = static_cast<Vst::ParamID>(sd * rack::kRtaMaxBands + b);
+                    send(c, kRtaBase + k, dbToNorm(analyzer_->rtaLevel(sd, b), kSpecLo, kSpecHi));
+                    send(c, kRtaMaxBase + k, dbToNorm(analyzer_->rtaMax(sd, b), kSpecLo, kSpecHi));
+                }
+            for (int b = 0; b < rack::kRtaMaxBands; ++b) {
+                send(c, kSpdAngBase + static_cast<Vst::ParamID>(b), dbToNorm(analyzer_->spdAngle(b), -90.0f, 90.0f));
+                send(c, kSpdLvlBase + static_cast<Vst::ParamID>(b), dbToNorm(analyzer_->spdLevel(b), kSpecLo, kSpecHi));
+            }
+        }
     }
 
     const rack::PluginInfo* info_;
@@ -297,6 +317,7 @@ private:
     rack::NoiseProfileSource* noise_ = nullptr;
     rack::EliteEqView* eq_ = nullptr;
     rack::SidechainSink* sc_ = nullptr;
+    rack::AnalyzerSource* analyzer_ = nullptr;
     hc::fx::DelayLine bypassDelay_[2];
     std::vector<float> dry_[2];
     double sampleRate_ = 48000.0;
@@ -384,7 +405,8 @@ private:
 class ControllerFeed final : public ui::FaceFeed {
 public:
     ControllerFeed(Vst::EditController& c, const rack::PluginInfo& info, const hc::fx::Effect& fx)
-        : c_(c), fx_(fx), restorer_(info.face == rack::Face::Restorer), spectrum_(dynamic_cast<const rack::SpectrumSource*>(&fx) != nullptr) {}
+        : c_(c), fx_(fx), restorer_(info.face == rack::Face::Restorer), spectrum_(dynamic_cast<const rack::SpectrumSource*>(&fx) != nullptr),
+          analyzer_(dynamic_cast<const rack::AnalyzerSource*>(&fx) != nullptr) {}
     float meterDb(int m) const override {
         const auto ms = fx_.meters();
         if (m < 0 || m >= static_cast<int>(ms.size())) return -100.0f;
@@ -395,6 +417,14 @@ public:
     float before(int b) const override { return bin(kBeforeBase, b); }
     float after(int b) const override { return bin(kAfterBase, b); }
     bool hasNoiseFloor() const override { return restorer_; }
+    bool hasAnalyzer() const override { return analyzer_; }
+    float rtaLevel(int side, int b) const override { return band(kRtaBase, side, b); }
+    float rtaMax(int side, int b) const override { return band(kRtaMaxBase, side, b); }
+    float spdAngle(int b) const override {
+        if (b < 0 || b >= rack::kRtaMaxBands) return 0.0f;
+        return normToDb(c_.getParamNormalized(kSpdAngBase + static_cast<Vst::ParamID>(b)), -90.0f, 90.0f);
+    }
+    float spdLevel(int b) const override { return band(kSpdLvlBase, 0, b); }
     float noiseFloor(int b) const override { return bin(kNoiseBase, b); }
     float removedDb() const override { return normToDb(c_.getParamNormalized(kRemovedId), -60.0f, 0.0f); }
     float dynamicGainDb(int band) const override {
@@ -415,9 +445,13 @@ private:
         const float c = normToDb(c_.getParamNormalized(base + static_cast<Vst::ParamID>(i1)), kSpecLo, kSpecHi);
         return a + (c - a) * f;
     }
+    float band(Vst::ParamID base, int side, int b) const {
+        if (side < 0 || side > 1 || b < 0 || b >= rack::kRtaMaxBands) return kSpecLo;
+        return normToDb(c_.getParamNormalized(base + static_cast<Vst::ParamID>(side * rack::kRtaMaxBands + b)), kSpecLo, kSpecHi);
+    }
     Vst::EditController& c_;
     const hc::fx::Effect& fx_;
-    bool restorer_, spectrum_;
+    bool restorer_, spectrum_, analyzer_;
 };
 
 class FaceView final : public CPluginView {
@@ -478,6 +512,19 @@ public:
             addHidden("Display Auto Gain", kAutoGainId, 0.5);
         }
         if (isCompressor(*info_)) addHidden("Display Gain Reduction", kGrId, 1.0);
+        if (dynamic_cast<rack::AnalyzerSource*>(fx_.get())) {
+            for (int sd = 0; sd < 2; ++sd)
+                for (int b = 0; b < rack::kRtaMaxBands; ++b) {
+                    const auto k = static_cast<Vst::ParamID>(sd * rack::kRtaMaxBands + b);
+                    const std::string tag = (sd == 0 ? "L " : "R ") + std::to_string(b + 1);
+                    addHidden("Display Band " + tag, kRtaBase + k, 0.0);
+                    addHidden("Display Band Max " + tag, kRtaMaxBase + k, 0.0);
+                }
+            for (int b = 0; b < rack::kRtaMaxBands; ++b) {
+                addHidden("Display Position " + std::to_string(b + 1), kSpdAngBase + static_cast<Vst::ParamID>(b), 0.5);
+                addHidden("Display Position Level " + std::to_string(b + 1), kSpdLvlBase + static_cast<Vst::ParamID>(b), 0.0);
+            }
+        }
         const auto ms = fx_->meters();
         for (std::size_t m = 0; m < ms.size(); ++m)
             addHidden(std::string("Display Meter ") + ms[m].name, kMeterBase + static_cast<Vst::ParamID>(m), 0.0);

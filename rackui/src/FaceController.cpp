@@ -250,7 +250,9 @@ void FaceController::mouseDown(float x, float y, bool doubleClick, bool fine) {
     case WKind::GrMeter:
     case WKind::VuMeter:
     case WKind::Readout:
-    case WKind::History: return;
+    case WKind::History:
+    case WKind::Rta:
+    case WKind::Polar: return;
     }
 }
 
