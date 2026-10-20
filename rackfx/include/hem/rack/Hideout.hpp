@@ -115,7 +115,7 @@ enum P : int { Note, Octave, Chord, Wave, Bands, React, Shift, Sibilance, Mix, O
 } // namespace informant
 
 namespace strapped {
-enum Fader : int { BassF, TrebleF, CompressF, ReverbF, DelayF, PitchF, kFaders };
+inline constexpr int BassF = 0, TrebleF = 1, CompressF = 2, ReverbF = 3, DelayF = 4, PitchF = 5, kFaders = 6;   // the faders, in order
 enum P : int { Mode, ReAmp, Sensitivity, Balance, Output, Fader0, Color0 = Fader0 + kFaders, kCount = Color0 + kFaders };
 } // namespace strapped
 

@@ -18,6 +18,7 @@
 #include "hem/rack/Space.hpp"
 #include "hem/rack/Movement.hpp"
 #include "hem/rack/Specialty.hpp"
+#include "hem/rack/Hideout.hpp"
 #include "hem/ui/FaceWindow.hpp"
 
 #include <windows.h>
