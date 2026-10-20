@@ -273,13 +273,35 @@ void testDetective() {
     auto e = make("THE DETECTIVE");
     Stereo c = chord({130.81, 261.63, 329.63, 392.0}, 8.0, 0.1f);   // C major
     run(*e, c);
-    const float k1 = e->meter(0), sure1 = e->meter(1);
-    e->set(Reset, 1);
+    const float k1 = e->meter(0), st1 = e->meter(4), tun = e->meter(3);
+    // DETECT while listening stops it (the alternatives show); pressed again it starts over
+    e->set(Detect, 1);
+    Stereo z(4800);
+    run(*e, z);
+    const float st2 = e->meter(4), a1 = e->meter(1);
+    e->set(Detect, 0);
     Stereo a = chord({220.0, 261.63, 329.63, 110.0}, 8.0, 0.1f);    // A minor
     run(*e, a);
     const float k2 = e->meter(0);
-    std::printf("  THE DETECTIVE: C major chord -> key %.0f (sure %.0f %%), A minor chord -> key %.0f\n", k1, sure1, k2);
-    CHECK(k1 == 0.0f && k2 == 21.0f);
+    // SPELL FLATS: the same key + 24; EDIT shows your own
+    e->set(Spell, 1);
+    run(*e, z);
+    const float k3 = e->meter(0);
+    e->set(Edit, 1);
+    e->set(Root, 3);
+    e->set(Scale, 1);
+    run(*e, z);
+    const float k4 = e->meter(0);
+    // a song tuned 20 cents sharp: TUNING about 445 Hz
+    auto t = make("THE DETECTIVE");
+    const double up = std::exp2(20.0 / 1200.0);
+    Stereo s = chord({130.81 * up, 261.63 * up, 329.63 * up, 392.0 * up}, 8.0, 0.1f);
+    run(*t, s);
+    std::printf("  THE DETECTIVE: C major -> key %.0f (state %.0f, tuning %.1f Hz); stopped: state %.0f, alternative %.0f; A minor -> %.0f; flats %.0f; "
+                "edit D# minor %.0f; 20 cents sharp -> %.1f Hz\n",
+                k1, st1, tun, st2, a1, k2, k3, k4, t->meter(3));
+    CHECK(k1 == 0.0f && st1 == static_cast<float>(Listening) && std::fabs(tun - 440.0f) < 1.0f && st2 == static_cast<float>(Found) && a1 >= 0.0f &&
+          k2 == 21.0f && k3 == 45.0f && k4 == 15.0f + 24.0f && std::fabs(t->meter(3) - 445.1f) < 1.0f);
 }
 
 void testWitness() {

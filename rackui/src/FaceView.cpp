@@ -676,8 +676,10 @@ void FaceView::readout(const Ctx& c, const Widget& w) const {
         std::snprintf(t, sizeof t, "--");
     } else if (w.hi == "note") {   // a MIDI note number as a name and octave: 57 -> A3
         std::snprintf(t, sizeof t, "%s%d", kNames[std::clamp(idx, 0, 127) % 12], std::clamp(idx, 0, 127) / 12 - 1);
-    } else if (w.hi == "key") {    // 0..11 = C..B major, 12..23 = C..B minor
-        std::snprintf(t, sizeof t, "%s %s", kNames[std::clamp(idx, 0, 23) % 12], idx >= 12 ? "MIN" : "MAJ");
+    } else if (w.hi == "key") {    // 0..11 = C..B major, 12..23 = C..B minor; 24..47 the same spelled with flats
+        static constexpr const char* kFlats[12] = {"C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"};
+        const int k = std::clamp(idx, 0, 47);
+        std::snprintf(t, sizeof t, "%s %s", (k >= 24 ? kFlats : kNames)[k % 12], k % 24 >= 12 ? "MIN" : "MAJ");
     } else {
         const char* f = w.hi == "+2" ? "%+.2f" : w.hi == "+" ? "%+.1f" : w.hi == "0" ? "%.0f" : "%.1f";
         std::snprintf(t, sizeof t, f, static_cast<double>(v));

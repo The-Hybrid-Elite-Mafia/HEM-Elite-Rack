@@ -100,7 +100,7 @@ C++23 audio framework, as a library.
 | **PROMOTION** | Pitch shifter: ±12 semitones and cents, smooth or tight |
 | **WISEGUYS** | Harmonizer: three voices with their own interval, level and pan |
 | **MADE MAN** | Pitch correction for one voice: key, scale, speed, amount |
-| **THE DETECTIVE** | Key finder: names the song's key and how sure it is |
+| **THE DETECTIVE** | Key finder: the key, two alternatives and the song's tuning; detect / stop, your own key (root, scale), sharps or flats |
 | **THE WITNESS** | VU meters for left and right: headroom, display delay, clip lights with clear |
 | **LIVE WIRE** | Test tones: sine, square, saw, triangle, white / pink noise, sweeps; left / right / both / opposed |
 | **FURNACE** | Tube stage: drive, bias (even harmonics), tone, mix — colour without a volume jump |

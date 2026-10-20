@@ -23,9 +23,12 @@
 //  MADE MAN      pitch correction for a single voice: KEY and SCALE (ALL NOTES / MAJOR / MINOR), SPEED
 //                (how fast a note is pulled in: 0 = hard), AMOUNT, MIX. Meters: 0 the sung note, 1 how
 //                far it was pulled (cents).
-//  THE DETECTIVE listens and names the song's KEY (and how sure it is). LISTEN 10 s / 30 s / WHOLE SONG,
-//                RESET starts over. The sound passes untouched. Meters: 0 key (0..11 major,
-//                12..23 minor, -1 = not sure yet), 1 sureness (%).
+//  THE DETECTIVE listens and names the song's KEY, two ALTERNATIVES and the song's TUNING (where its A sits).
+//                It keeps listening until the same key has held for 30 seconds (or the music stops for 3 s),
+//                then stops. DETECT stops it, or starts it over. EDIT shows a key of your own choosing (ROOT,
+//                SCALE MAJOR / MINOR) instead. SPELL SHARPS / FLATS. The sound passes untouched. Meters: 0 key
+//                (0..11 major, 12..23 minor, +24 = spelled with flats, -1 = none yet), 1 / 2 the alternatives,
+//                3 tuning (Hz of A), 4 state (0 waiting for music, 1 listening, 2 found, 3 nothing found, 4 edited).
 //  THE WITNESS   VU meters for left and right: HEADROOM 4..26 dB (0 VU = a sine that far under full scale),
 //                DISPLAY DELAY 0..1000 ms (holds the needles back to line up with buses that come out later), and
 //                a clip light per side (a sample at -0.009 dBFS or more) that CLEAR puts out. The sound passes
@@ -71,7 +74,8 @@ enum P : int { Key, Scale, Speed, Amount, Mix, kCount };
 } // namespace mademan
 
 namespace detective {
-enum P : int { Listen, Reset, kCount };
+enum P : int { Detect, Spell, Edit, Root, Scale, kCount };
+enum State : int { Waiting, Listening, Found, Nothing, Edited };
 } // namespace detective
 
 namespace witness {

@@ -574,8 +574,11 @@ MADE MAN
   PULL how far it moved it.
 
 THE DETECTIVE
-  Play the song: after a few seconds it shows the KEY (MAJ / MIN) and how SURE it is. LISTEN picks
-  how much it remembers (the last 10 s, 30 s, or the whole song). RESET starts over.
+  Play the song: after a few seconds it shows the KEY (MAJ / MIN) and keeps listening until the same
+  key has held for 30 seconds (or the music stops); then the two OR windows show the next likeliest
+  keys. TUNING is where the song's A sits (440 = standard). DETECT stops it, or starts over. EDIT shows
+  a key you pick (ROOT, SCALE) instead. SPELL writes the keys with SHARPS or FLATS. (The original can
+  send its key to other plug-ins; a rack has no way to do that.)
 
 THE WITNESS
   VU meters for left and right (slow, like the needles on a desk). HEADROOM sets how far under full

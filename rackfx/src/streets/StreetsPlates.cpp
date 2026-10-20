@@ -80,9 +80,10 @@ constexpr PlateKnob row1[] = {{Speed, "SPEED", "HARD", "SOFT", K::Big}, {Amount,
 
 namespace dt {
 using namespace detective;
-constexpr PlateReadout readouts[] = {{0, "KEY", "", "key"}, {1, "SURE", "%", "0"}};
-constexpr PlateChoice choices[] = {{P::Listen, "LISTEN"}};
-constexpr PlateToggle toggles[] = {{Reset, "RESET"}};
+constexpr PlateReadout readouts[] = {{0, "KEY", "", "key"}, {1, "OR", "", "key"}, {2, "OR", "", "key"}, {3, "TUNING", "Hz", "+"}};
+constexpr PlateChoice choices[] = {{Spell, "SPELL"}};
+constexpr PlateToggle toggles[] = {{Detect, "DETECT", true}, {Edit, "EDIT"}};
+constexpr PlateChoice steppers[] = {{Root, "ROOT"}, {P::Scale, "SCALE"}};
 } // namespace dt
 
 namespace wi {
@@ -124,7 +125,7 @@ const PlateSpec kMadeMan{.note1 = "EVERY NOTE", .note2 = "FALLS IN LINE", .scree
                          .choices = mm2::choices, .row1 = mm2::row1, .steppers = mm2::steppers,
                          .demo = [](hc::fx::Effect& e) { using namespace mademan; e.set(Key, 9); e.set(Scale, 2); }};
 const PlateSpec kDetective{.note1 = "WHAT KEY", .note2 = "IS IT IN?", .screen = Screen::Readouts, .readouts = dt::readouts,
-                           .choices = dt::choices, .toggles = dt::toggles, .demo = nullptr};
+                           .choices = dt::choices, .toggles = dt::toggles, .steppers = dt::steppers, .demo = nullptr};
 const PlateSpec kWitness{.note1 = "SAW EVERYTHING", .note2 = "SAYS IT STRAIGHT", .screen = Screen::Readouts, .readouts = wi::readouts,
                          .toggles = wi::toggles, .row1 = wi::row1, .demo = nullptr};
 const PlateSpec kLiveWire{.note1 = "TEST TONES", .note2 = "SWEEPS AND NOISE", .screen = Screen::None, .choices = lw::choices,
