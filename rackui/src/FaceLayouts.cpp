@@ -1007,7 +1007,7 @@ FaceLayout moversFace(const rack::PluginInfo& info) {
     common(L, info);
     L.leftNotes = {"THE FILTER MOVES", "YOU CALL THE MOVES"};
     L.title = {60, 190, 330, 110};
-    L.display = {410, 180, 350, 150};
+    L.display = {410, 180, 490, 150};
     Widget cv;
     cv.kind = WKind::CurveDisplay;
     cv.r = L.display;
@@ -1033,28 +1033,43 @@ FaceLayout moversFace(const rack::PluginInfo& info) {
         }
         seatKnobs(L, first, 5);
     };
-    // the filter
-    stepper({850, 186, 210, 38}, Kind, "TYPE");
-    stepper({1160, 186, 150, 38}, Slope, "SLOPE");
-    knobs(770, 866, 268, 40, {{Freq, "FREQ"}, {CombDelay, "DELAY"}, {Gain, "GAIN"}, {Res, "RES"}, {CombFeedback, "FDBCK"}, {Spread, "SPREAD"},
-                              {Smooth, "SMOOTH"}, {Drive, "DRIVE"}, {Crush, "CRUSH"}});
+    // the filter, beside the curve
+    stepper({1000, 186, 210, 38}, Kind, "TYPE");
+    stepper({1330, 186, 160, 38}, Slope, "SLOPE");
+    knobs(912, 724, 256, 40, {{Freq, "FREQ"}, {CombDelay, "DELAY"}, {Gain, "GAIN"}, {Res, "RES"}, {CombFeedback, "FEEDBACK"}});
     L.grooves.push_back({410, 344, 1636, 344});
-    // the movers
-    L.sections.push_back({{410, 350, 400, 22}, "LFO"});
-    L.sections.push_back({{822, 350, 404, 22}, "SEQUENCER"});
-    L.sections.push_back({{1238, 350, 398, 22}, "FOLLOWER"});
-    knobs(410, 400, 400, 38, {{LfoRate, "RATE"}, {depth(Lfo, ToFreq), "> FREQ"}, {depth(Lfo, ToRes), "> RES"}, {depth(Lfo, ToTime), "> TIME"}});
-    knobs(822, 404, 400, 38, {{SeqRate, "RATE"}, {Swing, "SWING"}, {Last, "LAST"}, {depth(Seq, ToFreq), "> FREQ"}, {depth(Seq, ToRes), "> RES"},
-                              {depth(Seq, ToTime), "> TIME"}});
-    knobs(1238, 398, 400, 38, {{depth(Follow, ToFreq), "> FREQ"}, {depth(Follow, ToRes), "> RES"}, {depth(Follow, ToTime), "> TIME"}});
-    L.widgets.push_back(toggle({414, 470, 118, 36}, LfoSync, "SYNC"));
-    stepper({540, 470, 120, 36}, LfoNote);
-    stepper({668, 470, 138, 36}, LfoWave);
-    L.widgets.push_back(toggle({826, 470, 118, 36}, SeqSync, "SYNC"));
-    stepper({952, 470, 120, 36}, SeqNote);
-    L.grooves.push_back({816, 352, 816, 506});
-    L.grooves.push_back({1232, 352, 1232, 506});
-    L.grooves.push_back({410, 514, 1636, 514});
+    // the globals
+    knobs(410, 1226, 376, 38, {{Spread, "SPREAD"}, {Smooth, "SMOOTH"}, {Drive, "DRIVE"}, {Crush, "CRUSH"}, {Mix, "MIX"}, {Input, "INPUT"},
+                               {Output, "OUTPUT"}});
+    L.grooves.push_back({410, 448, 1636, 448});
+    // the movers: the LFO, the sequencer, and the depths (mover x target)
+    L.sections.push_back({{410, 452, 290, 22}, "LFO"});
+    L.sections.push_back({{712, 452, 300, 22}, "SEQUENCER"});
+    knobs(410, 120, 508, 38, {{LfoRate, "RATE"}});
+    L.widgets.push_back(toggle({536, 480, 160, 34}, LfoSync, "SYNC"));
+    stepper({536, 522, 160, 34}, LfoNote);
+    stepper({536, 564, 160, 34}, LfoWave);
+    knobs(712, 300, 508, 34, {{SeqRate, "RATE"}, {Swing, "SWING"}, {Last, "LAST"}});
+    L.widgets.push_back(toggle({716, 582, 140, 34}, SeqSync, "SYNC"));
+    stepper({866, 582, 140, 34}, SeqNote);
+    L.grooves.push_back({706, 456, 706, 642});
+    L.grooves.push_back({1018, 456, 1018, 642});
+    static const char* const kTargetN[kTargets] = {"> FREQ", "> RES", "> TIME"};
+    static const char* const kMoverN[kMovers] = {"LFO", "SEQ", "FOLLOW"};
+    for (int t = 0; t < kTargets; ++t) L.sections.push_back({{1110 + static_cast<float>(t) * 175, 454, 175, 22}, kTargetN[t]});
+    {
+        const std::size_t first = L.widgets.size();
+        for (int m = 0; m < kMovers; ++m) {
+            const float y = 478 + static_cast<float>(m) * 58;
+            L.sections.push_back({{1022, y, 84, 26}, kMoverN[m]});
+            for (int t = 0; t < kTargets; ++t) {
+                const float cx = 1110 + (static_cast<float>(t) + 0.5f) * 175;
+                L.widgets.push_back(knob({cx - 12, y, 24, 24}, depth(m, t), "", "", "", true));
+            }
+        }
+        seatKnobs(L, first, 3);
+    }
+    L.grooves.push_back({410, 650, 1636, 650});
     // the steps
     {
         const std::size_t first = L.widgets.size();
@@ -1062,28 +1077,25 @@ FaceLayout moversFace(const rack::PluginInfo& info) {
         const float pitch = 1226.0f / kSteps;
         for (int k = 0; k < kSteps; ++k) {
             const float cx = 410 + (static_cast<float>(k) + 0.5f) * pitch;
-            L.widgets.push_back(knob({cx - 16, 548, 32, 32}, Step1 + k, kNum[k], "", "", true));
+            L.widgets.push_back(knob({cx - 15, 676, 30, 30}, Step1 + k, kNum[k], "", "", true));
         }
-        seatKnobs(L, first, 4);
+        seatKnobs(L, first, 3);
     }
-    L.grooves.push_back({410, 612, 1636, 612});
+    L.grooves.push_back({410, 740, 1636, 740});
     // the delay
-    L.sections.push_back({{410, 618, 1226, 22}, "DELAY"});
-    knobs(410, 560, 670, 40, {{DelayTime, "TIME"}, {DelayFeedback, "FEEDBACK"}, {DelayMix, "DRY / WET"}});
+    L.sections.push_back({{60, 772, 340, 22}, "DELAY"});
+    knobs(410, 480, 770, 28, {{DelayTime, "TIME"}, {DelayFeedback, "FEEDBACK"}, {DelayMix, "DRY / WET"}});
     const struct { int p; const char* cap; bool stepper; } sw[5] = {
         {DelaySync, "SYNC", false}, {DelayNote, "NOTE", true}, {DelayRight, "RIGHT", true}, {DelayAnalog, "STYLE", true}, {DelayRoute, "ROUTE", true}};
     for (int k = 0; k < 5; ++k) {
-        const float x = 980 + static_cast<float>(k) * 131.0f;
-        L.sections.push_back({{x, 646, 127, 22}, sw[k].cap});
-        const Rect r{x + 2, 672, 123, 38};
+        const float x = 900 + static_cast<float>(k) * 147.0f;
+        L.sections.push_back({{x, 744, 143, 22}, sw[k].cap});
+        const Rect r{x + 2, 770, 139, 32};
         if (sw[k].stepper) stepper(r, sw[k].p);
         else L.widgets.push_back(toggle(r, sw[k].p, ""));
     }
-    // the left column
-    knobs(70, 270, 470, 52, {{Input, "INPUT"}, {Output, "OUTPUT"}});
-    knobs(70, 270, 578, 52, {{Mix, "MIX"}});
     buttonSeats(L);
-    bypassAt(L, {160, 712, 80, 80});
+    bypassAt(L, {160, 560, 90, 90});
     return L;
 }
 
@@ -1214,6 +1226,11 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
             y += rowH;
         }
     };
+    if (!B.columnNames.empty()) {   // the columns' names over the grid
+        for (int b = 0; b < n && b < static_cast<int>(B.columnNames.size()); ++b)
+            L.sections.push_back({{colX(b) + 4, y + 2, colW - 8, 24}, B.columnNames[static_cast<std::size_t>(b)]});
+        y += 30;
+    }
     if (eq) stepperRows();
     std::size_t first = L.widgets.size();
     for (const rack::PlateKnob& k : B.knobs) {

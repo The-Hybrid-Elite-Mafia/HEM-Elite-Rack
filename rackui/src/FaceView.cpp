@@ -291,13 +291,15 @@ void FaceView::grid(const Ctx& c, Rect plot, float dbTop, float dbBottom, float 
     const float z = c.z;
     const Rect p = c.T(plot);
     const TextStyle s = c.ts(TextStyle::Caption);
+    // on a narrow screen only the decades get a number (the in-between ones would run together)
+    const bool narrow = plot.w < 700.0f;
     for (float hz : {20.f, 30.f, 40.f, 50.f, 60.f, 70.f, 80.f, 90.f, 100.f, 200.f, 300.f, 400.f, 500.f, 600.f, 700.f, 800.f, 900.f, 1000.f, 2000.f,
                      3000.f, 4000.f, 5000.f, 6000.f, 7000.f, 8000.f, 9000.f, 10000.f, 20000.f}) {
         const float x = c.X(freqToX(plot, hz));
         const float lead = std::log10(hz);
         const bool major = std::fabs(lead - std::round(lead)) < 1e-4f;
         r.fillRound({x - 0.5f * z, p.y, 1.0f * z, p.h}, 0.5f * z, {1, 1, 1, major ? 0.10f : 0.04f}, Blend::Over);
-        if (major || hz == 50.f || hz == 200.f || hz == 500.f || hz == 2000.f || hz == 5000.f)
+        if ((major && hz >= 100.f) || (!narrow && (hz == 50.f || hz == 200.f || hz == 500.f || hz == 2000.f || hz == 5000.f)))
             r.text(s, hzText(hz), x, p.bottom() + 26 * z, th_.dim, Align::Center, TextFx::Shadowed);
     }
     // on a short screen only every k-th line gets its number (always including 0), so they never touch

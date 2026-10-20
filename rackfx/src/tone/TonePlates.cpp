@@ -155,10 +155,11 @@ constexpr PlateKnob row2[] = {{FCenter, "F CENTER"}, {FDensity, "F DENSITY", "-1
 namespace ct {
 using namespace cutthroat;
 constexpr const char* pageNames[] = {"LEFT", "RIGHT"};
+constexpr const char* columnNames[] = {"HIGH-PASS", "LOW-PASS"};
 constexpr PlateKnob bandKnobs[] = {{1, "FREQ"}};
 constexpr PlateToggle bandToggles[] = {{0, "ON"}};
 constexpr PlateBands bands{.count = 2, .first = 0, .stride = 2, .knobs = bandKnobs, .toggles = bandToggles, .pages = 2, .pageStride = kSide,
-                           .pageNames = pageNames};
+                           .pageNames = pageNames, .columnNames = columnNames};
 constexpr PlateToggle left[] = {{Link, "LINK"}};
 } // namespace ct
 namespace tvn {

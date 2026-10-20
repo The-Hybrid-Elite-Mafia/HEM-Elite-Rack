@@ -72,6 +72,7 @@ struct PlateBands {
     int pages = 1;
     int pageStride = 0;
     std::span<const char* const> pageNames{};
+    std::span<const char* const> columnNames{};   // a name over each column (optional)
 };
 
 struct PlateSpec {
