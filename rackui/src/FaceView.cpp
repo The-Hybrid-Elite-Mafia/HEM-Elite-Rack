@@ -860,7 +860,7 @@ void FaceView::draw(Renderer& r, const PanelHost& host, const FaceFeed& feed, co
                 button(c, c.T(w.r), t, false, hot, false, th_.teal);
                 break;
             }
-            t += on ? "  ON" : "  OFF";
+            t += t.empty() ? (on ? "ON" : "OFF") : (on ? "  ON" : "  OFF");   // a grid row's switch: the row says what it is
             button(c, c.T(w.r), t, on, hot, !host.active(param), th_.teal);
             break;
         }

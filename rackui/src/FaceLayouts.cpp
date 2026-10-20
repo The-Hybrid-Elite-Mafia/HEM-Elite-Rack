@@ -933,89 +933,82 @@ float switchWordsW(const char* caption) noexcept {
     return w + 43.5f;   // "  OFF"
 }
 
-// The multiband plates: band readouts on top, the globals (row1, then the switches) at the band
-// centres with the borders' knobs (crossovers) between them, then a column of controls per band.
+// The multiband plates, as a grid: a readout per column on top, the globals (row1, then the switches) at
+// the column centres with the borders' knobs (crossovers) between the columns, then one row per band
+// control, named once at the row's left end (knob rows, stepper rows, switch rows).
 void specBands(FaceLayout& L, const rack::PlateSpec& S) {
     const rack::PlateBands& B = *S.bands;
     const int n = std::max(B.count, 1);
-    const float colW = 1226.0f / static_cast<float>(n);
-    auto cx = [&](float c) { return 410.0f + (c + 0.5f) * colW; };
+    constexpr float gx = 530.0f, labelX = 410.0f, labelW = 112.0f;
+    const float colW = (1636.0f - gx) / static_cast<float>(n);
+    auto colX = [&](int b) { return gx + static_cast<float>(b) * colW; };
+    auto cx = [&](float c) { return gx + (c + 0.5f) * colW; };
     static const char* const kNames[] = {"BAND 1", "BAND 2", "BAND 3", "BAND 4", "BAND 5", "BAND 6", "BAND 7", "BAND 8"};
-    L.display = {410, 182, 1226, 68};
+    L.display = {gx, 182, 1636.0f - gx, 52};
     if (B.meter >= 0)
-        for (int b = 0; b < n && b < 8; ++b)
-            readoutAt(L, {410 + static_cast<float>(b) * colW + 8, 182, colW - 16, 68}, B.meter + b,
-                      B.lastIsMaster && b == n - 1 ? "OUTPUT" : kNames[b], B.lastIsMaster && b == n - 1 ? "dBFS" : "dB", "+");
+        for (int b = 0; b < n && b < 8; ++b) {
+            const bool master = B.lastIsMaster && b == n - 1;
+            readoutAt(L, {colX(b) + 6, 182, colW - 12, 52}, B.meter + b, master ? "OUTPUT" : kNames[b], master ? "dBFS" : "dB", "+");
+        }
     // the top row
-    const std::size_t first = L.widgets.size();
-    constexpr float d = 60.0f;
+    std::size_t first = L.widgets.size();
+    constexpr float d = 48.0f;
     const int items = static_cast<int>(S.row1.size() + S.toggles.size());
     const float pitch = items > n ? static_cast<float>(n) / static_cast<float>(items) : 1.0f;
     int slot = 0;
     for (const rack::PlateKnob& k : S.row1) {
-        const float x = 410.0f + (static_cast<float>(slot++) + 0.5f) * pitch * colW;
-        L.widgets.push_back(knob({x - d * 0.5f, 278, d, d}, k.param, k.caption, k.lo, k.hi, true));
+        const float x = gx + (static_cast<float>(slot++) + 0.5f) * pitch * colW;
+        L.widgets.push_back(knob({x - d * 0.5f, 262, d, d}, k.param, k.caption, k.lo, k.hi, true));
     }
     for (const rack::PlateToggle& t : S.toggles) {
-        const float x = 410.0f + (static_cast<float>(slot++) + 0.5f) * pitch * colW;
+        const float x = gx + (static_cast<float>(slot++) + 0.5f) * pitch * colW;
         const float tw = std::max(112.0f, switchWordsW(t.caption) + 18.0f);
-        L.widgets.push_back(toggle({x - tw * 0.5f, 286, tw, 44}, t.param, t.caption));
+        L.widgets.push_back(toggle({x - tw * 0.5f, 266, tw, 44}, t.param, t.caption));
         if (t.press) L.widgets.back().hi = "PRESS";
     }
     for (std::size_t i = 0; i < B.borders.size() && static_cast<int>(i) + 1 < n; ++i) {
-        const float x = 410.0f + static_cast<float>(i + 1) * colW;
+        const float x = colX(static_cast<int>(i) + 1);
         const rack::PlateKnob& k = B.borders[i];
-        L.widgets.push_back(knob({x - d * 0.5f, 278, d, d}, k.param, k.caption, k.lo, k.hi, true));
+        L.widgets.push_back(knob({x - d * 0.5f, 262, d, d}, k.param, k.caption, k.lo, k.hi, true));
     }
-    L.grooves.push_back({410, 374, 1636, 374});
-    // the band columns
-    const bool pairs = B.knobs.size() > 3;
-    // the column's height: rows of knobs, steppers, switches (stacked in narrow columns); if it doesn't
-    // fit above the footer, smaller knobs on tighter rows
-    bool sideToggles = !B.toggles.empty();
-    {   // side by side only when every switch's words fit at that width
-        const float tw = (colW - 12.0f - 8.0f * static_cast<float>(B.toggles.size() - 1)) / static_cast<float>(std::max<std::size_t>(B.toggles.size(), 1));
-        for (const rack::PlateToggle& t : B.toggles) sideToggles = sideToggles && switchWordsW(t.caption) + 16.0f <= tw;
-    }
-    const int knobRows = pairs ? static_cast<int>((B.knobs.size() + 1) / 2) : static_cast<int>(B.knobs.size());
-    const float togglesH = B.toggles.empty() ? 0.0f : sideToggles ? 52.0f : 52.0f * static_cast<float>(B.toggles.size());
-    const bool compact = 404.0f + static_cast<float>(knobRows) * 118.0f + 52.0f * static_cast<float>(B.steppers.size()) + togglesH > 822.0f;
-    const float bd = compact ? 46.0f : 54.0f, rowH = compact ? 104.0f : 118.0f;
-    for (int b = 0; b < n; ++b) {
-        const float c = cx(static_cast<float>(b));
-        const int base = B.first + b * B.stride;
-        float y = 404;
-        for (std::size_t i = 0; i < B.knobs.size(); ++i) {
-            const rack::PlateKnob& k = B.knobs[i];
-            float x = c;
-            if (pairs) x = c + (i % 2 == 0 ? -colW * 0.23f : colW * 0.23f);
-            L.widgets.push_back(knob({x - bd * 0.5f, y, bd, bd}, base + k.param, k.caption, k.lo, k.hi, true));
-            if (!pairs || i % 2 == 1 || i + 1 == B.knobs.size()) y += rowH;
+    seatKnobs(L, first, 6);
+    L.grooves.push_back({labelX, 346, 1636, 346});
+    // the grid
+    float y = 356;
+    constexpr float knobRowH = 72.0f, rowH = 50.0f, kd = 40.0f;
+    first = L.widgets.size();
+    for (const rack::PlateKnob& k : B.knobs) {
+        L.sections.push_back({{labelX, y + 6, labelW, 30}, k.caption});
+        for (int b = 0; b < n; ++b) {
+            const float c = cx(static_cast<float>(b));
+            L.widgets.push_back(knob({c - kd * 0.5f, y + 2, kd, kd}, B.first + b * B.stride + k.param, "", k.lo, k.hi, true));
         }
-        const bool master = B.lastIsMaster && b == n - 1;
-        for (const rack::PlateChoice& st : master ? std::span<const rack::PlateChoice>{} : B.steppers) {   // the value says what it is
+        y += knobRowH;
+    }
+    seatKnobs(L, first, 6);
+    for (const rack::PlateChoice& st : B.steppers) {
+        L.sections.push_back({{labelX, y + 6, labelW, 30}, st.caption});
+        for (int b = 0; b < n; ++b) {
+            if (B.lastIsMaster && b == n - 1) continue;
             Widget w;
             w.kind = WKind::Stepper;
-            w.param = base + st.param;
+            w.param = B.first + b * B.stride + st.param;
             const float sw = std::min(colW - 12.0f, 200.0f);
-            w.r = {c - sw * 0.5f, y, sw, 40};
+            w.r = {cx(static_cast<float>(b)) - sw * 0.5f, y + 4, sw, 40};
             L.widgets.push_back(w);
             L.recesses.push_back({w.r.inset(-4), 9, 4, false, false});
-            y += 52;
         }
-        // the switches: side by side in wide columns, one above the other in narrow ones
-        const int nt = master ? 0 : static_cast<int>(B.toggles.size());
-        const bool side = sideToggles;
-        const float tw = side ? (colW - 12.0f - 8.0f * static_cast<float>(nt - 1)) / static_cast<float>(std::max(nt, 1)) : colW - 12.0f;
-        for (int t = 0; t < nt; ++t) {
-            const rack::PlateToggle& tg = B.toggles[static_cast<std::size_t>(t)];
-            const Rect r = side ? Rect{c - colW * 0.5f + 6 + static_cast<float>(t) * (tw + 8), y + 4, tw, 44}
-                                : Rect{c - colW * 0.5f + 6, y + 4 + static_cast<float>(t) * 52, tw, 44};
-            L.widgets.push_back(toggle(r, base + tg.param, tg.caption));
-        }
-        if (b > 0) L.grooves.push_back({410 + static_cast<float>(b) * colW, 384, 410 + static_cast<float>(b) * colW, 820});
+        y += rowH;
     }
-    seatKnobs(L, first, 8);
+    for (const rack::PlateToggle& t : B.toggles) {
+        L.sections.push_back({{labelX, y + 6, labelW, 30}, t.caption});
+        for (int b = 0; b < n; ++b) {
+            if (B.lastIsMaster && b == n - 1) continue;
+            L.widgets.push_back(toggle({colX(b) + 10, y + 4, colW - 20, 42}, B.first + b * B.stride + t.param, ""));
+        }
+        y += rowH;
+    }
+    for (int b = 1; b < n; ++b) L.grooves.push_back({colX(b), 356, colX(b), y});
 }
 
 FaceLayout specFace(const rack::PluginInfo& info) {
