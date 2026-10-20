@@ -21,6 +21,7 @@
 
 #include <windows.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -50,13 +51,20 @@ double lumaStdDev(const hc::ui::Image& img) {
 }
 
 // A short "song": kick, bass, a voice, hats and hiss (the THE CLEANER has something to find).
-void feed(hc::fx::Effect& e, double seconds) {
-    e.prepare(48000.0, 512);
-    std::vector<float> l(512), r(512);
+// It carries on where it stopped, so a plate with a scrolling history can be fed between frames.
+struct TestSong {
     std::uint32_t rng = 5;
-    for (int b = 0; b < static_cast<int>(48000 * seconds / 512); ++b) {
+    long long pos = 0;   // samples played so far
+    std::vector<float> l = std::vector<float>(512), r = std::vector<float>(512);
+};
+void feed(hc::fx::Effect& e, TestSong& s, double seconds) {
+    if (s.pos == 0) e.prepare(48000.0, 512);
+    std::vector<float>& l = s.l;
+    std::vector<float>& r = s.r;
+    std::uint32_t& rng = s.rng;
+    for (int b = 0; b < static_cast<int>(48000 * seconds / 512); ++b, s.pos += 512) {
         for (int i = 0; i < 512; ++i) {
-            const double t = (b * 512 + i) / 48000.0, beat = std::fmod(t, 0.65);
+            const double t = static_cast<double>(s.pos + i) / 48000.0, beat = std::fmod(t, 0.65);
             rng = rng * 1664525u + 1013904223u;
             const float nz = static_cast<float>(rng >> 8) / 8388608.0f - 1.0f;
             const float kick = 0.5f * static_cast<float>(std::exp(-beat * 16.0) * std::sin(2 * std::numbers::pi * 55 * beat));
@@ -150,7 +158,8 @@ int main(int argc, char** argv) {
         }
         hem::ui::EffectFeed feedSrc(*fx);
         feedSrc.setSpectrumActive(true);
-        feed(*fx, 5.0);
+        TestSong song;
+        feed(*fx, song, 5.0);
         Host host(*fx);
         hem::ui::FaceWindow win;
         std::string err;
@@ -160,6 +169,18 @@ int main(int argc, char** argv) {
             continue;
         }
         if (info.face == hem::rack::Face::EliteEq) win.state().selectedBand = 1;
+        // A plate with a scrolling history adds one column per drawn frame: draw 240 frames (the whole
+        // history) with the song still playing between them, so the picture shows it as it looks live.
+        {
+            const hem::ui::FaceLayout plate = hem::ui::faceLayout(info);
+            const bool scrolls = std::any_of(plate.widgets.begin(), plate.widgets.end(),
+                                             [](const hem::ui::Widget& w) { return w.kind == hem::ui::WKind::History; });
+            if (scrolls)
+                for (int f = 0; f < 240; ++f) {
+                    feed(*fx, song, 1100.0 / 48000.0);   // two 512-sample blocks of song per frame
+                    (void)win.snapshot();
+                }
+        }
         const hc::ui::Image img = win.snapshot();
         const double sd = lumaStdDev(img);
         std::string file = info.name;

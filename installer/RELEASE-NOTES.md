@@ -1,3 +1,12 @@
+# HEM-Elite-Rack 0.15.1
+
+**HITMAN faceplate fixes** (the sound is unchanged):
+- The note under the HITMAN name no longer runs through the L/R and M/S buttons.
+- The channel knobs are named once over the columns (INPUT, OUTPUT, ATTACK, RELEASE), with the rows
+  marked 1 and 2, so channel 2's names no longer sit on channel 1's values.
+- The test suite now also checks that no knob name, value or note on any faceplate runs into a
+  control or into other text.
+
 # HEM-Elite-Rack 0.15.0
 
 **New: HITMAN** — a dual FET peak compressor (Dynamics tab, also as VST3 "HEM HITMAN"):

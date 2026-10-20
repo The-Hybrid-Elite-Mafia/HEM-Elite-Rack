@@ -725,8 +725,9 @@ FaceLayout hitmanFace(const rack::PluginInfo& info) {
     using namespace rack::hitman;
     FaceLayout L;
     common(L, info);
-    L.leftNotes = {"DUAL FET", "EATS THE PEAKS"};
-    L.title = {60, 190, 330, 110};
+    // One note line only: the left column (mode, link, ratio...) starts right under it.
+    L.leftNotes = {"DUAL FET"};
+    L.title = {60, 180, 330, 100};
     L.display = {410, 182, 1226, 250};
     {   // the sidechain EQ's curve over what the detector hears, and the last few seconds
         Widget curve;
@@ -756,18 +757,21 @@ FaceLayout hitmanFace(const rack::PluginInfo& info) {
         seatKnobs(L, first, 9);
     }
     L.grooves.push_back({410, 592, 1636, 592});
-    // the two channels: INPUT, OUTPUT, ATTACK, RELEASE
+    // the two channels: INPUT, OUTPUT, ATTACK, RELEASE named once over the columns, the rows tagged 1 and 2
+    // (two captioned rows do not fit between the sidechain strip and the footer)
     {
         const std::size_t first = L.widgets.size();
         const int ch1[4] = {Input1, Output1, Attack1, Release1}, ch2[4] = {Input2, Output2, Attack2, Release2};
-        const char* cap1[4] = {"INPUT 1", "OUTPUT 1", "ATTACK 1", "RELEASE 1"};
-        const char* cap2[4] = {"INPUT 2", "OUTPUT 2", "ATTACK 2", "RELEASE 2"};
+        const char* cap[4] = {"INPUT", "OUTPUT", "ATTACK", "RELEASE"};
+        constexpr float kRow1 = 628, kRow2 = 726, kDial = 60;
         for (int i = 0; i < 4; ++i) {
-            const float cx = 470 + static_cast<float>(i) * 120;
-            L.widgets.push_back(knob({cx - 30, 624, 60, 60}, ch1[i], cap1[i], "", "", true));
-            L.widgets.push_back(knob({cx - 30, 730, 60, 60}, ch2[i], cap2[i], "", "", true));
+            const float cx = 490 + static_cast<float>(i) * 116;
+            L.widgets.push_back(knob({cx - kDial * 0.5f, kRow1, kDial, kDial}, ch1[i], cap[i], "", "", true));
+            L.widgets.push_back(knob({cx - kDial * 0.5f, kRow2, kDial, kDial}, ch2[i], "", "", "", true));
         }
         seatKnobs(L, first, 8);
+        L.sections.push_back({{406, kRow1 + 15, 40, 30}, "1"});
+        L.sections.push_back({{406, kRow2 + 15, 40, 30}, "2"});
     }
     L.grooves.push_back({895, 604, 895, 820});
     // the needles: channel 1 and channel 2

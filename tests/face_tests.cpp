@@ -1,6 +1,7 @@
 // The faceplates without a GPU: every control has a place, nothing overlaps, every knob / button /
 // graph gesture changes the parameter it should, and the metal plate renders the same every time.
 #include "Harness.hpp"
+#include "TextRoom.hpp"
 
 #include "hem/rack/EliteEq.hpp"
 #include "hem/rack/Plugins.hpp"
@@ -70,6 +71,8 @@ void layoutRules(const rack::PluginInfo& info) {
     CHECK(inside);
     CHECK(paramsOk);
     CHECK(noOverlap);
+    // ...and no caption, value, note or section name runs into a control or into other text.
+    CHECK(textroom::clashes(L, info.name) == 0);
     // Every parameter can be reached from the faceplate.
     std::set<int> reach;
     for (const Widget& w : L.widgets) {
@@ -82,7 +85,7 @@ void layoutRules(const rack::PluginInfo& info) {
         if (!reach.count(p)) { ++missing; std::printf("  no control for %s\n", fx->params()[static_cast<std::size_t>(p)].id); }
     CHECK(missing == 0);
     CHECK(find(L, WKind::Bypass) >= 0);
-    std::printf("  %s: %zu controls, every parameter reachable, no overlaps\n", info.name, L.widgets.size());
+    std::printf("  %s: %zu controls, every parameter reachable, no overlaps, text has room\n", info.name, L.widgets.size());
 }
 
 float plain(const hc::fx::Effect& e, int p) { return e.get(p); }
