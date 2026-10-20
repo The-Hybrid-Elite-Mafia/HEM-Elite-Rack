@@ -36,9 +36,10 @@
 //                together), ROUTING (SUM: each voice hears both sides; SPLIT: voices 1 and 3 hear the left, 2 and 4
 //                the right), the voices' EQ (LOW SHELF and HIGH SHELF, each on, GAIN +12..-88 dB, FREQ), OUTPUT
 //                (0..-24 dB), the held peaks with RESET. Zero latency.
-//  HUSTLE        modulator: one LFO (RATE in Hz or a NOTE of the tempo, WAVE) drives TREMOLO
-//                (level), VIBRATO (pitch) and PAN (left-right swing, OFFSET = where in the cycle it
-//                swings); MIX, OUTPUT.
+//  HUSTLE        one LFO, three moves. RATE 0.01–60 Hz (SYNC AUTO: one cycle a beat of the host's tempo), x FACTOR
+//                (x0.25–x100), WAVE (SQUARE, TRIANGLE, SAW UP, SAW DOWN, SINE). AM (level: DEPTH, ON, PHASE 0 / 90 /
+//                180 / 270°), FM (pitch: DEPTH, ON, PHASE), ROTATION (where the picture sits: CENTER ±180, how far it
+//                sweeps: RANGE 1–360, ON). GAIN ±12, MIX. Latency 10.5 ms (the pitch move needs room either way).
 //  THE INFORMANT vocoder with its own voice: the input's words shape a built-in carrier (NOTE,
 //                OCTAVE, CHORD, WAVE SAW / PULSE / NOISE). BANDS 16 / 24 / 32, REACT (how quickly the
 //                bands follow), SHIFT (moves the voice's formants), SIBILANCE (lets the esses
@@ -98,7 +99,7 @@ constexpr int voice(int v, int k) noexcept { return v * kStride + k; }
 } // namespace bodydouble
 
 namespace hustle {
-enum P : int { Rate, Note, SyncSource, Bpm, Wave, Tremolo, Vibrato, Pan, Offset, Mix, Output, kCount };
+enum P : int { Sync, Rate, Factor, Wave, AmDepth, AmOn, AmPhase, FmDepth, FmOn, FmPhase, RotCenter, RotOn, RotRange, Gain, Mix, kCount };
 } // namespace hustle
 
 namespace informant {

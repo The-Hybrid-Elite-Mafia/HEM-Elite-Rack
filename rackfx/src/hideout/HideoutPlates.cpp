@@ -62,10 +62,12 @@ constexpr PlateChoice steppers[] = {{Direction, "WAY"}, {Mode, "MODE"}, {Trigger
 // ---- HUSTLE
 namespace hu {
 using namespace hustle;
-constexpr PlateChoice choices[] = {{P::Wave, "WAVE"}, {Note, "NOTE"}};
-constexpr PlateKnob row1[] = {{Rate, "RATE"}, {Tremolo, "TREMOLO"}, {Vibrato, "VIBRATO"}, {Pan, "PAN"}, {Offset, "OFFSET"}};
-constexpr PlateKnob row2[] = {{Bpm, "BPM", "", "", K::Small}, {Mix, "MIX", "", "", K::Small}, {Output, "OUTPUT", "", "", K::Small}};
-constexpr PlateChoice left[] = {{SyncSource, "TEMPO FROM"}};
+constexpr PlateChoice choices[] = {{Sync, "SYNC"}};
+constexpr PlateChoice steppers[] = {{P::Wave, "WAVE"}};
+constexpr PlateToggle toggles[] = {{AmOn, "AM"}, {FmOn, "FM"}, {RotOn, "ROTATION"}};
+constexpr PlateKnob row1[] = {{Rate, "RATE"}, {Factor, "x FACTOR", "x0.25", "x100"}, {AmDepth, "AM DEPTH"}, {AmPhase, "AM PHASE", "0", "270"},
+                              {FmDepth, "FM DEPTH"}, {FmPhase, "FM PHASE", "0", "270"}};
+constexpr PlateKnob row2[] = {{RotCenter, "ROT CENTER", "R", "L"}, {RotRange, "ROT RANGE"}, {P::Gain, "GAIN"}, {Mix, "MIX"}};
 } // namespace hu
 
 // ---- THE INFORMANT
@@ -113,9 +115,9 @@ const PlateSpec kDriveBy{.note1 = "HERE IT COMES", .note2 = "THERE IT GOES", .sc
                          .steppers = db::steppers, .bands = &db::bands,
                          .demo = [](hc::fx::Effect& e) { using namespace driveby; e.set(Close, 85); e.set(Pitch, 150); }};
 
-const PlateSpec kHustle{.note1 = "LEVEL, PITCH, PAN", .note2 = "ONE MOTION", .screen = Screen::None, .choices = hu::choices,
-                        .row1 = hu::row1, .row2 = hu::row2, .left = hu::left,
-                        .demo = [](hc::fx::Effect& e) { using namespace hustle; e.set(Tremolo, 60); e.set(Pan, 50); e.set(Vibrato, 20); }};
+const PlateSpec kHustle{.note1 = "LEVEL, PITCH, PLACE", .note2 = "ONE MOTION", .screen = Screen::None, .choices = hu::choices, .toggles = hu::toggles,
+                        .row1 = hu::row1, .row2 = hu::row2, .steppers = hu::steppers,
+                        .demo = [](hc::fx::Effect& e) { using namespace hustle; e.set(Rate, 2); e.set(FmDepth, 20); }};
 const PlateSpec kInformant{.note1 = "THE WORDS TALK", .note2 = "THE SYNTH SINGS", .screen = Screen::None, .choices = inf::choices,
                            .row1 = inf::row1, .row2 = inf::row2, .steppers = inf::steppers,
                            .demo = [](hc::fx::Effect& e) { using namespace informant; e.set(Note, 9); e.set(Chord, 3); }};

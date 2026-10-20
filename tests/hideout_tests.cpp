@@ -318,7 +318,7 @@ void testBodyDouble() {
 void testHustle() {
     using namespace hustle;
     {
-        auto e = make("HUSTLE", {{Tremolo, 0}});
+        auto e = make("HUSTLE", {{AmOn, 0}, {FmOn, 0}, {RotOn, 0}});
         CHECK(e->latency() > 0);
         Stereo s = noise(0.5, 0.3f), ref = s;
         run(*e, s);
@@ -329,7 +329,7 @@ void testHustle() {
         CHECK(diff < 1e-5);
     }
     {
-        auto e = make("HUSTLE", {{Tremolo, 100}, {Rate, 4}});
+        auto e = make("HUSTLE", {{AmDepth, 100}, {FmOn, 0}, {RotOn, 0}, {Rate, 4}});
         Stereo s = sine(1000, 1.0, 0.5f);
         run(*e, s);
         double lo = 1e9, hi = 0;
@@ -338,17 +338,34 @@ void testHustle() {
             lo = std::min(lo, r);
             hi = std::max(hi, r);
         }
-        std::printf("  HUSTLE tremolo 100 %% at 4 Hz: loudest %.1f dB, quietest %.1f dB\n", db(hi / (0.5 / std::sqrt(2.0))), db(lo / (0.5 / std::sqrt(2.0))));
+        std::printf("  HUSTLE AM 100 %% at 4 Hz: loudest %.1f dB, quietest %.1f dB\n", db(hi / (0.5 / std::sqrt(2.0))), db(lo / (0.5 / std::sqrt(2.0))));
         CHECK(db(hi / (0.5 / std::sqrt(2.0))) > -1.0 && db(lo / (0.5 / std::sqrt(2.0))) < -20.0);
     }
     {
-        auto e = make("HUSTLE", {{Tremolo, 0}, {Pan, 100}, {Rate, 1}});
+        auto e = make("HUSTLE", {{AmOn, 0}, {FmOn, 0}, {RotRange, 180}, {Rate, 1}});
         Stereo s = sine(1000, 1.5, 0.5f);
         run(*e, s);
         double most = 0;
         for (std::size_t w = 6000; w + 960 < s.size(); w += 960) most = std::max(most, std::fabs(db(rms(s.l, w, 960) / std::max(rms(s.r, w, 960), 1e-9))));
-        std::printf("  HUSTLE pan 100 %%: the image swings as far as %.1f dB to one side\n", most);
-        CHECK(most > 20.0);
+        auto c = make("HUSTLE", {{AmOn, 0}, {FmOn, 0}, {RotRange, 1}, {RotCenter, 90}});
+        const double l = toneGain(*c, 1000, 0.3f), r = toneGain(*c, 1000, 0.3f, true);
+        std::printf("  HUSTLE rotation range 180: the picture swings as far as %.1f dB to one side; CENTER +90: left %+.1f, right %.1f dB\n", most, l, r);
+        CHECK(most > 20.0 && l > r + 20.0);
+    }
+    {
+        auto e = make("HUSTLE", {{Sync, 0}, {Factor, 3}, {AmDepth, 100}, {FmOn, 0}, {RotOn, 0}});
+        e->setTempo(120);   // AUTO: 2 cycles a second, x2 = 4 Hz
+        Stereo s = sine(1000, 2.0, 0.5f);
+        run(*e, s);
+        int dips = 0;
+        bool low = false;
+        for (std::size_t w = 0; w + 240 < s.size(); w += 240) {
+            const bool now = rms(s.l, w, 240) < 0.1;
+            if (now && !low) ++dips;
+            low = now;
+        }
+        std::printf("  HUSTLE AUTO at 120 BPM, x2: %d dips in 2 s\n", dips);
+        CHECK(dips >= 7 && dips <= 9);
     }
 }
 
