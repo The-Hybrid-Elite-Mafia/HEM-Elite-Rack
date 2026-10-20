@@ -33,6 +33,15 @@ C++23 audio framework, as a library.
 | **SILENCER** | De-esser: classic filter or smart detection, split or wide, look-ahead, listen |
 | **BREATHLESS** | Breath remover: finds breaths between words, turns them down with smooth fades |
 | **TOMMY GUN** | One-knob tempo pump: ducks on the beat and pumps back up, no sidechain needed |
+| **STRAIGHT SHOOTER** | Linear-phase EQ: low / high cut (12 / 24 / 48 dB), shelves, three bells, no phase shift at all |
+| **CUTTHROAT** | Sweep filter: high-pass + low-pass, one-knob SWEEP, resonance, 12 / 24 dB, drive, mix |
+| **THE BOSS** | Channel strip: gate, compressor, four-band EQ, low cut, EQ before or after the dynamics, limiter |
+| **KINGPIN** | Drum channel: gate, thump, snap, punch, crush (a squashed copy underneath), drive |
+| **GOLD CHAIN** | One-knob tone: warmth, density and sheen together; input, link, mix |
+| **IVORIES** | Piano tone: darker / brighter, body, compression, stereo slap delay, doubler, width |
+| **HIGH ROLLER** | Five-band enhancer: lift and width for sub, low, mid, high and air |
+| **THE MIDDLEMAN** | Center / sides: levels, low and high balance, hits steered to the middle or the sides |
+| **DOUBLE CROSS** | Mono to stereo that folds back to mono perfectly; tight / medium / wide, low stays mono |
 | **FURNACE** | Tube stage: drive, bias (even harmonics), tone, mix — colour without a volume jump |
 | **CATHEDRAL** | Concert hall reverb: pre-delay, size, decay, damping, early reflections, modulation, width, low / high cut |
 | **CHROME** | Bright, dense plate reverb with diffusion control |
@@ -46,7 +55,7 @@ C++23 audio framework, as a library.
 | **UNDERGROUND** | More low end: a new sub an octave down, or harmonics small speakers can hear |
 | **SPOTLIGHT** | Vocal chain: high-pass, body, one-knob compressor, one-knob de-esser, presence, air |
 
-Thirty-seven plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
+Forty-six plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 
 ## Install
 Download `HEM-Elite-Rack-Setup-x.y.z.exe` from **Releases** and run it. Needs Windows 10 / 11

@@ -929,6 +929,14 @@ FaceLayout specFace(const rack::PluginInfo& info) {
             L.recesses.push_back({scr, 14, 9, false, true});
             break;
         }
+        case Screen::Curve: {
+            Widget cv;
+            cv.kind = WKind::CurveDisplay;
+            cv.r = scr;
+            L.widgets.push_back(cv);
+            L.recesses.push_back({scr, 14, 9, false, true});
+            break;
+        }
         case Screen::History: {
             Widget h;
             h.kind = WKind::History;

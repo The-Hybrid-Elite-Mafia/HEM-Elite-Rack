@@ -14,6 +14,7 @@
 #include "hem/rack/Movement.hpp"
 #include "hem/rack/Specialty.hpp"
 #include "hem/rack/Arsenal.hpp"
+#include "hem/rack/ToneShop.hpp"
 #include "arsenal/Plates.hpp"
 
 #include <cstring>
@@ -170,6 +171,42 @@ const PluginInfo kPlugins[] = {
      "One knob: the track ducks on the beat and pumps back up, no sidechain needed",
      {0xCDCF4E33u, 0x94F34F16u, 0xF950E8EBu, 0x2E312C24u}, {0xBF9A653Du, 0xDAF342ABu, 0x0A88515Fu, 0x49EC0F1Du},
      Face::Spec, Group::Dynamics, &makeTommyGun, nullptr, &plates::kTommyGun},
+    {"STRAIGHT SHOOTER", "LINEAR PHASE EQUALIZER", "SHAPE WHAT MATTERS", "Fx|EQ",
+     "Linear-phase EQ: cuts, shelves and three bells with no phase shift at all",
+     {0x53BC2FE2u, 0x4685448Eu, 0x9E2098A5u, 0x4C0ADF14u}, {0x11356263u, 0x80C449F4u, 0xBA7022BBu, 0xC0F2A2BEu},
+     Face::Spec, Group::Eq, &makeStraightShooter, &straight::kCurve, &plates::kStraightShooter},
+    {"CUTTHROAT", "SWEEP FILTER", "CUT WHAT MATTERS", "Fx|Filter",
+     "High-pass and low-pass with a one-knob sweep, resonance and drive",
+     {0x4F17BD9Au, 0x093D40BFu, 0xA5F44ED5u, 0x68244674u}, {0x9E198314u, 0xB10E44E9u, 0xA5C8F43Cu, 0x0AFBFD85u},
+     Face::Spec, Group::Eq, &makeCutthroat, &cutthroat::kCurve, &plates::kCutthroat},
+    {"THE BOSS", "CHANNEL STRIP", "RUN WHAT MATTERS", "Fx|Dynamics",
+     "Gate, compressor, four-band EQ, low cut and limiter in one channel",
+     {0x82D3954Bu, 0x486C4D59u, 0x93C55EDDu, 0xCC9D71C9u}, {0x146B2456u, 0xF3A44803u, 0xA5C4439Bu, 0x6E01E0E6u},
+     Face::Spec, Group::Tools, &makeTheBoss, nullptr, &plates::kTheBoss},
+    {"KINGPIN", "DRUM CHANNEL", "HIT WHAT MATTERS", "Fx|Dynamics",
+     "Drum channel: gate, thump, snap, punch, crush and drive",
+     {0xC1C0D57Eu, 0x097E4E12u, 0xAD48C393u, 0x522671CBu}, {0x0AE9BC6Du, 0xEEB94CC5u, 0x80C29BC7u, 0x0CF175B7u},
+     Face::Spec, Group::Tools, &makeKingpin, nullptr, &plates::kKingpin},
+    {"GOLD CHAIN", "ONE-KNOB TONE", "ENRICH WHAT MATTERS", "Fx|Distortion",
+     "One knob: warmth, density and sheen that grow together",
+     {0x9993EEF7u, 0x90B14614u, 0x9929D6A7u, 0x151A5BA2u}, {0x18D31CC3u, 0x0CBB4891u, 0xABEEA077u, 0x9358B38Au},
+     Face::Spec, Group::Color, &makeGoldChain, nullptr, &plates::kGoldChain},
+    {"IVORIES", "PIANO TONE", "PLAY WHAT MATTERS", "Fx|EQ",
+     "Piano tone: brighter or darker, body, compression, slap delay, doubler, width",
+     {0x384AA925u, 0xD76A4658u, 0x9B105B78u, 0xB8AA0F11u}, {0x91C13BB0u, 0x2B3E48BEu, 0xAC3EED43u, 0x2A5AE083u},
+     Face::Spec, Group::Color, &makeIvories, nullptr, &plates::kIvories},
+    {"HIGH ROLLER", "FIVE-BAND ENHANCER", "LIFT WHAT MATTERS", "Fx|Mastering",
+     "Five bands, each with its own lift and width: detail comes up, the mix opens",
+     {0x699235E6u, 0xE598408Au, 0xA455C565u, 0xCBDD727Bu}, {0x35DFC976u, 0x317A4BE8u, 0xAE464337u, 0x61FE8DE8u},
+     Face::Spec, Group::Color, &makeHighRoller, nullptr, &plates::kHighRoller},
+    {"THE MIDDLEMAN", "CENTER / SIDES BALANCE", "BALANCE WHAT MATTERS", "Fx|Spatial",
+     "Turn the middle or the sides up or down, lows and highs apart, hits steered",
+     {0x7EA39FCCu, 0x23234CB9u, 0x8C189009u, 0x52F521A2u}, {0x482683CAu, 0xD7724738u, 0xA106E319u, 0xD9882F04u},
+     Face::Spec, Group::Tools, &makeMiddleman, nullptr, &plates::kMiddleman},
+    {"DOUBLE CROSS", "MONO TO STEREO", "SPREAD WHAT MATTERS", "Fx|Spatial",
+     "Mono to stereo that folds back to mono perfectly",
+     {0xDAF83147u, 0x0C4942B4u, 0xB92FD178u, 0x7850B2DDu}, {0x002710CFu, 0x88344A0Fu, 0x8173B704u, 0x11760CEAu},
+     Face::Spec, Group::Tools, &makeDoubleCross, nullptr, &plates::kDoubleCross},
 };
 } // namespace
 

@@ -34,6 +34,16 @@ add_library(hem_rackfx STATIC
     src/arsenal/Breathless.cpp
     src/arsenal/TommyGun.cpp
     src/arsenal/Plates.cpp
+    src/tone/StraightShooter.cpp
+    src/tone/TheBoss.cpp
+    src/tone/Kingpin.cpp
+    src/tone/GoldChain.cpp
+    src/tone/Ivories.cpp
+    src/tone/HighRoller.cpp
+    src/tone/Middleman.cpp
+    src/tone/DoubleCross.cpp
+    src/tone/Cutthroat.cpp
+    src/tone/TonePlates.cpp
     src/Plugins.cpp)
 add_library(hem::rackfx ALIAS hem_rackfx)
 target_include_directories(hem_rackfx PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")

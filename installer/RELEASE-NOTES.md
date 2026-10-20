@@ -1,3 +1,18 @@
+# HEM-Elite-Rack 0.17.0
+
+**Nine new plug-ins: EQ, channel strips, tone and stereo** (in the rack and as VST3), our own designs:
+- **STRAIGHT SHOOTER** — linear-phase EQ (no phase shift; 96 ms delay that DAWs make up for)
+- **CUTTHROAT** — sweep filter: high-pass + low-pass, one-knob sweep, resonance, drive
+- **THE BOSS** — channel strip: gate, compressor, four-band EQ, low cut, limiter
+- **KINGPIN** — drum channel: gate, thump, snap, punch, crush, drive
+- **GOLD CHAIN** — one-knob tone: warmth, density and sheen together
+- **IVORIES** — piano tone: tone, body, compression, slap delay, doubler, width
+- **HIGH ROLLER** — five-band enhancer with lift and width per band
+- **THE MIDDLEMAN** — center / sides balance with low, high and punch steering
+- **DOUBLE CROSS** — mono to stereo that folds back to mono perfectly
+
+The EQ plates (STRAIGHT SHOOTER, CUTTHROAT) draw their curve over the music.
+
 # HEM-Elite-Rack 0.16.1
 
 **Tidier new plates** (the sound is unchanged):

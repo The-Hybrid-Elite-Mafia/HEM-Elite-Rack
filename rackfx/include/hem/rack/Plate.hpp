@@ -21,6 +21,7 @@ enum class Screen : std::uint8_t {
     Spectrum,   // before / after spectrum (the effect is a SpectrumSource)
     History,    // scrolling history of meters 0 and 1 (gain change, dB) and 2 (input level)
     Readouts,   // big-number windows (PlateSpec::readouts), in a row
+    Curve,      // the EQ / filter curve (PluginInfo::curve) over the music's spectrum
 };
 
 enum class KnobSize : std::uint8_t { Small, Normal, Big };

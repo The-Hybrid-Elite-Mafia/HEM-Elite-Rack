@@ -36,6 +36,7 @@ int main(int argc, char** argv) {
     testSpecialty();
     testHitman();
     testArsenal();
+    testToneShop();
     testFaces();
     testChain();
     testRackSession();

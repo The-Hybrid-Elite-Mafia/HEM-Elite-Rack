@@ -36,6 +36,7 @@ void testMovement();
 void testSpecialty();
 void testHitman();
 void testArsenal();
+void testToneShop();
 void testSpectrum();
 void testFaces();
 void testChain();

@@ -141,6 +141,44 @@ TOMMY GUN
   One knob: AMOUNT. RATE = how often it pumps (a note of the tempo), OFFSET shifts where in the beat
   it dips. TEMPO FROM HOST in a DAW; BPM knob in the rack.
 
+STRAIGHT SHOOTER
+  An EQ that never shifts the phase: good on the mix bus and for mastering. The top row picks the
+  frequencies, the row under it the gains and the bell widths (Q). LOW CUT / HIGH CUT SLOPE switch the
+  cuts on. It delays the sound by 96 ms; DAWs make up for that by themselves, in the rack you won't notice.
+
+CUTTHROAT
+  Turn SWEEP left and the highs close down, right and the lows thin out (filter rides, builds,
+  breakdowns). LOW CUT / HIGH CUT are where the filters rest. RESONANCE adds the whistle at the edge,
+  SLOPE 24 dB is steeper, DRIVE dirties it up first.
+
+THE BOSS
+  A whole channel on one plate. GATE (all the way left = off), then the compressor (THRESHOLD, RATIO,
+  ATTACK, RELEASE), then the EQ row. ORDER: EQ FIRST or DYN FIRST. LIMIT keeps the output under -0.3 dB.
+
+KINGPIN
+  For drums. PUNCH brings the hits forward, CRUSH mixes in a smashed copy under them (bigger room,
+  fatter body), DRIVE saturates. THUMP / SNAP boost the low hit and the crack at their frequencies.
+
+GOLD CHAIN
+  One knob: TONE. Turn it up for a warmer, thicker, shinier sound. INPUT pushes harder; with LINK on,
+  the output comes down by the same amount so the level stays put.
+
+IVORIES
+  For piano and keys. TONE darker or brighter, BODY for the low-mid weight, COMPRESS to even it out.
+  DELAY adds a soft stereo slap (TIME), DOUBLER two drifting copies left and right, WIDTH 0..200 %.
+
+HIGH ROLLER
+  Five bands: SUB, LOW, MID, HIGH, AIR. LIFT brings up the detail in that band (quiet parts more
+  than loud ones). WIDTH spreads that band (100 % = as it was, 0 = mono). Try AIR WIDTH 150 %.
+
+THE MIDDLEMAN
+  CENTER and SIDES turn the middle (vocal, kick, bass) and the sides up or down. LOW / HIGH BALANCE
+  do it only under 200 Hz / over 4 kHz (plus = toward the middle). PUNCH sends the hits to the middle.
+
+DOUBLE CROSS
+  Makes a mono sound stereo, and it still sounds right in mono. SPREAD = how wide. STYLE = how many
+  pieces it's split into. LOW STAYS MONO keeps the bass in the middle.
+
 FURNACE
   DRIVE for more tube colour (the level stays about the same), BIAS toward EVEN = warmer.
   TONE darker or brighter after the tube, MIX to blend.
