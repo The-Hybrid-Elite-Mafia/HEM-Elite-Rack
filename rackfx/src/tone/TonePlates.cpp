@@ -7,16 +7,51 @@ namespace hem::rack::plates {
 namespace {
 using K = KnobSize;
 
-// ---- STRAIGHT SHOOTER: the curve, the two cut slopes beside it, frequencies over gains
-namespace ss {
-using namespace straight;
-constexpr PlateChoice choices[] = {{LowCutSlope, "LOW CUT SLOPE"}, {HighCutSlope, "HIGH CUT SLOPE"}};
-constexpr PlateKnob row1[] = {{LowCut, "LOW CUT"}, {LowFreq, "LOW"}, {Mid1Freq, "MID 1"}, {Mid2Freq, "MID 2"},
-                              {Mid3Freq, "MID 3"}, {HighFreq, "HIGH"}, {HighCut, "HIGH CUT"}};
-constexpr PlateKnob row2[] = {{LowGain, "LOW GAIN", "", "", K::Small}, {Mid1Gain, "MID 1 GAIN", "", "", K::Small}, {Mid1Q, "MID 1 Q", "", "", K::Small},
-                              {Mid2Gain, "MID 2 GAIN", "", "", K::Small}, {Mid2Q, "MID 2 Q", "", "", K::Small}, {Mid3Gain, "MID 3 GAIN", "", "", K::Small},
-                              {Mid3Q, "MID 3 Q", "", "", K::Small}, {HighGain, "HIGH GAIN", "", "", K::Small}, {Output, "OUTPUT", "", "", K::Small}};
-} // namespace ss
+// ---- STRAIGHT SHOOTER / BOTTOM LINE: the curve on top, the bands under it, the globals at the bottom
+namespace le {
+using namespace lineq;
+constexpr PlateChoice bandSteppers[] = {{Type, "TYPE"}};
+constexpr PlateKnob bandKnobs[] = {{Freq, "FREQ"}, {Gain, "GAIN"}, {Q, "Q"}};
+constexpr PlateToggle bandToggles[] = {{On, "BAND"}};
+constexpr PlateBands straightBands{.count = straight::kBands, .first = 0, .stride = kStride, .knobs = bandKnobs, .steppers = bandSteppers,
+                                   .toggles = bandToggles};
+constexpr PlateBands bottomBands{.count = bottomline::kBands, .first = 0, .stride = kStride, .knobs = bandKnobs, .steppers = bandSteppers,
+                                 .toggles = bandToggles};
+// the globals sit at the same offsets after the bands in both
+template <int kOut>
+struct Globals {
+    static constexpr PlateKnob row1[] = {{kOut, "GAIN"}};
+    static constexpr PlateToggle toggles[] = {{kOut + 1, "TRIM", true}, {kOut + 3, "DITHER"}};
+    static constexpr PlateChoice steppers[] = {{kOut + 2, "FILTER"}, {kOut + 4, "SCALE"}};
+};
+using SG = Globals<straight::Output>;
+using BG = Globals<bottomline::Output>;
+} // namespace le
+
+// ---- TEN TOES / FOUR CORNERS / SMOOTH TALKER: the curve (left, and right when it differs), LEFT / RIGHT tabs
+namespace ie {
+using namespace lineq;
+constexpr const char* pageNames[] = {"LEFT", "RIGHT"};
+constexpr PlateChoice bandSteppers[] = {{Type, "TYPE"}};
+constexpr PlateKnob bandKnobs[] = {{Freq, "FREQ"}, {Gain, "GAIN"}, {Q, "Q"}};
+constexpr PlateToggle bandToggles[] = {{On, "BAND"}};
+constexpr PlateToggle filterToggles[] = {{On, "FILTER"}};
+constexpr PlateBands ttBands{.count = tentoes::kBands, .first = 0, .stride = kStride, .knobs = bandKnobs, .steppers = bandSteppers,
+                             .toggles = bandToggles, .pages = 2, .pageStride = tentoes::kSide, .pageNames = pageNames};
+constexpr PlateBands fcBands{.count = fourcorners::kBands, .first = 0, .stride = kStride, .knobs = bandKnobs, .steppers = bandSteppers,
+                             .toggles = filterToggles, .pages = 2, .pageStride = fourcorners::kSide, .pageNames = pageNames};
+constexpr PlateBands sxBands{.count = smoothtalker::kBands, .first = 0, .stride = kStride, .knobs = bandKnobs, .steppers = bandSteppers,
+                             .toggles = bandToggles, .pages = 2, .pageStride = smoothtalker::kSide, .pageNames = pageNames};
+constexpr PlateKnob ttRow1[] = {{tentoes::InputL, "INPUT L", "OFF", "0"}, {tentoes::InputR, "INPUT R", "OFF", "0"},
+                                {tentoes::OutputL, "OUTPUT L"}, {tentoes::OutputR, "OUTPUT R"}};
+constexpr PlateToggle ttToggles[] = {{tentoes::Trim, "TRIM", true}};
+constexpr PlateToggle ttLeft[] = {{tentoes::Link, "LINK"}, {tentoes::PhaseL, "PHASE L"}, {tentoes::PhaseR, "PHASE R"}};
+constexpr PlateKnob fcRow1[] = {{fourcorners::GainL, "GAIN L"}, {fourcorners::GainR, "GAIN R"}};
+constexpr PlateToggle fcLeft[] = {{fourcorners::Link, "LINK"}};
+constexpr PlateKnob sxRow1[] = {{smoothtalker::Output, "OUTPUT", "OFF", "+12"}};
+constexpr PlateToggle sxToggles[] = {{smoothtalker::Trim, "TRIM", true}};
+constexpr PlateToggle sxLeft[] = {{smoothtalker::Link, "LINK"}, {smoothtalker::Spectrum, "SPECTRUM"}};
+} // namespace ie
 
 // ---- THE BOSS: the needle, order / low cut / limit beside it, dynamics over EQ
 namespace bo {
@@ -85,13 +120,40 @@ constexpr PlateKnob row1[] = {{Sweep, "SWEEP", "DARK", "THIN", K::Big}, {LowCut,
 
 } // namespace
 
-const PlateSpec kStraightShooter{.note1 = "NO PHASE SHIFT", .note2 = "ONLY THE LEVELS MOVE", .screen = Screen::Curve, .choices = ss::choices,
-                                 .row1 = ss::row1, .row2 = ss::row2,
+const PlateSpec kStraightShooter{.note1 = "NO PHASE SHIFT", .note2 = "ONLY THE LEVELS MOVE", .screen = Screen::Curve, .toggles = le::SG::toggles,
+                                 .row1 = le::SG::row1, .steppers = le::SG::steppers, .bands = &le::straightBands,
                                  .demo = [](hc::fx::Effect& e) {
-                                     using namespace straight;
-                                     e.set(LowCutSlope, 2); e.set(LowCut, 35); e.set(Mid1Gain, -3); e.set(Mid2Gain, 2.5f); e.set(Mid2Q, 0.8f);
-                                     e.set(HighGain, 3);
+                                     using namespace lineq;
+                                     e.set(band(0, Type), FLowCut); e.set(band(0, Freq), 35); e.set(band(1, Gain), -3);
+                                     e.set(band(3, Gain), 2.5f); e.set(band(3, Q), 0.8f); e.set(band(5, Gain), 3);
                                  }};
+const PlateSpec kBottomLine{.note1 = "THE LOW END", .note2 = "NO PHASE SHIFT", .screen = Screen::Curve, .toggles = le::BG::toggles,
+                            .row1 = le::BG::row1, .steppers = le::BG::steppers, .bands = &le::bottomBands,
+                            .demo = [](hc::fx::Effect& e) {
+                                using namespace lineq;
+                                e.set(band(0, On), 1); e.set(band(0, Freq), 28); e.set(band(1, Gain), 3.5f); e.set(band(1, Freq), 70);
+                                e.set(band(2, Type), Bell); e.set(band(2, Freq), 280); e.set(band(2, Gain), -2.5f); e.set(band(2, Q), 1.4f);
+                            }};
+const PlateSpec kTenToes{.note1 = "TEN BANDS", .note2 = "LEFT AND RIGHT", .screen = Screen::Curve, .toggles = ie::ttToggles, .row1 = ie::ttRow1,
+                         .leftToggles = ie::ttLeft, .bands = &ie::ttBands,
+                         .demo = [](hc::fx::Effect& e) {
+                             using namespace lineq;
+                             e.set(band(0, Type), tentoes::LowCut); e.set(band(0, Freq), 40); e.set(band(3, Gain), 3); e.set(band(5, Gain), -4);
+                             e.set(band(5, Q), 4); e.set(band(8, Type), tentoes::HighShelf); e.set(band(8, Gain), 2.5f);
+                         }};
+const PlateSpec kFourCorners{.note1 = "FOUR FILTERS", .note2 = "LEFT AND RIGHT", .screen = Screen::Curve, .row1 = ie::fcRow1,
+                             .leftToggles = ie::fcLeft, .bands = &ie::fcBands,
+                             .demo = [](hc::fx::Effect& e) {
+                                 using namespace lineq;
+                                 e.set(band(0, Gain), 3); e.set(band(1, Gain), -2.5f); e.set(band(2, Gain), 2); e.set(band(3, Gain), 4);
+                             }};
+const PlateSpec kSmoothTalker{.note1 = "SIX BANDS", .note2 = "SMOOTH AND MUSICAL", .screen = Screen::Curve, .toggles = ie::sxToggles, .row1 = ie::sxRow1,
+                            .leftToggles = ie::sxLeft, .bands = &ie::sxBands,
+                            .demo = [](hc::fx::Effect& e) {
+                                using namespace lineq;
+                                e.set(band(0, On), 1); e.set(band(0, Freq), 35); e.set(band(1, Gain), 2.5f); e.set(band(2, Gain), -3);
+                                e.set(band(4, Gain), 3);
+                            }};
 const PlateSpec kTheBoss{.note1 = "THE WHOLE CHANNEL", .note2 = "ONE PLATE", .screen = Screen::Needle, .choices = bo::choices, .toggles = bo::toggles,
                          .row1 = bo::row1, .row2 = bo::row2, .steppers = bo::steppers, .reportsReduction = true,
                          .demo = [](hc::fx::Effect& e) { using namespace boss; e.set(Threshold, -30); e.set(LowGain, 3); e.set(HiMidGain, 2); }};

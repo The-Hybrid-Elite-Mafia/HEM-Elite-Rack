@@ -944,39 +944,73 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
     auto colX = [&](int b) { return gx + static_cast<float>(b) * colW; };
     auto cx = [&](float c) { return gx + (c + 0.5f) * colW; };
     static const char* const kNames[] = {"BAND 1", "BAND 2", "BAND 3", "BAND 4", "BAND 5", "BAND 6", "BAND 7", "BAND 8"};
-    L.display = {gx, 180, 1636.0f - gx, 64};
-    if (B.meter >= 0)
-        for (int b = 0; b < n && b < 8; ++b) {
-            const bool master = B.lastIsMaster && b == n - 1;
-            readoutAt(L, {colX(b) + 6, 180, colW - 12, 64}, B.meter + b, master ? "OUTPUT" : kNames[b], master ? "dBFS" : "dB", "+");
-        }
-    // the top row
-    std::size_t first = L.widgets.size();
+    // EQs (screen Curve): the curve on top, the grid (type first) under it, the globals at the bottom
+    const bool eq = S.screen == rack::Screen::Curve;
+    if (eq) {
+        const Rect scr{labelX, 180, 1226, 160};
+        L.display = scr;
+        Widget cv;
+        cv.kind = WKind::CurveDisplay;
+        cv.r = scr;
+        L.widgets.push_back(cv);
+        L.recesses.push_back({scr, 14, 9, false, true});
+    } else {
+        L.display = {gx, 180, 1636.0f - gx, 64};
+        if (B.meter >= 0)
+            for (int b = 0; b < n && b < 8; ++b) {
+                const bool master = B.lastIsMaster && b == n - 1;
+                readoutAt(L, {colX(b) + 6, 180, colW - 12, 64}, B.meter + b, master ? "OUTPUT" : kNames[b], master ? "dBFS" : "dB", "+");
+            }
+    }
+    // the globals: row1, the switches, the borders' knobs (crossovers) between the columns
     constexpr float d = 48.0f;
-    const int items = static_cast<int>(S.row1.size() + S.toggles.size());
-    const float pitch = items > n ? static_cast<float>(n) / static_cast<float>(items) : 1.0f;
-    int slot = 0;
-    for (const rack::PlateKnob& k : S.row1) {
-        const float x = gx + (static_cast<float>(slot++) + 0.5f) * pitch * colW;
-        L.widgets.push_back(knob({x - d * 0.5f, 270, d, d}, k.param, k.caption, k.lo, k.hi, true));
-    }
-    for (const rack::PlateToggle& t : S.toggles) {
-        const float x = gx + (static_cast<float>(slot++) + 0.5f) * pitch * colW;
-        const float tw = std::max(112.0f, switchWordsW(t.caption) + 18.0f);
-        L.widgets.push_back(toggle({x - tw * 0.5f, 274, tw, 44}, t.param, t.caption));
-        if (t.press) L.widgets.back().hi = "PRESS";
-    }
-    for (std::size_t i = 0; i < B.borders.size() && static_cast<int>(i) + 1 < n; ++i) {
-        const float x = colX(static_cast<int>(i) + 1);
-        const rack::PlateKnob& k = B.borders[i];
-        L.widgets.push_back(knob({x - d * 0.5f, 270, d, d}, k.param, k.caption, k.lo, k.hi, true));
-    }
-    seatKnobs(L, first, 6);
-    L.grooves.push_back({labelX, 352, 1636, 352});
+    auto globals = [&](float top) {
+        const std::size_t first = L.widgets.size();
+        const int items = static_cast<int>(S.row1.size() + S.toggles.size());
+        const float pitch = items > n ? static_cast<float>(n) / static_cast<float>(items) : 1.0f;
+        int slot = 0;
+        for (const rack::PlateKnob& k : S.row1) {
+            const float x = gx + (static_cast<float>(slot++) + 0.5f) * pitch * colW;
+            L.widgets.push_back(knob({x - d * 0.5f, top, d, d}, k.param, k.caption, k.lo, k.hi, true));
+        }
+        for (const rack::PlateToggle& t : S.toggles) {
+            const float x = gx + (static_cast<float>(slot++) + 0.5f) * pitch * colW;
+            const float tw = std::max(112.0f, switchWordsW(t.caption) + 18.0f);
+            L.widgets.push_back(toggle({x - tw * 0.5f, top + 4, tw, 44}, t.param, t.caption));
+            if (t.press) L.widgets.back().hi = "PRESS";
+        }
+        for (std::size_t i = 0; i < B.borders.size() && static_cast<int>(i) + 1 < n; ++i) {
+            const float x = colX(static_cast<int>(i) + 1);
+            const rack::PlateKnob& k = B.borders[i];
+            L.widgets.push_back(knob({x - d * 0.5f, top, d, d}, k.param, k.caption, k.lo, k.hi, true));
+        }
+        seatKnobs(L, first, 6);
+    };
+    if (!eq) globals(270);
+    const float gridTop = eq ? 356.0f : 360.0f;
+    L.grooves.push_back({labelX, gridTop - 8, 1636, gridTop - 8});
     // the grid
-    float y = 360;
+    float y = gridTop;
     constexpr float knobRowH = 72.0f, rowH = 50.0f, kd = 40.0f;
-    first = L.widgets.size();
+    auto stepperRows = [&] {
+        for (const rack::PlateChoice& st : B.steppers) {
+            L.sections.push_back({{labelX, y + 6, labelW, 30}, st.caption});
+            for (int b = 0; b < n; ++b) {
+                if (B.lastIsMaster && b == n - 1) continue;
+                Widget w;
+                w.kind = WKind::Stepper;
+                w.param = B.first + b * B.stride + st.param;
+                const float sw = std::min(colW - 12.0f, 200.0f);
+                w.r = {cx(static_cast<float>(b)) - sw * 0.5f, y + 4, sw, 40};
+                if (B.pages > 1) w.pageStride = B.pageStride;
+                L.widgets.push_back(w);
+                L.recesses.push_back({w.r.inset(-4), 9, 4, false, false});
+            }
+            y += rowH;
+        }
+    };
+    if (eq) stepperRows();
+    std::size_t first = L.widgets.size();
     for (const rack::PlateKnob& k : B.knobs) {
         L.sections.push_back({{labelX, y + 6, labelW, 30}, k.caption});
         for (int b = 0; b < n; ++b) {
@@ -987,21 +1021,7 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
         y += knobRowH;
     }
     seatKnobs(L, first, 6);
-    for (const rack::PlateChoice& st : B.steppers) {
-        L.sections.push_back({{labelX, y + 6, labelW, 30}, st.caption});
-        for (int b = 0; b < n; ++b) {
-            if (B.lastIsMaster && b == n - 1) continue;
-            Widget w;
-            w.kind = WKind::Stepper;
-            w.param = B.first + b * B.stride + st.param;
-            const float sw = std::min(colW - 12.0f, 200.0f);
-            w.r = {cx(static_cast<float>(b)) - sw * 0.5f, y + 4, sw, 40};
-            if (B.pages > 1) w.pageStride = B.pageStride;
-            L.widgets.push_back(w);
-            L.recesses.push_back({w.r.inset(-4), 9, 4, false, false});
-        }
-        y += rowH;
-    }
+    if (!eq) stepperRows();
     for (const rack::PlateToggle& t : B.toggles) {
         L.sections.push_back({{labelX, y + 6, labelW, 30}, t.caption});
         for (int b = 0; b < n; ++b) {
@@ -1011,7 +1031,11 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
         }
         y += rowH;
     }
-    for (int b = 1; b < n; ++b) L.grooves.push_back({colX(b), 360, colX(b), y});
+    for (int b = 1; b < n; ++b) L.grooves.push_back({colX(b), gridTop, colX(b), y});
+    if (eq) {
+        L.grooves.push_back({labelX, y + 8, 1636, y + 8});
+        globals(y + 40);
+    }
     // the page tabs (which set the grid edits), in the left column under the name
     if (B.pages > 1) {
         const float tw = (270.0f - 8.0f * static_cast<float>(B.pages - 1)) / static_cast<float>(B.pages);

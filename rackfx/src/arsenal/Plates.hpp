@@ -8,7 +8,7 @@ extern const PlateSpec kKnockout, kHaymaker, kFourKings, kBackbone, kFullHouse, 
 // the hardware-style compressors (arsenal/CompPlates.cpp)
 extern const PlateSpec kTerritory, kStraightEdge, kConsigliere, kStoneCold, kHeavyweight, kTheDon, kSlowBurn, kLoneWolf, kIronFist, kQuickDraw, kOldMoney;
 // the tone shop (tone/TonePlates.cpp)
-extern const PlateSpec kStraightShooter, kTheBoss, kKingpin, kGoldChain, kIvories, kHighRoller, kMiddleman, kDoubleCross, kCutthroat;
+extern const PlateSpec kStraightShooter, kBottomLine, kTenToes, kFourCorners, kSmoothTalker, kTheBoss, kKingpin, kGoldChain, kIvories, kHighRoller, kMiddleman, kDoubleCross, kCutthroat;
 // the hideout (hideout/HideoutPlates.cpp)
 extern const PlateSpec kFixer, kSixShooter, kBackAlley, kDriveBy, kBodyDouble, kHustle, kInformant, kStrapped, kSafeHouse;
 // the streets (streets/StreetsPlates.cpp)

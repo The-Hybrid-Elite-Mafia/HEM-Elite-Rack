@@ -47,7 +47,7 @@ Stereo impulse(std::size_t n, std::size_t at = 100) {
 double rmsDb(const std::vector<float>& x, std::size_t from, std::size_t len) { return db(rms(x, from, len)); }
 
 void allRules() {
-    for (const char* name : {"STRAIGHT SHOOTER", "THE BOSS", "KINGPIN", "GOLD CHAIN", "IVORIES", "HIGH ROLLER", "THE MIDDLEMAN", "DOUBLE CROSS",
+    for (const char* name : {"STRAIGHT SHOOTER", "BOTTOM LINE", "TEN TOES", "FOUR CORNERS", "SMOOTH TALKER", "THE BOSS", "KINGPIN", "GOLD CHAIN", "IVORIES", "HIGH ROLLER", "THE MIDDLEMAN", "DOUBLE CROSS",
                              "CUTTHROAT"}) {
         const PluginInfo* info = findPlugin(name);
         CHECK(info != nullptr);
@@ -55,53 +55,286 @@ void allRules() {
     }
 }
 
-void testStraightShooter() {
-    using namespace straight;
-    // flat: the input comes out untouched, exactly kLatency later
+// Both linear-phase EQs: flat is a pure delay; the impulse is symmetrical; the audio follows the drawn curve.
+template <class CurveFn>
+void linEqBasics(const char* name, std::uint32_t lat, int outParam, std::initializer_list<std::pair<int, float>> shape, CurveFn curve,
+                 std::initializer_list<double> freqs, double tol) {
     {
-        auto e = make("STRAIGHT SHOOTER");
-        CHECK(e->latency() == kLatency);
-        Stereo s = impulse(12000);
+        auto e = make(name);
+        CHECK(e->latency() == lat);
+        Stereo s = impulse(lat + 6000);
         run(*e, s);
         double off = 0;
         for (std::size_t i = 0; i < s.size(); ++i)
-            if (i != 100 + kLatency) off = std::max(off, static_cast<double>(std::fabs(s.l[i])));
-        std::printf("  STRAIGHT SHOOTER flat: impulse %.5f at %u samples, largest other sample %.2e\n", s.l[100 + kLatency], kLatency, off);
-        CHECK(std::fabs(s.l[100 + kLatency] - 1.0f) < 1e-3f && off < 1e-4);
+            if (i != 100 + lat) off = std::max(off, static_cast<double>(std::fabs(s.l[i])));
+        std::printf("  %s flat: impulse %.5f at %u samples, largest other sample %.2e\n", name, s.l[100 + lat], lat, off);
+        CHECK(std::fabs(s.l[100 + lat] - 1.0f) < 1e-3f && off < 1e-4);
     }
-    // a bell does what it says, and the response is symmetrical (no phase shift)
+    auto e = make(name, shape);
+    Stereo s = impulse(2 * lat + 4000, 2000);
+    run(*e, s);
+    const std::size_t c = 2000 + lat;
+    double asym = 0, pk = std::fabs(s.l[c]);
+    for (std::size_t k = 1; k < lat - 600; ++k) {
+        asym = std::max(asym, static_cast<double>(std::fabs(s.l[c + k] - s.l[c - k])));
+        pk = std::max(pk, static_cast<double>(std::fabs(s.l[c + k])));
+    }
+    std::printf("  %s impulse response: peak %.3f, largest left/right mismatch %.2e\n", name, pk, asym);
+    CHECK(asym < pk * 1e-3);
+    std::vector<float> v(static_cast<std::size_t>(outParam + 5));
+    for (std::size_t i = 0; i < v.size(); ++i) v[i] = e->get(static_cast<int>(i));
+    double worst = 0, worstHz = 0;
+    for (double hz : freqs) {
+        const double got = toneGain(*e, hz, 0.1f, false, 2.5), want = curve(v.data(), kFs, hz);
+        if (std::fabs(got - want) > worst) { worst = std::fabs(got - want); worstHz = hz; }
+    }
+    std::printf("  %s: audio vs drawn curve, worst %.2f dB (at %.0f Hz)\n", name, worst, worstHz);
+    CHECK(worst < tol);
+}
+
+void testStraightShooter() {
+    using namespace lineq;
+    using namespace straight;
+    linEqBasics("STRAIGHT SHOOTER", kLatency, Output,
+                {{band(0, Type), FLowCut}, {band(0, Freq), 80}, {band(2, Freq), 1000}, {band(2, Gain), 6}, {band(3, Type), RHighShelf},
+                 {band(3, Freq), 3000}, {band(3, Gain), -4}, {band(3, Q), 2.0f}, {band(5, Type), VHighCut}, {band(5, Freq), 14000}, {band(5, Q), 2}},
+                curveDb, {60.0, 150.0, 400.0, 1000.0, 2500.0, 4000.0, 6000.0, 12000.0, 16000.0}, 0.5);
+    // the precision cut gets steeper with Q and never bumps; the resonant one bumps
     {
-        auto e = make("STRAIGHT SHOOTER", {{Mid2Freq, 1000}, {Mid2Gain, 6}, {Mid2Q, 1}, {LowCutSlope, 2}, {LowCut, 80}, {HighGain, -4}});
-        Stereo s = impulse(20000, 2000);
-        run(*e, s);
-        const std::size_t c = 2000 + kLatency;
-        double asym = 0, pk = 0;
-        for (std::size_t k = 1; k < 4000; ++k) {
-            asym = std::max(asym, static_cast<double>(std::fabs(s.l[c + k] - s.l[c - k])));
-            pk = std::max(pk, static_cast<double>(std::fabs(s.l[c + k])));
-        }
-        pk = std::max(pk, static_cast<double>(std::fabs(s.l[c])));
-        std::printf("  STRAIGHT SHOOTER impulse response: peak %.3f, largest left/right mismatch %.2e\n", pk, asym);
-        CHECK(asym < pk * 1e-3);
-        // the audio follows the drawn curve
         float v[kCount];
+        auto e = make("STRAIGHT SHOOTER");
         for (int i = 0; i < kCount; ++i) v[i] = e->get(i);
-        double worst = 0;
-        for (double hz : {150.0, 400.0, 1000.0, 2500.0, 6000.0, 12000.0}) {
-            const double got = toneGain(*e, hz, 0.25f), want = curveDb(v, kFs, hz);
-            worst = std::max(worst, std::fabs(got - want));
-        }
-        const double at1k = toneGain(*e, 1000, 0.25f);
-        std::printf("  STRAIGHT SHOOTER: 1 kHz bell +6 -> %+.2f dB; audio vs drawn curve, worst %.2f dB\n", at1k, worst);
-        CHECK(std::fabs(at1k - curveDb(v, kFs, 1000)) < 0.3 && worst < 0.5);
-        const double lo = toneGain(*e, 30, 0.25f, false, 2.0);
-        std::printf("  STRAIGHT SHOOTER: 24 dB low cut at 80 Hz, 30 Hz -> %.1f dB\n", lo);
-        CHECK(lo < -20.0);
+        v[band(1, Type)] = VLowCut;
+        v[band(1, Freq)] = 1000;
+        auto octave = [&](float q) { v[band(1, Q)] = q; return curveDb(v, kFs, 500) - curveDb(v, kFs, 250); };
+        const double soft = octave(0.26f), steep = octave(6.5f);
+        double bump = -99;
+        v[band(1, Q)] = 6.5f;
+        for (double hz = 1000; hz < 4000; hz *= 1.05) bump = std::max(bump, curveDb(v, kFs, hz));
+        v[band(1, Type)] = RLowCut;
+        v[band(1, Q)] = 3.0f;
+        const double res = curveDb(v, kFs, 1000);
+        std::printf("  STRAIGHT SHOOTER precision low cut, dB per octave: Q 0.26 %.1f, Q 6.5 %.1f; most above the corner %+.2f; resonant Q 3 at the corner %+.1f dB\n",
+                    soft, steep, bump, res);
+        CHECK(soft > 3.5 && soft < 5.0 && steep > 38.0 && bump <= 0.0 && res > 8.0);
     }
-    const double d = blockSizeDifference(*findPlugin("STRAIGHT SHOOTER"), [](hc::fx::Effect& x) { x.set(Mid1Gain, -6); x.set(HighCutSlope, 3); x.set(HighCut, 6000); },
+    // the 30 Hz end of band 1: a 12 dB low cut at 80 Hz
+    {
+        auto e = make("STRAIGHT SHOOTER", {{band(0, Type), FLowCut}, {band(0, Freq), 80}, {band(0, Q), 0.71f}});
+        const double lo = toneGain(*e, 30, 0.25f, false, 2.0);
+        std::printf("  STRAIGHT SHOOTER: low cut at 80 Hz, 30 Hz -> %.1f dB\n", lo);
+        CHECK(lo < -15.0 && lo > -19.5);
+    }
+    // a band switched off is flat; GAIN is a plain gain
+    {
+        auto e = make("STRAIGHT SHOOTER", {{band(2, Gain), 12}, {band(2, On), 0}, {Output, -6}});
+        const double g = toneGain(*e, 689, 0.25f);
+        std::printf("  STRAIGHT SHOOTER band off, GAIN -6: %+.2f dB\n", g);
+        CHECK(std::fabs(g + 6.0) < 0.1);
+    }
+    // TRIM: the loudest peak lands on 0 dBFS after a push
+    {
+        auto e = make("STRAIGHT SHOOTER", {{band(3, Gain), 9}, {band(3, Q), 0.5f}});
+        Stereo s = sine(1809, 1.0, 0.5f, kFs);
+        run(*e, s);
+        e->set(Trim, 1);
+        Stereo t = sine(1809, 1.0, 0.5f, kFs);
+        run(*e, t);
+        float pk = 0;
+        for (std::size_t i = t.size() / 2; i < t.size(); ++i) pk = std::max(pk, std::fabs(t.l[i]));
+        std::printf("  STRAIGHT SHOOTER TRIM push: peak after %.2f dBFS\n", db(pk));
+        CHECK(std::fabs(db(pk)) < 0.1);
+    }
+    // DITHER: 24-bit steps, and digital silence stays silent
+    {
+        auto e = make("STRAIGHT SHOOTER", {{Dither, 1}});
+        Stereo s = sine(1000, 0.5, 0.25f, kFs);
+        run(*e, s);
+        const double lsb = std::ldexp(1.0, -23);
+        double worst = 0;
+        for (std::size_t i = 6000; i < s.size(); ++i) worst = std::max(worst, std::fabs(s.l[i] / lsb - std::round(s.l[i] / lsb)));
+        Stereo z(30000);
+        run(*e, z);
+        float tail = 0;
+        for (std::size_t i = 20000; i < z.size(); ++i) tail = std::max(tail, std::fabs(z.l[i]));
+        std::printf("  STRAIGHT SHOOTER DITHER: off the 24-bit grid by at most %.3f steps; silence after %.1e\n", worst, tail);
+        CHECK(worst < 0.01 && tail == 0.0f);
+    }
+    // FILTER changes the window, not the delay
+    {
+        auto e = make("STRAIGHT SHOOTER", {{Filter, 2}, {band(2, Gain), -8}});
+        CHECK(e->latency() == kLatency);
+        const double g = toneGain(*e, 689, 0.25f);
+        std::printf("  STRAIGHT SHOOTER SMOOTH filter, -8 dB bell: %+.2f dB\n", g);
+        CHECK(std::fabs(g + 8.0) < 0.3);
+    }
+    const double d = blockSizeDifference(*findPlugin("STRAIGHT SHOOTER"),
+                                         [](hc::fx::Effect& x) { x.set(band(1, Gain), -6); x.set(band(5, Type), VHighCut); x.set(band(5, Freq), 6000); },
                                          noise(0.6, 0.3f));
     std::printf("  STRAIGHT SHOOTER block size 512 vs 1: %.2e\n", d);
     CHECK(d < 1e-5);
+}
+
+void testBottomLine() {
+    using namespace lineq;
+    using namespace bottomline;
+    linEqBasics("BOTTOM LINE", kLatency, Output,
+                {{band(0, On), 1}, {band(0, Freq), 30}, {band(0, Q), 2}, {band(1, Freq), 80}, {band(1, Gain), 5}, {band(1, Q), 1.5f},
+                 {band(2, Type), RLowShelf}, {band(2, Freq), 300}, {band(2, Gain), -3}},
+                curveDb, {25.0, 40.0, 60.0, 80.0, 120.0, 250.0, 500.0, 1000.0, 5000.0}, 0.6);
+    // the resonant low shelf stops at +10 dB
+    {
+        auto e = make("BOTTOM LINE", {{band(1, Type), RLowShelf}, {band(1, Gain), 25}, {band(1, Freq), 200}, {band(1, Q), 0.71f}});
+        const double g = toneGain(*e, 30, 0.02f, false, 2.5);
+        std::printf("  BOTTOM LINE resonant low shelf asked +25: 30 Hz %+.1f dB\n", g);
+        CHECK(g > 9.0 && g < 10.6);
+    }
+    // a steep cut down low: 40 Hz precision cut, Q 4, at 20 Hz
+    {
+        auto e = make("BOTTOM LINE", {{band(0, On), 1}, {band(0, Freq), 40}, {band(0, Q), 4}});
+        const double g = toneGain(*e, 20, 0.25f, false, 3.0), keep = toneGain(*e, 100, 0.25f);
+        std::printf("  BOTTOM LINE precision cut 40 Hz Q 4: 20 Hz %.1f dB, 100 Hz %+.2f dB\n", g, keep);
+        CHECK(g < -18.0 && std::fabs(keep) < 0.2);
+    }
+    const double d = blockSizeDifference(*findPlugin("BOTTOM LINE"), [](hc::fx::Effect& x) { x.set(band(1, Gain), 6); }, noise(0.6, 0.3f));
+    std::printf("  BOTTOM LINE block size 512 vs 1: %.2e\n", d);
+    CHECK(d < 1e-5);
+}
+
+// The minimum-phase EQs: the audio follows the drawn curves (left and right), LINK, the side controls.
+void iirEqBasics(const char* name, int side, int link, std::initializer_list<std::pair<int, float>> shape,
+                 double (*left)(const float*, double, double), double (*right)(const float*, double, double)) {
+    auto e = make(name, shape);
+    e->set(link, 0);
+    std::vector<float> v(e->params().size());
+    for (std::size_t i = 0; i < v.size(); ++i) v[i] = e->get(static_cast<int>(i));
+    double worst = 0;
+    for (double hz : {40.0, 100.0, 300.0, 1000.0, 3000.0, 8000.0, 15000.0}) {
+        worst = std::max(worst, std::fabs(toneGain(*e, hz, 0.1f) - left(v.data(), kFs, hz)));
+        worst = std::max(worst, std::fabs(toneGain(*e, hz, 0.1f, true) - right(v.data(), kFs, hz)));
+    }
+    // linked: the right side runs the left set
+    e->set(link, 1);
+    v[static_cast<std::size_t>(link)] = 1;
+    double linkDiff = 0;
+    for (double hz : {100.0, 1000.0, 8000.0}) linkDiff = std::max(linkDiff, std::fabs(toneGain(*e, hz, 0.1f, true) - left(v.data(), kFs, hz)));
+    std::printf("  %s: audio vs drawn curves (left and right), worst %.3f dB; linked right vs left curve %.3f dB\n", name, worst, linkDiff);
+    CHECK(worst < 0.1 && linkDiff < 0.1);
+    // a big jump of every gain while playing: no click (the largest step between samples stays small)
+    auto f = make(name);
+    Stereo a = sine(200, 0.3, 0.5f, kFs);
+    run(*f, a);
+    for (int b = 0; b < 4; ++b) f->set(b * lineq::kStride + lineq::Gain, 12);
+    Stereo c = sine(200, 0.3, 0.5f, kFs);
+    for (std::size_t i = 0; i < c.size(); ++i) c.l[i] = c.r[i] = 0.5f * static_cast<float>(std::sin(2.0 * std::numbers::pi * 200.0 * (i + a.size()) / kFs));
+    run(*f, c);
+    float step = 0;
+    for (std::size_t i = 1; i < c.size(); ++i) step = std::max(step, std::fabs(c.l[i] - c.l[i - 1]));
+    std::printf("  %s: all gains jump to +12 while playing, largest sample step %.4f\n", name, step);
+    CHECK(step < 0.2f);
+    (void)side;
+    const double d = blockSizeDifference(*findPlugin(name), [](hc::fx::Effect& x) { x.set(lineq::Gain, 6); x.set(lineq::kStride + lineq::Gain, -5); },
+                                         noise(0.5, 0.3f));
+    std::printf("  %s block size 512 vs 1: %.2e\n", name, d);
+    CHECK(d < 1e-5);
+}
+
+void testTenToes() {
+    using namespace lineq;
+    using namespace tentoes;
+    iirEqBasics("TEN TOES", kSide, Link,
+                {{band(0, Type), LowCut}, {band(0, Freq), 60}, {band(4, Gain), 6}, {band(6, Gain), -9}, {band(6, Q), 8},
+                 {kSide + band(2, Gain), 4}, {kSide + band(8, Type), HighShelf}, {kSide + band(8, Gain), -6}},
+                curveDb, curveRightDb);
+    // the tight bell narrows as it boosts: half a octave off, a tight +15 sits lower than a plain +15
+    {
+        auto plain = make("TEN TOES", {{band(5, Gain), 15}, {band(5, Q), 1}});
+        auto tight = make("TEN TOES", {{band(5, Gain), 15}, {band(5, Q), 1}, {band(5, Type), TightBell}});
+        const double a = toneGain(*plain, 1414, 0.02f), b = toneGain(*tight, 1414, 0.02f), peak = toneGain(*tight, 1000, 0.02f);
+        std::printf("  TEN TOES +15 at 1 kHz, Q 1; at 1.4 kHz: bell %+.1f, tight bell %+.1f dB (peak %+.1f)\n", a, b, peak);
+        CHECK(b < a - 1.0 && std::fabs(peak - 15.0) < 0.2);
+    }
+    // the side controls: PHASE L flips the left only; INPUT R at the bottom is off; OUTPUT L / R
+    {
+        auto e = make("TEN TOES", {{PhaseL, 1}, {OutputR, -6}});
+        Stereo s = sine(1000, 0.5, 0.25f, kFs);
+        Stereo in = s;
+        run(*e, s);
+        double corrL = 0, corrR = 0;
+        for (std::size_t i = 12000; i < s.size(); ++i) { corrL += s.l[i] * in.l[i]; corrR += s.r[i] * in.r[i]; }
+        const double gR = toneGain(*e, 1000, 0.25f, true);
+        e->set(InputR, -60);
+        const double off = toneGain(*e, 1000, 0.25f, true);
+        std::printf("  TEN TOES PHASE L: left %s, right %s; OUTPUT R -6: %+.2f dB; INPUT R off: %.0f dB\n", corrL < 0 ? "flipped" : "not flipped",
+                    corrR > 0 ? "untouched" : "flipped", gR, off);
+        CHECK(corrL < 0 && corrR > 0 && std::fabs(gR + 6) < 0.05 && off < -100);
+    }
+    // TRIM: at most +12, and the loudest peak onto 0 dBFS
+    {
+        auto e = make("TEN TOES");
+        Stereo s = sine(1000, 0.5, 0.5f, kFs);
+        run(*e, s);
+        e->set(Trim, 1);
+        Stereo blk(512);
+        run(*e, blk);   // the push lands on the next block; a reset afterwards keeps it
+        const double g = toneGain(*e, 1000, 0.5f);
+        std::printf("  TEN TOES TRIM after a -6 dBFS tone: %+.2f dB\n", g);
+        CHECK(std::fabs(g - 6.02) < 0.05);
+    }
+}
+
+void testFourCorners() {
+    using namespace lineq;
+    using namespace fourcorners;
+    iirEqBasics("FOUR CORNERS", kSide, Link,
+                {{band(0, Type), LowShelfRes}, {band(0, Gain), 5}, {band(0, Q), 2}, {band(2, Gain), -6}, {band(3, Type), HighCut}, {band(3, Freq), 9000},
+                 {kSide + band(1, Gain), 7}, {kSide + band(3, Gain), 3}},
+                curveDb, curveRightDb);
+    // a plain shelf never bumps, a resonant one does
+    {
+        float v[kCount];
+        auto e = make("FOUR CORNERS");
+        for (int i = 0; i < kCount; ++i) v[i] = e->get(i);
+        v[band(0, Gain)] = 6;
+        v[band(0, Q)] = 4;
+        double plainMin = 99, resMin = 99;
+        for (double hz = 100; hz < 1000; hz *= 1.03) plainMin = std::min(plainMin, curveDb(v, kFs, hz));
+        v[band(0, Type)] = LowShelfRes;
+        for (double hz = 100; hz < 1000; hz *= 1.03) resMin = std::min(resMin, curveDb(v, kFs, hz));
+        std::printf("  FOUR CORNERS low shelf +6, Q 4, lowest point above the corner: plain %+.2f, resonant %+.2f dB\n", plainMin, resMin);
+        CHECK(plainMin > -0.05 && resMin < -2.0);
+    }
+    {
+        auto e = make("FOUR CORNERS", {{GainL, -4}, {GainR, 5}});
+        const double l = toneGain(*e, 1000, 0.1f), r = toneGain(*e, 1000, 0.1f, true);
+        std::printf("  FOUR CORNERS GAIN L -4 / R +5: %+.2f / %+.2f dB\n", l, r);
+        CHECK(std::fabs(l + 4) < 0.05 && std::fabs(r - 5) < 0.05);
+    }
+}
+
+void testSmoothTalker() {
+    using namespace lineq;
+    using namespace smoothtalker;
+    iirEqBasics("SMOOTH TALKER", kSide, Link,
+                {{band(0, On), 1}, {band(0, Freq), 50}, {band(1, Gain), 4}, {band(3, Gain), -5}, {band(5, On), 1}, {band(5, Type), 1}, {band(5, Gain), 3},
+                 {band(5, Freq), 9000}, {kSide + band(2, Gain), 6}, {kSide + band(4, Gain), -4}},
+                curveDb, curveRightDb);
+    // shelves and cuts keep Q between 0.71 and 1.41 whatever the knob says; OUTPUT at the bottom is off
+    {
+        float v[kCount];
+        auto e = make("SMOOTH TALKER");
+        for (int i = 0; i < kCount; ++i) v[i] = e->get(i);
+        v[band(0, On)] = 1;
+        v[band(0, Freq)] = 100;
+        v[band(0, Q)] = 6.5f;
+        const double atQ65 = curveDb(v, kFs, 100);
+        v[band(0, Q)] = 1.41f;
+        const double atQ141 = curveDb(v, kFs, 100);
+        e->set(Output, -60);
+        const double off = toneGain(*e, 1000, 0.25f);
+        std::printf("  SMOOTH TALKER low cut at its corner, Q knob 6.5: %+.2f dB (same as 1.41: %+.2f); OUTPUT bottom: %.0f dB\n", atQ65, atQ141, off);
+        CHECK(std::fabs(atQ65 - atQ141) < 1e-9 && off < -100);
+    }
 }
 
 void testTheBoss() {
@@ -425,6 +658,10 @@ void testToneShop() {
     std::printf("[the tone shop]\n");
     allRules();
     testStraightShooter();
+    testBottomLine();
+    testTenToes();
+    testFourCorners();
+    testSmoothTalker();
     testTheBoss();
     testKingpin();
     testGoldChain();

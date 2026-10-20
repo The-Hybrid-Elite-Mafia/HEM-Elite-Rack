@@ -50,7 +50,11 @@ C++23 audio framework, as a library.
 | **OMERTA** | Smart de-esser that hears esses at any pitch: threshold, range, detection width, wide-to-split, look-ahead, monitor |
 | **BREATHLESS** | Breath remover: breath and level thresholds, reduction, fades, room tone, listen voice / breaths |
 | **TOMMY GUN** | One-knob tempo pump: amount 0-10, rate, offset (tempo from the host or a BPM) |
-| **STRAIGHT SHOOTER** | Linear-phase EQ: low / high cut (12 / 24 / 48 dB), shelves, three bells, no phase shift at all |
+| **STRAIGHT SHOOTER** | Six-band linear-phase EQ: bells, precision (variable-slope) and resonant cuts and shelves, ±30 dB, trim, dither, no phase shift at all |
+| **BOTTOM LINE** | Three-band linear-phase EQ for the low end (11–600 Hz), the same nine shapes |
+| **TEN TOES** | Ten-band EQ with separate left / right sets: bells, shelves, cuts, tight bells; input, phase and output per side |
+| **FOUR CORNERS** | Four-filter EQ with separate left / right sets: bells, shelves, resonant shelves, cuts |
+| **SMOOTH TALKER** | Six-band EQ with separate left / right sets, resonant shelves, spectrum on / off, trim |
 | **CUTTHROAT** | Sweep filter: high-pass + low-pass, one-knob SWEEP, resonance, 12 / 24 dB, drive, mix |
 | **THE BOSS** | Channel strip: gate, compressor, four-band EQ, low cut, EQ before or after the dynamics, limiter |
 | **KINGPIN** | Drum channel: gate, thump, snap, punch, crush (a squashed copy underneath), drive |
@@ -90,7 +94,7 @@ C++23 audio framework, as a library.
 | **UNDERGROUND** | More low end: a new sub an octave down, or harmonics small speakers can hear |
 | **SPOTLIGHT** | Vocal chain: high-pass, body, one-knob compressor, one-knob de-esser, presence, air |
 
-Eighty-one plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
+Eighty-five plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 
 ## Install
 Download `HEM-Elite-Rack-Setup-x.y.z.exe` from **Releases** and run it. Needs Windows 10 / 11

@@ -222,9 +222,34 @@ TOMMY GUN
   it dips. TEMPO FROM HOST in a DAW; BPM knob in the rack.
 
 STRAIGHT SHOOTER
-  An EQ that never shifts the phase: good on the mix bus and for mastering. The top row picks the
-  frequencies, the row under it the gains and the bell widths (Q). LOW CUT / HIGH CUT SLOPE switch the
-  cuts on. It delays the sound by 96 ms; DAWs make up for that by themselves, in the rack you won't notice.
+  An EQ that never shifts the phase: good on the mix bus and for mastering. The curve is on top; under
+  it one column per band: TYPE, FREQ, GAIN, Q, and BAND (on / off). Band 1 is for the lows (cuts,
+  shelves, a bell). Bands 2-6 have nine shapes: BELL; LO CUT / LO SHELF / HI SHELF / HI CUT, where Q
+  sets how steep (never a bump); and the "RES" ones, where Q adds a bump at the corner.
+  At the bottom: GAIN (the output), TRIM (press it after the loudest part has played: the output is
+  set so that peak hits 0 dB), DITHER (only when you bounce to 24-bit). Left: FILTER (STANDARD, EXACT
+  for the tightest curve, SMOOTH for the least ripple) and SCALE (the screen shows ±12 or ±30 dB).
+  It delays the sound by 96 ms; DAWs make up for that by themselves, in the rack you won't notice.
+
+BOTTOM LINE
+  The same idea for the low end only: three bands from 11 to 600 Hz. It delays the sound by 181 ms
+  (twice as long a filter, so the curve holds down low).
+
+TEN TOES
+  Ten bands, and the left and right side can each have their own. LEFT / RIGHT (on the left) pick
+  which side the knobs show; with LINK on the right side simply follows the left. TIGHT BELL gets
+  narrower the more you boost or cut. INPUT L / R (all the way left = off), PHASE L / R flip a side,
+  OUTPUT L / R, TRIM as on STRAIGHT SHOOTER. The gold line on the screen is the right side, when it
+  differs from the left.
+
+FOUR CORNERS
+  Four filters, left and right sets like TEN TOES. Filters 1 and 4 can be shelves, resonant shelves
+  (Q adds a bump) or cuts; 2 and 3 are bells or shelves. GAIN L / GAIN R at the bottom.
+
+SMOOTH TALKER
+  Six bands, left and right sets. Band 1 is a low cut, a resonant low shelf or a bell; 2-3 low shelf or
+  bell; 4-5 high shelf or bell; 6 a high cut, a resonant high shelf or a bell. SPECTRUM switches the
+  music behind the curve on or off. OUTPUT (all the way left = off) and TRIM.
 
 CUTTHROAT
   Turn SWEEP left and the highs close down, right and the lows thin out (filter rides, builds,

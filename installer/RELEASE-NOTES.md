@@ -1,3 +1,17 @@
+# HEM-Elite-Rack 0.25.0
+
+**The EQs, wave 2 part 1** — one plug-in per original, every control:
+- **STRAIGHT SHOOTER** — rebuilt as a six-band linear-phase EQ: per band ON, TYPE, FREQ, GAIN (±30), Q; bells,
+  precision (variable-slope) cuts and shelves, resonant cuts and shelves; GAIN, TRIM, FILTER, DITHER, SCALE
+- **BOTTOM LINE** (new) — the three-band low-end linear-phase EQ (11–600 Hz), same shapes and globals
+- **TEN TOES** (new) — ten-band EQ with separate left and right sets, LINK, input / phase / output per side, TRIM
+- **FOUR CORNERS** (new) — four-filter EQ with separate left and right sets, resonant shelves, GAIN L / R
+- **SMOOTH TALKER** (new) — six-band EQ with separate left and right sets, SPECTRUM switch, OUTPUT, TRIM
+
+STRAIGHT SHOOTER's old settings don't carry over (it never shipped in a version you installed).
+EQ plates now show the curve on top, the bands under it and the globals at the bottom; the
+left / right EQs have LEFT / RIGHT tabs, and the screen draws the right side in gold when it differs.
+
 # HEM-Elite-Rack 0.24.0
 
 **Transients, riders and de-essers, rebuilt with every control** — one plug-in per original:
