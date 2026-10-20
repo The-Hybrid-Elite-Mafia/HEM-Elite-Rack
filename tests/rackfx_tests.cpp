@@ -815,8 +815,32 @@ void testWidth() {
         CHECK(e->meter(0) < -0.99f);
         CHECK(std::fabs(l + 6.02) < 0.1 && std::fabs(r) < 0.05);
     }
+    {   // the S1 additions: polarity, swap, M / S in, bass trim, shuffle frequency, the L / R and M / S meters
+        auto e = fresh("WIDE LOAD", {{PolarityL, 1}, {Swap, 1}});
+        Stereo s = sine(500, 1.0, 0.2f);
+        add(s, sine(2000, 1.0, 0.1f, kFs, true));   // 500 Hz in the middle, 2 kHz on the sides
+        Stereo in = s;
+        run(*e, s);
+        // left out = the right in; right out = the left in, flipped
+        double dl = 0, dr = 0;
+        for (std::size_t i = 0; i < s.size(); ++i) {
+            dl = std::max(dl, static_cast<double>(std::fabs(s.l[i] - in.r[i])));
+            dr = std::max(dr, static_cast<double>(std::fabs(s.r[i] + in.l[i])));
+        }
+        auto ms = fresh("WIDE LOAD", {{InputMode, 1}, {MeterMode, 1}});
+        Stereo m(48000);
+        for (std::size_t i = 0; i < m.size(); ++i) { m.l[i] = 0.3f * static_cast<float>(std::sin(2 * std::numbers::pi * 500 * i / kFs)); m.r[i] = 0.0f; }
+        run(*ms, m);   // a middle-only M / S input comes out the same on both sides; the meters read M and S
+        double lr = 0;
+        for (std::size_t i = 0; i < m.size(); ++i) lr = std::max(lr, static_cast<double>(std::fabs(m.l[i] - m.r[i])));
+        auto bt = fresh("WIDE LOAD", {{BassTrim, -6}, {ShuffleFreq, 400}});
+        const double lo = [&] { Stereo t = sine(60, 1.5, 0.2f); run(*bt, t); return db(toneAmp(t.l, 60, 36000, 24000) / 0.2); }();
+        std::printf("  polarity L + swap: worst %.1e / %.1e; M / S in, middle only: |L - R| %.1e, meters M %.1f / S %.1f dBFS; BASS TRIM -6 at 60 Hz: %+.1f dB\n",
+                    dl, dr, lr, ms->meter(2), ms->meter(3), lo);
+        CHECK(dl < 1e-6 && dr < 1e-6 && lr < 1e-6 && ms->meter(2) > -11.0f && ms->meter(3) < -90.0f && std::fabs(lo + 6.0) < 0.3);
+    }
     Stereo in = noise(1.0, 0.4f);
-    const double d = blockSizeDifference(*info, [](hc::fx::Effect& x) { x.set(Width, 150); x.set(MonoBass, 3); }, in);
+    const double d = blockSizeDifference(*info, [](hc::fx::Effect& x) { x.set(Width, 150); x.set(MonoBass, 3); x.set(BassTrim, 3); x.set(Shuffle, 50); }, in);
     std::printf("  block size 1 vs 512: max difference %.2e\n", d);
     CHECK(d < 1e-5);
 }

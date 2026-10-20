@@ -69,18 +69,48 @@
 //                    -24..0 dB: a soft stereo slap, left 120 ms, right 156 ms), DOUBLER (on, and its LEVEL:
 //                    two slightly late, drifting copies, one each side), OUTPUT ±18, ANALOG (a whisper of
 //                    hiss under the music). Zero latency.
-//  HIGH ROLLER       five-band enhancer: SUB / LOW / MID / HIGH / AIR, each with LIFT (a dense,
-//                    squeezed copy of that band added in: detail comes up) and WIDTH (0 = mono,
-//                    100 = as it was, 200 = twice the sides); MIX, OUTPUT. Splits at 90, 400, 2000,
-//                    7000 Hz. Zero latency.
-//  THE MIDDLEMAN     centre / sides: CENTER and SIDES level, LOW BALANCE and HIGH BALANCE (under
-//                    200 Hz / over 4 kHz, plus = more in the middle, minus = more on the sides), PUNCH
-//                    (hits go to the middle, or minus: to the sides), OUTPUT. Mono stays mono when
-//                    the sides are not touched. Meters: 0 centre level, 1 sides level (dB). Zero latency.
-//  DOUBLE CROSS      mono to stereo: the sound is split into bands that lean left and right in turn,
-//                    so the left and right always add back up to the original (mono-safe). SPREAD,
-//                    STYLE (TIGHT 4 / MEDIUM 6 / WIDE 8 bands), LOW STAYS MONO (OFF / 100 / 200 / 300 Hz),
-//                    CENTER, OUTPUT. Zero latency.
+//  HIGH ROLLER       five-band parallel enhancer: each band's processed copy (squeezed hard and rounded,
+//                    so its quiet detail comes up) is mixed with the untouched sound. Per band: GAIN 0–48 dB
+//                    (of the processed copy only), WIDTH 0–3 (0 mono, 1 as it was, 3 three times the sides;
+//                    on both parts), SOLO (hear only the soloed bands, both parts), BYPASS (that band's
+//                    processed copy off). The four crossovers (20 Hz–18 kHz, each kept between its
+//                    neighbours), INPUT ±18, OUTPUT ±18, DIRECT (the untouched sound, -44..0 dB or off),
+//                    PUNCH 0–5 (how much of the hits gets past the squeeze: up = crisper, down = smoother).
+//                    Zero latency.
+//  THE MIDDLEMAN     centre and sides: the CENTER and SIDES faders (+6 down to off), MASTER (+6..-24). LOW,
+//                    HIGH and PUNCH (0–100) say which fader the centre content of the lows (under 200 Hz),
+//                    the highs (over 4 kHz) and the hits (while they rise) follows: 0 the CENTER fader, 100
+//                    the SIDES fader. Meters: 0 how much of what comes out is centre (%), 1 / 2 the output
+//                    peaks L / R. Zero latency.
+//  LOW RIDER         a new low octave: RANGE (20–120 Hz: the low-pass that picks what is used), LOW AIR (the
+//                    new signal an octave down, off..+30 dB), LO (the low-passed original, off..+30 dB; both
+//                    saturate softly above 0 dB and never pass full scale), DIRECT (the untouched sound,
+//                    off..0 dB), OUTPUT (-60..0), TRIM ±12, ALIGN (delays the untouched sound to line up with
+//                    the new low end at its lowest notes). Latency 70 ms, always.
+//  UNDERTOW          sub generator: RANGE MIN (20–120 Hz, 48 dB / oct) and RANGE MAX (40–240 Hz, 24 dB / oct)
+//                    pick the band it follows; SUB -1 (an octave down) and SUB -2 (two), each ON and a LEVEL
+//                    (off..+12 dB); DRIVE (saturates the subs), DYNAMICS (0: the subs stay steady, 100: they
+//                    follow every move of the bass), MONO SUB (one sub from both sides, or one each), MIX
+//                    (0 the original only, 50 both in full, 100 the subs only), OUTPUT (-18..0). Zero latency.
+//  DEEP POCKETS      bass you hear on small speakers: under FREQUENCY (32–256 Hz) the bass is replaced, as much
+//                    as you like, by its harmonics (which small speakers can play). INPUT (off..0), ORIGINAL
+//                    BASS and HARMONICS (off..+12 dB), HIGH-PASS on the harmonics (6 dB @ 16 Hz, 12 or 24 dB
+//                    at FREQUENCY), DECAY (-24..-9 dB: how fast each next harmonic falls; nearer 0 = richer),
+//                    RATIO (1–4: quiet bass gets more harmonics), RESPONSE (how fast that follows), MONITOR
+//                    (all / the harmonics / the original bass), the peak (held until RESET). Zero latency.
+//  LOW PROFILE       the same idea, simpler: FREQUENCY, ORIGINAL BASS (in / out), INTENSITY (-24..+24 dB of
+//                    harmonics), GAIN (off..0). Zero latency.
+//  DOUBLE CROSS      mono to stereo that folds back to mono exactly: the middle is sent left and right by
+//                    an amount that sweeps across the spectrum (L + R is always the original middle). KIND:
+//                    SPREAD (2–22 sweeps), SPREAD 10 (2–10) or SPLIT (2–10, LF SPREAD always 0, and SHAPE:
+//                    0 triangle-like sweeps, 0.15 smooth, 1 square, past 1 beyond full). SPREAD 0–1.2 (1
+//                    fills the space between the speakers), FREQ (32 Hz–16 kHz: under it LF SPREAD takes over;
+//                    LF SPREAD 0 keeps the lows in the middle, 1 like the rest, more = wider), SWEEPS, FCENTER
+//                    and FDENSITY (plus: the sweeps crowd around FCENTER; minus: they thin out there and crowd
+//                    at the ends), TWEAK ±1 (slides every frequency along the sweep, to balance the picture).
+//                    The input first: INPUT 0..-24 dB, WIDTH 0 (mono)..1 (as it was), ROTATION ±45°, POLARITY
+//                    L / R, SWAP. Meters: the highest peak left and right (or middle and sides, METER), held
+//                    until RESET. Done on 2048-point frames; latency 2047 samples (43 ms), always.
 //  CUTTHROAT         filter: SWEEP is the one-knob move (left: the highs close down, right: the lows
 //                    thin out), LOW CUT and HIGH CUT set the resting edges, RESONANCE, SLOPE 12 / 24 dB,
 //                    DRIVE, MIX, OUTPUT. Zero latency.
@@ -190,20 +220,39 @@ enum P : int { Input, Piano, DelayOn, DelayLevel, DoublerOn, DoublerLevel, Outpu
 } // namespace ivories
 
 namespace highroller {
-inline constexpr int kBands = 5;
-enum P : int { Lift1, Lift2, Lift3, Lift4, Lift5, Width1, Width2, Width3, Width4, Width5, Mix, Output, kCount };
-inline constexpr float kSplitHz[kBands - 1] = {90.0f, 400.0f, 2000.0f, 7000.0f};
+inline constexpr int kBands = 5, kStride = 4;
+enum BandP : int { Gain, Width, Solo, Bypass };   // band b's control k: b * kStride + k
+enum P : int { Cross1 = kBands * kStride, Cross2, Cross3, Cross4, Input, Output, Direct, Punch, kCount };
+constexpr int band(int b, int k) noexcept { return b * kStride + k; }
 } // namespace highroller
 
 namespace middleman {
-enum P : int { Center, Sides, LowBalance, HighBalance, Punch, Output, kCount };
+enum P : int { Low, High, Punch, Master, Center, Sides, kCount };
 inline constexpr float kLowHz = 200.0f, kHighHz = 4000.0f;
 } // namespace middleman
 
+namespace lowrider {
+enum P : int { Range, LowAir, Lo, Direct, Output, Trim, Align, kCount };
+inline constexpr double kLatencyS = 0.07;
+} // namespace lowrider
+namespace undertow {
+enum P : int { RangeMin, RangeMax, Sub1On, Sub1, Sub2On, Sub2, Drive, Dynamics, MonoSub, Mix, Output, kCount };
+} // namespace undertow
+namespace deeppockets {
+enum Monitor : int { All, HarmonicsOnly, OriginalOnly };
+enum P : int { Frequency, Input, Original, Harmonics, HighPass, Decay, Ratio, Response, Listen, Reset, kCount };
+} // namespace deeppockets
+namespace lowprofile {
+enum P : int { Frequency, OriginalIn, Intensity, Gain, kCount };
+} // namespace lowprofile
+
 namespace doublecross {
-enum P : int { Spread, Style, LowMono, Center, Output, kCount };
-inline constexpr int kBandsFor[] = {4, 6, 8};
-inline constexpr float kMonoHz[] = {0.0f, 100.0f, 200.0f, 300.0f};
+enum Mode : int { SpreadMode, Spread10Mode, SplitMode };
+enum P : int { Kind, Input, Width, Rotation, PolarityL, PolarityR, Swap, Spread, Freq, LfSpread, Sweeps, FCenter, FDensity, Tweak, Shape,
+               MeterMode, Reset, kCount };
+inline constexpr std::uint32_t kFrame = 2048, kHop = 512, kLatency = kFrame - 1;
+// where across the spectrum the sound leans (-1 left .. +1 right; past ±1 = wider than the speakers) for these plain values
+[[nodiscard]] double panAt(const float* plain, double hz) noexcept;
 } // namespace doublecross
 
 namespace cutthroat {
@@ -220,6 +269,10 @@ extern const CurveInfo kCurve;
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeFourCorners();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeSmoothTalker();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeInsideMan();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeLowRider();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeUndertow();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeDeepPockets();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeLowProfile();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeTheBoss();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeKingpin();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeGoldChain();

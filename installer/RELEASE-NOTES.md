@@ -1,3 +1,23 @@
+# HEM-Elite-Rack 0.27.0
+
+**Bass and stereo, wave 2 part 3** — one plug-in per original, every control:
+- **HIGH ROLLER** — rebuilt as a five-band parallel enhancer: per band GAIN, WIDTH, SOLO, BYPASS; four movable
+  crossovers; INPUT, OUTPUT, DIRECT, PUNCH
+- **THE MIDDLEMAN** — CENTER and SIDES faders, LOW / HIGH / PUNCH (0 = follow the center, 100 = the sides), MASTER,
+  center meter and output peaks
+- **DOUBLE CROSS** — rebuilt: frequency-swept spread (SPREAD, SPREAD 10, SPLIT), FREQ, LF SPREAD, SWEEPS, F CENTER,
+  F DENSITY, TWEAK, SHAPE; INPUT, WIDTH, ROTATION, POLARITY, SWAP; held peaks with RESET. Still folds back to mono exactly
+- **WIDE LOAD** — added SHUFFLE FREQ, BASS TRIM, INPUT M / S, POLARITY L / R, SWAP and an L / R or M / S meter
+  (your saved settings keep working)
+- **LOW RIDER** (new) — a new low octave: RANGE, LOW AIR, LO, DIRECT, OUTPUT, TRIM, ALIGN
+- **UNDERTOW** (new) — subs one and two octaves down: range, levels, drive, dynamics, mono sub, mix, output
+- **DEEP POCKETS** (new) — bass harmonics for small speakers: frequency, input, original bass, harmonics, high-pass,
+  decay, ratio, response, monitor
+- **LOW PROFILE** (new) — the one-move bass harmonics: frequency, original bass in / out, intensity, gain
+
+UNDERGROUND stays as it was (our own design).
+INSIDE MAN's captions are shorter so nothing touches.
+
 # HEM-Elite-Rack 0.26.0
 
 **Channel strips, drums and tone, wave 2 part 2** — one plug-in per original, every control:

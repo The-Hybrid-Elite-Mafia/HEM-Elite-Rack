@@ -53,6 +53,34 @@ constexpr PlateToggle sxToggles[] = {{smoothtalker::Trim, "TRIM", true}};
 constexpr PlateToggle sxLeft[] = {{smoothtalker::Link, "LINK"}, {smoothtalker::Spectrum, "SPECTRUM"}};
 } // namespace ie
 
+// ---- LOW RIDER / UNDERTOW / DEEP POCKETS / LOW PROFILE
+namespace lo {
+namespace r = lowrider;
+constexpr PlateReadout rReadouts[] = {{0, "OUTPUT", "dBFS", "+"}};
+constexpr PlateToggle rToggles[] = {{r::Align, "ALIGN"}};
+constexpr PlateKnob rRow1[] = {{r::Range, "RANGE", "20", "120", K::Big}, {r::LowAir, "LOW AIR", "OFF", "+30"}, {r::Lo, "LO", "OFF", "+30"},
+                               {r::Direct, "DIRECT", "OFF", "0"}, {r::Output, "OUTPUT", "-60", "0"}, {r::Trim, "TRIM", "-12", "+12", K::Small}};
+namespace u = undertow;
+constexpr PlateReadout uReadouts[] = {{0, "SUB", "dBFS", "+"}, {1, "OUTPUT", "dBFS", "+"}};
+constexpr PlateChoice uChoices[] = {{u::MonoSub, "SUB IS"}};
+constexpr PlateToggle uToggles[] = {{u::Sub1On, "SUB -1"}, {u::Sub2On, "SUB -2"}};
+constexpr PlateKnob uRow1[] = {{u::RangeMin, "RANGE MIN", "20", "120"}, {u::RangeMax, "RANGE MAX", "40", "240"}, {u::Sub1, "SUB -1", "OFF", "+12"},
+                               {u::Sub2, "SUB -2", "OFF", "+12"}};
+constexpr PlateKnob uRow2[] = {{u::Drive, "DRIVE", "0", "100"}, {u::Dynamics, "DYNAMICS", "STEADY", "FOLLOW"}, {u::Mix, "MIX", "DRY", "SUBS"},
+                               {u::Output, "OUTPUT", "-18", "0"}};
+namespace d = deeppockets;
+constexpr PlateReadout dReadouts[] = {{0, "PEAK", "dBFS", "+"}};
+constexpr PlateChoice dChoices[] = {{d::Listen, "MONITOR"}, {d::HighPass, "HIGH-PASS"}};
+constexpr PlateToggle dToggles[] = {{d::Reset, "RESET PEAK", true}};
+constexpr PlateKnob dRow1[] = {{d::Frequency, "FREQUENCY", "32", "256", K::Big}, {d::Original, "ORIGINAL BASS", "OFF", "+12"},
+                               {d::Harmonics, "HARMONICS", "OFF", "+12"}, {d::Input, "INPUT", "OFF", "0"}};
+constexpr PlateKnob dRow2[] = {{d::Decay, "DECAY", "-24", "-9"}, {d::Ratio, "RATIO", "1", "4"}, {d::Response, "RESPONSE", "FAST", "SLOW"}};
+namespace l = lowprofile;
+constexpr PlateReadout lReadouts[] = {{0, "OUTPUT", "dBFS", "+"}};
+constexpr PlateToggle lToggles[] = {{l::OriginalIn, "ORIGINAL BASS"}};
+constexpr PlateKnob lRow1[] = {{l::Frequency, "FREQUENCY", "32", "256"}, {l::Intensity, "INTENSITY", "-24", "+24", K::Big}, {l::Gain, "GAIN", "OFF", "0"}};
+} // namespace lo
+
 // ---- THE BOSS: the needle, order / low cut / limit beside it, dynamics over EQ
 namespace bo {
 using namespace boss;
@@ -95,23 +123,32 @@ constexpr PlateKnob row1[] = {{Input, "INPUT", "-18", "+18"}, {Piano, "PIANO", "
 // ---- HIGH ROLLER: lift across the top, width under it, band by band
 namespace hr {
 using namespace highroller;
-constexpr PlateKnob row1[] = {{Lift1, "SUB LIFT"}, {Lift2, "LOW LIFT"}, {Lift3, "MID LIFT"}, {Lift4, "HIGH LIFT"}, {Lift5, "AIR LIFT"}, {Output, "OUTPUT", "", "", K::Small}};
-constexpr PlateKnob row2[] = {{Width1, "SUB WIDTH"}, {Width2, "LOW WIDTH"}, {Width3, "MID WIDTH"}, {Width4, "HIGH WIDTH"}, {Width5, "AIR WIDTH"}, {Mix, "MIX", "", "", K::Small}};
+constexpr PlateKnob bandKnobs[] = {{Gain, "GAIN"}, {Width, "WIDTH"}};
+constexpr PlateToggle bandToggles[] = {{Solo, "SOLO"}, {Bypass, "BYPASS"}};
+constexpr PlateKnob borders[] = {{Cross1, "XOVER"}, {Cross2, "XOVER"}, {Cross3, "XOVER"}, {Cross4, "XOVER"}};
+constexpr PlateBands bands{.count = kBands, .first = 0, .stride = kStride, .knobs = bandKnobs, .toggles = bandToggles, .borders = borders, .meter = 0};
+constexpr PlateKnob row1[] = {{Input, "INPUT"}, {Direct, "DIRECT", "OFF", "0"}, {Punch, "PUNCH", "0", "5"}, {Output, "OUTPUT"}};
 } // namespace hr
 
 // ---- THE MIDDLEMAN: centre and sides read out, one row of moves
 namespace mm {
 using namespace middleman;
-constexpr PlateReadout readouts[] = {{0, "CENTER", "dB"}, {1, "SIDES", "dB"}};
-constexpr PlateKnob row1[] = {{Center, "CENTER", "-12", "+12"}, {Sides, "SIDES", "-12", "+12"}, {LowBalance, "LOW BALANCE", "SIDES", "MID"},
-                              {HighBalance, "HIGH BALANCE", "SIDES", "MID"}, {Punch, "PUNCH", "SIDES", "MID"}, {Output, "OUTPUT", "", "", K::Small}};
+constexpr PlateReadout readouts[] = {{0, "CENTER", "%"}, {1, "OUT L", "dBFS"}, {2, "OUT R", "dBFS"}};
+constexpr PlateKnob row1[] = {{Low, "LOW", "CENTER", "SIDES"}, {High, "HIGH", "CENTER", "SIDES"}, {Punch, "PUNCH", "CENTER", "SIDES"},
+                              {Center, "CENTER", "OFF", "+6", K::Big}, {Sides, "SIDES", "OFF", "+6", K::Big}, {Master, "MASTER", "-24", "+6"}};
 } // namespace mm
 
 // ---- DOUBLE CROSS
 namespace dc {
 using namespace doublecross;
-constexpr PlateChoice choices[] = {{Style, "STYLE"}, {LowMono, "LOW STAYS MONO"}};
-constexpr PlateKnob row1[] = {{Spread, "SPREAD", "0", "100", K::Big}, {Center, "CENTER", "-12", "+6"}, {Output, "OUTPUT"}};
+constexpr PlateReadout readouts[] = {{0, "PEAK L / M", "dBFS", "+"}, {1, "PEAK R / S", "dBFS", "+"}};
+constexpr PlateChoice choices[] = {{Kind, "KIND"}};
+constexpr PlateToggle toggles[] = {{PolarityL, "POLARITY L"}, {PolarityR, "POLARITY R"}, {Swap, "SWAP"}, {Reset, "RESET", true}};
+constexpr PlateChoice left[] = {{MeterMode, "METER"}};
+constexpr PlateKnob row1[] = {{Spread, "SPREAD", "0", "1.2"}, {Freq, "FREQ", "32", "16K"}, {LfSpread, "LF SPREAD", "0", "2"},
+                              {Sweeps, "SWEEPS", "2", "22"}, {Shape, "SHAPE", "TRI", "SQ+"}};
+constexpr PlateKnob row2[] = {{FCenter, "F CENTER"}, {FDensity, "F DENSITY", "-1", "+1"}, {Tweak, "TWEAK", "-1", "+1"}, {Input, "INPUT", "-24", "0"},
+                              {Width, "WIDTH", "MONO", "1"}, {Rotation, "ROTATION", "L", "R"}};
 } // namespace dc
 
 // ---- CUTTHROAT: the curve, the slope beside it, the sweep first
@@ -158,6 +195,18 @@ const PlateSpec kSmoothTalker{.note1 = "SIX BANDS", .note2 = "SMOOTH AND MUSICAL
                                 e.set(band(0, On), 1); e.set(band(0, Freq), 35); e.set(band(1, Gain), 2.5f); e.set(band(2, Gain), -3);
                                 e.set(band(4, Gain), 3);
                             }};
+const PlateSpec kLowRider{.note1 = "A NEW LOW OCTAVE", .note2 = "UNDER THE BASS", .screen = Screen::Readouts, .readouts = lo::rReadouts,
+                          .toggles = lo::rToggles, .row1 = lo::rRow1,
+                          .demo = [](hc::fx::Effect& e) { e.set(lowrider::LowAir, 6); }};
+const PlateSpec kUndertow{.note1 = "SUBS FROM THE BASS", .note2 = "ONE OR TWO OCTAVES DOWN", .screen = Screen::Readouts, .readouts = lo::uReadouts,
+                          .choices = lo::uChoices, .toggles = lo::uToggles, .row1 = lo::uRow1, .row2 = lo::uRow2,
+                          .demo = [](hc::fx::Effect& e) { e.set(undertow::Sub2On, 1); e.set(undertow::Drive, 20); }};
+const PlateSpec kDeepPockets{.note1 = "BASS ON SMALL SPEAKERS", .note2 = "HEARD, NOT JUST FELT", .screen = Screen::Readouts, .readouts = lo::dReadouts,
+                             .choices = lo::dChoices, .toggles = lo::dToggles, .row1 = lo::dRow1, .row2 = lo::dRow2,
+                             .demo = [](hc::fx::Effect& e) { e.set(deeppockets::Original, -6); e.set(deeppockets::Ratio, 2); }};
+const PlateSpec kLowProfile{.note1 = "BASS THAT CARRIES", .note2 = "ONE MOVE", .screen = Screen::Readouts, .readouts = lo::lReadouts,
+                            .toggles = lo::lToggles, .row1 = lo::lRow1,
+                            .demo = [](hc::fx::Effect& e) { e.set(lowprofile::Intensity, 6); }};
 const PlateSpec kTheBoss{.note1 = "THE BRITISH DESK", .note2 = "ONE CHANNEL", .screen = Screen::Needle, .choices = bo::choices, .toggles = bo::toggles,
                          .row1 = bo::row1, .row2 = bo::row2, .left = bo::left, .leftToggles = bo::leftToggles, .meterSelect = boss::Meter, .vuMeter = 0,
                          .demo = [](hc::fx::Effect& e) {
@@ -174,12 +223,16 @@ const PlateSpec kGoldChain{.note1 = "ONE KNOB", .note2 = "RICHER TONE", .screen 
 const PlateSpec kIvories{.note1 = "THE KEYS", .note2 = "FRONT AND CENTER", .screen = Screen::None, .toggles = iv::toggles, .row1 = iv::row1,
                          .reportsReduction = true,
                          .demo = [](hc::fx::Effect& e) { using namespace ivories; e.set(Piano, 25); e.set(DelayOn, 1); e.set(DoublerOn, 1); }};
-const PlateSpec kHighRoller{.note1 = "EVERY BAND", .note2 = "BIGGER AND WIDER", .screen = Screen::None, .row1 = hr::row1, .row2 = hr::row2,
-                            .demo = [](hc::fx::Effect& e) { using namespace highroller; e.set(Lift3, 40); e.set(Width4, 140); e.set(Width5, 160); }};
+const PlateSpec kHighRoller{.note1 = "EVERY BAND", .note2 = "RICHER AND WIDER", .screen = Screen::None, .row1 = hr::row1, .bands = &hr::bands,
+                            .demo = [](hc::fx::Effect& e) {
+                                using namespace highroller;
+                                e.set(band(2, Gain), 20); e.set(band(3, Width), 1.6f); e.set(band(4, Gain), 14);
+                            }};
 const PlateSpec kMiddleman{.note1 = "THE MIDDLE", .note2 = "AND THE SIDES", .screen = Screen::Readouts, .readouts = mm::readouts, .row1 = mm::row1,
-                           .demo = [](hc::fx::Effect& e) { using namespace middleman; e.set(Sides, 3); e.set(LowBalance, 60); e.set(Punch, 40); }};
-const PlateSpec kDoubleCross{.note1 = "ONE IN", .note2 = "TWO OUT", .screen = Screen::None, .choices = dc::choices, .row1 = dc::row1,
-                             .demo = [](hc::fx::Effect& e) { e.set(doublecross::Spread, 70); }};
+                           .demo = [](hc::fx::Effect& e) { using namespace middleman; e.set(Center, -8); e.set(Low, 70); e.set(Punch, 40); }};
+const PlateSpec kDoubleCross{.note1 = "ONE IN", .note2 = "TWO OUT", .screen = Screen::Readouts, .readouts = dc::readouts, .choices = dc::choices,
+                             .toggles = dc::toggles, .row1 = dc::row1, .row2 = dc::row2, .left = dc::left,
+                             .demo = [](hc::fx::Effect& e) { e.set(doublecross::Sweeps, 10); e.set(doublecross::FDensity, 0.3f); }};
 const PlateSpec kCutthroat{.note1 = "CUT THE LOWS", .note2 = "CUT THE HIGHS", .screen = Screen::Curve, .choices = ct::choices, .row1 = ct::row1,
                            .demo = [](hc::fx::Effect& e) { using namespace cutthroat; e.set(Sweep, -45); e.set(Resonance, 40); e.set(Slope, 1); }};
 

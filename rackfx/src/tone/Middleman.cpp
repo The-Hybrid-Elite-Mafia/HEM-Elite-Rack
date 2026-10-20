@@ -1,7 +1,8 @@
-// THE MIDDLEMAN — centre / sides balance, per range, with punch steering (see ToneShop.hpp).
+// THE MIDDLEMAN — centre and sides faders; lows, highs and hits steered between them (see ToneShop.hpp).
 #include "hem/rack/ToneShop.hpp"
 
 #include "ToneCommon.hpp"
+#include "../maxim/LimitKit.hpp"
 
 namespace hem::rack {
 namespace middleman {
@@ -9,15 +10,16 @@ namespace {
 using namespace tone;
 
 const ParamInfo kParams[kCount] = {
-    {"center", "Center", "dB", -12.0f, 12.0f, 0.0f},
-    {"sides", "Sides", "dB", -12.0f, 12.0f, 0.0f},
-    {"lowbalance", "Low Balance", "%", -100.0f, 100.0f, 0.0f},
-    {"highbalance", "High Balance", "%", -100.0f, 100.0f, 0.0f},
-    {"punch", "Punch", "%", -100.0f, 100.0f, 0.0f},
-    {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
+    {"low", "Low", "%", 0.0f, 100.0f, 0.0f},
+    {"high", "High", "%", 0.0f, 100.0f, 0.0f},
+    {"punch", "Punch", "%", 0.0f, 100.0f, 0.0f},
+    {"master", "Master", "dB", -24.0f, 6.0f, 0.0f},
+    {"center", "Center", "dB", -60.0f, 6.0f, 0.0f},
+    {"sides", "Sides", "dB", -60.0f, 6.0f, 0.0f},
 };
-const hc::fx::MeterInfo kMeters[] = {{"CENTER", "dB", -60.0f, 0.0f}, {"SIDES", "dB", -60.0f, 0.0f}};
+const hc::fx::MeterInfo kMeters[] = {{"CENTER", "%", 0.0f, 100.0f}, {"OUT L", "dBFS", -36.0f, 0.0f}, {"OUT R", "dBFS", -36.0f, 0.0f}};
 constexpr float kSplit[2] = {kLowHz, kHighHz};
+inline float fader(float db) noexcept { return db <= -59.9f ? 0.0f : hc::fx::dbToGain(db); }   // the bottom is off
 
 class Impl final : public hc::fx::Effect {
 public:
@@ -34,49 +36,59 @@ public:
         for (auto& x : xo_) x.clear();
         fast_ = slow_ = 0.0f;
         mLevel_ = sLevel_ = 0.0;
-        center_.prepare(fs_, 30, p(Center));
-        sides_.prepare(fs_, 30, p(Sides));
-        lowB_.prepare(fs_, 30, p(LowBalance) * 0.01f);
-        highB_.prepare(fs_, 30, p(HighBalance) * 0.01f);
-        out_.prepare(fs_, 30, hc::fx::dbToGain(p(Output)));
-        publishMeter(0, -100.0f);
+        center_.prepare(fs_, 30, fader(p(Center)));
+        sides_.prepare(fs_, 30, fader(p(Sides)));
+        low_.prepare(fs_, 30, p(Low) * 0.01f);
+        high_.prepare(fs_, 30, p(High) * 0.01f);
+        out_.prepare(fs_, 30, hc::fx::dbToGain(p(Master)));
+        pkL_.clear();
+        pkR_.clear();
+        publishMeter(0, 0.0f);
         publishMeter(1, -100.0f);
+        publishMeter(2, -100.0f);
     }
 
+    // Each range's centre content follows the CENTER fader at 0 and the SIDES fader at 100 (LOW under
+    // 200 Hz, HIGH over 4 kHz, PUNCH: the hits, while they rise); the sides always follow SIDES.
     void process(float* L, float* R, std::uint32_t n) noexcept override {
         const float fAtt = coefMs(fs_, 0.5), fRel = coefMs(fs_, 40.0), sAtt = coefMs(fs_, 20.0);
         const float punch = p(Punch) * 0.01f;
+        const float wC = fader(p(Center)), wS = fader(p(Sides)), wLo = p(Low) * 0.01f, wHi = p(High) * 0.01f, wOut = hc::fx::dbToGain(p(Master));
         double mSum = 0.0, sSum = 0.0;
+        float pl = 0.0f, pr = 0.0f;
         for (std::uint32_t i = 0; i < n; ++i) {
             const float m = 0.5f * (L[i] + R[i]), s = 0.5f * (L[i] - R[i]);
             float mb[3], sb[3];
             xo_[0].split(m, mb);
             xo_[1].split(s, sb);
-            // punch: while a hit rises, the middle (PUNCH +) or the sides (PUNCH -) come up and the other goes down
             const float x = std::fabs(m);
             fast_ = envStep(fast_, x, fAtt, fRel);
             slow_ = envStep(slow_, x, sAtt, fRel);
             const float hit = std::clamp((dbOf(fast_) - dbOf(slow_)) / 12.0f, 0.0f, 1.0f);
-            const float steer = 6.0f * punch * hit;
-            const float c = center_.next(p(Center)), sd = sides_.next(p(Sides));
-            const float lb = 6.0f * lowB_.next(p(LowBalance) * 0.01f), hb = 6.0f * highB_.next(p(HighBalance) * 0.01f);
-            const float bal[3] = {lb, 0.0f, hb};
+            const float c = center_.next(wC), sd = sides_.next(wS), lo = low_.next(wLo), hi = high_.next(wHi);
+            const float k[3] = {lo, 0.0f, hi};
             float mo = 0.0f, so = 0.0f;
             for (int b = 0; b < 3; ++b) {
-                mo += mb[b] * hc::fx::dbToGain(c + bal[b] + steer);
-                so += sb[b] * hc::fx::dbToGain(sd - bal[b] - steer);
+                float t = k[b];
+                t += (1.0f - t) * punch * hit;
+                mo += mb[b] * (c + t * (sd - c));
+                so += sb[b] * sd;
             }
             mSum += static_cast<double>(mo) * mo;
             sSum += static_cast<double>(so) * so;
-            const float o = out_.next(hc::fx::dbToGain(p(Output)));
+            const float o = out_.next(wOut);
             L[i] = (mo + so) * o;
             R[i] = (mo - so) * o;
+            pl = std::max(pl, std::fabs(L[i]));
+            pr = std::max(pr, std::fabs(R[i]));
         }
         const double k = 1.0 / std::max<std::uint32_t>(n, 1);
         mLevel_ += (mSum * k - mLevel_) * 0.3;
         sLevel_ += (sSum * k - sLevel_) * 0.3;
-        publishMeter(0, std::max(-100.0f, powDb(2.0 * mLevel_)));
-        publishMeter(1, std::max(-100.0f, powDb(2.0 * sLevel_)));
+        const double total = mLevel_ + sLevel_;
+        publishMeter(0, total > 1e-12 ? static_cast<float>(100.0 * mLevel_ / total) : 0.0f);
+        publishMeter(1, pkL_.push(dbOf(pl), n, fs_));
+        publishMeter(2, pkR_.push(dbOf(pr), n, fs_));
     }
 
 private:
@@ -84,7 +96,8 @@ private:
     Crossover<3> xo_[2];
     float fast_ = 0, slow_ = 0;
     double mLevel_ = 0, sLevel_ = 0;
-    hc::fx::Smoothed center_, sides_, lowB_, highB_, out_;
+    hc::fx::Smoothed center_, sides_, low_, high_, out_;
+    maxim::PeakHold pkL_, pkR_;
 };
 
 } // namespace

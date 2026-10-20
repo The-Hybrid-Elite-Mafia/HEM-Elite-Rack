@@ -23,7 +23,8 @@
 namespace hem::rack {
 
 namespace width {
-enum P : int { Width, MonoBass, Balance, Output, Rotation, Asymmetry, Shuffle, kCount };   // new ones at the end: saved sessions keep their numbers
+enum P : int { Width, MonoBass, Balance, Output, Rotation, Asymmetry, Shuffle,
+               ShuffleFreq, BassTrim, InputMode, PolarityL, PolarityR, Swap, MeterMode, kCount };   // new ones at the end: saved sessions keep their numbers
 inline constexpr float kMonoHz[] = {0.0f, 80.0f, 120.0f, 160.0f, 250.0f};   // 0 = off
 } // namespace width
 namespace exciter { enum P : int { Freq, Drive, Mix, Mode, kCount }; }

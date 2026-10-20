@@ -14,7 +14,7 @@ C++23 audio framework, as a library.
 | **ARCHIVE** | Two-track tape machine: input drive, 15 / 30 IPS, head bump, wow & flutter, hiss, auto trim, VU meters |
 | **VELVET** | Passive tube program EQ: low boost / atten (the low-end trick), high boost with bandwidth, high atten, tube drive |
 | **LOCKDOWN** | True-peak mastering limiter: input push, ceiling, look-ahead, auto release, stereo link, LUFS and true-peak readouts |
-| **WIDE LOAD** | Mono to 200 % width, MONO BASS (80–250 Hz), shuffle (wider lows), rotation, asymmetry, balance; correlation and width readouts |
+| **WIDE LOAD** | Mono to 200 % width, MONO BASS (80–250 Hz), shuffle and its frequency, bass trim, rotation, asymmetry, balance, polarity, swap, M / S in; correlation, width and L / R or M / S meters |
 | **SPARK** | Adds fresh harmonics above a frequency: TUBE (even) or TAPE (odd), drive, mix |
 | **THE ACCOUNTANT** | EBU R128 / BS.1770: momentary, short-term, integrated LUFS, loudness range, true peak, correlation, distance to a target |
 | **ENFORCER** | Clean modern compressor: ratio 1–20, knee, attack, release or AUTO, auto makeup, sidechain HPF, mix; tail STEADY / LINGER; character CLEAN / WARM |
@@ -61,9 +61,13 @@ C++23 audio framework, as a library.
 | **KINGPIN** | Drum channel: pick the drum (kick … room), then sensitivity, compress, gate, FX ambience, bass, treble |
 | **GOLD CHAIN** | One-knob tone: warmth, density and sheen together; input, link, output, analog |
 | **IVORIES** | Piano tone: one PIANO knob, slap delay and doubler (on + level), input, output, analog |
-| **HIGH ROLLER** | Five-band enhancer: lift and width for sub, low, mid, high and air |
-| **THE MIDDLEMAN** | Center / sides: levels, low and high balance, hits steered to the middle or the sides |
-| **DOUBLE CROSS** | Mono to stereo that folds back to mono perfectly; tight / medium / wide, low stays mono |
+| **HIGH ROLLER** | Five-band parallel enhancer: per band gain, width, solo, bypass; four crossovers, input, output, direct, punch |
+| **THE MIDDLEMAN** | Center / sides faders; low, high and punch follow the center or the sides; master; center meter |
+| **DOUBLE CROSS** | Mono to stereo by frequency sweeps that fold back to mono exactly: spread, sweeps, density, tweak, split shapes, input width / rotation |
+| **LOW RIDER** | A new low octave under the bass: range, low air, lo, direct, output, trim, align |
+| **UNDERTOW** | Subs one and two octaves down: range, levels, drive, dynamics, mono sub, mix |
+| **DEEP POCKETS** | Bass small speakers can play: harmonics in place of the lows, decay, ratio, response, high-pass, monitor |
+| **LOW PROFILE** | Bass harmonics in one move: frequency, original bass in / out, intensity, gain |
 | **THE FIXER** | Three dynamic cuts (mud, harsh, fizz) that only work when a range gets nasty; listen per band |
 | **SIX SHOOTER** | Rhythmic multi-tap delay: 1–6 shots on a note or in ms, decay, left / right spread, swing, feedback, tone |
 | **BACK ALLEY** | Lo-fi space: spring or plate style reverb and a worn tape echo, grit, wobble, narrow |
@@ -95,7 +99,7 @@ C++23 audio framework, as a library.
 | **UNDERGROUND** | More low end: a new sub an octave down, or harmonics small speakers can hear |
 | **SPOTLIGHT** | Vocal chain: high-pass, body, one-knob compressor, one-knob de-esser, presence, air |
 
-Eighty-six plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
+Ninety plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 
 ## Install
 Download `HEM-Elite-Rack-Setup-x.y.z.exe` from **Releases** and run it. Needs Windows 10 / 11

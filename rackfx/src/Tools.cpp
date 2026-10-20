@@ -27,6 +27,8 @@ inline float soft(float v) noexcept { return v / std::cbrt(1.0f + std::fabs(v) *
 namespace wid {
 using namespace width;
 const char* const kMonoN[] = {"OFF", "80 Hz", "120 Hz", "160 Hz", "250 Hz"};
+const char* const kIoN[] = {"L / R", "M / S"};
+const char* const kOnOffW[] = {"OFF", "ON"};
 const ParamInfo kParams[kCount] = {
     {"width", "Width", "%", 0.0f, 200.0f, 100.0f},
     {"monobass", "Mono Bass", "", 0, 4, 0, Taper::Choice, kMonoN},
@@ -35,8 +37,16 @@ const ParamInfo kParams[kCount] = {
     {"rotation", "Rotation", "deg", -45.0f, 45.0f, 0.0f},
     {"asymmetry", "Asymmetry", "%", -100.0f, 100.0f, 0.0f},
     {"shuffle", "Shuffle", "%", 0.0f, 100.0f, 0.0f},
+    {"shufflefreq", "Shuffle Freq", "Hz", 350.0f, 1400.0f, 600.0f, Taper::Log},
+    {"basstrim", "Bass Trim", "dB", -12.0f, 12.0f, 0.0f},
+    {"inputmode", "Input", "", 0, 1, 0, Taper::Choice, kIoN},
+    {"polarityl", "Polarity L", "", 0, 1, 0, Taper::Toggle, kOnOffW},
+    {"polarityr", "Polarity R", "", 0, 1, 0, Taper::Toggle, kOnOffW},
+    {"swap", "Swap", "", 0, 1, 0, Taper::Toggle, kOnOffW},
+    {"metermode", "Meter", "", 0, 1, 0, Taper::Choice, kIoN},
 };
-const hc::fx::MeterInfo kMeters[] = {{"CORRELATION", "corr", -1.0f, 1.0f, true}, {"WIDTH", "dB", -40.0f, 6.0f}};
+const hc::fx::MeterInfo kMeters[] = {{"CORRELATION", "corr", -1.0f, 1.0f, true}, {"WIDTH", "dB", -40.0f, 6.0f},
+                                     {"LEFT / MID", "dBFS", -60.0f, 3.0f}, {"RIGHT / SIDE", "dBFS", -60.0f, 3.0f}};
 class Impl final : public hc::fx::Effect {
 public:
     Impl() { setDefaults(); }
@@ -46,7 +56,7 @@ public:
     void reset() noexcept override {
         for (auto& b : hp_) b.clear();
         shuf_.clear();
-        shuffle_ = -1.0f;
+        shuffle_ = shufHz_ = -1.0f;
         rot_.prepare(fs_, 30, p(Rotation));
         asym_.prepare(fs_, 30, p(Asymmetry) * 0.01f);
         mono_ = -1;
@@ -55,8 +65,14 @@ public:
         bal_.prepare(fs_, 30, p(Balance) * 0.01f);
         out_.prepare(fs_, 30, hc::fx::dbToGain(p(Output)));
         lr_ = ll_ = rr_ = mm_ = ss_ = 0.0;
+        trim_.clear();
+        trimKey_ = {-1.0f, -100.0f};
+        pk_[0].clear();
+        pk_[1].clear();
         publishMeter(0, 1.0f);
         publishMeter(1, -40.0f);
+        publishMeter(2, -100.0f);
+        publishMeter(3, -100.0f);
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
         const int mono = std::clamp(static_cast<int>(p(MonoBass)), 0, 4);
@@ -66,17 +82,33 @@ public:
             hp_[1].c = c;
         }
         if (mono > 0) mono_ = mono;
-        if (p(Shuffle) != shuffle_) {   // SHUFFLE: the sides' lows and low mids up, as much as 6 dB
+        if (p(Shuffle) != shuffle_ || p(ShuffleFreq) != shufHz_) {   // SHUFFLE: the sides under SHUFFLE FREQ up, as much as 6 dB
             shuffle_ = p(Shuffle);
-            shuf_.c = C::make(T::LowShelf, fs_, 600.0, 0.7071, 6.0 * shuffle_ * 0.01);
+            shufHz_ = p(ShuffleFreq);
+            shuf_.c = C::make(T::LowShelf, fs_, shufHz_, 0.7071, 6.0 * shuffle_ * 0.01);
         }
+        if (p(BassTrim) != trimKey_[1] || p(ShuffleFreq) != trimKey_[0]) {   // BASS TRIM: the middle under SHUFFLE FREQ
+            trimKey_ = {p(ShuffleFreq), p(BassTrim)};
+            trim_.c = C::make(T::LowShelf, fs_, trimKey_[0], 0.7071, trimKey_[1]);
+        }
+        const bool msIn = p(InputMode) >= 0.5f, swap = p(Swap) >= 0.5f, msMeter = p(MeterMode) >= 0.5f;
+        const float pl = p(PolarityL) >= 0.5f ? -1.0f : 1.0f, pr = p(PolarityR) >= 0.5f ? -1.0f : 1.0f;
+        float peak[2] = {0.0f, 0.0f};
         const float step = static_cast<float>(1.0 / (fs_ * 0.02));
         const double mk = 1.0 - std::exp(-static_cast<double>(1) / (fs_ * 0.3));
         for (std::uint32_t i = 0; i < n; ++i) {
             const float w = w_.next(p(Width) * 0.01f), b = bal_.next(p(Balance) * 0.01f), o = out_.next(hc::fx::dbToGain(p(Output)));
             monoMix_ = mono > 0 ? std::min(1.0f, monoMix_ + step) : std::max(0.0f, monoMix_ - step);
-            const float m = 0.5f * (L[i] + R[i]);
-            float s = 0.5f * (L[i] - R[i]);
+            // the input: polarity per side, SWAP, and M / S input (left carries the middle, right the sides)
+            float il = L[i] * pl, ir = R[i] * pr;
+            if (swap) std::swap(il, ir);
+            if (msIn) {
+                const float mid = il, side = ir;
+                il = mid + side;
+                ir = mid - side;
+            }
+            const float m = trim_.tick(0.5f * (il + ir));
+            float s = 0.5f * (il - ir);
             const float shp = hp_[1].tick(hp_[0].tick(s));   // the sides without their low end
             s += monoMix_ * (shp - s);
             s = shuf_.tick(s) * w;
@@ -91,6 +123,8 @@ public:
             if (b > 0.0f) l *= 1.0f - b; else r *= 1.0f + b;   // balance: turn the other side down
             L[i] = l;
             R[i] = r;
+            peak[0] = std::max(peak[0], std::fabs(msMeter ? 0.5f * (l + r) : l));
+            peak[1] = std::max(peak[1], std::fabs(msMeter ? 0.5f * (l - r) : r));
             lr_ += (static_cast<double>(l) * r - lr_) * mk;
             ll_ += (static_cast<double>(l) * l - ll_) * mk;
             rr_ += (static_cast<double>(r) * r - rr_) * mk;
@@ -101,11 +135,25 @@ public:
         const double den = std::sqrt(ll_ * rr_);
         publishMeter(0, den > 1e-12 ? static_cast<float>(std::clamp(lr_ / den, -1.0, 1.0)) : 1.0f);
         publishMeter(1, static_cast<float>(10.0 * std::log10(std::max(ss_, 1e-12) / std::max(mm_, 1e-12))));
+        publishMeter(2, pk_[0].push(20.0f * std::log10(std::max(peak[0], 1e-9f)), n, fs_));
+        publishMeter(3, pk_[1].push(20.0f * std::log10(std::max(peak[1], 1e-9f)), n, fs_));
     }
 private:
     double fs_ = 48000;
-    hc::fx::Biquad hp_[2], shuf_;
-    float shuffle_ = -1.0f;
+    hc::fx::Biquad hp_[2], shuf_, trim_;
+    float shuffle_ = -1.0f, shufHz_ = -1.0f;
+    std::array<float, 2> trimKey_{-1.0f, -100.0f};
+    struct Hold {   // the highest peak, held 1.5 s, then falling 20 dB/s
+        float db = -100.0f;
+        double age = 0;
+        void clear() noexcept { db = -100.0f; age = 0; }
+        float push(float v, std::uint32_t n, double fs) noexcept {
+            age += n / fs;
+            if (v >= db) { db = v; age = 0; }
+            else if (age > 1.5) db = std::max(v, db - 20.0f * static_cast<float>(n / fs));
+            return std::max(db, -100.0f);
+        }
+    } pk_[2];
     hc::fx::Smoothed rot_, asym_;
     int mono_ = -1;
     float monoMix_ = 0;

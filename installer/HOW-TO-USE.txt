@@ -52,9 +52,11 @@ LOCKDOWN (put it last in the chain)
 WIDE LOAD
   WIDTH 100 % = as it was, 0 % = mono, up to 200 %. MONO BASS keeps the low end in the centre
   (punchier, safe on club systems and phones). CORRELATION: +1 = mono, 0 = wide,
-  below 0 = parts cancel in mono (be careful). SHUFFLE widens the lows and low mids (under 600 Hz)
-  for a bigger bottom; ROTATION turns the whole picture left or right; ASYMMETRY slides the middle
-  over without moving the edges (fixes a lopsided mix).
+  below 0 = parts cancel in mono (be careful). SHUFFLE widens the lows and low mids (under SHUFFLE
+  FREQ) for a bigger bottom, BASS TRIM sets the middle's low end under it; ROTATION turns the whole
+  picture left or right; ASYMMETRY slides the middle over without moving the edges (fixes a lopsided
+  mix). POLARITY L / R flip a side, SWAP swaps them, INPUT M / S for a track recorded mid / side;
+  METER L / R or M / S picks what the two level readouts show.
 
 SPARK
   FREQUENCY = above where new harmonics are added; nothing below it changes. TUBE is warmer,
@@ -285,16 +287,45 @@ IVORIES
   stereo slap, DOUBLER two drifting copies left and right; each has its own LEVEL.
 
 HIGH ROLLER
-  Five bands: SUB, LOW, MID, HIGH, AIR. LIFT brings up the detail in that band (quiet parts more
-  than loud ones). WIDTH spreads that band (100 % = as it was, 0 = mono). Try AIR WIDTH 150 %.
+  Five bands, each with its own GAIN: how much of a squeezed, rounded copy of that band is added
+  (the quiet detail comes up; 0 = almost nothing). WIDTH spreads that band (1 = as it was, 0 = mono,
+  3 = very wide). SOLO plays only the soloed bands, BYPASS takes that band's copy out. XOVER knobs
+  move the band edges. DIRECT is the untouched sound (all the way down = off). PUNCH up = crisper
+  hits, down = smoother.
 
 THE MIDDLEMAN
-  CENTER and SIDES turn the middle (vocal, kick, bass) and the sides up or down. LOW / HIGH BALANCE
-  do it only under 200 Hz / over 4 kHz (plus = toward the middle). PUNCH sends the hits to the middle.
+  CENTER and SIDES are two faders: the middle (vocal, kick, bass) and the sides. LOW, HIGH and PUNCH
+  say which fader the lows (under 200 Hz), the highs (over 4 kHz) and the hits follow: 0 = CENTER,
+  100 = SIDES. So: pull CENTER down to take a vocal out, then turn LOW up to keep the bass. MASTER is
+  the overall level. The CENTER readout says how much of what comes out is in the middle.
 
 DOUBLE CROSS
-  Makes a mono sound stereo, and it still sounds right in mono. SPREAD = how wide. STYLE = how many
-  pieces it's split into. LOW STAYS MONO keeps the bass in the middle.
+  Makes a mono sound stereo by sending each frequency a bit left or right, sweeping back and forth
+  across the spectrum; added back to mono it is exactly the original. SPREAD = how wide (1 = the
+  space between the speakers). SWEEPS = how many times it swings; F CENTER / F DENSITY bunch them up
+  around one frequency (keep F DENSITY under about 0.6). TWEAK balances the picture. Under FREQ, LF
+  SPREAD takes over (0 keeps the bass in the middle). KIND SPLIT uses SHAPE (triangle to square).
+  INPUT, WIDTH, ROTATION, POLARITY and SWAP prepare what comes in. RESET clears the peak readouts.
+  It delays the sound by 43 ms (DAWs make up for it).
+
+LOW RIDER
+  Adds a new low octave under the bass. RANGE picks the bass it listens to, LOW AIR is the new octave,
+  LO the original lows, DIRECT the untouched sound. LOW AIR and LO above 0 dB start to saturate.
+  ALIGN lines the original up with the new low end. It delays the sound by 70 ms.
+
+UNDERTOW
+  Subs from the bass: SUB -1 an octave down, SUB -2 two. RANGE MIN / MAX pick the bass it follows.
+  DYNAMICS 0 keeps the subs steady, 100 lets them follow every note. MIX 50 = original and subs in
+  full; DRIVE roughens the subs; MONO SUB puts one sub in the middle.
+
+DEEP POCKETS
+  Bass that comes through on phones and laptops: under FREQUENCY the bass is (partly) replaced by
+  its harmonics. ORIGINAL BASS and HARMONICS set the mix. DECAY near -9 = richer, near -24 = more
+  natural. RATIO lifts the quiet bass notes' harmonics, RESPONSE is how fast. MONITOR lets you hear
+  just the harmonics or just the bass being replaced.
+
+LOW PROFILE
+  The quick version: FREQUENCY, INTENSITY (how much harmonics), ORIGINAL BASS in or out, GAIN.
 
 THE FIXER
   Three bands that only turn down when they get nasty: MUD (boxy lows), HARSH (the bite) and FIZZ

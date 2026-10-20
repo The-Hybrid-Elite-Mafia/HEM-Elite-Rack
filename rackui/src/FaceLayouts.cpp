@@ -427,15 +427,30 @@ FaceLayout widthFace(const rack::PluginInfo& info) {
     L.leftNotes = {"WIDE ON TOP", "MONO DOWN LOW"};
     L.title = {60, 190, 330, 110};
     L.display = {410, 182, 1226, 140};
-    readoutAt(L, {410, 182, 600, 120}, 0, "CORRELATION", "PHASE", "+2");
-    readoutAt(L, {1036, 182, 600, 120}, 1, "SIDE VS MID", "dB", "+");
+    readoutAt(L, {410, 182, 292, 120}, 0, "CORRELATION", "PHASE", "+2");
+    readoutAt(L, {722, 182, 292, 120}, 1, "SIDE VS MID", "dB", "+");
+    readoutAt(L, {1034, 182, 292, 120}, 2, "LEFT / MID", "dBFS", "+");
+    readoutAt(L, {1344, 182, 292, 120}, 3, "RIGHT / SIDE", "dBFS", "+");
     buttonRow(L, "MONO BASS", 392, MonoBass, 5);
-    L.sections.push_back({{410, 330, 700, 30}, "CORRELATION: +1 MONO, 0 WIDE, BELOW 0 CANCELS"});
-    L.sections.push_back({{410, 380, 700, 30}, "MONO BASS: THE LOW END STAYS IN THE CENTRE"});
+    // the input: polarity per side, swap, and what comes in / what the meters show
+    L.widgets.push_back(toggle({410, 352, 220, 44}, PolarityL, "POLARITY L"));
+    L.widgets.push_back(toggle({644, 352, 220, 44}, PolarityR, "POLARITY R"));
+    L.widgets.push_back(toggle({878, 352, 220, 44}, Swap, "SWAP"));
+    auto stepper = [&](Rect r, int param, const char* caption) {
+        Widget st;
+        st.kind = WKind::Stepper;
+        st.param = param;
+        st.caption = caption;
+        st.r = r;
+        L.widgets.push_back(st);
+        L.recesses.push_back({st.r.inset(-4), 9, 4, false, false});
+    };
+    stepper({508, 418, 190, 40}, InputMode, "INPUT");
+    stepper({908, 418, 190, 40}, MeterMode, "METER");
     L.grooves.push_back({410, 524, 1636, 524});
-    knobRow(L, {{Width, "WIDTH", 128, "MONO", "200%", false}, {Shuffle, "SHUFFLE", 90, "", "", false}, {Rotation, "ROTATION", 90, "L", "R", false},
-                {Asymmetry, "ASYMMETRY", 90, "L", "R", false}, {Balance, "BALANCE", 90, "L", "R", false},
-                {Output, "OUTPUT", 80, "", "", true}}, 568);
+    knobRow(L, {{Width, "WIDTH", 112, "MONO", "200%", false}, {Shuffle, "SHUFFLE", 76, "", "", true}, {ShuffleFreq, "SHUFFLE FREQ", 76, "350", "1.4k", true},
+                {BassTrim, "BASS TRIM", 76, "-12", "+12", true}, {Rotation, "ROTATION", 76, "L", "R", true},
+                {Asymmetry, "ASYMMETRY", 76, "L", "R", true}, {Balance, "BALANCE", 76, "L", "R", true}, {Output, "OUTPUT", 76, "", "", true}}, 568);
     buttonSeats(L);
     bypassAt(L, {160, 640, 90, 90});
     return L;
@@ -919,7 +934,7 @@ FaceLayout channelFace(const rack::PluginInfo& info) {
         const float kp = w / static_cast<float>(ks.size());
         for (std::size_t k = 0; k < ks.size(); ++k) {
             const float cx = x0 + (static_cast<float>(k) + 0.5f) * kp;
-            L.widgets.push_back(knob({cx - 24, 402, 48, 48}, ks[k].p, ks[k].cap, "", "", true));
+            L.widgets.push_back(knob({cx - 24, 408, 48, 48}, ks[k].p, ks[k].cap, "", "", true));
         }
         seatKnobs(L, first, 6);
         const float sp = w / static_cast<float>(ss.size());
@@ -931,13 +946,13 @@ FaceLayout channelFace(const rack::PluginInfo& info) {
             else L.widgets.push_back(toggle(r, ss[k].p, ""));
         }
     };
-    constexpr K gk[] = {{GateThreshold, "THRESHOLD"}, {Floor, "FLOOR"}, {GateRelease, "RELEASE"}, {GKeyFreq, "KEY FREQ"}, {GKeyWidth, "KEY WIDTH"}};
-    constexpr S gs[] = {{GateOn, "GATE", false}, {GateMode, "MODE", true}, {GKeyOn, "KEY", false}, {GKeySource, "KEY FROM", true},
-                        {GKeyType, "KEY TYPE", true}};
-    constexpr K ck[] = {{CompThreshold, "THRESHOLD"}, {Ratio, "RATIO"}, {Attack, "ATTACK"}, {Release, "RELEASE"}, {CKeyFreq, "KEY FREQ"},
-                        {CKeyWidth, "KEY WIDTH"}};
+    constexpr K gk[] = {{GateThreshold, "THRESH"}, {Floor, "FLOOR"}, {GateRelease, "RELEASE"}, {GKeyFreq, "KEY HZ"}, {GKeyWidth, "WIDTH"}};
+    constexpr S gs[] = {{GateOn, "GATE", false}, {GateMode, "MODE", true}, {GKeyOn, "KEY", false}, {GKeySource, "FROM", true},
+                        {GKeyType, "FILTER", true}};
+    constexpr K ck[] = {{CompThreshold, "THRESH"}, {Ratio, "RATIO"}, {Attack, "ATTACK"}, {Release, "RELEASE"}, {CKeyFreq, "KEY HZ"},
+                        {CKeyWidth, "WIDTH"}};
     constexpr S cs[] = {{CompOn, "COMP", false}, {CompType, "TYPE", true}, {Arc, "ARC", false}, {CKeyOn, "KEY", false},
-                        {CKeySource, "KEY FROM", true}, {CKeyType, "KEY TYPE", true}};
+                        {CKeySource, "FROM", true}, {CKeyType, "FILTER", true}};
     section(410, 590, "GATE / EXPANDER", gk, gs);
     L.grooves.push_back({1013, 352, 1013, 550});
     section(1026, 610, "COMPRESSOR", ck, cs);

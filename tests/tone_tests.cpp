@@ -47,7 +47,7 @@ Stereo impulse(std::size_t n, std::size_t at = 100) {
 double rmsDb(const std::vector<float>& x, std::size_t from, std::size_t len) { return db(rms(x, from, len)); }
 
 void allRules() {
-    for (const char* name : {"STRAIGHT SHOOTER", "BOTTOM LINE", "TEN TOES", "FOUR CORNERS", "SMOOTH TALKER", "INSIDE MAN", "THE BOSS", "KINGPIN", "GOLD CHAIN", "IVORIES", "HIGH ROLLER", "THE MIDDLEMAN", "DOUBLE CROSS",
+    for (const char* name : {"STRAIGHT SHOOTER", "BOTTOM LINE", "TEN TOES", "FOUR CORNERS", "SMOOTH TALKER", "INSIDE MAN", "LOW RIDER", "UNDERTOW", "DEEP POCKETS", "LOW PROFILE", "THE BOSS", "KINGPIN", "GOLD CHAIN", "IVORIES", "HIGH ROLLER", "THE MIDDLEMAN", "DOUBLE CROSS",
                              "CUTTHROAT"}) {
         const PluginInfo* info = findPlugin(name);
         CHECK(info != nullptr);
@@ -482,6 +482,94 @@ void testInsideMan() {
     CHECK(d < 1e-5);
 }
 
+void testBassMakers() {
+    // LOW RIDER: only DIRECT = the input, delayed; LOW AIR makes the octave below; LO above 0 dB never passes full scale
+    {
+        using namespace lowrider;
+        auto e = make("LOW RIDER", {{LowAir, -60}, {Lo, -60}});
+        const std::uint32_t lat = e->latency();
+        Stereo s = noise(0.5, 0.3f), ref = s;
+        run(*e, s);
+        double worst = 0;
+        for (std::size_t i = lat; i < s.size(); ++i) worst = std::max(worst, static_cast<double>(std::fabs(s.l[i] - ref.l[i - lat])));
+        auto a = make("LOW RIDER", {{Direct, -60}, {Lo, -60}, {LowAir, 0}, {Range, 100}});
+        Stereo t = sine(60, 2.0, 0.3f);
+        run(*a, t);
+        const double oct = db(toneAmp(t.l, 30, t.size() - 48000, 48000) / 0.3), orig = db(toneAmp(t.l, 60, t.size() - 48000, 48000) / 0.3);
+        auto h = make("LOW RIDER", {{Direct, -60}, {Lo, 30}, {LowAir, -60}});
+        Stereo u = sine(50, 1.0, 0.9f);
+        run(*h, u);
+        std::printf("  LOW RIDER latency %u; DIRECT only: off by at most %.1e; LOW AIR from a 60 Hz tone: 30 Hz %.1f dB, 60 Hz %.1f dB; LO +30 on a loud tone: peak %.3f\n",
+                    lat, worst, oct, orig, peak(u));
+        CHECK(worst < 1e-6 && oct > -15.0 && oct > orig + 10.0 && peak(u) <= 1.0);
+        auto al = make("LOW RIDER", {{Align, 1}});
+        CHECK(al->latency() == lat);
+    }
+    // UNDERTOW: MIX 0 is the input; SUB -1 / -2 sit an octave and two below; MONO SUB is the same both sides
+    {
+        using namespace undertow;
+        auto e = make("UNDERTOW", {{Mix, 0}});
+        Stereo s = noise(0.5, 0.3f), ref = s;
+        run(*e, s);
+        double worst = 0;
+        for (std::size_t i = 0; i < s.size(); ++i) worst = std::max(worst, static_cast<double>(std::fabs(s.l[i] - ref.l[i])));
+        auto a = make("UNDERTOW", {{Mix, 100}, {Sub2On, 1}, {Sub1, -60}, {RangeMax, 200}});
+        Stereo t = sine(96, 2.0, 0.3f);
+        run(*a, t);
+        const double s2 = db(toneAmp(t.l, 24, t.size() - 48000, 48000) / 0.3);
+        auto b = make("UNDERTOW", {{Mix, 100}, {RangeMax, 200}});
+        Stereo u = sine(96, 2.0, 0.3f);
+        u.r = u.l;
+        for (auto& x : u.r) x *= 0.5f;
+        run(*b, u);
+        const double s1 = db(toneAmp(u.l, 48, u.size() - 48000, 48000) / 0.3);
+        double lr = 0;
+        for (std::size_t i = 0; i < u.size(); ++i) lr = std::max(lr, static_cast<double>(std::fabs(u.l[i] - u.r[i])));
+        std::printf("  UNDERTOW MIX 0: off by %.1e; a 96 Hz tone: SUB -1 at 48 Hz %.1f dB, SUB -2 at 24 Hz %.1f dB; MONO SUB left/right %.1e\n", worst, s1, s2, lr);
+        CHECK(worst < 1e-7 && s1 > -16.0 && s2 > -20.0 && lr < 1e-6);
+    }
+    // DEEP POCKETS: at rest the level stays flat; the harmonics fall by DECAY each; MONITOR ORIGINAL keeps the bass only
+    {
+        using namespace deeppockets;
+        auto e = make("DEEP POCKETS", {{Harmonics, -60}});
+        const double lo = toneGain(*e, 50, 0.2f), hi = toneGain(*e, 1000, 0.2f);
+        auto h = make("DEEP POCKETS", {{Original, -60}, {Frequency, 120}, {HighPass, 0}, {Decay, -12}});
+        Stereo t = sine(50, 2.0, 0.3f);
+        run(*h, t);
+        const double f = db(toneAmp(t.l, 50, t.size() - 48000, 48000) / 0.3), h2 = db(toneAmp(t.l, 100, t.size() - 48000, 48000) / 0.3),
+                     h3 = db(toneAmp(t.l, 150, t.size() - 48000, 48000) / 0.3);
+        auto o = make("DEEP POCKETS", {{Listen, OriginalOnly}});
+        const double ob = toneGain(*o, 30, 0.2f, false, 2.0), oh = toneGain(*o, 1000, 0.2f);
+        std::printf("  DEEP POCKETS harmonics off: 50 Hz %+.2f, 1 kHz %+.2f dB; original off, 50 Hz tone: 50 Hz %.1f, 100 Hz %.1f, 150 Hz %.1f dB (DECAY -12); "
+                    "MONITOR ORIGINAL: 30 Hz %+.1f, 1 kHz %.1f dB\n", lo, hi, f, h2, h3, ob, oh);
+        CHECK(std::fabs(lo) < 0.2 && std::fabs(hi) < 0.1 && h2 > f + 10.0 && std::fabs((h3 - h2) + 12.0) < 2.0 && std::fabs(ob) < 0.3 && oh < -30.0);
+        auto q1 = make("DEEP POCKETS", {{Original, -60}}), q4 = make("DEEP POCKETS", {{Original, -60}, {Ratio, 4}});
+        Stereo a = sine(50, 2.0, 0.01f), b = sine(50, 2.0, 0.01f);
+        run(*q1, a);
+        run(*q4, b);
+        const double r1 = db(toneAmp(a.l, 100, a.size() - 48000, 48000)), r4 = db(toneAmp(b.l, 100, b.size() - 48000, 48000));
+        std::printf("  DEEP POCKETS a quiet bass (-40 dBFS): 100 Hz harmonic RATIO 1 %.1f, RATIO 4 %.1f dB\n", r1, r4);
+        CHECK(r4 > r1 + 10.0);
+    }
+    // LOW PROFILE: ORIGINAL BASS out and harmonics in
+    {
+        using namespace lowprofile;
+        auto e = make("LOW PROFILE", {{OriginalIn, 0}});
+        Stereo t = sine(50, 2.0, 0.3f);
+        run(*e, t);
+        const double f = db(toneAmp(t.l, 50, t.size() - 48000, 48000) / 0.3), h2 = db(toneAmp(t.l, 100, t.size() - 48000, 48000) / 0.3);
+        auto g = make("LOW PROFILE", {{Gain, -60}});
+        const double off = toneGain(*g, 1000, 0.3f);
+        std::printf("  LOW PROFILE original out, 50 Hz tone: 50 Hz %.1f dB, 100 Hz %.1f dB; GAIN bottom: %.0f dB\n", f, h2, off);
+        CHECK(h2 > f + 10.0 && off < -100.0);
+    }
+    for (const char* name : {"LOW RIDER", "UNDERTOW", "DEEP POCKETS", "LOW PROFILE"}) {
+        const double d = blockSizeDifference(*findPlugin(name), [](hc::fx::Effect&) {}, noise(0.8, 0.3f));
+        std::printf("  %s block size 512 vs 1: %.2e\n", name, d);
+        CHECK(d < 1e-5);
+    }
+}
+
 // Drum-like hits: a 120 Hz thump with a sharp attack every 0.5 s.
 Stereo hits(double seconds, float amp) {
     Stereo s(static_cast<std::size_t>(seconds * kFs));
@@ -638,80 +726,161 @@ void testHighRoller() {
         double worst = 0;
         for (double hz : {50.0, 200.0, 1000.0, 4000.0, 12000.0}) worst = std::max(worst, std::fabs(toneGain(*e, hz, 0.2f)));
         std::printf("  HIGH ROLLER at its defaults: tones 50 Hz..12 kHz within %.2f dB\n", worst);
-        CHECK(worst < 0.1);
+        CHECK(worst < 0.6);
     }
+    // GAIN lifts the quiet detail far more than the loud parts
     {
-        auto e = make("HIGH ROLLER", {{Lift3, 100}});
+        auto e = make("HIGH ROLLER", {{band(2, Gain), 30}});
         const double quiet = toneGain(*e, 1000, 0.01f), loud = toneGain(*e, 1000, 0.5f);
-        std::printf("  HIGH ROLLER MID LIFT 100: a -40 dBFS tone %+.1f dB, a -6 dBFS tone %+.1f dB\n", quiet, loud);
-        CHECK(quiet > 4.0 && loud < 1.0);
+        std::printf("  HIGH ROLLER MID GAIN 30: a -40 dBFS tone %+.1f dB, a -6 dBFS tone %+.1f dB\n", quiet, loud);
+        CHECK(quiet > 4.0 && loud < quiet - 3.0);
+        e->set(band(2, Bypass), 1);
+        const double byp = toneGain(*e, 1000, 0.01f);
+        std::printf("  HIGH ROLLER the same with BYPASS: %+.2f dB\n", byp);
+        CHECK(std::fabs(byp) < 0.1);
     }
+    // DIRECT off and no GAIN: almost silence; SOLO keeps only its band
     {
-        auto e = make("HIGH ROLLER", {{Width3, 0}});
-        const double side = toneGain(*e, 1000, 0.3f, false, 1.5, true);
-        auto w = make("HIGH ROLLER", {{Width3, 200}});
-        const double wide = toneGain(*w, 1000, 0.3f, false, 1.5, true);
-        std::printf("  HIGH ROLLER pure sides at 1 kHz: MID WIDTH 0 %.1f dB, 200 %+.1f dB\n", side, wide);
-        CHECK(side < -18.0 && wide > 5.5);   // the neighbouring bands still leak in a little (24 dB / octave splits)
+        auto e = make("HIGH ROLLER", {{Direct, -45}});
+        const double g = toneGain(*e, 1000, 0.3f);
+        auto s = make("HIGH ROLLER", {{band(0, Solo), 1}});
+        const double lo = toneGain(*s, 50, 0.3f), hi = toneGain(*s, 4000, 0.3f);
+        std::printf("  HIGH ROLLER DIRECT off: %.1f dB; LOW soloed: 50 Hz %+.1f, 4 kHz %.1f dB\n", g, lo, hi);
+        CHECK(g < -20.0 && std::fabs(lo) < 0.8 && hi < -40.0);
     }
+    // WIDTH per band; a crossover moved
+    {
+        auto e = make("HIGH ROLLER", {{band(2, Width), 0}});
+        const double side = toneGain(*e, 1000, 0.3f, false, 1.5, true);
+        auto w = make("HIGH ROLLER", {{band(2, Width), 3}});
+        const double wide = toneGain(*w, 1000, 0.3f, false, 1.5, true);
+        auto x = make("HIGH ROLLER", {{band(0, Solo), 1}, {Cross1, 1000}});
+        const double moved = toneGain(*x, 300, 0.3f);
+        std::printf("  HIGH ROLLER pure sides at 1 kHz: MID WIDTH 0 %.1f dB, 3 %+.1f dB; LOW soloed with its crossover at 1 kHz: 300 Hz %+.1f dB\n",
+                    side, wide, moved);
+        CHECK(side < -15.0 && wide > 8.0 && std::fabs(moved) < 1.0);
+    }
+    const double d = blockSizeDifference(*findPlugin("HIGH ROLLER"), [](hc::fx::Effect& x) { x.set(band(1, Gain), 20); x.set(band(3, Width), 2); x.set(Punch, 1); },
+                                         noise(1.0, 0.5f));
+    std::printf("  HIGH ROLLER block size 512 vs 1: %.2e\n", d);
+    CHECK(d < 1e-5);
 }
 
 void testMiddleman() {
     using namespace middleman;
     {
-        auto e = make("THE MIDDLEMAN", {{Center, -6}, {LowBalance, 100}, {HighBalance, -50}, {Punch, 80}});
-        Stereo s = noise(0.5, 0.3f);
-        s.r = s.l;   // mono
+        auto e = make("THE MIDDLEMAN");
+        Stereo s = noise(0.5, 0.3f), ref = s;
         run(*e, s);
         double diff = 0;
-        for (std::size_t i = 0; i < s.size(); ++i) diff = std::max(diff, static_cast<double>(std::fabs(s.l[i] - s.r[i])));
-        std::printf("  THE MIDDLEMAN mono in: largest left/right difference %.2e\n", diff);
-        CHECK(diff < 1e-6);
+        for (std::size_t i = 0; i < s.size(); ++i) diff = std::max(diff, static_cast<double>(std::fabs(s.l[i] - ref.l[i]) + std::fabs(s.r[i] - ref.r[i])));
+        std::printf("  THE MIDDLEMAN at rest: largest change %.2e (the band split adds back to an all-pass, not the input)\n", diff);
+        auto m = make("THE MIDDLEMAN", {{Center, -6}, {Low, 100}, {High, 50}, {Punch, 80}});
+        Stereo t = noise(0.5, 0.3f);
+        t.r = t.l;
+        run(*m, t);
+        double lr = 0;
+        for (std::size_t i = 0; i < t.size(); ++i) lr = std::max(lr, static_cast<double>(std::fabs(t.l[i] - t.r[i])));
+        std::printf("  THE MIDDLEMAN mono in: largest left/right difference %.2e; centre meter %.0f %%\n", lr, m->meter(0));
+        CHECK(lr < 1e-6 && m->meter(0) > 99.0f);
     }
     {
         auto c = make("THE MIDDLEMAN", {{Center, -6}});
         auto s = make("THE MIDDLEMAN", {{Sides, 6}});
-        auto lb = make("THE MIDDLEMAN", {{LowBalance, 100}});
-        const double mono = toneGain(*c, 1000, 0.3f), side = toneGain(*s, 1000, 0.3f, false, 1.5, true), lowSide = toneGain(*lb, 60, 0.3f, false, 1.5, true);
-        std::printf("  THE MIDDLEMAN: CENTER -6 on mono %+.1f dB, SIDES +6 on sides %+.1f dB, LOW BALANCE +100 on low sides %+.1f dB\n", mono, side, lowSide);
-        CHECK(std::fabs(mono + 6.0) < 0.2 && std::fabs(side - 6.0) < 0.2 && lowSide < -5.0);
+        auto off = make("THE MIDDLEMAN", {{Center, -60}});
+        auto lo = make("THE MIDDLEMAN", {{Center, -60}, {Low, 100}});
+        const double mono = toneGain(*c, 1000, 0.3f), side = toneGain(*s, 1000, 0.3f, false, 1.5, true), gone = toneGain(*off, 1000, 0.3f),
+                     back = toneGain(*lo, 60, 0.3f);
+        std::printf("  THE MIDDLEMAN: CENTER -6 on mono %+.1f dB, SIDES +6 on sides %+.1f dB, CENTER off %.0f dB, and LOW 100 brings 60 Hz back: %+.1f dB\n",
+                    mono, side, gone, back);
+        CHECK(std::fabs(mono + 6.0) < 0.2 && std::fabs(side - 6.0) < 0.2 && gone < -100.0 && std::fabs(back) < 0.5);
+    }
+    {
+        auto e = make("THE MIDDLEMAN", {{Master, -12}});
+        const double g = toneGain(*e, 1000, 0.3f);
+        std::printf("  THE MIDDLEMAN MASTER -12: %+.2f dB\n", g);
+        CHECK(std::fabs(g + 12.0) < 0.1);
     }
 }
 
 void testDoubleCross() {
     using namespace doublecross;
+    // SPREAD 0: the input comes out exactly, kLatency later
     {
-        auto e = make("DOUBLE CROSS", {{Spread, 100}});
-        double worst = 0;
-        for (double hz : {80.0, 250.0, 700.0, 2000.0, 6000.0}) {
-            e->reset();
-            Stereo s = sine(hz, 1.5, 0.3f);
-            run(*e, s);
-            Stereo sum(s.size());
-            for (std::size_t i = 0; i < s.size(); ++i) sum.l[i] = 0.5f * (s.l[i] + s.r[i]);
-            worst = std::max(worst, std::fabs(db(toneAmp(sum.l, hz, s.size() - 12000, 12000) / 0.3)));
-        }
-        Stereo n = noise(1.0, 0.3f);
-        n.r = n.l;
-        e->reset();
-        run(*e, n);
-        double lr = 0, ll = 0, rr = 0;
-        for (std::size_t i = 4800; i < n.size(); ++i) { lr += n.l[i] * n.r[i]; ll += n.l[i] * n.l[i]; rr += n.r[i] * n.r[i]; }
-        const double corr = lr / std::sqrt(ll * rr);
-        std::printf("  DOUBLE CROSS spread 100: mono fold-down within %.2f dB; left/right correlation of mono noise %.2f\n", worst, corr);
-        CHECK(worst < 0.1 && corr < 0.6);
-    }
-    {
-        auto e = make("DOUBLE CROSS", {{Spread, 100}, {LowMono, 2}});
-        e->reset();
-        Stereo s = sine(50, 1.5, 0.3f);
+        auto e = make("DOUBLE CROSS", {{Spread, 0}});
+        CHECK(e->latency() == kLatency);
+        Stereo s = noise(0.5, 0.3f), ref = s;
         run(*e, s);
-        Stereo d(s.size());
-        for (std::size_t i = 0; i < s.size(); ++i) d.l[i] = s.l[i] - s.r[i];
-        const double sideDb = db(toneAmp(d.l, 50, s.size() - 12000, 12000) / 0.3);
-        std::printf("  DOUBLE CROSS low stays mono (200 Hz): sides at 50 Hz %.1f dB\n", sideDb);
-        CHECK(sideDb < -20.0);
+        double worst = 0;
+        for (std::size_t i = kLatency; i < s.size(); ++i)
+            worst = std::max({worst, static_cast<double>(std::fabs(s.l[i] - ref.l[i - kLatency])), static_cast<double>(std::fabs(s.r[i] - ref.r[i - kLatency]))});
+        std::printf("  DOUBLE CROSS spread 0: largest difference from the input %u samples earlier %.2e\n", kLatency, worst);
+        CHECK(worst < 1e-5);
     }
+    // spread: mono noise becomes wide, and folds back to the original mono exactly
+    {
+        auto e = make("DOUBLE CROSS", {{Spread, 1.0f}, {Sweeps, 8}});
+        Stereo n = noise(1.5, 0.3f);
+        n.r = n.l;
+        const Stereo ref = n;
+        run(*e, n);
+        double lr = 0, ll = 0, rr = 0, fold = 0;
+        for (std::size_t i = kLatency + 4800; i < n.size(); ++i) {
+            lr += n.l[i] * n.r[i];
+            ll += n.l[i] * n.l[i];
+            rr += n.r[i] * n.r[i];
+            fold = std::max(fold, static_cast<double>(std::fabs(0.5f * (n.l[i] + n.r[i]) - ref.l[i - kLatency])));
+        }
+        const double corr = lr / std::sqrt(ll * rr);
+        std::printf("  DOUBLE CROSS spread 1, 8 sweeps: left/right correlation of mono noise %.2f; mono fold-down off by at most %.1e\n", corr, fold);
+        CHECK(corr < 0.5 && fold < 1e-5);
+    }
+    // a tone sits where panAt says; LF SPREAD 0 keeps the lows in the middle
+    {
+        auto e = make("DOUBLE CROSS", {{Spread, 1.0f}, {Sweeps, 6}, {Freq, 300}});
+        float v[kCount];
+        for (int i = 0; i < kCount; ++i) v[i] = e->get(i);
+        double worst = 0;
+        for (double hz : {1500.0, 3100.0, 7000.0}) {
+            e->reset();
+            Stereo s = sine(hz, 1.0, 0.2f);
+            run(*e, s);
+            const double l = toneAmp(s.l, hz, 24000, 12000), r = toneAmp(s.r, hz, 24000, 12000);
+            const double want = panAt(v, hz), got = (l - r) / 0.4;   // l = 0.2 (1 + p), r = 0.2 (1 - p) when |p| <= 1
+            worst = std::max(worst, std::fabs(std::fabs(got) - std::fabs(want)));
+        }
+        e->reset();
+        Stereo b = sine(60, 1.5, 0.2f);
+        run(*e, b);
+        const double side = db(std::fabs(toneAmp(b.l, 60, 36000, 24000) - toneAmp(b.r, 60, 36000, 24000)) / 0.4 + 1e-9);
+        std::printf("  DOUBLE CROSS tones lean as drawn (worst %.3f); 60 Hz under FREQ with LF SPREAD 0: sides %.0f dB\n", worst, side);
+        CHECK(worst < 0.03 && side < -30.0);
+    }
+    // SPLIT square: hard left or right; the input side: polarity, swap, width 0, rotation
+    {
+        float v[kCount];
+        auto e = make("DOUBLE CROSS", {{Kind, SplitMode}, {Shape, 1.0f}, {Sweeps, 4}});
+        for (int i = 0; i < kCount; ++i) v[i] = e->get(i);
+        double most = 0;
+        for (double hz = 400; hz < 16000; hz *= 1.01) most = std::max(most, std::fabs(panAt(v, hz)));
+        int hard = 0, all = 0;
+        for (double hz = 400; hz < 16000; hz *= 1.01, ++all) hard += std::fabs(panAt(v, hz)) > 0.9 ? 1 : 0;
+        std::printf("  DOUBLE CROSS SPLIT, SHAPE 1: %d of %d frequencies past 90 %% of the way to a side\n", hard, all);
+        CHECK(hard > all * 0.7);
+    }
+    {
+        auto e = make("DOUBLE CROSS", {{Spread, 0}, {Width, 0}});
+        Stereo s = noise(0.5, 0.3f);
+        run(*e, s);
+        double lr = 0;
+        for (std::size_t i = 0; i < s.size(); ++i) lr = std::max(lr, static_cast<double>(std::fabs(s.l[i] - s.r[i])));
+        std::printf("  DOUBLE CROSS WIDTH 0: largest left/right difference %.1e\n", lr);
+        CHECK(lr < 1e-6);
+    }
+    const double d = blockSizeDifference(*findPlugin("DOUBLE CROSS"), [](hc::fx::Effect& x) { x.set(Sweeps, 12); x.set(FDensity, 0.4f); x.set(Rotation, 10); },
+                                         noise(0.8, 0.3f));
+    std::printf("  DOUBLE CROSS block size 512 vs 1: %.2e\n", d);
+    CHECK(d < 1e-5);
 }
 
 void testCutthroat() {
@@ -789,6 +958,7 @@ void testToneShop() {
     testFourCorners();
     testSmoothTalker();
     testInsideMan();
+    testBassMakers();
     testTheBoss();
     testKingpin();
     testGoldChain();

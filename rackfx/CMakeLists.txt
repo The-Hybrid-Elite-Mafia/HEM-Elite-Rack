@@ -47,6 +47,7 @@ add_library(hem_rackfx STATIC
     src/tone/StraightShooter.cpp
     src/tone/IirEqs.cpp
     src/tone/InsideMan.cpp
+    src/tone/Bass.cpp
     src/tone/TheBoss.cpp
     src/tone/Kingpin.cpp
     src/tone/GoldChain.cpp
