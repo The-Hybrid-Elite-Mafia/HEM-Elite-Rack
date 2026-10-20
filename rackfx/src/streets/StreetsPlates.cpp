@@ -81,9 +81,13 @@ constexpr PlateKnob row1[] = {{DirectGain, "DIRECT GAIN", "-24", "0"}, {DirectDe
 namespace mm2 {
 using namespace mademan;
 constexpr PlateReadout readouts[] = {{0, "SUNG", "", "note"}, {1, "PULL", "CENTS", "+"}};
-constexpr PlateChoice choices[] = {{Scale, "SCALE"}};
-constexpr PlateChoice steppers[] = {{Key, "KEY"}};
-constexpr PlateKnob row1[] = {{Speed, "SPEED", "HARD", "SOFT", K::Big}, {Amount, "AMOUNT"}, {Mix, "MIX", "DRY", "WET"}};
+constexpr PlateChoice steppers[] = {{Key, "ROOT"}, {Scale, "SCALE"}, {Formant, "FORMANT"}};
+constexpr PlateKnob row1[] = {{Speed, "SPEED", "HARD", "400", K::Big}, {Transition, "NOTE TRANSITION", "0", "400"}, {Ratio, "RATIO", "0", "100"},
+                              {Shift, "SHIFT", "-12", "+12"}, {Reference, "REFERENCE A", "400", "480"}, {MinPitch, "MIN PITCH", "50", "500"},
+                              {MaxPitch, "MAX PITCH", "200", "2K"}};
+constexpr PlateToggle noteToggles[] = {{0, "ON"}};
+constexpr const char* noteNames[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+constexpr PlateBands notes{.count = 12, .first = Note0, .stride = 1, .toggles = noteToggles, .columnNames = noteNames};
 } // namespace mm2
 
 namespace dt {
@@ -132,7 +136,7 @@ const PlateSpec kWiseguys{.note1 = "SIX VOICES", .note2 = "ON CALL", .screen = S
                           .steppers = wg::steppers, .bands = &wg::voices,
                           .demo = [](hc::fx::Effect& e) { using namespace wiseguys; e.set(voice(0, On), 1); e.set(voice(1, On), 1); }};
 const PlateSpec kMadeMan{.note1 = "EVERY NOTE", .note2 = "FALLS IN LINE", .screen = Screen::Readouts, .readouts = mm2::readouts,
-                         .choices = mm2::choices, .row1 = mm2::row1, .steppers = mm2::steppers,
+                         .row1 = mm2::row1, .steppers = mm2::steppers, .bands = &mm2::notes,
                          .demo = [](hc::fx::Effect& e) { using namespace mademan; e.set(Key, 9); e.set(Scale, 2); }};
 const PlateSpec kDetective{.note1 = "WHAT KEY", .note2 = "IS IT IN?", .screen = Screen::Readouts, .readouts = dt::readouts,
                            .choices = dt::choices, .toggles = dt::toggles, .steppers = dt::steppers, .demo = nullptr};

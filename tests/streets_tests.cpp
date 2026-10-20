@@ -364,18 +364,64 @@ void testWiseguys() {
 
 void testMadeMan() {
     using namespace mademan;
-    auto e = make("MADE MAN", {{Key, 9}, {Scale, 0}, {Speed, 0}});
-    Stereo s = sine(452, 2.0, 0.3f);   // A4 + 46 cents: pulled down to 440
-    run(*e, s);
-    const double hz = crossingsHz(s.l, 48000, 48000);
-    std::printf("  MADE MAN: 452 Hz sung, chromatic, speed 0 -> %.1f Hz, pull meter %.0f c\n", hz, e->meter(1));
-    CHECK(std::fabs(hz - 440.0) < 2.0);
-    auto m = make("MADE MAN", {{Key, 0}, {Scale, 1}, {Speed, 0}});
-    Stereo s2 = sine(277.18, 2.0, 0.3f);   // C#4 is not in C major: goes to C4 or D4
-    run(*m, s2);
-    const double hz2 = crossingsHz(s2.l, 48000, 48000);
-    std::printf("  MADE MAN: C#4 sung in C major -> %.1f Hz\n", hz2);
-    CHECK(std::fabs(hz2 - 261.63) < 2.0 || std::fabs(hz2 - 293.66) < 2.0);
+    auto voiceLike = [](double hz, double secs) {
+        Stereo s(static_cast<std::size_t>(secs * 48000.0));
+        for (std::size_t i = 0; i < s.size(); ++i) {
+            const double t = static_cast<double>(i) / 48000.0;
+            float v = 0.0f;
+            for (int h = 1; h <= 5; ++h) v += static_cast<float>(0.25 / h * std::sin(2.0 * 3.14159265358979 * hz * h * t));
+            s.l[i] = s.r[i] = v;
+        }
+        return s;
+    };
+    {
+        auto e = make("MADE MAN", {{Key, 9}, {Scale, 0}, {Speed, 0}, {Transition, 0}});
+        Stereo s = voiceLike(452, 2.0);   // A4 + 46 cents: pulled down to 440
+        run(*e, s);
+        const double hz = crossingsHz(s.l, 48000, 48000);
+        std::printf("  MADE MAN: 452 Hz sung, chromatic, hard -> %.1f Hz, pull meter %.0f c\n", hz, e->meter(1));
+        CHECK(std::fabs(hz - 440.0) < 2.0 && std::fabs(e->meter(1) + 46.0f) < 4.0f);
+    }
+    {   // C#4 is not in C major: goes to C4 or D4; RATIO 50 goes half way
+        auto m = make("MADE MAN", {{Key, 0}, {Scale, 1}, {Speed, 0}, {Transition, 0}});
+        Stereo s2 = voiceLike(277.18, 2.0);
+        run(*m, s2);
+        const double hz2 = crossingsHz(s2.l, 48000, 48000);
+        auto h = make("MADE MAN", {{Key, 9}, {Scale, 0}, {Speed, 0}, {Transition, 0}, {Ratio, 50}});
+        Stereo s3 = voiceLike(452, 2.0);
+        run(*h, s3);
+        const double hz3 = crossingsHz(s3.l, 48000, 48000);
+        std::printf("  MADE MAN: C#4 in C major -> %.1f Hz; 452 Hz at ratio 50 -> %.1f Hz (half way: 446.0)\n", hz2, hz3);
+        CHECK((std::fabs(hz2 - 261.63) < 2.0 || std::fabs(hz2 - 293.66) < 2.0) && std::fabs(hz3 - 446.0) < 2.0);
+    }
+    {   // MY NOTES with only E: an A comes out as an E; SHIFT -12 drops it an octave
+        std::initializer_list<std::pair<int, float>> onlyE = {{Scale, kScales - 1}, {Speed, 0}, {Transition, 0}, {Note0 + 0, 0}, {Note0 + 1, 0},
+                                                             {Note0 + 2, 0}, {Note0 + 3, 0}, {Note0 + 5, 0}, {Note0 + 6, 0}, {Note0 + 7, 0},
+                                                             {Note0 + 8, 0}, {Note0 + 9, 0}, {Note0 + 10, 0}, {Note0 + 11, 0}};
+        auto e = make("MADE MAN", onlyE);
+        Stereo s = voiceLike(400, 2.0);   // between E4 (329.6) and E5 (659): nearer E4 (in semitones)
+        run(*e, s);
+        // a voice-like pulse train (each pulse rings a 900 Hz formant) at 220 Hz, dropped an octave: 110 Hz appears
+        auto d = make("MADE MAN", {{Scale, 0}, {Speed, 0}, {Transition, 0}, {Shift, -12}});
+        Stereo t(96000);
+        const double per = 48000.0 / 220.0;
+        for (std::size_t i = 0; i < t.size(); ++i) {
+            const double ph = std::fmod(static_cast<double>(i), per) / 48000.0;
+            t.l[i] = t.r[i] = static_cast<float>(0.5 * std::exp(-ph * 1500.0) * std::sin(2.0 * 3.14159265358979 * 900.0 * ph));
+        }
+        auto odd = [](const std::vector<float>& x) {   // the new in-between harmonics (odd multiples of 110 Hz) near the formant
+            double e = 0;
+            for (double hz : {770.0, 990.0}) { const double v = toneAmp(x, hz, 48000, 48000); e += v * v; }
+            return 10.0 * std::log10(e + 1e-30);
+        };
+        const double before = odd(t.l);
+        run(*d, t);
+        const double after = odd(t.l), keep = db(toneAmp(t.l, 880.0, 48000, 48000));
+        const double a = crossingsHz(s.l, 48000, 48000);
+        std::printf("  MADE MAN: only E allowed, 400 Hz -> %.1f Hz; shift -12 on a 220 Hz voice: 770 + 990 Hz %.1f dB (was %.1f), 880 Hz %.1f dB\n", a, after,
+                    before, keep);
+        CHECK(std::fabs(a - 329.63) < 2.0 && after > before + 60.0 && after > keep - 10.0);
+    }
 }
 
 void testDetective() {

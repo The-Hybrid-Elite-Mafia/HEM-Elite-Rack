@@ -1,3 +1,18 @@
+# HEM-Elite-Rack 0.34.0
+
+**Wave 5 — pitch and meters.** Rebuilt to their originals' full control sets:
+- **WISEGUYS** — six voices (on, pitch, formant, gain, pan, delay), the direct voice (on, gain, delay), animate, link, mode,
+  min / max pitch. New voice engine (PSOLA): a voice's formants stay put unless you move them.
+- **MADE MAN** — root, twenty scales or your own notes, speed, note transition, ratio, formant corrected / off, shift (octave
+  drops), reference A, min / max pitch. Same new engine.
+- **PROMOTION** — transpose (intervals and cents) or frequency (from / to Hz), modes sync / smooth / transient / punchy. (The
+  original's time stretching works on whole files, not a live stream.)
+- **THE DETECTIVE** — key, two alternatives, the song's tuning; detect / stop, your own key, sharps or flats.
+- **THE WITNESS** — VU meters with headroom, display delay, clip lights.
+- **LIVE WIRE** — pink, white or sine; frequency and gain with quick settings; send L / R / both; flip.
+- **THE AUDITOR** (new, its own plate) — loudness meter: method, channels, six weightings, short time, overs / unders, true
+  peak max, target and trim, scale, pre-filters, gain, true-peak limiter.
+
 # HEM-Elite-Rack 0.33.0
 
 **Wave 4 — colour, tape, drums and guitar.** Each built to the full control set of one original:

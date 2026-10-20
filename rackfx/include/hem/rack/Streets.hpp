@@ -27,9 +27,12 @@
 //                far each voice's formant follows its pitch, our own amounts), MODE (how the pitch is read: DEFAULT,
 //                VOICE STEADY, VOICE JUMPY, OPERA, MUSIC STEADY, CLEAR TONES, BASS), MIN PITCH and MAX PITCH.
 //                PSOLA voices (formants kept unless moved); latency 4096 samples.
-//  MADE MAN      pitch correction for a single voice: KEY and SCALE (ALL NOTES / MAJOR / MINOR), SPEED
-//                (how fast a note is pulled in: 0 = hard), AMOUNT, MIX. Meters: 0 the sung note, 1 how
-//                far it was pulled (cents).
+//  MADE MAN      pitch correction for one voice: ROOT and SCALE (twenty of ours, or MY NOTES: the twelve switches
+//                say which notes are allowed), SPEED (how fast the voice is pulled onto the note: 0 = hard), NOTE
+//                TRANSITION (how fast the target moves from one note to the next), RATIO (how much of the way: 100 =
+//                all), FORMANT CORRECTED (the voice's character stays) / OFF, SHIFT -12..+12 semitones (moves it all,
+//                for octave drops), REFERENCE A 400..480 Hz, MIN / MAX PITCH (the range it listens in). PSOLA; latency
+//                4096 samples. Meters: 0 the sung note, 1 how far it was pulled (cents).
 //  THE DETECTIVE listens and names the song's KEY, two ALTERNATIVES and the song's TUNING (where its A sits).
 //                It keeps listening until the same key has held for 30 seconds (or the music stops for 3 s),
 //                then stops. DETECT stops it, or starts it over. EDIT shows a key of your own choosing (ROOT,
@@ -82,7 +85,9 @@ inline constexpr std::uint32_t kLatency = 4096;
 } // namespace wiseguys
 
 namespace mademan {
-enum P : int { Key, Scale, Speed, Amount, Mix, kCount };
+enum P : int { Key, Scale, Speed, Transition, Ratio, Formant, Shift, Reference, MinPitch, MaxPitch, Note0, kCount = Note0 + 12 };
+inline constexpr int kScales = 21;   // twenty scales and MY NOTES (the last)
+inline constexpr std::uint32_t kLatency = 4096;
 } // namespace mademan
 
 namespace detective {

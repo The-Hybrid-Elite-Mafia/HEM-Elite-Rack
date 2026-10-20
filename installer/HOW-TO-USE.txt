@@ -577,9 +577,13 @@ WISEGUYS
   works on one voice or one instrument line, not chords. It delays the sound by 85 ms (DAWs make up).
 
 MADE MAN
-  Pitch correction for one voice. Set KEY and SCALE (ALL NOTES = every note allowed). SPEED all the way
-  down = hard, robotic snap; up = gentle and natural. AMOUNT sets how far it pulls. SUNG shows the note,
-  PULL how far it moved it.
+  Pitch correction for one voice. Set ROOT and SCALE (CHROMATIC = every note; MY NOTES = only the notes
+  switched on below). SPEED all the way down = the hard, robotic snap; up = gentle and natural. NOTE
+  TRANSITION is how fast it moves from one note to the next. RATIO sets how far it pulls (100 = all
+  the way). FORMANT CORRECTED keeps the voice's character; OFF lets it change with the pitch. SHIFT
+  moves everything (-12 = an octave drop). REFERENCE A for songs tuned off 440. MIN / MAX PITCH: the
+  range of the voice. SUNG shows the note, PULL how far it moved it. It delays the sound by 85 ms (DAWs
+  make up for it) and comes out in mono (one voice). Its twenty scales are ours; the original lists 43.
 
 THE DETECTIVE
   Play the song: after a few seconds it shows the KEY (MAJ / MIN) and keeps listening until the same

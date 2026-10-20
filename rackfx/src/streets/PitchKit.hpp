@@ -214,10 +214,11 @@ private:
             ratio = 1.0f;
         }
         const double ps = pa / std::clamp(ratio, 0.25f, 4.0f);
-        // the grain's half-length as laid down: a period squeezed by the formant move; when nothing is squeezed and
-        // the voice goes down, stretched to the spacing so there are no gaps
+        // the grain's half-length as laid down: one period (one pulse of the voice) squeezed or stretched by the
+        // formant move. Spaced wider than that (a voice going down), the pulses leave gaps between them: that is
+        // what a lower voice is
         const double f = std::clamp(static_cast<double>(formant), 0.25, 4.0);
-        const double lOut = std::min(f > 1.0 ? pa / f : std::max<double>(pa / f, ps), maxL_ / std::max(1.0, f));
+        const double lOut = std::min(pa / f, maxL_ / std::max(1.0, f));
         // the analysis mark nearest this grain, one period after another (so the source keeps its own pace)
         while (ana_ + 0.5 * pa < syn_) ana_ += pa;
         while (ana_ - 0.5 * pa > syn_) ana_ -= pa;
