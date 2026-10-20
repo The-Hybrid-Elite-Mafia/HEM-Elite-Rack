@@ -394,22 +394,73 @@ void testInformant() {
 
 void testStrapped() {
     using namespace strapped;
-    {
-        auto e = make("STRAPPED", {{Delay, 100}, {Note, 4}, {Tight, 20}});   // a quarter note at 120 BPM: 500 ms
+    const auto off = [](std::initializer_list<std::pair<int, float>> v) {   // every colour OFF, mode BYPASS, plus `v`
+        auto e = findPlugin("STRAPPED")->create();
+        e->set(Mode, 3);
+        for (int f = 0; f < kFaders; ++f) e->set(Color0 + f, 0);
+        for (const auto& [i, x] : v) e->set(i, x);
+        e->prepare(kFs, 512);
+        return e;
+    };
+    {   // everything off: the guitar comes through untouched, only late by the latency
+        auto e = off({});
+        Stereo s = impulse(4000);
+        run(*e, s);
+        const std::size_t a = peakAt(s.l, 0, 4000);
+        std::printf("  STRAPPED all off: impulse at %zu (latency %u), height %.4f\n", a, e->latency(), s.l[a]);
+        CHECK(a == 100 + e->latency());
+        CHECK(std::fabs(s.l[a] - 1.0f) < 0.02f);
+    }
+    {   // DELAY 1/4 at 120 BPM: an echo 500 ms later
+        auto e = off({{Color0 + DelayF, 3}, {Fader0 + DelayF, 10}});
         Stereo s = impulse(36000);
         run(*e, s);
         const std::size_t a = peakAt(s.l, 4000, 36000);
-        std::printf("  STRAPPED delay, a quarter note at 120 BPM: echo at %.1f ms\n", (a - 100) / 48.0);
+        std::printf("  STRAPPED delay, a quarter note at 120 BPM: echo at %.1f ms\n", (a - 100.0 - e->latency()) / 48.0);
         CHECK(a > 24050 && a < 24200);
     }
-    {
-        auto e = make("STRAPPED", {{Width, 0}, {Chorus, 100}, {Room, 100}});
+    {   // BASS +10 on 80 Hz lifts the lows by about 12 dB, leaves 5 kHz alone
+        auto e = off({{Color0 + BassF, 1}, {Fader0 + BassF, 10}});
+        const double lo = toneGain(*e, 30.0, 0.05f), hi = toneGain(*e, 5000.0, 0.05f);
+        std::printf("  STRAPPED bass +10 at 80 Hz: 30 Hz %+.1f dB, 5 kHz %+.1f dB\n", lo, hi);
+        CHECK(lo > 10.5 && lo < 12.5);
+        CHECK(std::fabs(hi) < 0.5);
+    }
+    {   // COMPRESS HEAVY at +10 pulls a loud tone down
+        auto e = off({{Color0 + CompressF, 3}, {Fader0 + CompressF, 10}});
+        Stereo s = sine(1000.0, 1.0, 0.7f);
+        run(*e, s);
+        std::printf("  STRAPPED compress heavy +10: reduction %.1f dB\n", e->reductionDb());
+        CHECK(e->reductionDb() < -10.0f);
+    }
+    {   // BALANCE +6 turns the left side down 6 dB
+        auto e = off({{Balance, 6}});
+        Stereo s = sine(1000.0, 0.5, 0.25f);
+        run(*e, s);
+        const double l = db(rms(s.l, 12000, 12000)), r = db(rms(s.r, 12000, 12000));
+        std::printf("  STRAPPED balance +6: left %.2f dB below right\n", r - l);
+        CHECK(std::fabs((r - l) - 6.0) < 0.1);
+    }
+    {   // PITCH WIDEST spreads a mono guitar into stereo
+        auto e = off({{Color0 + PitchF, 3}, {Fader0 + PitchF, 10}});
         Stereo s = noise(0.5, 0.3f);
+        for (std::size_t i = 0; i < s.size(); ++i) s.r[i] = s.l[i];
         run(*e, s);
         double diff = 0;
-        for (std::size_t i = 0; i < s.size(); ++i) diff = std::max(diff, static_cast<double>(std::fabs(s.l[i] - s.r[i])));
-        std::printf("  STRAPPED width 0: largest left/right difference %.2e\n", diff);
-        CHECK(diff < 1e-5);
+        for (std::size_t i = 12000; i < s.size(); ++i) diff = std::max(diff, static_cast<double>(std::fabs(s.l[i] - s.r[i])));
+        std::printf("  STRAPPED pitch widest: largest left/right difference %.3f\n", diff);
+        CHECK(diff > 0.05);
+    }
+    {   // RE-AMP HEAVY drives it: a loud sine gets harmonics
+        auto e = make("STRAPPED", {{Mode, 2}, {ReAmp, 1}});
+        auto c = make("STRAPPED", {{Mode, 2}, {ReAmp, 0}});
+        Stereo a = sine(220.0, 0.5, 0.5f), b = a;
+        run(*e, a);
+        run(*c, b);
+        double d = 0;
+        for (std::size_t i = 12000; i < a.size(); ++i) d = std::max(d, static_cast<double>(std::fabs(a.l[i] - b.l[i])));
+        std::printf("  STRAPPED re-amp heavy: largest change %.3f\n", d);
+        CHECK(d > 0.05);
     }
 }
 

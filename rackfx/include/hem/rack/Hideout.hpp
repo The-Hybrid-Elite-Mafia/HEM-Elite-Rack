@@ -44,8 +44,13 @@
 //                OCTAVE, CHORD, WAVE SAW / PULSE / NOISE). BANDS 16 / 24 / 32, REACT (how quickly the
 //                bands follow), SHIFT (moves the voice's formants), SIBILANCE (lets the esses
 //                through), MIX, OUTPUT.
-//  STRAPPED      guitar mix strip: TIGHT (low cut), COMPRESS, BASS, MIDS, TREBLE, then CHORUS, DELAY
-//                (a NOTE of the tempo) and ROOM, WIDTH, OUTPUT.
+//  STRAPPED      guitar mix desk in six faders. MODE (CLEAN, CRUNCH, HEAVY: each its own fixed voicing; BYPASS: none),
+//                RE-AMP (a modelled amp for the mode, 4x oversampled). SENSITIVITY ±10 dB (in), BALANCE ±6 dB, OUTPUT
+//                ±10 dB. Six faders ±10, each with a colour (OFF bypasses or mutes it): BASS (a low shelf at 80 / 160 /
+//                320 Hz), TREBLE (a high shelf at 3 / 6 / 12 kHz), COMPRESS (LIGHT / MEDIUM / HEAVY; the fader is how
+//                hard), REVERB (SMALL / MEDIUM / LARGE; the fader is how much), DELAY (1/8, 1/8 D, 1/4 of the tempo;
+//                how much) and PITCH (NARROW / WIDE / WIDEST doubled-and-detuned spread; how much). Meters: input and
+//                output peaks. Latency 23 samples, always.
 //  SAFE HOUSE    speakers in your headphones: each ear hears both speakers, the far one later and
 //                darker, plus the room. ROOM DRY / STUDIO / LIVE, ANGLE (how wide the speakers sit),
 //                CROSSFEED, ROOM level, BASS, OUTPUT. For listening only: bypass it before exporting.
@@ -107,7 +112,8 @@ enum P : int { Note, Octave, Chord, Wave, Bands, React, Shift, Sibilance, Mix, O
 } // namespace informant
 
 namespace strapped {
-enum P : int { Tight, Compress, Bass, Mids, Treble, Chorus, Delay, Note, Room, Width, Output, kCount };
+enum Fader : int { BassF, TrebleF, CompressF, ReverbF, DelayF, PitchF, kFaders };
+enum P : int { Mode, ReAmp, Sensitivity, Balance, Output, Fader0, Color0 = Fader0 + kFaders, kCount = Color0 + kFaders };
 } // namespace strapped
 
 namespace safehouse {

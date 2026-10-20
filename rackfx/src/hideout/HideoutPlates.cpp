@@ -82,9 +82,14 @@ constexpr PlateChoice steppers[] = {{Octave, "OCTAVE"}};
 // ---- STRAPPED
 namespace st {
 using namespace strapped;
-constexpr PlateChoice choices[] = {{Note, "DELAY NOTE"}};
-constexpr PlateKnob row1[] = {{Tight, "TIGHT"}, {Compress, "COMPRESS"}, {Bass, "BASS"}, {Mids, "MIDS"}, {Treble, "TREBLE"}};
-constexpr PlateKnob row2[] = {{Chorus, "CHORUS"}, {Delay, "DELAY"}, {Room, "ROOM"}, {Width, "WIDTH"}, {Output, "OUTPUT"}};
+constexpr PlateKnob bandKnobs[] = {{0, "LEVEL"}};
+constexpr PlateChoice bandSteppers[] = {{kFaders, "COLOR"}};
+constexpr const char* columnNames[] = {"BASS", "TREBLE", "COMPRESS", "REVERB", "DELAY", "PITCH"};
+constexpr PlateBands bands{.count = kFaders, .first = Fader0, .stride = 1, .knobs = bandKnobs, .steppers = bandSteppers,
+                           .columnNames = columnNames};
+constexpr PlateKnob row1[] = {{Sensitivity, "SENSITIVITY"}, {Balance, "BALANCE"}, {Output, "OUTPUT"}};
+constexpr PlateToggle toggles[] = {{ReAmp, "RE-AMP"}};
+constexpr PlateChoice steppers[] = {{Mode, "MODE"}};
 } // namespace st
 
 // ---- SAFE HOUSE
@@ -121,9 +126,13 @@ const PlateSpec kHustle{.note1 = "LEVEL, PITCH, PLACE", .note2 = "ONE MOTION", .
 const PlateSpec kInformant{.note1 = "THE WORDS TALK", .note2 = "THE SYNTH SINGS", .screen = Screen::None, .choices = inf::choices,
                            .row1 = inf::row1, .row2 = inf::row2, .steppers = inf::steppers,
                            .demo = [](hc::fx::Effect& e) { using namespace informant; e.set(Note, 9); e.set(Chord, 3); }};
-const PlateSpec kStrapped{.note1 = "THE GUITAR", .note2 = "READY FOR THE MIX", .screen = Screen::None, .choices = st::choices,
-                          .row1 = st::row1, .row2 = st::row2,
-                          .demo = [](hc::fx::Effect& e) { using namespace strapped; e.set(Compress, 50); e.set(Chorus, 30); e.set(Delay, 25); e.set(Room, 30); }};
+const PlateSpec kStrapped{.note1 = "THE GUITAR", .note2 = "READY FOR THE MIX", .screen = Screen::None, .toggles = st::toggles,
+                          .row1 = st::row1, .steppers = st::steppers, .bands = &st::bands, .reportsReduction = true,
+                          .demo = [](hc::fx::Effect& e) {
+                              using namespace strapped;
+                              e.set(Mode, 1); e.set(Fader0 + CompressF, 3); e.set(Fader0 + ReverbF, -2); e.set(Fader0 + DelayF, -4);
+                              e.set(Fader0 + BassF, 2); e.set(Fader0 + PitchF, -3);
+                          }};
 const PlateSpec kSafeHouse{.note1 = "SPEAKERS IN", .note2 = "YOUR HEADPHONES", .screen = Screen::None, .choices = sh::choices, .row1 = sh::row1,
                            .demo = [](hc::fx::Effect& e) { e.set(safehouse::Room, 2); }};
 
