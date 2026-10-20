@@ -120,6 +120,21 @@ constexpr PlateKnob row2[] = {{LowDampHz, "LOW HZ", "", "", K::Small}, {LowRatio
                               {EqHighHz, "EQ HI HZ", "", "", K::Small}, {EqHighGain, "EQ HI", "CUT", "+12", K::Small}, {Gain, "GAIN", "", "", K::Small}};
 } // namespace bh
 
+// ---- SPEAKEASY
+namespace se {
+using namespace speakeasy;
+constexpr PlateReadout readouts[] = {{0, "PEAK L", "dBFS", "+"}, {1, "PEAK R", "dBFS", "+"}};
+constexpr PlateToggle toggles[] = {{Link, "REAL ROOM"}, {RVar, "TAIL TAKE"}, {Reset, "RESET PEAKS", true}};
+constexpr PlateToggle leftToggles[] = {{DirectOn, "DIRECT"}, {EarlyOn, "EARLY"}, {ReverbOn, "REVERB"}};
+constexpr PlateChoice steppers[] = {{EVar, "EARLY TAKE"}};
+constexpr PlateKnob row1[] = {{RoomSize, "ROOM SIZE", "50", "20K", K::Big}, {Distance, "DISTANCE", "0.5", "50", K::Big}, {Dimension, "ROOM SHAPE", "1", "4"},
+                              {Balance, "BALANCE"}, {DecayTime, "DECAY"}, {PreDelay, "PRE-DELAY"}, {Density, "DENSITY", "0", "1"}};
+constexpr PlateKnob row2[] = {{RevShelf, "TAIL DULL", "", "", K::Small}, {ErAbsorb, "EARLY DULL", "", "", K::Small}, {ShelfFreq, "DULL ABOVE", "", "", K::Small},
+                              {LfDamp, "LOW HZ", "", "", K::Small}, {LfRatio, "LOW X", "", "", K::Small}, {HfRatio, "HIGH X", "", "", K::Small},
+                              {HfDamp, "HIGH HZ", "", "", K::Small}, {Input, "INPUT", "OFF", "0", K::Small}, {DirectGain, "DIRECT", "", "", K::Small},
+                              {EarlyGain, "EARLY", "", "", K::Small}, {ReverbGain, "REVERB", "", "", K::Small}};
+} // namespace se
+
 // ---- STRAPPED
 namespace st {
 using namespace strapped;
@@ -185,6 +200,9 @@ const PlateSpec kStreetTeam{.note1 = "THE WHOLE CHANNEL", .note2 = "ONE PLATE", 
 const PlateSpec kBigHouse{.note1 = "TWELVE KINDS", .note2 = "OF SPACE", .screen = Screen::Readouts, .readouts = bh::readouts, .toggles = bh::toggles,
                           .row1 = bh::row1, .row2 = bh::row2, .steppers = bh::steppers,
                           .demo = [](hc::fx::Effect& e) { e.set(bighouse::Time, 3.2f); e.set(bighouse::Mix, 40); }};
+const PlateSpec kSpeakeasy{.note1 = "A REAL ROOM", .note2 = "AT A REAL DISTANCE", .screen = Screen::Readouts, .readouts = se::readouts,
+                           .toggles = se::toggles, .row1 = se::row1, .row2 = se::row2, .leftToggles = se::leftToggles, .steppers = se::steppers,
+                           .demo = [](hc::fx::Effect& e) { e.set(speakeasy::Distance, 8); e.set(speakeasy::Balance, 3); }};
 const PlateSpec kStrapped{.note1 = "THE GUITAR", .note2 = "READY FOR THE MIX", .screen = Screen::None, .toggles = st::toggles,
                           .row1 = st::row1, .steppers = st::steppers, .bands = &st::bands, .reportsReduction = true,
                           .demo = [](hc::fx::Effect& e) {

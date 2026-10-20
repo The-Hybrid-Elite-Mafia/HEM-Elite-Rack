@@ -78,6 +78,15 @@
 //                MIX 0–100 %, the tail's damping (LOW HZ 16–1600 with its RATIO 0.1–2, HIGH HZ 1–21 kHz with its RATIO),
 //                the tail's EQ (low and high shelves, -24..+12 dB; -24 = a cut), GAIN -24..0 dB. Peaks L / R with RESET.
 //                Zero latency (a minus PRE-DELAY makes the whole sound that much late).
+//  SPEAKEASY     a real room around the sound: ROOM SIZE 50–20000 m³, DISTANCE 0.5–50 m (how far the source stands; it
+//                sets the gap to the first reflections and, with REAL ROOM on, the levels and the reverb's pre-delay as
+//                in a real room), ROOM SHAPE 1–3.99 (the early reflections' pattern: higher = more and denser), BALANCE
+//                ±18 dB (more reverb, less direct and early, the loudness kept), DECAY 0.1–20 s, PRE-DELAY 10–500 ms
+//                (REAL ROOM off), DENSITY 0–1 (how fast the reverb builds), TAIL DULL -24..0 dB and EARLY DULL -24..0 dB
+//                (highs off the reverb's input and off the early reflections, above DULL ABOVE 1–20 kHz), the tail's
+//                damping (LOW HZ 20 Hz–1 kHz with LOW X 0.1–2, HIGH HZ 1–20 kHz with HIGH X 0.1–2), EARLY TAKE 0–6 and
+//                TAIL TAKE (a slightly different early pattern / reverb), INPUT (-60 = off ..0 dB), DIRECT, EARLY and
+//                REVERB each on with a level -24..+6 dB. Peaks L / R with RESET. Zero latency.
 //  THE INFORMANT vocoder: the MODULATOR (L+R, LEFT or RIGHT of the input: the words) shapes the CARRIER (its own
 //                SYNTH, or the input's LEFT, RIGHT or STEREO). The synth: 48 keys (C2–B5, eight voices: more held keys
 //                than voices are ignored), LATCH (HOLD: a key sounds while held; LATCH: a click latches it),
@@ -181,6 +190,10 @@ namespace bighouse {
 enum P : int { Type, Variation, PreDelay, Time, Size, Diffusion, Decay, EarlyLevel, ReverbLevel, Mix, LowDampHz, LowRatio, HighDampHz,
                HighRatio, EqLowHz, EqLowGain, EqHighHz, EqHighGain, Gain, Reset, kCount };
 } // namespace bighouse
+namespace speakeasy {
+enum P : int { Dimension, RoomSize, Distance, Link, Balance, DecayTime, PreDelay, Density, RevShelf, ErAbsorb, ShelfFreq, LfDamp, LfRatio,
+               HfRatio, HfDamp, EVar, RVar, Input, DirectOn, DirectGain, EarlyOn, EarlyGain, ReverbOn, ReverbGain, Reset, kCount };
+} // namespace speakeasy
 namespace informant {
 inline constexpr int kEqBands = 5, kEqStride = 4, kKeys = 48, kLowKey = 36;   // keys: MIDI 36 (C2) .. 83 (B5)
 inline constexpr int kPaths = 4, CarrierPath = 0, ModPath = 1, NoisePath = 2, MorphPath = 3;
@@ -213,6 +226,7 @@ enum P : int { Sync, Bpm, Time, Note, Tap, Dual, TimeR, NoteR, Feedback, PingPon
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeSlinger();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeStreetTeam();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeBigHouse();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeSpeakeasy();
 struct CurveInfo;
 namespace streetteam { extern const CurveInfo kCurve; }
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeSixShooter();

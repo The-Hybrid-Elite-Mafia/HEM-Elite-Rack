@@ -106,8 +106,10 @@ public:
         lp_[0] = lp_[1] = 0.0f;
     }
     // spanMs: when the last reflection arrives; seed: the variation; spread: 1 = taps evenly spread, larger = bunched
-    // early (a higher "dimension" gives more, denser reflections later); absorbHz: high-frequency absorption corner
-    void set(double spanMs, int seed, double spread, int taps, double absorbHz) noexcept {
+    // early (a higher "dimension" gives more, denser reflections later); absorbHz: high-frequency absorption corner;
+    // startMs: when the first reflection can arrive (the taps fill startMs..spanMs)
+    void set(double spanMs, int seed, double spread, int taps, double absorbHz, double startMs = 0.0) noexcept {
+        startMs = std::clamp(startMs, 0.0, spanMs);
         n_ = std::clamp(taps, 1, kTaps);
         std::uint32_t r = 0x9E3779B9u * static_cast<std::uint32_t>(seed + 1);
         for (int s = 0; s < 2; ++s)
@@ -115,7 +117,7 @@ public:
                 r = r * 1664525u + 1013904223u;
                 const double jitter = (static_cast<double>(r >> 8) / 16777216.0 - 0.5) * 0.8;
                 const double pos = std::pow((k + 1.0 + jitter) / (n_ + 0.5), spread);
-                at_[s][static_cast<std::size_t>(k)] = static_cast<float>(std::max(1.0, pos * spanMs * 0.001 * fs_));
+                at_[s][static_cast<std::size_t>(k)] = static_cast<float>(std::max(1.0, (startMs + pos * (spanMs - startMs)) * 0.001 * fs_));
                 r = r * 1664525u + 1013904223u;
                 const float sign = (r >> 31) ? -1.0f : 1.0f;
                 gain_[s][static_cast<std::size_t>(k)] = sign * static_cast<float>(0.9 / std::sqrt(n_) * (1.0 - 0.6 * pos));

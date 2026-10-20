@@ -83,6 +83,7 @@ C++23 audio framework, as a library.
 | **SLINGER** | Guitar compressor: threshold (the ratio follows), attack, gain into a limiter; input, attenuation, output, limiter readouts |
 | **STREET TEAM** | Channel strip: input, four-band EQ (cut / shelves / bells), gate with floor, compressor / expander, output |
 | **BIG HOUSE** | Reverb with twelve kinds of space (halls, room, chamber, sanctuary, plates, backwards, gated, shaped, echo room, ringing): variation, pre-delay either way, time, size, diffusion, decay shape, early / reverb levels, damping ratios, tail EQ, mix, gain |
+| **SPEAKEASY** | A real room around the sound: room size, distance (sets the first-reflection gap, and with REAL ROOM the levels and pre-delay as in a real room), room shape, balance, decay, pre-delay, density, dulling of the tail and the early reflections, low / high decay ratios, two variations, input, direct / early / reverb on with levels |
 | **THE INFORMANT** | Vocoder with its own 8-voice synth on 48 keys (hold or latch), ten sounds, tune, spread; noise with its filter; squeeze, formant, lag, hold; five-band EQ; carrier / modulator / noise / vocoded mixer with solo and mute |
 | **STRAPPED** | Guitar mix desk: clean tone / edge / high gain, re-amp, then six faders with a style each: bass, treble, compress, reverb, delay, pitch |
 | **SAFE HOUSE** | Speakers in your headphones: room, speaker angle, head turn, head size, ear to ear, mute left / right (for listening; bypass before export) |

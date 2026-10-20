@@ -424,6 +424,17 @@ BIG HOUSE
   down = off), MIX. LOW / HIGH HZ with their X: the lows or highs last longer (over 1) or shorter (under 1).
   EQ LO / EQ HI shape the tail (all the way down = a cut). VARIATION changes the early reflections a bit.
 
+SPEAKEASY
+  Puts the sound in a real room. ROOM SIZE = how big the room is, DISTANCE = how far away the sound
+  stands (closer = a longer gap before the first reflections and more direct sound). With REAL ROOM on,
+  the direct, early and reverb levels and the reverb's start all follow the room and the distance, like
+  walking back in a real space; turn it off to set PRE-DELAY yourself. ROOM SHAPE changes the early
+  reflections (higher = more of them, denser). BALANCE = more room, less direct, same loudness.
+  DECAY = how long the tail lasts, DENSITY = how fast it thickens. TAIL DULL and EARLY DULL take highs off
+  the reverb and the early reflections above DULL ABOVE. LOW HZ / LOW X and HIGH HZ / HIGH X: the lows or
+  highs last longer (over 1) or shorter (under 1). EARLY TAKE / TAIL TAKE give a slightly different room.
+  DIRECT, EARLY and REVERB switch each part on or off, each with its own level. INPUT all the way down = off.
+
 THE INFORMANT
   Talk or sing into it and its own synth "speaks" your words. Play the synth on the 48 KEYS (up to
   eight at once): HOLD = a key sounds while you hold it (drag across for a glide), LATCH = a click

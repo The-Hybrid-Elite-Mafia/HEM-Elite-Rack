@@ -1,10 +1,17 @@
-# HEM-Elite-Rack 0.30.0
+# HEM-Elite-Rack 0.31.0
 
+- **SPEAKEASY** (new) — a real room around the sound, every control: room size, distance, room shape, real room (levels and
+  pre-delay follow the room and the distance), balance, decay, pre-delay, density, tail / early dulling above a frequency, low and
+  high decay with ratios, early / tail variations, input, and direct / early / reverb each switchable with its own level.
 - **BIG HOUSE** (new) — reverb with twelve kinds of space and every control: variation, pre-delay either way, time, size,
   diffusion, decay shape, early and reverb levels, low and high damping with ratios, tail EQ, mix, gain.
 - **MOUTHPIECE** (new) — vocal leveler in one move: gate, press, ceiling, with total / output / input readouts.
 - **SLINGER** (new) — guitar compressor: threshold, attack, gain into a limiter, with input / attenuation / output / limiter readouts.
 - **STREET TEAM** (new) — channel strip: input, four-band EQ, gate with floor, compressor / expander, output.
+- Each control label on these five was checked against the original's wording and given our own words.
+
+# HEM-Elite-Rack 0.30.0
+
 - **COLD CASE** (new) — swept notches and a ringing loop, every control on its own plate: notches, depth, flip, stereo, low cut;
   the sweep's run, wave, rate, multiplier, tempo and range; the loop's decay, flip, delay, density, hi tame and filter; high cut,
   width, rotate, pre-delay, wet mode, mix, gain. (Its ranges are our own: the original's manual does not give them.)

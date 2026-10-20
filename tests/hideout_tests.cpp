@@ -51,7 +51,7 @@ double peakIn(const std::vector<float>& x, std::size_t from, std::size_t to) {
 }
 
 void allRules() {
-    for (const char* name : {"BIG HOUSE", "MOUTHPIECE", "SLINGER", "STREET TEAM", "COLD CASE", "SWERVE", "THE FIXER", "SIX SHOOTER", "DEAD DROP", "BACK ALLEY", "DRIVE-BY", "BODY DOUBLE", "HUSTLE", "THE INFORMANT", "STRAPPED", "SAFE HOUSE"}) {
+    for (const char* name : {"SPEAKEASY", "BIG HOUSE", "MOUTHPIECE", "SLINGER", "STREET TEAM", "COLD CASE", "SWERVE", "THE FIXER", "SIX SHOOTER", "DEAD DROP", "BACK ALLEY", "DRIVE-BY", "BODY DOUBLE", "HUSTLE", "THE INFORMANT", "STRAPPED", "SAFE HOUSE"}) {
         const PluginInfo* info = findPlugin(name);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
@@ -726,6 +726,91 @@ void testBigHouse() {
     }
 }
 
+void testSpeakeasy() {
+    using namespace speakeasy;
+    auto mk = [](std::initializer_list<std::pair<int, float>> v) {
+        auto e = findPlugin("SPEAKEASY")->create();
+        for (const auto& [i, x] : v) e->set(i, x);
+        e->prepare(kFs, 512);
+        return e;
+    };
+    {   // only the direct sound, at 1 m: untouched; at 10 m: 20 dB down
+        auto e = mk({{Distance, 1}, {EarlyOn, 0}, {ReverbOn, 0}});
+        Stereo s = noise(0.3, 0.2f), ref = s;
+        run(*e, s);
+        double d = 0;
+        for (std::size_t i = 0; i < s.size(); ++i) d = std::max(d, static_cast<double>(std::fabs(s.l[i] - ref.l[i])));
+        CHECK(d < 1e-6);
+        auto far = mk({{Distance, 10}, {EarlyOn, 0}, {ReverbOn, 0}});
+        std::printf("  SPEAKEASY direct at 1 m: change %.1e; at 10 m: %.1f dB\n", d, toneGain(*far, 1000, 0.2f));
+        CHECK(std::fabs(toneGain(*far, 1000, 0.2f) + 20.0) < 0.2);
+    }
+    auto firstAt = [&](std::initializer_list<std::pair<int, float>> v) {
+        auto e = mk(v);
+        Stereo s = impulse(48000);
+        run(*e, s);
+        for (std::size_t i = 101; i < s.size(); ++i)
+            if (std::fabs(s.l[i]) > 1e-4f) return (static_cast<double>(i) - 100.0) / 48.0;
+        return -1.0;
+    };
+    {   // closer = a longer gap to the first reflection
+        const double nearMs = firstAt({{Distance, 1}, {DirectOn, 0}, {ReverbOn, 0}, {RoomSize, 8000}});
+        const double farMs = firstAt({{Distance, 15}, {DirectOn, 0}, {ReverbOn, 0}, {RoomSize, 8000}});
+        std::printf("  SPEAKEASY first reflection, 8000 m3: at 1 m %.1f ms, at 15 m %.1f ms\n", nearMs, farMs);
+        CHECK(nearMs > farMs + 5.0);
+        // LINK off: the reverb waits PRE-DELAY
+        const double pre = firstAt({{Link, 0}, {PreDelay, 200}, {DirectOn, 0}, {EarlyOn, 0}});
+        std::printf("  SPEAKEASY link off, pre-delay 200 ms: the reverb starts at %.1f ms\n", pre);
+        CHECK(pre >= 200.0 && pre < 240.0);
+    }
+    {   // BALANCE +12: reverb up 6 dB, direct down 6 dB
+        auto lvl = [&](float bal, bool reverbOnly) {
+            auto e = mk({{Balance, bal}, {EarlyOn, 0}, {DirectOn, reverbOnly ? 0.0f : 1.0f}, {ReverbOn, reverbOnly ? 1.0f : 0.0f}});
+            Stereo s = noise(1.0, 0.2f);
+            run(*e, s);
+            return db(rms(s.l, 24000, 24000));
+        };
+        const double r0 = lvl(0, true), r12 = lvl(12, true), d0 = lvl(0, false), d12 = lvl(12, false);
+        std::printf("  SPEAKEASY balance +12: reverb %+.2f dB, direct %+.2f dB\n", r12 - r0, d12 - d0);
+        CHECK(std::fabs(r12 - r0 - 6.0) < 0.3 && std::fabs(d12 - d0 + 6.0) < 0.1);
+    }
+    {   // DECAY: the reverb falls about 60 dB over DECAY
+        auto tailDb = [&](float t, double at) {
+            auto e = mk({{DecayTime, t}, {DirectOn, 0}, {EarlyOn, 0}});
+            Stereo s = impulse(static_cast<std::size_t>(4.0 * kFs));
+            run(*e, s);
+            return db(rms(s.l, static_cast<std::size_t>(at * kFs), 4800));
+        };
+        const double a = tailDb(1.0f, 0.3), b = tailDb(1.0f, 1.3);
+        std::printf("  SPEAKEASY decay 1 s: %.1f dB down from 0.3 s to 1.3 s\n", a - b);
+        CHECK(a - b > 45.0 && a - b < 75.0);
+    }
+    {   // INPUT -60 = off; REVERB GAIN +6 = 6 dB more reverb
+        auto e = mk({{Input, -60}});
+        Stereo s = noise(0.3, 0.2f);
+        run(*e, s);
+        CHECK(peakIn(s.l, 0, s.size()) < 1e-6);
+        auto lv = [&](float g) {
+            auto x = mk({{ReverbGain, g}, {DirectOn, 0}, {EarlyOn, 0}});
+            Stereo t = noise(1.0, 0.2f);
+            run(*x, t);
+            return db(rms(t.l, 24000, 24000));
+        };
+        std::printf("  SPEAKEASY reverb gain +6: %+.2f dB\n", lv(6) - lv(0));
+        // REV SHELF -24 at 2 kHz: the reverb's highs drop, its lows stay; ER ABSORB the same on the early reflections
+        auto band = [&](int which, float cut, float hz) {
+            auto x = mk({{RevShelf, which == 0 ? cut : 0.0f}, {ErAbsorb, which == 1 ? cut : 0.0f}, {ShelfFreq, 2000},
+                         {DirectOn, 0}, {EarlyOn, which == 1 ? 1.0f : 0.0f}, {ReverbOn, which == 0 ? 1.0f : 0.0f}});
+            return outDb(*x, hz, 0.2f);
+        };
+        const double rh = band(0, -24, 8000) - band(0, 0, 8000), rl = band(0, -24, 200) - band(0, 0, 200);
+        const double eh = band(1, -24, 8000) - band(1, 0, 8000), el = band(1, -24, 200) - band(1, 0, 200);
+        std::printf("  SPEAKEASY shelf -24 at 2 kHz: reverb 8 kHz %+.1f / 200 Hz %+.1f dB, early 8 kHz %+.1f / 200 Hz %+.1f dB\n", rh, rl, eh, el);
+        CHECK(rh < -15.0 && std::fabs(rl) < 2.0 && eh < -15.0 && std::fabs(el) < 2.0);
+        CHECK(std::fabs(lv(6) - lv(0) - 6.0) < 0.1);
+    }
+}
+
 void testInformant() {
     using namespace informant;
     // a talking-like modulator: noise in short bursts; the morph only (no noise path)
@@ -957,6 +1042,7 @@ void testHideout() {
     testColdCase();
     testVoiceDynamics();
     testBigHouse();
+    testSpeakeasy();
     testSixShooter();
     testBackAlley();
     testDriveBy();
