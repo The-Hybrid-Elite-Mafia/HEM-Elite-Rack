@@ -7,12 +7,15 @@
 #include "hem/rack/Hideout.hpp"
 #include "hem/rack/Comeback.hpp"
 #include "hem/rack/Garage.hpp"
+#include "hem/rack/Holdouts.hpp"
 #include "hem/rack/Plugins.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <initializer_list>
 #include <memory>
+#include <chrono>
+#include <thread>
 #include <utility>
 
 namespace hem::test {
@@ -53,7 +56,7 @@ double peakIn(const std::vector<float>& x, std::size_t from, std::size_t to) {
 }
 
 void allRules() {
-    for (const char* name : {"PAWN SHOP", "COIL", "SPEAKEASY", "BIG HOUSE", "MOUTHPIECE", "SLINGER", "STREET TEAM", "COLD CASE", "SWERVE", "THE FIXER", "SIX SHOOTER", "DEAD DROP", "BACK ALLEY", "DRIVE-BY", "BODY DOUBLE", "HUSTLE", "THE INFORMANT", "STRAPPED", "SAFE HOUSE"}) {
+    for (const char* name : {"FINGERPRINT", "PAWN SHOP", "COIL", "SPEAKEASY", "BIG HOUSE", "MOUTHPIECE", "SLINGER", "STREET TEAM", "COLD CASE", "SWERVE", "THE FIXER", "SIX SHOOTER", "DEAD DROP", "BACK ALLEY", "DRIVE-BY", "BODY DOUBLE", "HUSTLE", "THE INFORMANT", "STRAPPED", "SAFE HOUSE"}) {
         const PluginInfo* info = findPlugin(name);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
@@ -1249,9 +1252,103 @@ void testSafeHouse() {
 
 } // namespace
 
+// FINGERPRINT: the convolution is exact (against a plain sum), the responses' energy and reverb times, the
+// controls that shape them, and a change of space made in the background while it plays.
+void testFingerprint() {
+    using namespace fingerprint;
+    auto fp = [](std::initializer_list<std::pair<int, float>> v) { return make("FINGERPRINT", v); };
+    constexpr std::size_t L = kBlock;
+    // the response to a click (all wet, no direct sound): energy 1 per side, nothing before the latency
+    auto e = fp({{Space, 7}, {Length, 0.3f}});
+    CHECK(e->latency() == kBlock);
+    Stereo imp(48000);
+    imp.l[0] = imp.r[0] = 1.0f;
+    run(*e, imp);
+    double before = 0, energyL = 0, energyR = 0;
+    for (std::size_t i = 0; i < L; ++i) before = std::max(before, static_cast<double>(std::fabs(imp.l[i])));
+    for (std::size_t i = L; i < imp.size(); ++i) { energyL += static_cast<double>(imp.l[i]) * imp.l[i]; energyR += static_cast<double>(imp.r[i]) * imp.r[i]; }
+    // noise through it, against the plain sum of the noise times the measured response
+    auto e2 = fp({{Space, 7}, {Length, 0.3f}});
+    Stereo nz = noise(0.4, 0.5f, 21), ref = nz;
+    run(*e2, nz, 300);
+    const std::size_t irLen = static_cast<std::size_t>(0.3 * 48000) + L;
+    double err = 0, mag = 0;
+    for (std::size_t i = L; i < nz.size(); i += 7) {
+        double yl = 0, yr = 0;
+        for (std::size_t k = L; k < std::min(i + 1, irLen); ++k) {
+            yl += static_cast<double>(imp.l[k]) * ref.l[i - k + 0] * 1.0;
+            yr += static_cast<double>(imp.r[k]) * ref.r[i - k];
+        }
+        err = std::max({err, std::fabs(yl - nz.l[i]), std::fabs(yr - nz.r[i])});
+        mag = std::max(mag, std::fabs(yl));
+    }
+    std::printf("  FINGERPRINT click: nothing before %zu samples (%.1e), energy L %.3f R %.3f (cut to 0.3 s); noise against a plain sum: "
+                "worst %.2e of %.2f\n", L, before, energyL, energyR, err, mag);
+    CHECK(before < 1e-6 && energyL > 0.3 && energyL < 1.01 && energyR > 0.3 && energyR < 1.01 && err < 1e-4 * std::max(1.0, mag));
+    // the whole response: energy 1; MIX 0 = the dry sound, held back by the latency; DIRECT = 0.3 at the latency
+    {
+        auto full = fp({{Space, 2}});
+        Stereo c(48000 * 2);
+        c.l[0] = c.r[0] = 1.0f;
+        run(*full, c);
+        double en = 0;
+        for (float v : c.l) en += static_cast<double>(v) * v;
+        auto dryOnly = fp({{Mix, 0}});
+        Stereo d(4000);
+        d.l[10] = 0.7f;
+        run(*dryOnly, d);
+        auto dir = fp({{Space, 2}, {Direct, 1}});
+        Stereo t(2000);
+        t.l[0] = 1.0f;
+        run(*dir, t);
+        std::printf("  FINGERPRINT LIVE ROOM: energy %.4f; MIX 0: the click at %zu = %.3f; DIRECT: %.3f at the latency\n", en, 10 + L,
+                    static_cast<double>(d.l[10 + L]), static_cast<double>(t.l[L]));
+        CHECK(std::fabs(en - 1.0) < 0.01 && std::fabs(d.l[10 + L] - 0.7f) < 1e-6f && std::fabs(t.l[L] - 0.3f) < 0.05f);
+    }
+    // the reverb times as built, and DECAY
+    {
+        const float hall = fp({{Space, 7}})->meter(Rt60), booth = fp({{Space, 0}})->meter(Rt60), church = fp({{Space, 9}})->meter(Rt60);
+        const float half = fp({{Space, 7}, {Decay, 0.5f}})->meter(Rt60);
+        std::printf("  FINGERPRINT RT60: CONCERT HALL %.2f s (built from 2.2), DECAY 0.5 %.2f s, VOCAL BOOTH %.2f s, CHURCH %.2f s\n", hall, half, booth, church);
+        CHECK(std::fabs(hall - 2.2f) < 0.4f && std::fabs(half - 0.5f * hall) < 0.2f * hall && booth < 0.4f && church > 3.0f);
+    }
+    // PRE-DELAY 100 ms moves the reverb back
+    {
+        auto pd = fp({{Space, 0}, {PreDelay, 100}});
+        Stereo c(48000);
+        c.l[0] = c.r[0] = 1.0f;
+        run(*pd, c);
+        std::size_t first = 0;
+        for (std::size_t i = 0; i < c.size(); ++i)
+            if (std::fabs(c.l[i]) > 1e-4f) { first = i; break; }
+        std::printf("  FINGERPRINT PRE-DELAY 100 ms: first sound at %zu samples (from %zu)\n", first, L + 4800);
+        CHECK(first >= L + 4800 && first < L + 4800 + 480);
+    }
+    // a new space while it plays: made in the background, faded in, the readouts follow
+    {
+        auto live = fp({{Space, 9}});
+        Stereo blockS(512);
+        const float was = live->meter(Rt60);
+        live->set(Space, 0);
+        int waited = 0;
+        while ((live->meter(Rt60) > 0.5f || live->meter(Ready) < 0.5f) && waited < 3000) {
+            live->process(blockS.l.data(), blockS.r.data(), 512);
+            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            waited += 2;
+        }
+        std::printf("  FINGERPRINT CHURCH -> VOCAL BOOTH while playing: RT60 %.2f -> %.2f s, ready after about %d ms\n", was, live->meter(Rt60), waited);
+        CHECK(was > 3.0f && live->meter(Rt60) < 0.5f && live->meter(Ready) > 0.5f);
+    }
+    // the same result whatever the host's block size
+    const double d = blockSizeDifference(*findPlugin("FINGERPRINT"), [](hc::fx::Effect& x) { x.set(Space, 3); x.set(Mix, 60); }, noise(0.5, 0.3f, 4));
+    std::printf("  FINGERPRINT block size 512 vs 1: %.2e\n", d);
+    CHECK(d < 1e-6);
+}
+
 void testHideout() {
     std::printf("[the hideout]\n");
     allRules();
+    testFingerprint();
     testFixer();
     testDeadDrop();
     testSwerve();

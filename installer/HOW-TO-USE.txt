@@ -490,6 +490,16 @@ COIL
   how soon the peaks get rounded (quiet sounds stay the same level). PRE-DELAY waits before the
   springs. TREBLE and BASS shape the reverb only. MIX, OUTPUT; MONO puts the same reverb on both sides.
 
+FINGERPRINT
+  A convolution reverb: it plays your sound through the "fingerprint" of a space (its impulse
+  response). SPACE picks one of sixteen; the RT60 window shows how long that reverb lasts. START skips
+  the front of it, LENGTH cuts it shorter (6 = all of it), DECAY makes it die faster (1 = as it is).
+  MIX 100 = reverb only (for a send), lower = some of the dry sound. DIRECT adds the space's own direct
+  sound. PRE-DELAY waits before the reverb; DRY DELAY holds the dry sound back instead. CPU LOW drops the
+  part of the reverb you can't hear (60 dB down). CROSSTALK lets each side feed the other's reverb.
+  OUTPUT. When you change the space, READY goes out for a moment while it is made, then it fades in.
+  The original loads recorded spaces; ours are made by the plug-in.
+
 SPEAKEASY
   Puts the sound in a real room. ROOM SIZE = how big the room is, DISTANCE = how far away the sound
   stands (closer = a longer gap before the first reflections and more direct sound). With REAL ROOM on,

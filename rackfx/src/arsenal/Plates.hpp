@@ -13,7 +13,7 @@ extern const PlateSpec kStraightShooter, kBottomLine, kTenToes, kFourCorners, kS
 extern const PlateSpec kFoundry, kBoardroom, kMidtown, kCoil, kMixtape, kCrateDigger, kShredder;
 extern const PlateSpec kHeavyHitter, kReelMoney, kHothead, kHotWire, kBottomFeeder;
 // the hideout (hideout/HideoutPlates.cpp)
-extern const PlateSpec kFixer, kDeadDrop, kBackAlley, kDriveBy, kHustle, kSwerve, kBigHouse, kSpeakeasy, kMouthpiece, kSlinger, kStreetTeam, kStrapped, kSafeHouse;
+extern const PlateSpec kFixer, kDeadDrop, kBackAlley, kDriveBy, kHustle, kSwerve, kBigHouse, kSpeakeasy, kMouthpiece, kSlinger, kStreetTeam, kStrapped, kSafeHouse, kFingerprint;
 // the streets (streets/StreetsPlates.cpp)
 extern const PlateSpec kTorch, kSnitch, kPromotion, kWiseguys, kMadeMan, kDetective, kWitness, kLiveWire;
 // the maximizers (maxim/MaximPlates.cpp)

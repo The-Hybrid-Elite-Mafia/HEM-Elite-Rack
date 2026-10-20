@@ -78,6 +78,7 @@ add_library(hem_rackfx STATIC
     src/hideout/VoxKit.cpp
     src/hideout/BigHouse.cpp
     src/hideout/Speakeasy.cpp
+    src/hideout/Fingerprint.cpp
     src/hideout/Strapped.cpp
     src/hideout/SafeHouse.cpp
     src/hideout/HideoutPlates.cpp

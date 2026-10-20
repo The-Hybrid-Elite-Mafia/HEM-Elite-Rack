@@ -1,3 +1,10 @@
+# HEM-Elite-Rack 0.37.0
+
+- **FINGERPRINT** (new) — convolution reverb with its original's full control set: space (sixteen impulse responses we make
+  ourselves: booth, rooms, chambers, halls, church, plates, springs, garage; the original loads recordings), start, length,
+  decay, mix, direct, pre-delay, dry delay, CPU full / low, output, crosstalk, and an RT60 readout. A new space is made in the
+  background and faded in, so the sound never stops. Latency 512 samples.
+
 # HEM-Elite-Rack 0.36.0
 
 - **THE RACKET** rebuilt (its own plate) — now the whole pedalboard, one pedal at a time: 26 pedals, each with every control its

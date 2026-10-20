@@ -19,6 +19,7 @@
 #include "hem/rack/Streets.hpp"
 #include "hem/rack/Comeback.hpp"
 #include "hem/rack/Garage.hpp"
+#include "hem/rack/Holdouts.hpp"
 #include "hem/rack/Analyzer.hpp"
 #include "arsenal/Plates.hpp"
 
@@ -424,6 +425,10 @@ const PluginInfo kPlugins[] = {
      "A real room: size, distance, room shape, balance, decay, pre-delay, density, shelves, damping, variations; direct, early and reverb levels",
      {0x66F2A7CAu, 0x82804983u, 0xAF47E3DBu, 0x0DAF2509u}, {0x38D2C619u, 0x238F40D3u, 0x83ABFA14u, 0xEE406F0Fu},
      Face::Spec, Group::Space, &makeSpeakeasy, nullptr, &plates::kSpeakeasy},
+    {"FINGERPRINT", "CONVOLUTION REVERB", "PRINT WHAT MATTERS", "Fx|Reverb",
+     "Real spaces by their impulse responses: sixteen spaces, start, length, decay, mix, direct, pre-delay, dry delay, CPU, output, crosstalk",
+     {0x3CC3B29Cu, 0x89827AA3u, 0x67D811B4u, 0x85429B1Eu}, {0x2AF67B09u, 0xB6377726u, 0x11BEAAF4u, 0x2801DC4Du},
+     Face::Spec, Group::Space, &makeFingerprint, nullptr, &plates::kFingerprint},
     {"COIL", "SPRING REVERB", "BOUNCE WHAT MATTERS", "Fx|Reverb",
      "Spring reverb: drive, headroom, pre-delay, seven tanks, short / medium / long, treble and bass on the springs, mix, output, stereo or mono",
      {0x3027751Fu, 0xC0A243AAu, 0x842319B6u, 0x0EFF1565u}, {0x1037B8BFu, 0xD9BC40A6u, 0x811DC5A8u, 0x9613D54Bu},

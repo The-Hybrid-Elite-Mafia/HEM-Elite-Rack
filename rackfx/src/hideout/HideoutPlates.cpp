@@ -3,6 +3,7 @@
 
 #include "hem/rack/Hideout.hpp"
 #include "hem/rack/Comeback.hpp"
+#include "hem/rack/Holdouts.hpp"
 
 namespace hem::rack::plates {
 namespace {
@@ -136,6 +137,19 @@ constexpr PlateKnob row2[] = {{RevShelf, "TAIL DULL", "", "", K::Small}, {ErAbso
                               {EarlyGain, "EARLY", "", "", K::Small}, {ReverbGain, "REVERB", "", "", K::Small}};
 } // namespace se
 
+// ---- FINGERPRINT: the space and its reverb time, the response's shape, the mix
+namespace fp {
+using namespace fingerprint;
+constexpr PlateReadout readouts[] = {{Rt60, "RT60", "s"}, {Ready, "READY", "", "0"}};
+constexpr PlateChoice choices[] = {{Cpu, "CPU"}};
+constexpr PlateToggle toggles[] = {{Direct, "DIRECT"}};
+constexpr PlateChoice steppers[] = {{Space, "SPACE"}};
+constexpr PlateKnob row1[] = {{Mix, "MIX", "DRY", "WET", K::Big}, {Decay, "DECAY", "0.25", "1"}, {PreDelay, "PRE-DELAY", "0", "500"},
+                              {Start, "START", "0", "1 S"}, {Length, "LENGTH", "0", "6 S"}};
+constexpr PlateKnob row2[] = {{DryDelay, "DRY DELAY", "0", "30", K::Small}, {Crosstalk, "CROSSTALK", "0", "100", K::Small},
+                              {Output, "OUTPUT", "-50", "0", K::Small}};
+} // namespace fp
+
 // ---- COIL: the tank and its length on the left, the drive into it and the tone of the springs
 namespace co {
 using namespace coil;
@@ -214,6 +228,9 @@ const PlateSpec kBigHouse{.note1 = "TWELVE KINDS", .note2 = "OF SPACE", .screen 
 const PlateSpec kSpeakeasy{.note1 = "A REAL ROOM", .note2 = "AT A REAL DISTANCE", .screen = Screen::Readouts, .readouts = se::readouts,
                            .toggles = se::toggles, .row1 = se::row1, .row2 = se::row2, .leftToggles = se::leftToggles, .steppers = se::steppers,
                            .demo = [](hc::fx::Effect& e) { e.set(speakeasy::Distance, 8); e.set(speakeasy::Balance, 3); }};
+const PlateSpec kFingerprint{.note1 = "EVERY ROOM", .note2 = "LEAVES A PRINT", .screen = Screen::Readouts, .readouts = fp::readouts,
+                             .choices = fp::choices, .toggles = fp::toggles, .row1 = fp::row1, .row2 = fp::row2, .steppers = fp::steppers,
+                             .demo = [](hc::fx::Effect& e) { e.set(fingerprint::Mix, 35); e.set(fingerprint::PreDelay, 20); }};
 const PlateSpec kCoil{.note1 = "THE SPRINGS", .note2 = "DRIP AND BOUNCE", .screen = Screen::None, .toggles = co::toggles, .row1 = co::row1,
                       .steppers = co::steppers, .demo = [](hc::fx::Effect& e) { e.set(coil::Mix, 45); e.set(coil::Drive, 55); }};
 const PlateSpec kStrapped{.note1 = "THE GUITAR", .note2 = "READY FOR THE MIX", .screen = Screen::None, .toggles = st::toggles,
