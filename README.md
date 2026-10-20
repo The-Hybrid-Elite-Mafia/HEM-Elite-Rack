@@ -101,6 +101,7 @@ C++23 audio framework, as a library.
 | **WISEGUYS** | Harmonizer: three voices with their own interval, level and pan |
 | **MADE MAN** | Pitch correction for one voice: key, scale, speed, amount |
 | **THE DETECTIVE** | Key finder: the key, two alternatives and the song's tuning; detect / stop, your own key (root, scale), sharps or flats |
+| **THE AUDITOR** | Loudness meter (its own plate): EBU / LM1 / DIAL, six weightings, short time, short max / min with overs and unders, true peak max, target and trim, LU or LUFS, pre-filters; gain and a true-peak limiter |
 | **THE WITNESS** | VU meters for left and right: headroom, display delay, clip lights with clear |
 | **LIVE WIRE** | Signal generator: pink, white or sine; frequency and gain with quick settings; send L / R / both; flip |
 | **FURNACE** | Tube stage: drive, bias (even harmonics), tone, mix — colour without a volume jump |
@@ -123,7 +124,7 @@ C++23 audio framework, as a library.
 | **UNDERGROUND** | More low end: a new sub an octave down, or harmonics small speakers can hear |
 | **SPOTLIGHT** | Vocal chain: high-pass, body, one-knob compressor, one-knob de-esser, presence, air |
 
-One hundred and fourteen plug-ins, under our own names and in our own words. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
+One hundred and fifteen plug-ins, under our own names and in our own words. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 
 ## Install
 Download `HEM-Elite-Rack-Setup-x.y.z.exe` from **Releases** and run it. Needs Windows 10 / 11

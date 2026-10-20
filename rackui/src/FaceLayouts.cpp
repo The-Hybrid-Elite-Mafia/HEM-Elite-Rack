@@ -1458,6 +1458,71 @@ FaceLayout pawnFace(const rack::PluginInfo& info) {
     return L;
 }
 
+// THE AUDITOR: the readouts across the top, the settings under them, the filters at the bottom.
+FaceLayout auditFace(const rack::PluginInfo& info) {
+    using namespace rack::auditor;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"EVERY NUMBER", "ACCOUNTED FOR"};
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 180, 1226, 640};
+    auto stepper = [&](Rect r, int param, const char* label) {
+        L.sections.push_back({{r.x, r.y - 26, r.w, 22}, label});
+        Widget st;
+        st.kind = WKind::Stepper;
+        st.param = param;
+        st.r = r;
+        L.widgets.push_back(st);
+        L.recesses.push_back({st.r.inset(-4), 9, 4, false, false});
+    };
+    struct K { int p; const char* cap; };
+    auto knobs = [&](float x0, float w, float y, std::initializer_list<K> ks) {
+        const std::size_t first = L.widgets.size();
+        const float pitch = w / static_cast<float>(ks.size());
+        int k = 0;
+        for (const K& kk : ks) {
+            const float cx = x0 + (static_cast<float>(k++) + 0.5f) * pitch;
+            L.widgets.push_back(knob({cx - 19, y, 38, 38}, kk.p, kk.cap, "", "", true));
+        }
+        seatKnobs(L, first, 4);
+    };
+    // the readouts
+    readoutAt(L, {410, 190, 300, 96}, ShortTerm, "SHORT TERM", "LUFS", "+");
+    readoutAt(L, {718, 190, 300, 96}, LongTerm, "LONG TERM", "LUFS", "+");
+    readoutAt(L, {1026, 190, 300, 96}, Momentary, "MOMENTARY", "LUFS", "+");
+    readoutAt(L, {1334, 190, 302, 96}, Range, "RANGE", "LU");
+    readoutAt(L, {410, 296, 198, 64}, TruePeak, "TRUE PEAK", "dBTP", "+");
+    readoutAt(L, {614, 296, 198, 64}, Reduction, "LIMITER", "dB", "+");
+    readoutAt(L, {818, 296, 198, 64}, Trim, "TRIM", "dB", "+");
+    readoutAt(L, {1022, 296, 198, 64}, Timer, "TIMER", "s", "0");
+    readoutAt(L, {1226, 296, 200, 64}, Unders, "UNDERS", "", "0");
+    readoutAt(L, {1432, 296, 204, 64}, Overs, "OVERS", "", "0");
+    // the settings
+    stepper({410, 420, 150, 32}, Method, "METHOD");
+    stepper({570, 420, 150, 32}, Channels, "CHANNELS");
+    stepper({730, 420, 180, 32}, Weighting, "WEIGHTING");
+    stepper({920, 420, 170, 32}, ShortTime, "SHORT TIME");
+    stepper({1100, 420, 170, 32}, Scale, "SCALE");
+    stepper({1280, 420, 150, 32}, Measure, "MEASURE");
+    knobs(410, 1226, 480, {{ShortMax, "SHORT MAX"}, {ShortMin, "SHORT MIN"}, {TruePeakMax, "TRUE PEAK MAX"}, {Target, "TARGET"}, {Gain, "GAIN"}});
+    L.grooves.push_back({410, 590, 1636, 590});
+    // the measuring filters
+    L.widgets.push_back(toggle({410, 630, 190, 32}, LpfOn, "LOW-PASS"));
+    stepper({610, 630, 120, 32}, LpfSlope, "LP SLOPE");
+    L.widgets.push_back(toggle({740, 630, 200, 32}, HpfOn, "HIGH-PASS"));
+    stepper({950, 630, 120, 32}, HpfSlope, "HP SLOPE");
+    knobs(1080, 556, 618, {{LpfFreq, "LP FREQ"}, {HpfFreq, "HP FREQ"}});
+    // the left column
+    L.widgets.push_back(toggle({70, 404, 270, 36}, Limiter, "LIMITER"));
+    L.widgets.push_back(toggle({70, 452, 130, 36}, Reset, "RESET"));
+    L.widgets.back().hi = "PRESS";
+    L.widgets.push_back(toggle({210, 452, 130, 36}, ClearPeaks, "PEAKS"));
+    L.widgets.back().hi = "PRESS";
+    buttonSeats(L);
+    bypassAt(L, {160, 650, 90, 90});
+    return L;
+}
+
 // ---- plates laid out from a PlateSpec (Face::Spec) -------------------------------------------
 // The parts go where the plate's content leaves room: a screen (or none) on top, a column of
 // buttons and switches beside it, one or two rows of knobs under it, choice lists down the left.
@@ -1807,6 +1872,7 @@ FaceLayout faceLayout(const rack::PluginInfo& info) {
     case rack::Face::Keys: return keysFace(info);
     case rack::Face::Notches: return notchesFace(info);
     case rack::Face::Pawn: return pawnFace(info);
+    case rack::Face::Audit: return auditFace(info);
     case rack::Face::Spec: if (info.plate) return specFace(info); break;
     case rack::Face::Restorer: break;
     }

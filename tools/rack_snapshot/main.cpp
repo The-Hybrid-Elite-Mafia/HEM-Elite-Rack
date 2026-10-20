@@ -172,6 +172,8 @@ int main(int argc, char** argv) {
         } else if (info.face == hem::rack::Face::Pawn) {
             using namespace hem::rack::pawnshop;
             fx->set(SpaceOn, 1); fx->set(NoiseOn, 1); fx->set(NoiseType, Crackle); fx->set(Ringer, 20);
+        } else if (info.face == hem::rack::Face::Audit) {
+            fx->set(hem::rack::auditor::Limiter, 1);
         } else if (info.face == hem::rack::Face::Taps) {
             using namespace hem::rack::sixshooter;
             fx->set(tap(1, EqOn), 1); fx->set(tap(1, EqType), 5); fx->set(FbOn, 1); fx->set(ModOn, 1);

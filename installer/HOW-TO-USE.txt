@@ -583,6 +583,17 @@ THE DETECTIVE
   a key you pick (ROOT, SCALE) instead. SPELL writes the keys with SHARPS or FLATS. (The original can
   send its key to other plug-ins; a rack has no way to do that.)
 
+THE AUDITOR
+  A loudness meter for delivering to a standard. The windows: SHORT TERM, LONG TERM (everything since
+  RESET), MOMENTARY, RANGE, TRUE PEAK and LIMITER (the most each reached; PEAKS clears them), TRIM (how
+  much GAIN would land LONG TERM on TARGET), TIMER, and UNDERS / OVERS (how many times SHORT TERM went
+  under SHORT MIN or over SHORT MAX). METHOD EBU (the broadcast standard; short time always 3 s), LM1
+  (no relative gate) or DIAL (counts only where speech carries the sound - our simple version).
+  WEIGHTING: BS.1770 for loudness, or the LEQ curves. SCALE: LU reads 0 at -23 LUFS. LOW-PASS /
+  HIGH-PASS filter only what is measured. GAIN changes the sound itself; LIMITER keeps true peaks under
+  TRUE PEAK MAX (no make-up). MEASURE PAUSE stops the counting. The original's TRIM button sets the gain
+  for you and it can log to a file; here you read TRIM and set GAIN yourself.
+
 THE WITNESS
   VU meters for left and right (slow, like the needles on a desk). HEADROOM sets how far under full
   scale 0 VU sits (18 dB is the usual). DISPLAY DELAY holds the needles back (up to 1 s) so meters on

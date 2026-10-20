@@ -51,7 +51,7 @@ Stereo chord(std::initializer_list<double> hz, double seconds, float amp) {
 }
 
 void allRules() {
-    for (const char* name : {"TORCH", "HOT WIRE", "BOTTOM FEEDER", "THE RACKET", "THE SNITCH", "PROMOTION", "WISEGUYS", "MADE MAN", "THE DETECTIVE", "THE WITNESS", "LIVE WIRE"}) {
+    for (const char* name : {"THE AUDITOR", "TORCH", "HOT WIRE", "BOTTOM FEEDER", "THE RACKET", "THE SNITCH", "PROMOTION", "WISEGUYS", "MADE MAN", "THE DETECTIVE", "THE WITNESS", "LIVE WIRE"}) {
         const PluginInfo* info = findPlugin(name);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
@@ -169,6 +169,61 @@ void testBottomFeeder() {
         const double n3 = componentDb(*v3, 1100, 0.01f, 1100) - componentDb(*v3, 500, 0.01f, 500);
         std::printf("  BOTTOM FEEDER 3rd harmonic: drive off %.1f, fat %.1f dB; 1.1 kHz vs 500 Hz: voice 1 %.1f, voice 3 %.1f dB\n", h0, h1, n1, n3);
         CHECK(h1 > h0 + 10.0 && n1 < n3 - 1.0);
+    }
+}
+
+void testAuditor() {
+    using namespace auditor;
+    // a -20 dBFS sine on both sides (amplitude 0.1): about -20.0 LUFS
+    {   // untouched (limiter off, gain 0), kAuditorLatency late
+        auto e = make("THE AUDITOR");
+        CHECK(e->latency() == kAuditorLatency);
+        Stereo s = noise(0.5, 0.3f), ref = s;
+        run(*e, s);
+        double d = 0;
+        for (std::size_t i = kAuditorLatency; i < s.size(); ++i) d = std::max(d, static_cast<double>(std::fabs(s.l[i] - ref.l[i - kAuditorLatency])));
+        CHECK(d < 1e-6);
+    }
+    auto read = [&](std::initializer_list<std::pair<int, float>> v, double hz = 1000.0, double secs = 5.0, float a = 0.1f) {
+        auto e = make("THE AUDITOR", v);
+        Stereo s = sine(hz, secs, a);
+        run(*e, s);
+        return e;
+    };
+    {
+        auto e = read({});
+        std::printf("  THE AUDITOR EBU, -20 dBFS 1 kHz: short %.2f, long %.2f, momentary %.2f LUFS, true peak %.2f dBTP, timer %.1f s\n", e->meter(ShortTerm),
+                    e->meter(LongTerm), e->meter(Momentary), e->meter(TruePeak), e->meter(Timer));
+        CHECK(std::fabs(e->meter(ShortTerm) + 20.0f) < 0.2f && std::fabs(e->meter(LongTerm) + 20.0f) < 0.2f && std::fabs(e->meter(TruePeak) + 20.0f) < 0.1f &&
+              std::fabs(e->meter(Timer) - 5.0f) < 0.05f);
+        auto lu = read({{Scale, 1}}), left = read({{Channels, 1}}), g = read({{Gain, 6}});
+        std::printf("  THE AUDITOR scale LU %.2f; left only %.2f; gain +6 %.2f\n", lu->meter(LongTerm), left->meter(LongTerm), g->meter(LongTerm));
+        CHECK(std::fabs(lu->meter(LongTerm) - 3.0f) < 0.2f && std::fabs(left->meter(LongTerm) + 23.0f) < 0.2f && std::fabs(g->meter(LongTerm) + 14.0f) < 0.2f);
+    }
+    {   // the weightings: A at 100 Hz is about 19 dB down; M at 6.3 kHz is 12.2 dB over 1 kHz, 6.6 over 2 kHz (its 0 dB); NONE flat
+        const double none1k = read({{Weighting, NoWeight}})->meter(LongTerm), a1k = read({{Weighting, LeqA}})->meter(LongTerm);
+        const double a100 = read({{Weighting, LeqA}}, 100.0)->meter(LongTerm), c100 = read({{Weighting, LeqC}}, 100.0)->meter(LongTerm);
+        const double m2k = read({{Weighting, LeqM}}, 2000.0)->meter(LongTerm), m63 = read({{Weighting, LeqM}}, 6300.0)->meter(LongTerm);
+        std::printf("  THE AUDITOR weighting: none 1 kHz %.2f, A 1 kHz %.2f, A 100 Hz %.2f, C 100 Hz %.2f, M 2 kHz %.2f, M 6.3 kHz %.2f\n", none1k, a1k, a100,
+                    c100, m2k, m63);
+        CHECK(std::fabs(a1k - none1k) < 0.1 && std::fabs(a100 - none1k + 19.1) < 0.6 && std::fabs(c100 - none1k + 0.3) < 0.4 && std::fabs(m2k - none1k) < 0.3 &&
+              std::fabs(m63 - m2k - 6.6) < 0.5);
+    }
+    {   // the limiter holds true peaks under TRUE PEAK MAX; overs, trim
+        auto e = read({{Limiter, 1}, {TruePeakMax, -6}}, 997.0, 3.0, 0.7f);
+        std::printf("  THE AUDITOR limiter at -6 on a -3 dBFS sine: true peak %.2f dBTP, limiter %.1f dB\n", e->meter(TruePeak), e->meter(Reduction));
+        CHECK(e->meter(TruePeak) < -5.8f && e->meter(Reduction) < -2.5f);
+        auto o = read({{ShortMax, -30}, {Target, -24}});
+        std::printf("  THE AUDITOR short max -30: overs %.0f; target -24: trim %+.2f dB\n", o->meter(Overs), o->meter(Trim));
+        CHECK(o->meter(Overs) == 1.0f && std::fabs(o->meter(Trim) + 4.0f) < 0.2f);
+        // PAUSE stops the timer and the long term; RESET clears them
+        auto pz = read({{Measure, 0}}, 1000.0, 2.0);
+        CHECK(pz->meter(Timer) == 0.0f && pz->meter(LongTerm) < -99.0f);
+        auto r = read({});
+        r->set(Reset, 1);
+        Stereo q(4800);
+        run(*r, q);
+        CHECK(r->meter(Timer) < 0.2f && r->meter(Overs) == 0.0f);
     }
 }
 
@@ -390,6 +445,7 @@ void testStreets() {
     testTorch();
     testHotWire();
     testBottomFeeder();
+    testAuditor();
     testRacket();
     testSnitch();
     testPromotion();
