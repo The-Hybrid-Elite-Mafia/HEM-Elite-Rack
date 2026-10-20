@@ -26,6 +26,13 @@
 //                HIGH PEAK AT 1.5 / 2 / 3 / 4 / 5 kHz, HIGH PEAK 0..10 (0..+8 dB)
 //                EQ IN / OUT, HUM (OFF / 50 / 60 Hz: the tube box's hum and hiss), OUTPUT ±18 dB.
 //                The tube stage is always in, as in the box: clean at normal levels, a little warmth when hit hard.
+//  COIL        spring reverb: DRIVE 0..100 (the level into the springs: higher = hotter and grittier, peaks
+//                rounded), PRE-DELAY 0..600 ms (before the springs), HEADROOM 0..100 (how soon the drive stage
+//                rounds the peaks; small signals come out at the same level whatever it is), TANK (seven tanks of
+//                our own: two or three springs, each tank its own lengths, drip and brightness), LENGTH SHORT /
+//                MEDIUM / LONG, TREBLE and BASS ±18 dB on the reverb only, MIX 0..100 %, OUTPUT ±18 dB,
+//                WIDTH STEREO / MONO (mono: the right side is a copy of the left). The dry sound is not delayed.
+//                The springs are modelled (loops with dispersive all-pass chains), not recorded impulse responses.
 //  The slopes of the filters and the widths of the bells are our own choices (the manuals give the steps
 //  and ranges, not the curves). All three have a constant latency of 23 samples (the colour is 4x oversampled).
 // =============================================================================
@@ -63,10 +70,15 @@ inline constexpr float kHighHz[] = {1500, 2000, 3000, 4000, 5000};
 extern const CurveInfo kCurve;
 } // namespace midtown
 
+namespace coil {
+enum P : int { Drive, PreDelay, Headroom, Tank, Length, Treble, Bass, Mix, Output, Width, kCount };
+} // namespace coil
+
 inline constexpr std::uint32_t kComebackEqLatency = 23;
 
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeFoundry();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeBoardroom();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeMidtown();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeCoil();
 
 } // namespace hem::rack

@@ -5,6 +5,7 @@
 #include "Signals.hpp"
 
 #include "hem/rack/Hideout.hpp"
+#include "hem/rack/Comeback.hpp"
 #include "hem/rack/Plugins.hpp"
 
 #include <algorithm>
@@ -51,7 +52,7 @@ double peakIn(const std::vector<float>& x, std::size_t from, std::size_t to) {
 }
 
 void allRules() {
-    for (const char* name : {"SPEAKEASY", "BIG HOUSE", "MOUTHPIECE", "SLINGER", "STREET TEAM", "COLD CASE", "SWERVE", "THE FIXER", "SIX SHOOTER", "DEAD DROP", "BACK ALLEY", "DRIVE-BY", "BODY DOUBLE", "HUSTLE", "THE INFORMANT", "STRAPPED", "SAFE HOUSE"}) {
+    for (const char* name : {"COIL", "SPEAKEASY", "BIG HOUSE", "MOUTHPIECE", "SLINGER", "STREET TEAM", "COLD CASE", "SWERVE", "THE FIXER", "SIX SHOOTER", "DEAD DROP", "BACK ALLEY", "DRIVE-BY", "BODY DOUBLE", "HUSTLE", "THE INFORMANT", "STRAPPED", "SAFE HOUSE"}) {
         const PluginInfo* info = findPlugin(name);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
@@ -726,6 +727,105 @@ void testBigHouse() {
     }
 }
 
+void testCoil() {
+    using namespace coil;
+    auto mk = [](std::initializer_list<std::pair<int, float>> v) {
+        auto e = findPlugin("COIL")->create();
+        for (const auto& [i, x] : v) e->set(i, x);
+        e->prepare(kFs, 512);
+        return e;
+    };
+    {   // MIX 0: the dry sound exactly; OUTPUT +6: 6 dB up
+        auto e = mk({{Mix, 0}});
+        Stereo s = noise(0.3, 0.2f), ref = s;
+        run(*e, s);
+        double d = 0;
+        for (std::size_t i = 0; i < s.size(); ++i) d = std::max(d, static_cast<double>(std::fabs(s.l[i] - ref.l[i])));
+        auto o = mk({{Mix, 0}, {Output, 6}});
+        const double g = toneGain(*o, 1000, 0.2f);
+        std::printf("  COIL mix 0: largest change %.1e; output +6: %+.2f dB\n", d, g);
+        CHECK(d < 1e-6 && std::fabs(g - 6.0) < 0.05);
+    }
+    auto wetOf = [&](std::initializer_list<std::pair<int, float>> v, std::size_t len = 96000) {
+        auto e = mk(v);
+        Stereo s = impulse(len);
+        run(*e, s);
+        return s;
+    };
+    {   // PRE-DELAY 200 ms: nothing from the springs before it
+        Stereo s = wetOf({{Mix, 100}, {PreDelay, 200}});
+        const double before = peakIn(s.l, 0, 100 + 9500), after = peakIn(s.l, 100 + 9600, 24000);
+        std::printf("  COIL pre-delay 200 ms: before %.1e, after %.2e\n", before, after);
+        CHECK(before < 1e-7 && after > 1e-3);
+    }
+    {   // LENGTH: LONG rings on far longer than SHORT
+        Stereo a = wetOf({{Mix, 100}, {Length, 0}}, 192000), b = wetOf({{Mix, 100}, {Length, 2}}, 192000);
+        const double sa = db(rms(a.l, 72000, 9600)), sb = db(rms(b.l, 72000, 9600));
+        std::printf("  COIL 1.5 s after a click: short %.1f dB, long %.1f dB\n", sa, sb);
+        CHECK(sb > sa + 30.0);
+    }
+    {   // the drip: the springs disperse, so a click comes back smeared (high frequencies late), not as clean echoes
+        Stereo s = wetOf({{Mix, 100}});
+        double first = 0;
+        std::size_t at = 0;
+        for (std::size_t i = 101; i < 20000; ++i)
+            if (std::fabs(s.l[i]) > first) { first = std::fabs(s.l[i]); at = i; }
+        std::printf("  COIL loudest moment of the first bounce at %.1f ms\n", (static_cast<double>(at) - 100.0) / 48.0);
+        CHECK(at > 100 + 48 * 20);
+    }
+    {   // every tank sounds different
+        double prev = 0;
+        bool differ = true;
+        for (int t = 0; t < 7; ++t) {
+            Stereo s = wetOf({{Mix, 100}, {Tank, static_cast<float>(t)}}, 48000);
+            const double e = energyDb(s.l, 0, s.size());
+            if (t > 0 && std::fabs(e - prev) < 1e-3) differ = false;
+            prev = e;
+        }
+        CHECK(differ);
+    }
+    {   // WIDTH MONO: the reverb on the right is the left's
+        auto e = mk({{Mix, 100}, {Width, 1}});
+        Stereo s = noise(0.5, 0.2f);
+        for (std::size_t i = 0; i < s.size(); ++i) s.r[i] = s.l[i];
+        run(*e, s);
+        double d = 0;
+        for (std::size_t i = 0; i < s.size(); ++i) d = std::max(d, static_cast<double>(std::fabs(s.l[i] - s.r[i])));
+        auto st = mk({{Mix, 100}});
+        Stereo t = noise(0.5, 0.2f);
+        for (std::size_t i = 0; i < t.size(); ++i) t.r[i] = t.l[i];
+        run(*st, t);
+        double ds = 0;
+        for (std::size_t i = 0; i < t.size(); ++i) ds = std::max(ds, static_cast<double>(std::fabs(t.l[i] - t.r[i])));
+        std::printf("  COIL mono: largest L-R %.1e; stereo: %.3f\n", d, ds);
+        CHECK(d < 1e-7 && ds > 1e-3);
+    }
+    {   // TREBLE -18: the reverb's highs drop; BASS +12: its lows rise
+        auto lv = [&](float tr, float bs, double hz) {
+            auto e = mk({{Mix, 100}, {Treble, tr}, {Bass, bs}, {Length, 2}});
+            return outDb(*e, hz, 0.05f);
+        };
+        const double hi = lv(-18, 0, 6000) - lv(0, 0, 6000), lo = lv(0, 12, 150) - lv(0, 0, 150);
+        std::printf("  COIL treble -18 at 6 kHz %+.1f dB; bass +12 at 150 Hz %+.1f dB\n", hi, lo);
+        CHECK(hi < -12.0 && lo > 8.0);
+    }
+    {   // HEADROOM: small sounds the same; on a loud tone, more = more rounding (harmonics)
+        auto quiet = [&](float h) { auto e = mk({{Mix, 100}, {Headroom, h}, {Length, 2}}); return outDb(*e, 500, 0.001f); };
+        const double q0 = quiet(0), q100 = quiet(100);
+        auto harm = [&](float h) {
+            auto e = mk({{Mix, 0.0f}, {Headroom, h}, {Drive, 50}});
+            (void)e;
+            auto w = mk({{Mix, 100}, {Headroom, h}, {Drive, 50}, {Length, 2}});
+            Stereo s = sine(300, 1.0, 0.5f);
+            run(*w, s);
+            return db(toneAmp(s.l, 900, 24000, 24000) / std::max(toneAmp(s.l, 300, 24000, 24000), 1e-12));
+        };
+        const double h0 = harm(0), h100 = harm(100);
+        std::printf("  COIL headroom: quiet tone 0 vs 100 %+.2f dB; 3rd harmonic of a loud tone: %.1f -> %.1f dB\n", q100 - q0, h0, h100);
+        CHECK(std::fabs(q100 - q0) < 0.1 && h100 > h0 + 10.0);
+    }
+}
+
 void testSpeakeasy() {
     using namespace speakeasy;
     auto mk = [](std::initializer_list<std::pair<int, float>> v) {
@@ -1043,6 +1143,7 @@ void testHideout() {
     testVoiceDynamics();
     testBigHouse();
     testSpeakeasy();
+    testCoil();
     testSixShooter();
     testBackAlley();
     testDriveBy();

@@ -2,6 +2,7 @@
 #include "../arsenal/Plates.hpp"
 
 #include "hem/rack/Hideout.hpp"
+#include "hem/rack/Comeback.hpp"
 
 namespace hem::rack::plates {
 namespace {
@@ -135,6 +136,16 @@ constexpr PlateKnob row2[] = {{RevShelf, "TAIL DULL", "", "", K::Small}, {ErAbso
                               {EarlyGain, "EARLY", "", "", K::Small}, {ReverbGain, "REVERB", "", "", K::Small}};
 } // namespace se
 
+// ---- COIL: the tank and its length on the left, the drive into it and the tone of the springs
+namespace co {
+using namespace coil;
+constexpr PlateToggle toggles[] = {{Width, "MONO"}};
+constexpr PlateChoice steppers[] = {{Tank, "TANK"}, {Length, "LENGTH"}};
+constexpr PlateKnob row1[] = {{Drive, "DRIVE", "0", "100", K::Big}, {Headroom, "HEADROOM", "0", "100"}, {PreDelay, "PRE-DELAY", "0", "600"},
+                              {Treble, "TREBLE", "-18", "+18"}, {Bass, "BASS", "-18", "+18"}, {Mix, "MIX", "DRY", "WET", K::Big},
+                              {Output, "OUTPUT", "-18", "+18"}};
+} // namespace co
+
 // ---- STRAPPED
 namespace st {
 using namespace strapped;
@@ -203,6 +214,8 @@ const PlateSpec kBigHouse{.note1 = "TWELVE KINDS", .note2 = "OF SPACE", .screen 
 const PlateSpec kSpeakeasy{.note1 = "A REAL ROOM", .note2 = "AT A REAL DISTANCE", .screen = Screen::Readouts, .readouts = se::readouts,
                            .toggles = se::toggles, .row1 = se::row1, .row2 = se::row2, .leftToggles = se::leftToggles, .steppers = se::steppers,
                            .demo = [](hc::fx::Effect& e) { e.set(speakeasy::Distance, 8); e.set(speakeasy::Balance, 3); }};
+const PlateSpec kCoil{.note1 = "THE SPRINGS", .note2 = "DRIP AND BOUNCE", .screen = Screen::None, .toggles = co::toggles, .row1 = co::row1,
+                      .steppers = co::steppers, .demo = [](hc::fx::Effect& e) { e.set(coil::Mix, 45); e.set(coil::Drive, 55); }};
 const PlateSpec kStrapped{.note1 = "THE GUITAR", .note2 = "READY FOR THE MIX", .screen = Screen::None, .toggles = st::toggles,
                           .row1 = st::row1, .steppers = st::steppers, .bands = &st::bands, .reportsReduction = true,
                           .demo = [](hc::fx::Effect& e) {

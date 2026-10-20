@@ -10,7 +10,7 @@ extern const PlateSpec kTerritory, kStraightEdge, kConsigliere, kStoneCold, kHea
 // the tone shop (tone/TonePlates.cpp)
 extern const PlateSpec kLowRider, kUndertow, kDeepPockets, kLowProfile, kTunnelVision;
 extern const PlateSpec kStraightShooter, kBottomLine, kTenToes, kFourCorners, kSmoothTalker, kTheBoss, kKingpin, kGoldChain, kIvories, kHighRoller, kMiddleman, kDoubleCross, kCutthroat;
-extern const PlateSpec kFoundry, kBoardroom, kMidtown;
+extern const PlateSpec kFoundry, kBoardroom, kMidtown, kCoil;
 // the hideout (hideout/HideoutPlates.cpp)
 extern const PlateSpec kFixer, kDeadDrop, kBackAlley, kDriveBy, kHustle, kSwerve, kBigHouse, kSpeakeasy, kMouthpiece, kSlinger, kStreetTeam, kStrapped, kSafeHouse;
 // the streets (streets/StreetsPlates.cpp)
