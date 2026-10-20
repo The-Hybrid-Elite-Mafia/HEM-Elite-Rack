@@ -44,6 +44,16 @@ add_library(hem_rackfx STATIC
     src/tone/DoubleCross.cpp
     src/tone/Cutthroat.cpp
     src/tone/TonePlates.cpp
+    src/hideout/Fixer.cpp
+    src/hideout/SixShooter.cpp
+    src/hideout/BackAlley.cpp
+    src/hideout/DriveBy.cpp
+    src/hideout/BodyDouble.cpp
+    src/hideout/Hustle.cpp
+    src/hideout/Informant.cpp
+    src/hideout/Strapped.cpp
+    src/hideout/SafeHouse.cpp
+    src/hideout/HideoutPlates.cpp
     src/Plugins.cpp)
 add_library(hem::rackfx ALIAS hem_rackfx)
 target_include_directories(hem_rackfx PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")

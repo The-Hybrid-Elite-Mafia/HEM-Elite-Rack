@@ -7,4 +7,6 @@ extern const PlateSpec kSwitchblade, kConsigliere, kHeavyweight, kTheDon, kSlowB
     kBigShot, kSilencer, kBreathless, kTommyGun;
 // the tone shop (tone/TonePlates.cpp)
 extern const PlateSpec kStraightShooter, kTheBoss, kKingpin, kGoldChain, kIvories, kHighRoller, kMiddleman, kDoubleCross, kCutthroat;
+// the hideout (hideout/HideoutPlates.cpp)
+extern const PlateSpec kFixer, kSixShooter, kBackAlley, kDriveBy, kBodyDouble, kHustle, kInformant, kStrapped, kSafeHouse;
 } // namespace hem::rack::plates

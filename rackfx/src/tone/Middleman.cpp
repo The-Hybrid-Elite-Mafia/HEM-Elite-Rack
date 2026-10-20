@@ -11,9 +11,9 @@ using namespace tone;
 const ParamInfo kParams[kCount] = {
     {"center", "Center", "dB", -12.0f, 12.0f, 0.0f},
     {"sides", "Sides", "dB", -12.0f, 12.0f, 0.0f},
-    {"lowbalance", "Low Balance", "", -100.0f, 100.0f, 0.0f},
-    {"highbalance", "High Balance", "", -100.0f, 100.0f, 0.0f},
-    {"punch", "Punch", "", -100.0f, 100.0f, 0.0f},
+    {"lowbalance", "Low Balance", "%", -100.0f, 100.0f, 0.0f},
+    {"highbalance", "High Balance", "%", -100.0f, 100.0f, 0.0f},
+    {"punch", "Punch", "%", -100.0f, 100.0f, 0.0f},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
 };
 const hc::fx::MeterInfo kMeters[] = {{"CENTER", "dB", -60.0f, 0.0f}, {"SIDES", "dB", -60.0f, 0.0f}};

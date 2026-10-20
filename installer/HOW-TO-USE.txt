@@ -179,6 +179,48 @@ DOUBLE CROSS
   Makes a mono sound stereo, and it still sounds right in mono. SPREAD = how wide. STYLE = how many
   pieces it's split into. LOW STAYS MONO keeps the bass in the middle.
 
+THE FIXER
+  Three bands that only turn down when they get nasty: MUD (boxy lows), HARSH (the bite) and FIZZ
+  (esses, hiss). Bring a band's THRESHOLD down until its number shows a few dB; RANGE = the most it
+  takes. LISTEN plays one band alone so you can find the right FREQ.
+
+SIX SHOOTER
+  SHOTS = how many echoes in a row, NOTE = how far apart (FREE uses TIME in ms). DECAY makes each
+  shot quieter, SPREAD bounces them left / right, SWING makes every second one late, FEEDBACK starts
+  the round again, TONE darkens them.
+
+BACK ALLEY
+  The cheap-room sound: SPACE SPRING or PLATE, REVERB and ECHO levels, DECAY of the room, TIME and
+  FEEDBACK of the echo. WOBBLE bends the echo like old tape, GRIT narrows and dirties it, NARROW
+  squeezes the whole thing toward mono.
+
+DRIVE-BY
+  MANUAL: turn POSITION and the sound moves past you (move it fast and the pitch bends). AUTO: it
+  drives past on its own, once per PASS EVERY. SPEED = how fast (how much the pitch bends), DISTANCE =
+  how close it passes, AIR = far away gets darker.
+
+BODY DOUBLE
+  Makes one take sound like two (or four). DELAY = how late the copies are, DETUNE = how out of tune,
+  SPREAD = how far left / right. VOICE LEVEL and DRY balance them; LOW CUT keeps the copies out of the bass.
+
+HUSTLE
+  One wobble for three things: TREMOLO (level), VIBRATO (pitch) and PAN. RATE in Hz, or pick a NOTE
+  to lock it to the tempo. WAVE changes the shape; OFFSET moves where the pan swings.
+
+THE INFORMANT
+  Talk or sing into it and the built-in synth "speaks" your words. NOTE, OCTAVE and CHORD set what
+  the synth plays, CARRIER its sound. BANDS 32 = clearer words. SHIFT moves the voice character up
+  or down, SIBILANCE lets the S and T sounds through.
+
+STRAPPED
+  Everything a guitar needs in the mix, top row first: TIGHT (low cut), COMPRESS, BASS, MIDS, TREBLE;
+  then CHORUS, DELAY (DELAY NOTE follows the tempo), ROOM and WIDTH.
+
+SAFE HOUSE
+  For checking a mix on headphones: it sounds like speakers in front of you. ANGLE = how wide they
+  sit, CROSSFEED = how much each ear hears the other speaker, ROOM DRY / STUDIO / LIVE and ROOM LEVEL.
+  It is for listening only: switch it off before you export.
+
 FURNACE
   DRIVE for more tube colour (the level stays about the same), BIAS toward EVEN = warmer.
   TONE darker or brighter after the tube, MIX to blend.

@@ -42,6 +42,15 @@ C++23 audio framework, as a library.
 | **HIGH ROLLER** | Five-band enhancer: lift and width for sub, low, mid, high and air |
 | **THE MIDDLEMAN** | Center / sides: levels, low and high balance, hits steered to the middle or the sides |
 | **DOUBLE CROSS** | Mono to stereo that folds back to mono perfectly; tight / medium / wide, low stays mono |
+| **THE FIXER** | Three dynamic cuts (mud, harsh, fizz) that only work when a range gets nasty; listen per band |
+| **SIX SHOOTER** | Rhythmic multi-tap delay: 1–6 shots on a note or in ms, decay, left / right spread, swing, feedback, tone |
+| **BACK ALLEY** | Lo-fi space: spring or plate style reverb and a worn tape echo, grit, wobble, narrow |
+| **DRIVE-BY** | A sound passing by: the pitch bends as it passes, level, pan and air; manual or passes on the beat |
+| **BODY DOUBLE** | Doubler: 2 or 4 late, slightly detuned voices spread left / right |
+| **HUSTLE** | One LFO for tremolo, vibrato and pan; free or on a note of the tempo |
+| **THE INFORMANT** | Vocoder with its own synth carrier: note, octave, chord, saw / pulse / noise, 16–32 bands, formant shift |
+| **STRAPPED** | Guitar mix strip: tight, compress, bass / mids / treble, chorus, delay on the beat, room, width |
+| **SAFE HOUSE** | Headphone room: hear speakers at an angle in a dry, studio or live room (for listening; bypass before export) |
 | **FURNACE** | Tube stage: drive, bias (even harmonics), tone, mix — colour without a volume jump |
 | **CATHEDRAL** | Concert hall reverb: pre-delay, size, decay, damping, early reflections, modulation, width, low / high cut |
 | **CHROME** | Bright, dense plate reverb with diffusion control |
@@ -55,7 +64,7 @@ C++23 audio framework, as a library.
 | **UNDERGROUND** | More low end: a new sub an octave down, or harmonics small speakers can hear |
 | **SPOTLIGHT** | Vocal chain: high-pass, body, one-knob compressor, one-knob de-esser, presence, air |
 
-Forty-six plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
+Fifty-five plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 
 ## Install
 Download `HEM-Elite-Rack-Setup-x.y.z.exe` from **Releases** and run it. Needs Windows 10 / 11

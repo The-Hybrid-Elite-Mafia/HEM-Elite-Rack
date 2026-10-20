@@ -9,7 +9,7 @@ namespace {
 using namespace tone;
 
 const ParamInfo kParams[kCount] = {
-    {"tone", "Tone", "", -100.0f, 100.0f, 0.0f},
+    {"tone", "Tone", "%", -100.0f, 100.0f, 0.0f},
     {"body", "Body", "%", 0.0f, 100.0f, 0.0f},
     {"compress", "Compress", "%", 0.0f, 100.0f, 0.0f},
     {"delay", "Delay", "%", 0.0f, 100.0f, 0.0f},

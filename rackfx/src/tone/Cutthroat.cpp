@@ -14,7 +14,7 @@ using namespace tone;
 
 const char* const kSlopeN[] = {"12 dB", "24 dB"};
 const ParamInfo kParams[kCount] = {
-    {"sweep", "Sweep", "", -100.0f, 100.0f, 0.0f},
+    {"sweep", "Sweep", "%", -100.0f, 100.0f, 0.0f},
     {"lowcut", "Low Cut", "Hz", 10.0f, 2000.0f, 10.0f, Taper::Log},
     {"highcut", "High Cut", "Hz", 1000.0f, 20000.0f, 20000.0f, Taper::Log},
     {"resonance", "Resonance", "%", 0.0f, 100.0f, 0.0f},

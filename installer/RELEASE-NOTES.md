@@ -1,3 +1,19 @@
+# HEM-Elite-Rack 0.18.0
+
+**Nine new plug-ins: space, modulation, voice and monitoring** (in the rack and as VST3), our own designs:
+- **THE FIXER** — three dynamic cuts for mud, harshness and fizz
+- **SIX SHOOTER** — rhythmic multi-tap delay (1 to 6 shots, swing, spread)
+- **BACK ALLEY** — lo-fi spring / plate and worn tape echo
+- **DRIVE-BY** — a sound passing by, pitch bending as it goes
+- **BODY DOUBLE** — 2 or 4 voice doubler
+- **HUSTLE** — tremolo, vibrato and pan from one LFO
+- **THE INFORMANT** — vocoder with its own synth
+- **STRAPPED** — guitar mix strip
+- **SAFE HOUSE** — hear speakers in a room on headphones (for listening only)
+
+Small fixes: STRAIGHT SHOOTER's top row reads LOW / MID 1 / MID 2 / MID 3 / HIGH; CUTTHROAT's SWEEP,
+THE MIDDLEMAN's balances and IVORIES' TONE show as percentages.
+
 # HEM-Elite-Rack 0.17.0
 
 **Nine new plug-ins: EQ, channel strips, tone and stereo** (in the rack and as VST3), our own designs:

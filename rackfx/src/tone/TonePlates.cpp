@@ -11,8 +11,8 @@ using K = KnobSize;
 namespace ss {
 using namespace straight;
 constexpr PlateChoice choices[] = {{LowCutSlope, "LOW CUT SLOPE"}, {HighCutSlope, "HIGH CUT SLOPE"}};
-constexpr PlateKnob row1[] = {{LowCut, "LOW CUT"}, {LowFreq, "LOW FREQ"}, {Mid1Freq, "MID 1 FREQ"}, {Mid2Freq, "MID 2 FREQ"},
-                              {Mid3Freq, "MID 3 FREQ"}, {HighFreq, "HIGH FREQ"}, {HighCut, "HIGH CUT"}};
+constexpr PlateKnob row1[] = {{LowCut, "LOW CUT"}, {LowFreq, "LOW"}, {Mid1Freq, "MID 1"}, {Mid2Freq, "MID 2"},
+                              {Mid3Freq, "MID 3"}, {HighFreq, "HIGH"}, {HighCut, "HIGH CUT"}};
 constexpr PlateKnob row2[] = {{LowGain, "LOW GAIN", "", "", K::Small}, {Mid1Gain, "MID 1 GAIN", "", "", K::Small}, {Mid1Q, "MID 1 Q", "", "", K::Small},
                               {Mid2Gain, "MID 2 GAIN", "", "", K::Small}, {Mid2Q, "MID 2 Q", "", "", K::Small}, {Mid3Gain, "MID 3 GAIN", "", "", K::Small},
                               {Mid3Q, "MID 3 Q", "", "", K::Small}, {HighGain, "HIGH GAIN", "", "", K::Small}, {Output, "OUTPUT", "", "", K::Small}};

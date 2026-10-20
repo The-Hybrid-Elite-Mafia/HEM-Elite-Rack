@@ -15,6 +15,7 @@
 #include "hem/rack/Specialty.hpp"
 #include "hem/rack/Arsenal.hpp"
 #include "hem/rack/ToneShop.hpp"
+#include "hem/rack/Hideout.hpp"
 #include "arsenal/Plates.hpp"
 
 #include <cstring>
@@ -207,6 +208,42 @@ const PluginInfo kPlugins[] = {
      "Mono to stereo that folds back to mono perfectly",
      {0xDAF83147u, 0x0C4942B4u, 0xB92FD178u, 0x7850B2DDu}, {0x002710CFu, 0x88344A0Fu, 0x8173B704u, 0x11760CEAu},
      Face::Spec, Group::Tools, &makeDoubleCross, nullptr, &plates::kDoubleCross},
+    {"THE FIXER", "DYNAMIC TONE REPAIR", "FIX WHAT MATTERS", "Fx|EQ",
+     "Three dynamic cuts for mud, harshness and fizz that only work when it gets nasty",
+     {0xF1399E8Eu, 0xC5604828u, 0x94909220u, 0x82CD80D0u}, {0x77E78D06u, 0x73BB489Cu, 0x86446C51u, 0x32DD766Au},
+     Face::Spec, Group::Eq, &makeFixer, nullptr, &plates::kFixer},
+    {"SIX SHOOTER", "RHYTHMIC MULTI-TAP DELAY", "REPEAT WHAT MATTERS", "Fx|Delay",
+     "One to six echoes in a row on the beat: decay, spread, swing, feedback",
+     {0x18D0EEE5u, 0xBE334658u, 0xACA70226u, 0xFB96D37Fu}, {0x4139BC26u, 0x7C5844AAu, 0xA00DC5B6u, 0xE89A781Bu},
+     Face::Spec, Group::Space, &makeSixShooter, nullptr, &plates::kSixShooter},
+    {"BACK ALLEY", "LO-FI SPACE", "WEAR WHAT MATTERS", "Fx|Reverb",
+     "Lo-fi spring or plate and a worn tape echo, with grit and wobble",
+     {0xC834BEEAu, 0xFE8F4C53u, 0xA30BF10Eu, 0xE5230F2Eu}, {0xF3E9F64Au, 0x8C7745ABu, 0xA7F8814Du, 0xD7C69AB0u},
+     Face::Spec, Group::Space, &makeBackAlley, nullptr, &plates::kBackAlley},
+    {"DRIVE-BY", "PASS-BY EFFECT", "PASS WHAT MATTERS", "Fx|Modulation",
+     "A sound passing by: the pitch bends, it swings across and fades away",
+     {0x2A03D190u, 0xC7B34DBCu, 0xB4F0CA13u, 0xF5683518u}, {0x93136D7Du, 0x5A4F4796u, 0x8DCC202Au, 0xC21A692Du},
+     Face::Spec, Group::Movement, &makeDriveBy, nullptr, &plates::kDriveBy},
+    {"BODY DOUBLE", "VOICE DOUBLER", "DOUBLE WHAT MATTERS", "Fx|Modulation",
+     "Two or four late, slightly detuned copies spread left and right",
+     {0x359CB6DEu, 0x64B64193u, 0x8B55165Du, 0xABFBB6D7u}, {0x6EC63030u, 0x4F4E46E7u, 0x9CE6E6D0u, 0x3BA854D0u},
+     Face::Spec, Group::Movement, &makeBodyDouble, nullptr, &plates::kBodyDouble},
+    {"HUSTLE", "LFO MODULATOR", "MOVE WHAT MATTERS", "Fx|Modulation",
+     "One LFO for tremolo, vibrato and pan, free or on the beat",
+     {0x7458E4B1u, 0xC5B5418Cu, 0x9CF6E5F7u, 0x34E9931Cu}, {0x9FDC5D59u, 0xEABE4B54u, 0x80684927u, 0x30E001F5u},
+     Face::Spec, Group::Movement, &makeHustle, nullptr, &plates::kHustle},
+    {"THE INFORMANT", "VOCODER", "TALK WHAT MATTERS", "Fx|Modulation",
+     "Vocoder with its own synth: the words shape a note or a chord",
+     {0x1DAA7326u, 0x95C94AD8u, 0x8B11E3A5u, 0xD9B50871u}, {0x260FABC1u, 0xD37F4829u, 0xBF8EDC54u, 0xEF74D1B5u},
+     Face::Spec, Group::Color, &makeInformant, nullptr, &plates::kInformant},
+    {"STRAPPED", "GUITAR MIX STRIP", "STRUM WHAT MATTERS", "Fx|Tools",
+     "Guitar strip: tight, compress, bass / mids / treble, chorus, delay, room, width",
+     {0xE6C79F25u, 0x55B74631u, 0x972BBB36u, 0x27972786u}, {0x9D490188u, 0xDA3E4871u, 0xAE222CBFu, 0x2D905CEDu},
+     Face::Spec, Group::Tools, &makeStrapped, nullptr, &plates::kStrapped},
+    {"SAFE HOUSE", "HEADPHONE ROOM", "HEAR WHAT MATTERS", "Fx|Tools",
+     "Hear speakers in a room through headphones (for listening, bypass before export)",
+     {0xEEDDC596u, 0xC40347B6u, 0xA27F381Fu, 0x490B08EBu}, {0xB36587D4u, 0x3F294216u, 0x8F6194C9u, 0x7DE890BBu},
+     Face::Spec, Group::Tools, &makeSafeHouse, nullptr, &plates::kSafeHouse},
 };
 } // namespace
 
