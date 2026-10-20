@@ -944,11 +944,11 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
     auto colX = [&](int b) { return gx + static_cast<float>(b) * colW; };
     auto cx = [&](float c) { return gx + (c + 0.5f) * colW; };
     static const char* const kNames[] = {"BAND 1", "BAND 2", "BAND 3", "BAND 4", "BAND 5", "BAND 6", "BAND 7", "BAND 8"};
-    L.display = {gx, 182, 1636.0f - gx, 52};
+    L.display = {gx, 180, 1636.0f - gx, 64};
     if (B.meter >= 0)
         for (int b = 0; b < n && b < 8; ++b) {
             const bool master = B.lastIsMaster && b == n - 1;
-            readoutAt(L, {colX(b) + 6, 182, colW - 12, 52}, B.meter + b, master ? "OUTPUT" : kNames[b], master ? "dBFS" : "dB", "+");
+            readoutAt(L, {colX(b) + 6, 180, colW - 12, 64}, B.meter + b, master ? "OUTPUT" : kNames[b], master ? "dBFS" : "dB", "+");
         }
     // the top row
     std::size_t first = L.widgets.size();
@@ -958,23 +958,23 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
     int slot = 0;
     for (const rack::PlateKnob& k : S.row1) {
         const float x = gx + (static_cast<float>(slot++) + 0.5f) * pitch * colW;
-        L.widgets.push_back(knob({x - d * 0.5f, 262, d, d}, k.param, k.caption, k.lo, k.hi, true));
+        L.widgets.push_back(knob({x - d * 0.5f, 270, d, d}, k.param, k.caption, k.lo, k.hi, true));
     }
     for (const rack::PlateToggle& t : S.toggles) {
         const float x = gx + (static_cast<float>(slot++) + 0.5f) * pitch * colW;
         const float tw = std::max(112.0f, switchWordsW(t.caption) + 18.0f);
-        L.widgets.push_back(toggle({x - tw * 0.5f, 266, tw, 44}, t.param, t.caption));
+        L.widgets.push_back(toggle({x - tw * 0.5f, 274, tw, 44}, t.param, t.caption));
         if (t.press) L.widgets.back().hi = "PRESS";
     }
     for (std::size_t i = 0; i < B.borders.size() && static_cast<int>(i) + 1 < n; ++i) {
         const float x = colX(static_cast<int>(i) + 1);
         const rack::PlateKnob& k = B.borders[i];
-        L.widgets.push_back(knob({x - d * 0.5f, 262, d, d}, k.param, k.caption, k.lo, k.hi, true));
+        L.widgets.push_back(knob({x - d * 0.5f, 270, d, d}, k.param, k.caption, k.lo, k.hi, true));
     }
     seatKnobs(L, first, 6);
-    L.grooves.push_back({labelX, 346, 1636, 346});
+    L.grooves.push_back({labelX, 352, 1636, 352});
     // the grid
-    float y = 356;
+    float y = 360;
     constexpr float knobRowH = 72.0f, rowH = 50.0f, kd = 40.0f;
     first = L.widgets.size();
     for (const rack::PlateKnob& k : B.knobs) {
@@ -1008,7 +1008,7 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
         }
         y += rowH;
     }
-    for (int b = 1; b < n; ++b) L.grooves.push_back({colX(b), 356, colX(b), y});
+    for (int b = 1; b < n; ++b) L.grooves.push_back({colX(b), 360, colX(b), y});
 }
 
 FaceLayout specFace(const rack::PluginInfo& info) {
