@@ -1,13 +1,16 @@
 #pragma once
 // =============================================================================
-//  RackHost — the engine, the rack processor and the sound card (WASAPI exclusive, 48 kHz)
-//  or the offline clock (no sound card). No ASIO: this is the public build. Message thread only.
+//  RackHost — the engine, the rack processor and the sound card: an ASIO driver (Steinberg's ASIO SDK under its
+//  GPLv3 option), WASAPI exclusive, or the offline clock (no sound card). Always 48 kHz. Message thread only.
 // =============================================================================
 #include "RackEngine.hpp"
 
 #include "hybrid/engine/Engine.hpp"
 #include "hybrid/io/OfflineStream.hpp"
 #include "hybrid/io/WasapiExclusiveOutput.hpp"
+#if defined(HC_HAS_ASIO_SDK)
+#include "hybrid/io/AsioDuplex.hpp"
+#endif
 
 #include <memory>
 #include <string>
@@ -17,8 +20,10 @@ namespace hem::app {
 
 struct Device {
     bool         offline = false;
-    std::wstring id;          // WASAPI endpoint id ("" = Windows' default output)
-    std::string  name;        // for the UI
+    bool         asio    = false;   // id is then the ASIO driver's name
+    std::wstring id;                // WASAPI endpoint id ("" = Windows' default output)
+    std::string  name;              // for the UI
+    [[nodiscard]] std::string key() const;   // what the settings file remembers
 };
 
 class RackHost {
@@ -47,6 +52,9 @@ private:
     std::unique_ptr<hc::engine::AudioProcessor> pending_; // until the first stream is open
     std::unique_ptr<hc::io::WasapiExclusiveOutput> wasapi_;
     std::unique_ptr<hc::io::OfflineStream> offline_;
+#if defined(HC_HAS_ASIO_SDK)
+    std::unique_ptr<hc::io::AsioDuplex> asio_;
+#endif
     Device current_;
     bool running_ = false;
     std::string deviceName_, format_, problem_;

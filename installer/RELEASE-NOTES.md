@@ -1,3 +1,31 @@
+# HEM-Elite-Rack 0.29.0
+
+**ASIO is in, and the rack is now free software (GPLv3)**
+- The OUTPUT button now lists your interface's own **ASIO** drivers ("ASIO: ..."), first. With nothing picked yet the
+  rack tries ASIO first, then Windows' default output. Steinberg's ASIO SDK is used under its GPLv3 option, so
+  HEM-Elite-Rack is now licensed GPLv3 too: free to use, share and change; anyone who shares a changed copy must share
+  its code. The complete source of this build is attached to this release.
+- Not yet tested on a real ASIO interface: the delay you get depends on your driver's buffer size (set in its own
+  control panel). If your ASIO driver won't open, the message says so and the OUTPUT button moves to the next output.
+
+**Space and modulation, wave 3 part 1** — one plug-in per original, every control:
+- **THE FIXER** — rebuilt: three dynamic bands (mud, harsh, fizz), each AMOUNT, FREQ, LISTEN, BYPASS; INPUT, OUTPUT
+- **DEAD DROP** (new) — hybrid delay: time or note, tap, dual, feedback past 100 %, ping pong, phase, filters with link,
+  wobble, analog, lo-fi, mix, output
+- **SIX SHOOTER** — rebuilt: six taps with their own time, gain, position and EQ; direct; tempo, grid and snap;
+  modulator; feedback with its own delay and filter
+- **BACK ALLEY** — rebuilt: echo (time / note, feedback, ping pong, level) and spring or plate reverb (length, level),
+  hi-pass, lo-pass, mono, mix
+- **DRIVE-BY** — rebuilt: a pass along a track with track time, center time, start, end, distance, direction,
+  continuous or one-shot (on the sound or the FIRE button); gain, pan, pitch, air and reverb amounts
+- **BODY DOUBLE** — rebuilt: four voices (gain, pan, delay, detune, feedback, octave, wobble), direct, align, routing,
+  low and high shelves
+- **HUSTLE** — rebuilt: one LFO for level, pitch and position, each with depth, on and phase; rate x factor, five waves
+- **STRAPPED** — rebuilt: guitar desk with CLEAN / CRUNCH / HEAVY, re-amp, sensitivity, balance, output and six faders
+  with a colour each (bass, treble, compress, reverb, delay, pitch)
+
+Not possible in the rack (said plainly): setting SIX SHOOTER's taps by tapping a rhythm.
+
 # HEM-Elite-Rack 0.28.0
 
 **Filters and VELVET, the end of wave 2** — one plug-in per original, every control:

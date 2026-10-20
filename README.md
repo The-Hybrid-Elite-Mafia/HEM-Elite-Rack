@@ -70,14 +70,15 @@ C++23 audio framework, as a library.
 | **UNDERTOW** | Subs one and two octaves down: range, levels, drive, dynamics, mono sub, mix |
 | **DEEP POCKETS** | Bass small speakers can play: harmonics in place of the lows, decay, ratio, response, high-pass, monitor |
 | **LOW PROFILE** | Bass harmonics in one move: frequency, original bass in / out, intensity, gain |
-| **THE FIXER** | Three dynamic cuts (mud, harsh, fizz) that only work when a range gets nasty; listen per band |
-| **SIX SHOOTER** | Rhythmic multi-tap delay: 1–6 shots on a note or in ms, decay, left / right spread, swing, feedback, tone |
-| **BACK ALLEY** | Lo-fi space: spring or plate style reverb and a worn tape echo, grit, wobble, narrow |
-| **DRIVE-BY** | A sound passing by: the pitch bends as it passes, level, pan and air; manual or passes on the beat |
-| **BODY DOUBLE** | Doubler: 2 or 4 late, slightly detuned voices spread left / right |
-| **HUSTLE** | One LFO for tremolo, vibrato and pan; free or on a note of the tempo |
+| **THE FIXER** | Three dynamic cuts (mud, harsh, fizz) that only work when a range gets nasty: per band amount, freq, listen, bypass; input, output |
+| **DEAD DROP** | Hybrid delay: time or note (host / BPM / ms, tap), dual, feedback past 100 %, ping pong, phase, hi / lo-pass, wobble, analog, lo-fi, mix |
+| **SIX SHOOTER** | Six-tap delay: per tap on, time, gain, position and EQ; direct; tempo (host, BPM, tap), grid and snap; modulator; feedback with its own filter |
+| **BACK ALLEY** | Lo-fi space: a worn echo (time or note, feedback, ping pong) and a spring or plate reverb; hi-pass, lo-pass, mono, mix |
+| **DRIVE-BY** | A sound passing by on a track: track time, closest point, start / end, distance, direction; gain, pan, pitch, air and reverb amounts; on its own or on a trigger |
+| **BODY DOUBLE** | Doubler: four voices with gain, pan, delay, detune, feedback, octave and wobble; direct, routing, low / high shelves |
+| **HUSTLE** | One LFO for level, pitch and position: rate (or the tempo) x factor, five waves, phase per move, gain, mix |
 | **THE INFORMANT** | Vocoder with its own synth carrier: note, octave, chord, saw / pulse / noise, 16–32 bands, formant shift |
-| **STRAPPED** | Guitar mix strip: tight, compress, bass / mids / treble, chorus, delay on the beat, room, width |
+| **STRAPPED** | Guitar mix desk: clean / crunch / heavy, re-amp, then six faders with a colour each: bass, treble, compress, reverb, delay, pitch |
 | **SAFE HOUSE** | Headphone room: hear speakers at an angle in a dry, studio or live room (for listening; bypass before export) |
 | **TORCH** | Guitar / bass amp: clean, crunch, lead or bass; gate, gain, bass / mid / treble, presence, 1x12 / 4x12 / 8x10 cabinet, room |
 | **THE RACKET** | Drive pedal: overdrive, distortion, fuzz or octave fuzz; drive, tone, level, mix |
@@ -120,6 +121,11 @@ CI (`.github/workflows/windows-build.yml`, started by hand from the Actions tab)
 validator, renders screenshots with software OpenGL, builds and verifies the installer and
 publishes the release.
 
-## Licences
-No Steinberg ASIO code (WASAPI only). VST3 SDK 3.8.1: MIT (fetched at build time, not committed).
-Poppins font: SIL OFL 1.1. stb, dr_libs: public domain / MIT. Everything else © Hybrid Elite Mafia.
+## Licence
+HEM-Elite-Rack is free software under the GNU General Public License, version 3 or (at your option) any later
+version (`LICENSE`). Copyright (C) 2026 Steven Reliford / Hybrid Elite Mafia. Each release carries its complete
+source code as `HEM-Elite-Rack-<version>-source.zip`.
+
+Third-party: Steinberg ASIO SDK 2.3.4, used under its GPLv3 option (fetched from Steinberg at build time and
+checked, never committed; ASIO is a trademark of Steinberg Media Technologies GmbH). VST3 SDK 3.8.1: MIT (fetched at
+build time). Poppins font: SIL OFL 1.1. stb, dr_libs: public domain / MIT.

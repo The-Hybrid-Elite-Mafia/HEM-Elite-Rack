@@ -1,7 +1,7 @@
 <#
   CI: builds the Inno Setup installer from the Release build (app, self-test, snapshot tool, VST3 bundle).
   Version comes from the VERSION file. Builds of main use it as-is; other branches get "-dev.<run>".
-  Refuses to build if any program contains Steinberg ASIO code (this is the public, shareable build).
+  Refuses to build if the app has no ASIO in it (the SDK was missing) or if the licence files are missing.
 #>
 param([string]$BuildDir = 'build\rack')
 $ErrorActionPreference = 'Stop'
@@ -16,17 +16,16 @@ $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
 if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Host }
 if (-not (Test-Path $iscc)) { throw "ISCC.exe not found at $iscc" }
 
-# No ASIO anywhere: the app, the tools and the plug-in.
-$progs = @(Get-ChildItem $bin -Recurse -Include 'HEMEliteRack.exe','hem_rack_tests.exe','hem_rack_snapshot.exe','HEM-Elite-Rack.vst3' -File |
-           Where-Object { $_.FullName -match '\\Release\\' })
-if ($progs.Count -lt 4) { throw "expected 4 Release programs, found $($progs.Count)" }
-foreach ($p in $progs) {
-    $text = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($p.FullName))
-    if ($text.Contains('ASIO open failed at') -or $text.Contains('ASIOInit') -or $text.Contains('asiodrivers')) { throw "refused: $($p.Name) contains ASIO code" }
-    Write-Host "no ASIO code: $($p.Name)"
-}
+# The app must have ASIO in it (Steinberg's SDK under its GPLv3 option).
+$app = Get-ChildItem $bin -Recurse -Filter 'HEMEliteRack.exe' -File | Where-Object { $_.FullName -match '\\Release\\' } | Select-Object -First 1
+if (-not $app) { throw 'HEMEliteRack.exe (Release) not found' }
+$text = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($app.FullName))
+if (-not $text.Contains('Could not open the ASIO driver')) { throw "refused: $($app.Name) was built without ASIO" }
+Write-Host "ASIO in: $($app.Name)"
+$asioLic = Join-Path $root 'external\HybridCore\external\asiosdk\sdk\LICENSE.txt'
+if (-not (Test-Path $asioLic)) { throw "ASIO SDK licence not found at $asioLic" }
 
-$defs = @("/DAppVersion=$ver", "/DBinDir=$bin")
+$defs = @("/DAppVersion=$ver", "/DBinDir=$bin", "/DAsioLicense=$asioLic")
 $bundle = Get-ChildItem $bin -Recurse -Directory -Filter 'HEM-Elite-Rack.vst3' | Where-Object { $_.FullName -match '\\Release\\' } | Select-Object -First 1
 $vstLic = Get-ChildItem (Join-Path $bin '_deps') -Recurse -Filter 'LICENSE.txt' -ErrorAction SilentlyContinue |
           Where-Object { $_.Directory.Name -eq 'vst3sdk-src' } | Select-Object -First 1

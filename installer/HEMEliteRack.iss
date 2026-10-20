@@ -1,7 +1,7 @@
 ; =============================================================================
 ;  HEM-Elite-Rack — Windows installer (Inno Setup 6)
 ;  Built by CI:  ISCC /DAppVersion=x.y.z /DBinDir=<build dir> [/DVst3Bundle=<path> /DVst3License=<path>] HEMEliteRack.iss
-;  Public build: WASAPI only, no Steinberg ASIO code (checked by tools\ci\build-installer.ps1).
+;  Licence: GPLv3 or later. Sound: ASIO (Steinberg's ASIO SDK under its GPLv3 option) or WASAPI.
 ;  AppId is permanent: never change it, or upgrades will install side by side.
 ; =============================================================================
 #ifndef AppVersion
@@ -52,6 +52,10 @@ Source: "{#BinDir}\tools\rack_snapshot\Release\hem_rack_snapshot.exe";  DestDir:
 Source: "{#BinDir}\tests\Release\assets\*";                            DestDir: "{app}\bin\assets"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "HOW-TO-USE.txt";                                                DestDir: "{app}"; Flags: ignoreversion
 Source: "THIRD-PARTY-NOTICES.txt";                                       DestDir: "{app}"; Flags: ignoreversion
+Source: "..\LICENSE";                                                    DestDir: "{app}"; DestName: "LICENSE.txt"; Flags: ignoreversion
+#ifdef AsioLicense
+Source: "{#AsioLicense}";                                                DestDir: "{app}\licenses"; DestName: "Steinberg-ASIO-SDK-LICENSE.txt"; Flags: ignoreversion
+#endif
 Source: "..\external\HybridCore\assets\fonts\OFL.txt";                  DestDir: "{app}\licenses"; DestName: "Poppins-OFL.txt"; Flags: ignoreversion
 Source: "..\external\HybridCore\external\stb\LICENSE";                  DestDir: "{app}\licenses"; DestName: "stb-LICENSE.txt"; Flags: ignoreversion
 Source: "..\external\HybridCore\external\dr_libs\LICENSE";              DestDir: "{app}\licenses"; DestName: "dr_libs-LICENSE.txt"; Flags: ignoreversion

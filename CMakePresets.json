@@ -4,7 +4,7 @@
   "configurePresets": [
     {
       "name": "rack",
-      "displayName": "HEM-Elite-Rack — Windows x64 / MSVC, WASAPI + VST3, no ASIO",
+      "displayName": "HEM-Elite-Rack — Windows x64 / MSVC, ASIO + WASAPI + VST3",
       "generator": "Visual Studio 17 2022",
       "architecture": { "value": "x64", "strategy": "set" },
       "toolset": { "value": "host=x64", "strategy": "set" },

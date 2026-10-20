@@ -1,7 +1,17 @@
 HEM-ELITE-RACK — THIRD-PARTY NOTICES
 
-This program contains no Steinberg ASIO code. Sound goes out through Windows' own
-WASAPI (exclusive mode, 48 kHz).
+HEM-Elite-Rack is free software, licensed under the GNU General Public License, version 3
+or (at your option) any later version (LICENSE.txt). It comes with NO WARRANTY.
+Copyright (C) 2026 Steven Reliford / Hybrid Elite Mafia. The complete source code of every
+release is attached to that release on GitHub (HEM-Elite-Rack-<version>-source.zip) and is at
+https://github.com/The-Hybrid-Elite-Mafia/HEM-Elite-Rack
+
+ASIO
+  ASIO is a trademark and software of Steinberg Media Technologies GmbH. This program uses the
+  Steinberg ASIO SDK 2.3.4 under the SDK's GPLv3 licence option
+  (licenses\Steinberg-ASIO-SDK-LICENSE.txt). One line of the SDK was changed (host\pc\asiolist.cpp:
+  delete -> delete[]); the source zip has it. Sound goes out through an ASIO driver or Windows'
+  own WASAPI (exclusive mode), always at 48 kHz.
 
 VST
   VST is a trademark of Steinberg Media Technologies GmbH. The optional VST3 plug-ins
@@ -24,5 +34,6 @@ Poppins
   SIL Open Font License 1.1 (licenses\Poppins-OFL.txt). Bundled unmodified.
 
 Everything else in HEM-Elite-Rack — the plug-ins' sound processing, the faceplates, the
-Hybrid Elite Mafia crown and the ghost — belongs to Hybrid Elite Mafia.
+Hybrid Elite Mafia crown and the ghost — is Hybrid Elite Mafia's own work, shared under the GPL.
+The Hybrid Elite Mafia name, crown and ghost are its brand.
 The plug-ins are our own designs. Product names of other companies are not used.

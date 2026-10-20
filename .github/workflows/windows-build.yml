@@ -20,7 +20,11 @@ jobs:
           tools\ci\run-and-report.ps1 -Title "toolchain" -Exe pwsh
           -ArgList '-NoProfile','-Command','cmake --version; & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property catalog_productDisplayVersion; (Get-CimInstance Win32_Processor).Name; git -C external/HybridCore log -1 --oneline'
 
-      - name: Configure (WASAPI + VST3, no ASIO)
+      - name: Steinberg ASIO SDK (from Steinberg, SHA-512 checked; used under its GPLv3 option, never committed)
+        run: |
+          tools\ci\run-and-report.ps1 -Title "asio sdk" -Exe pwsh -ArgList '-NoProfile','-File','external\HybridCore\tools\fetch-asio-sdk.ps1'
+
+      - name: Configure (ASIO + WASAPI + VST3)
         run: |
           tools\ci\run-and-report.ps1 -Title "configure" -Exe cmake -ArgList '--preset','rack'
 
@@ -80,6 +84,10 @@ jobs:
       - name: Verify installer (install, self-test, upgrade, uninstall)
         run: |
           tools\ci\run-and-report.ps1 -Title "installer: verify" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\verify-installer.ps1','-Installer',"$env:HEM_INSTALLER"
+
+      - name: Source code of this build (what the GPL asks for: the rack, The Hybrid Core, the ASIO and VST3 SDK parts)
+        run: |
+          tools\ci\run-and-report.ps1 -Title "source zip" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\make-source-zip.ps1'
 
       - name: Upload installer artifact
         uses: actions/upload-artifact@v5

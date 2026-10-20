@@ -341,31 +341,43 @@ LOW PROFILE
 
 THE FIXER
   Three bands that only turn down when they get nasty: MUD (boxy lows), HARSH (the bite) and FIZZ
-  (esses, hiss). Bring a band's THRESHOLD down until its number shows a few dB; RANGE = the most it
-  takes. LISTEN plays one band alone so you can find the right FREQ.
+  (esses, hiss). AMOUNT up = it starts on quieter sound and takes more off (at most 18 dB); the number
+  over each band shows what it takes. FREQ moves the band inside its range. LISTEN plays one band alone
+  so you can find the spot, BYPASS switches a band off. INPUT and OUTPUT trim the level.
+
+DEAD DROP
+  A delay that can be clean or dirty. TIME in ms, or a NOTE when SYNC is HOST or BPM; TAP twice to set
+  it. DUAL gives the right side its own time. FEEDBACK past 100 % builds up (the analog stage holds it
+  in). PING PONG bounces left / right. HI-PASS and LO-PASS darken or thin the repeats (LINK moves both).
+  MOD wobbles the time, ANALOG 1-4 adds grit and a little hiss, LOFI lowers the sample rate. MIX, OUTPUT.
 
 SIX SHOOTER
-  SHOTS = how many echoes in a row, NOTE = how far apart (MS uses the TIME knob instead). DECAY makes each
-  shot quieter, SPREAD bounces them left / right, SWING makes every second one late, FEEDBACK starts
-  the round again, TONE darkens them.
+  Six echoes you place one by one. Each TAP: ON, DELAY (how late), GAIN, ROTATE (where it sits left to
+  right) and its own EQ. DIRECT is the dry sound. TEMPO: HOST follows the song, MANUAL uses BPM (or TAP it
+  in); GRID with SNAP puts the taps on notes. MODULATOR swings the delay times. FEEDBACK sends the echoes
+  round again (MODE: all taps, or its own DELAY), with its own FILTER. RESET clears the held peaks.
 
 BACK ALLEY
-  The cheap-room sound: SPACE SPRING or PLATE, REVERB and ECHO levels, DECAY of the room, TIME and
-  FEEDBACK of the echo. WOBBLE bends the echo like old tape, GRIT narrows and dirties it, NARROW
-  squeezes the whole thing toward mono.
+  The cheap-room sound: an ECHO (TIME in ms or a NOTE, FEEDBACK, PING PONG, LEVEL) and a SPRING or
+  PLATE reverb (LENGTH, LEVEL), each with its ON. HI-PASS and LO-PASS narrow everything, MONO squeezes
+  it toward the middle (10 = as it was), MIX blends it in. The worn tone and wobble are built in.
 
 DRIVE-BY
-  MANUAL: turn POSITION and the sound moves past you (move it fast and the pitch bends). AUTO: it
-  drives past on its own, once per PASS EVERY. SPEED = how fast (how much the pitch bends), DISTANCE =
-  how close it passes, AIR = far away gets darker.
+  A sound driving past you. TRACK TIME = how long the whole pass takes, CENTER TIME = when it's closest,
+  START / END = where it begins and ends, CLOSE = how near it passes, DIRECTION = which way. MODE
+  CONTINUOUS passes again and again; ONE-SHOT goes once per TRIGGER (ENERGY: when the sound starts;
+  MANUAL: press FIRE). GAIN, PAN, PITCH, AIR and REVERB set how real it is (100 = as in life), each with ON.
 
 BODY DOUBLE
-  Makes one take sound like two (or four). DELAY = how late the copies are, DETUNE = how out of tune,
-  SPREAD = how far left / right. VOICE LEVEL and DRY balance them; LOW CUT keeps the copies out of the bass.
+  Makes one take sound like two to five. Each of the four VOICES: ON, GAIN, PAN, DELAY, DETUNE,
+  FEEDBACK, OCTAVE (an octave down) and MOD (a wobble: DEPTH, RATE). DIRECT is the original; ALIGN DIRECT
+  makes 0 ms mean together. ROUTING SPLIT feeds voices 1 / 3 from the left and 2 / 4 from the right.
+  LOW and HIGH shelves shape the voices. RESET clears the held peaks.
 
 HUSTLE
-  One wobble for three things: TREMOLO (level), VIBRATO (pitch) and PAN. NOTE HZ uses the RATE knob, or pick a note
-  to lock it to the tempo. WAVE changes the shape; OFFSET moves where the pan swings.
+  One wobble, three moves: AM (level), FM (pitch) and ROTATION (where it sits), each with ON, depth and
+  PHASE. RATE x FACTOR is the speed; SYNC AUTO locks it to one cycle a beat of the song. WAVE changes the
+  shape. GAIN and MIX at the end.
 
 THE INFORMANT
   Talk or sing into it and the built-in synth "speaks" your words. NOTE, OCTAVE and CHORD set what
@@ -373,8 +385,11 @@ THE INFORMANT
   or down, SIBILANCE lets the S and T sounds through.
 
 STRAPPED
-  Everything a guitar needs in the mix, top row first: TIGHT (low cut), COMPRESS, BASS, MIDS, TREBLE;
-  then CHORUS, DELAY (DELAY NOTE follows the tempo), ROOM and WIDTH.
+  A guitar desk. MODE: CLEAN, CRUNCH or HEAVY (each its own tone; BYPASS = none). RE-AMP runs it
+  through an amp for that mode. SENSITIVITY is the level in, BALANCE tips it left or right, OUTPUT the
+  level out. Then six faders, each with a COLOR (OFF switches it out): BASS and TREBLE (which frequency),
+  COMPRESS (LIGHT / MEDIUM / HEAVY, the fader is how hard), REVERB (room size), DELAY (a note of the
+  tempo) and PITCH (how wide the doubled spread is) - those three faders are how much.
 
 SAFE HOUSE
   For checking a mix on headphones: it sounds like speakers in front of you. ANGLE = how wide they
@@ -455,8 +470,10 @@ THE ACCOUNTANT (measures only, changes nothing)
 
 Knobs: drag up / down (hold Shift for fine), mouse wheel, double-click = back to default.
 
-OUTPUT (top right) picks the sound card. HEM-Elite-Rack uses it in exclusive mode
-(lowest latency) — other programs go quiet while it plays.
+OUTPUT (top right) picks the sound card; click it to step through them. "ASIO: ..." outputs are your
+audio interface's own ASIO driver - usually the lowest delay; the buffer size is set in the driver's own
+control panel. The others are Windows outputs, used in exclusive mode - other programs go quiet while it
+plays. With nothing picked yet it tries ASIO first, then Windows' default output.
 
 Your chain, output and folders are remembered in %APPDATA%\HEM-Elite-Rack.
 The VST3 plug-ins (all of them, named HEM ...) are in Common Files\VST3\HEM-Elite-Rack.vst3

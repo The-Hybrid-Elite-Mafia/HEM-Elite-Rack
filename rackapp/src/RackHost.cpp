@@ -33,22 +33,36 @@ RackHost::RackHost() {
 
 RackHost::~RackHost() { close(); }
 
+std::string Device::key() const {
+    if (offline) return "offline";
+    if (asio) return "asio:" + toUtf8(id);
+    return id.empty() ? "default" : toUtf8(id);
+}
+
+// ASIO drivers first (the lowest delay), then Windows' outputs, then no sound.
 std::vector<Device> RackHost::listDevices() {
     std::vector<Device> out;
-    out.push_back({false, L"", "Windows default output"});
+#if defined(HC_HAS_ASIO_SDK)
+    for (const auto& d : hc::io::enumerateAsioDrivers())
+        if (!d.dllPath.empty()) out.push_back({false, true, d.name, "ASIO: " + toUtf8(d.name)});   // 32-bit-only drivers can't load here
+#endif
+    out.push_back({false, false, L"", "Windows default output"});
     if (auto eps = hc::io::enumerateWasapi()) {
         for (const auto& ep : *eps) {
             if (ep.flow != hc::io::Flow::Render) continue;
             if (!(ep.excl48kFloat32 || ep.excl48kInt24in32 || ep.excl48kInt16)) continue;
-            out.push_back({false, ep.id, toUtf8(ep.name)});
+            out.push_back({false, false, ep.id, toUtf8(ep.name)});
         }
     }
-    out.push_back({true, L"offline", "No sound (offline clock)"});
+    out.push_back({true, false, L"offline", "No sound (offline clock)"});
     return out;
 }
 
 void RackHost::close() noexcept {
     if (wasapi_) { wasapi_->close(); wasapi_.reset(); }
+#if defined(HC_HAS_ASIO_SDK)
+    if (asio_) { asio_->close(); asio_.reset(); }
+#endif
     if (offline_) { offline_->close(); offline_.reset(); }
     engine_.collectGarbage();
     running_ = false;
@@ -65,6 +79,31 @@ bool RackHost::open(const Device& d) {
     if (d.offline) {
         offline_ = std::make_unique<hc::io::OfflineStream>();
         cfg = offline_->open({}, engine_);
+    } else if (d.asio) {
+#if defined(HC_HAS_ASIO_SDK)
+        asio_ = std::make_unique<hc::io::AsioDuplex>();
+        hc::io::AsioDuplex::Options opt;
+        opt.driverName = d.id;
+        opt.maxInputs  = 0;   // the rack plays songs: outputs only
+        opt.maxOutputs = 2;   // the first two outputs of the interface
+        auto r = asio_->open(opt, engine_);
+        if (!r) {
+            std::snprintf(buf, sizeof buf, "Could not open the ASIO driver (%s, error %ld) - is another app using it? Or pick another output",
+                          r.error().stage, r.error().code);
+            problem_ = buf;
+            asio_.reset();
+            return false;
+        }
+        if (r->numOutputs < 2) {
+            problem_ = "This ASIO driver has fewer than two outputs - pick another output with the OUTPUT button";
+            close();
+            return false;
+        }
+        cfg = *r;
+#else
+        problem_ = "This build has no ASIO";
+        return false;
+#endif
     } else {
         auto tryOpen = [&](const std::wstring& id) {
             if (wasapi_) wasapi_->close();
@@ -104,6 +143,16 @@ bool RackHost::open(const Device& d) {
         close();
         return false;
     }
+#if defined(HC_HAS_ASIO_SDK)
+    if (asio_) {
+        if (auto s = asio_->start(); !s) {
+            std::snprintf(buf, sizeof buf, "The ASIO driver did not start (%s, error %ld)", s.error().stage, s.error().code);
+            problem_ = buf;
+            close();
+            return false;
+        }
+    } else
+#endif
     if (wasapi_) {
         if (auto s = wasapi_->start(); !s) {
             std::snprintf(buf, sizeof buf, "The sound card did not start (WASAPI %s, 0x%08lX)", s.error().stage, static_cast<unsigned long>(s.error().code));
@@ -115,7 +164,11 @@ bool RackHost::open(const Device& d) {
         offline_->start();
     }
     outMs_ = cfg.outputLatencyMs;
-    std::snprintf(buf, sizeof buf, "%u Hz - %u frames = %.1f ms", cfg.sampleRate, cfg.blockFrames, 1000.0 * cfg.blockFrames / std::max(1u, cfg.sampleRate));
+    if (d.asio)
+        std::snprintf(buf, sizeof buf, "ASIO - %u Hz - %u frames = %.1f ms, the driver reports %.1f ms out", cfg.sampleRate, cfg.blockFrames,
+                      1000.0 * cfg.blockFrames / std::max(1u, cfg.sampleRate), cfg.outputLatencyMs);
+    else
+        std::snprintf(buf, sizeof buf, "%u Hz - %u frames = %.1f ms", cfg.sampleRate, cfg.blockFrames, 1000.0 * cfg.blockFrames / std::max(1u, cfg.sampleRate));
     format_ = buf;
     running_ = true;
     return true;
@@ -129,6 +182,9 @@ void RackHost::poll() {
     rack_->collectRetired();
     std::uint32_t ev = 0;
     if (wasapi_) ev |= wasapi_->takeEvents();
+#if defined(HC_HAS_ASIO_SDK)
+    if (asio_) ev |= asio_->takeEvents();
+#endif
     using namespace hc::io::StreamEvent;
     if (ev & (ResetRequest | SampleRateMoved | ResyncRequest)) {
         const Device again = current_;

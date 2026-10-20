@@ -2,7 +2,7 @@
 #  HEM-Elite-Rack — Hybrid Elite Mafia's plug-in rack: a simple Windows app to load a song,
 #  stack HEM plug-ins, hear them live, A/B and export, plus the same plug-ins as VST3.
 #  Built on The Hybrid Core (external/HybridCore, a pinned git submodule) as a library.
-#  Public build: WASAPI only, no Steinberg ASIO code.
+#  Licence: GPLv3 or later (LICENSE). Sound: ASIO (Steinberg's ASIO SDK under its GPLv3 option) or WASAPI.
 # =============================================================================
 cmake_minimum_required(VERSION 3.28)
 
@@ -29,9 +29,11 @@ endif()
 list(APPEND CMAKE_MODULE_PATH "${HEM_HC_DIR}/cmake")
 include(HybridCorePlatform)
 
-# The Hybrid Core as a library only, and never with ASIO (public, shareable build).
-set(HC_BUILD_APPS OFF CACHE BOOL "" FORCE)
-set(HC_WITH_ASIO  OFF CACHE BOOL "" FORCE)
+# The Hybrid Core as a library only, with ASIO: the SDK must be in external/HybridCore/external/asiosdk
+# (external/HybridCore/tools/fetch-asio-sdk.ps1 downloads Steinberg's own zip and checks it). Never committed.
+set(HC_BUILD_APPS       OFF CACHE BOOL "" FORCE)
+set(HC_WITH_ASIO        ON  CACHE BOOL "" FORCE)
+set(HC_REQUIRE_ASIO_SDK ON  CACHE BOOL "" FORCE)
 add_subdirectory("${HEM_HC_DIR}" HybridCore EXCLUDE_FROM_ALL)
 
 # Runtime assets (Poppins fonts, the knob parts' source faceplate, the HEM crown and ghost)

@@ -443,7 +443,7 @@ struct App {
         const Device& d = devices[static_cast<std::size_t>(deviceIndex)];
         if (host.open(d)) {
             say("Playing through " + host.deviceName() + "  (" + host.format() + ")");
-            settings.set("app", "device", d.offline ? "offline" : toUtf8(d.id));
+            settings.set("app", "device", d.key());
         } else {
             say(host.problem(), true);
         }
@@ -536,13 +536,26 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 
     a.devices = RackHost::listDevices();
     {
-        int idx = 0;
+        // The output picked last time; with none saved (or it's gone), the first that opens: ASIO drivers come
+        // first in the list, then Windows' default output. Settings from before 0.29 saved "" for Windows' default.
         const std::string saved = a.settings.get("app", "device");
+        int idx = -1;
         for (std::size_t i = 0; i < a.devices.size(); ++i) {
             const Device& d = a.devices[i];
-            if (opts.offline ? d.offline : (!saved.empty() && (d.offline ? saved == "offline" : toUtf8(d.id) == saved))) idx = static_cast<int>(i);
+            const bool match = opts.offline ? d.offline : !saved.empty() && d.key() == saved;
+            if (match) idx = static_cast<int>(i);
         }
-        a.openDevice(idx);
+        if (idx >= 0) {
+            a.openDevice(idx);
+        } else {
+            for (std::size_t i = 0; i < a.devices.size(); ++i) {
+                const Device& d = a.devices[i];
+                if (d.offline) continue;
+                if (!d.asio && !d.id.empty()) continue;   // ASIO drivers, then Windows' default
+                a.openDevice(static_cast<int>(i));
+                if (a.host.running() || !d.asio) break;
+            }
+        }
     }
 
     hc::ui::GlWindow window;
