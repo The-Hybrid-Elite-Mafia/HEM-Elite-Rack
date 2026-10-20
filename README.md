@@ -97,7 +97,7 @@ C++23 audio framework, as a library.
 | **BOTTOM FEEDER** | Bass rig: two amps; DI tone, level, blend and flip; a drive pedal (fat, tight, sharp) with tone, gain, mix; voice; gain, bass, mid, hi mid, high; cabinet tone, room, cab off; output limiter |
 | **THE RACKET** | Drive pedal: overdrive, distortion, fuzz or octave fuzz; drive, tone, level, mix |
 | **THE SNITCH** | Tuner: chromatic, guitar and six other tunings or your own notes (twelve switches); reference A ±6 cents; note, cents and frequency |
-| **PROMOTION** | Pitch shifter: ±12 semitones and cents, smooth or tight |
+| **PROMOTION** | Pitch shifter: by transpose (semitones as intervals, cents) or by frequency (from / to Hz); sync, smooth, transient or punchy |
 | **WISEGUYS** | Harmonizer: three voices with their own interval, level and pan |
 | **MADE MAN** | Pitch correction for one voice: key, scale, speed, amount |
 | **THE DETECTIVE** | Key finder: the key, two alternatives and the song's tuning; detect / stop, your own key (root, scale), sharps or flats |

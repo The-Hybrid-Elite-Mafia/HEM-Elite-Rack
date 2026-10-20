@@ -561,8 +561,11 @@ THE SNITCH
   There is no mute (the original has none): bypass the rest of the chain while you tune.
 
 PROMOTION
-  Moves the pitch: SHIFT in semitones (12 = an octave), FINE in cents. CHARACTER SMOOTH for held notes
-  and vocals, TIGHT for rhythm parts. It delays the sound by 35 ms (DAWs make up for it).
+  Moves the pitch, up to an octave either way. SET BY TRANSPOSE: SEMITONES (named as intervals: +5TH,
+  -OCTAVE ...) and CENTS on top; or SET BY FREQUENCY: FROM the pitch it is, TO the pitch you want (Hz).
+  MODE: SMOOTH for held notes and vocals, SYNC close to it, TRANSIENT keeps the hits sharp, PUNCHY for
+  rhythm parts. It delays the sound by 35 ms (DAWs make up for it). The original can also stretch the
+  length of a whole file; a live rack can't, so that part isn't here.
 
 WISEGUYS
   Three backing voices from one: each VOICE is an interval in semitones (3 = minor third, 4 = major

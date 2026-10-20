@@ -16,8 +16,10 @@
 //                switched-on note nearest the sound and shows that NOTE, how many CENTS off (±50) and the
 //                pitch. The sound passes untouched. Meters: 0 note (MIDI number, -1 = none), 1 cents, 2 Hz,
 //                3 how it stands: -1 flat (3 cents or more under), 0 in tune (within 6), +1 sharp.
-//  PROMOTION     pitch shifter: SHIFT (semitones), FINE (cents), CHARACTER SMOOTH (longer grains,
-//                for sustained parts) or TIGHT (shorter, for rhythm), MIX, OUTPUT.
+//  PROMOTION     pitch shifter (the length stays): SET BY TRANSPOSE (SEMITONES -12..+12 and CENTS 0..99 up from
+//                there; the semitone steps are also named as intervals) or FREQUENCY (FROM Hz -> TO Hz: the ratio
+//                between them), up to an octave either way; MODE SYNC / SMOOTH / TRANSIENT / PUNCHY. The original's
+//                time stretching works on a whole file, not on a live stream, so it isn't here. Latency 1681 samples.
 //  WISEGUYS      harmonizer: three extra voices, each its INTERVAL (semitones), LEVEL and PAN, plus
 //                the DRY level and OUTPUT.
 //  MADE MAN      pitch correction for a single voice: KEY and SCALE (ALL NOTES / MAJOR / MINOR), SPEED
@@ -61,7 +63,8 @@ enum Tuning : int { Chromatic, Guitar, DropD, OpenG, OpenD, OpenE, Dadgad, HalfD
 } // namespace snitch
 
 namespace promotion {
-enum P : int { Shift, Fine, Character, Mix, Output, kCount };
+enum P : int { Entry, Semitones, Cents, FromHz, ToHz, Mode, kCount };
+enum Modes : int { Sync, Smooth, Transient, Punchy, kModes };
 } // namespace promotion
 
 namespace wiseguys {

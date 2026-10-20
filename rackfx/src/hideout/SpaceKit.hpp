@@ -100,6 +100,10 @@ public:
         }
         return y;
     }
+    // jump to the newest sound now (for an attack), unless a splice is already fading
+    void snap() noexcept {
+        if (fadeLeft_ == 0 && head_ > 2.0f + fade_) splice(false);
+    }
 
 private:
     // a new head near the other end of the window, where the sound matches the current head's best

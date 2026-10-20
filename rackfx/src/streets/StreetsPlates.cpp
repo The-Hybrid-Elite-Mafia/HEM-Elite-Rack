@@ -60,8 +60,9 @@ constexpr PlateBands notes{.count = 12, .first = Note0, .stride = 1, .toggles = 
 
 namespace pr {
 using namespace promotion;
-constexpr PlateChoice choices[] = {{Character, "CHARACTER"}};
-constexpr PlateKnob row1[] = {{Shift, "SHIFT", "-12", "+12", K::Big}, {Fine, "FINE", "-100", "+100"}, {Mix, "MIX", "DRY", "WET"}, {Output, "OUTPUT"}};
+constexpr PlateChoice choices[] = {{Entry, "SET BY"}, {P::Mode, "MODE"}};
+constexpr PlateKnob row1[] = {{Semitones, "SEMITONES", "-12", "+12", K::Big}, {Cents, "CENTS", "0", "99"}, {FromHz, "FROM", "20", "20K"},
+                              {ToHz, "TO", "20", "20K"}};
 } // namespace pr
 
 namespace wg {
@@ -118,7 +119,7 @@ const PlateSpec kSnitch{.note1 = "TELLS YOU", .note2 = "WHEN YOU'RE OFF", .scree
                         .row1 = sn::row1, .steppers = sn::steppers, .bands = &sn::notes,
                         .demo = [](hc::fx::Effect& e) { e.set(snitch::Mode, snitch::MyNotes); }};
 const PlateSpec kPromotion{.note1 = "MOVE IT UP", .note2 = "OR DOWN", .screen = Screen::None, .choices = pr::choices, .row1 = pr::row1,
-                           .demo = [](hc::fx::Effect& e) { e.set(promotion::Shift, 5); }};
+                           .demo = [](hc::fx::Effect& e) { e.set(promotion::Semitones, 17); }};
 const PlateSpec kWiseguys{.note1 = "BACKUP SINGERS", .note2 = "ON CALL", .screen = Screen::None, .row1 = wg::row1, .row2 = wg::row2,
                           .demo = [](hc::fx::Effect& e) { using namespace wiseguys; e.set(Level3, 40); }};
 const PlateSpec kMadeMan{.note1 = "EVERY NOTE", .note2 = "FALLS IN LINE", .screen = Screen::Readouts, .readouts = mm2::readouts,

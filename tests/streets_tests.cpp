@@ -230,17 +230,24 @@ void testPromotion() {
         const std::uint32_t lat = e->latency();
         double diff = 0;
         for (std::size_t i = lat; i < s.size(); ++i) diff = std::max(diff, static_cast<double>(std::fabs(s.l[i] - ref.l[i - lat])));
-        std::printf("  PROMOTION at 0: the input %u samples late, largest difference %.2e\n", lat, diff);
+        std::printf("  PROMOTION at unison: the input %u samples late, largest difference %.2e\n", lat, diff);
         CHECK(diff < 1e-4);
     }
-    for (int ch = 0; ch < 2; ++ch) {
-        auto e = make("PROMOTION", {{Shift, 12}, {Character, static_cast<float>(ch)}});
+    for (int m = 0; m < kModes; ++m) {
+        auto e = make("PROMOTION", {{Semitones, 24}, {P::Mode, static_cast<float>(m)}});
         const double up = componentDb(*e, 220, 0.3f, 440), orig = componentDb(*e, 220, 0.3f, 220);
-        auto f = make("PROMOTION", {{Shift, -12}, {Character, static_cast<float>(ch)}});
+        auto f = make("PROMOTION", {{Semitones, 0}, {P::Mode, static_cast<float>(m)}});
         const double down = componentDb(*f, 440, 0.3f, 220), orig2 = componentDb(*f, 440, 0.3f, 440);
-        std::printf("  PROMOTION %s: +12 st on 220 Hz -> 440 Hz %.1f dB, 220 Hz left %.1f dB; -12 st on 440 Hz -> 220 Hz %.1f dB, 440 left %.1f dB\n",
-                    ch ? "TIGHT" : "SMOOTH", up, orig, down, orig2);
+        std::printf("  PROMOTION mode %d: an octave up on 220 Hz -> 440 Hz %.1f dB, 220 left %.1f dB; down on 440 -> 220 Hz %.1f dB, 440 left %.1f dB\n",
+                    m, up, orig, down, orig2);
         CHECK(up > -16.0 && orig < up - 20.0 && down > -16.0 && orig2 < down - 20.0);
+    }
+    {   // FREQUENCY 440 -> 660 Hz: a fifth up; SEMITONES +7 and CENTS 2 lands the same place
+        auto f = make("PROMOTION", {{Entry, 1}, {FromHz, 440}, {ToHz, 660}});
+        auto t = make("PROMOTION", {{Semitones, 19}, {Cents, 2}});
+        const double a = componentDb(*f, 300, 0.3f, 450), b = componentDb(*t, 300, 0.3f, 300.0 * std::exp2(702.0 / 1200.0));
+        std::printf("  PROMOTION 440 -> 660 Hz on 300 Hz: 450 Hz %.1f dB; +7 st 2 c: %.1f dB\n", a, b);
+        CHECK(a > -16.0 && b > -16.0);
     }
 }
 
