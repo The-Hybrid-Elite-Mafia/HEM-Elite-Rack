@@ -17,6 +17,21 @@
 //                HISS OFF / -40..0 dB (0 = as noisy as the real machine), the echo off the tape: ECHO TIME
 //                1..500 ms, ECHO STYLE SLAP (one repeat) / REPEATS, ECHO LEVEL OFF..100, ECHO TONE 200 Hz..16 kHz;
 //                the VU meter: METER IN / OUT, VU ZERO -24..-8 dBFS. Constant latency (kReelLatency).
+//  PAWN SHOP     lo-fi box in four modules, each with its own on switch, then the master section.
+//                DEVICE  SOUND (AIRY / VINTAGE / DEEP / FLAT: the band the old device lets through), TONE 0..100 (from
+//                        its darker to its brighter side), SQUASH -10..+10 (minus: squeezes the loud parts; plus:
+//                        pushes them out), RINGER 0..100 (ring modulation and digital clipping), DECADE 50s / 60s /
+//                        70s / 80s (the band, limiting and distortion of the era), MIX.
+//                SPACE   the echo: SYNC BPM / HOST / MS, TIME 1..3500 ms (MS), NOTE (BPM, HOST), BPM, ECHO 0..100 (the
+//                        first repeat's level), PING PONG, FEEDBACK 0..100 (100 = repeats forever); the reverb:
+//                        REVERB SPRING / PLATE, REVERB LEVEL, REVERB LENGTH; SPACE MIX.
+//                NOISE   TYPE (twelve noises we make ourselves: the original plays 64 recordings), DUCK (the noise drops
+//                        when the music plays) or GATE (it plays only with the music), THRESHOLD -60..0 dBFS (-60 =
+//                        the noise just plays), PLACE PRE (into the space module) / POST, LEVEL -60..0 dB.
+//                MECHANICS  two sets, A (tape-like, drifting) and B (record-like, turning): WOW (pitch), WOBBLE
+//                        (level), SPEED (how fast they move).
+//                MASTER  INPUT ±18 dB, OUTPUT ±18 dB, LOW CUT 30..1500 Hz, HIGH CUT 15..21 kHz, MONO 0..10 (10 = the
+//                        stereo as it was). Readouts: IN and OUT peaks. Constant latency (kPawnLatency).
 // =============================================================================
 #include "hybrid/fx/Fx.hpp"
 
@@ -35,7 +50,19 @@ enum P : int { Speed, Monitor, Bias, IntoTape, OffTape, Link, TapeLevel, Wobble,
 inline constexpr std::uint32_t kReelLatency = 23 + 23 + 64;
 } // namespace reelmoney
 
+namespace pawnshop {
+enum P : int { DeviceOn, Device, Tone, Squash, Ringer, Styler, DeviceMix,
+               SpaceOn, Sync, TimeMs, Note, Bpm, EchoLevel, PingPong, Feedback, ReverbLevel, ReverbLength, ReverbType, SpaceMix,
+               NoiseOn, NoiseType, NoiseMode, Threshold, NoisePlace, NoiseLevel,
+               MechOn, WowA, WobbleA, SpeedA, WowB, WobbleB, SpeedB,
+               Input, Output, LowCut, HighCut, Mono, kCount };
+enum Noise : int { TapeHiss, White, Pink, Rumble, Crackle, Dust, Hum50, Hum60, Radio, Rain, Fire, Wind, kNoises };
+inline constexpr float kNoteBeats[] = {4.0f, 2.0f, 3.0f, 1.0f, 1.5f, 2.0f / 3.0f, 0.5f, 0.75f, 1.0f / 3.0f, 0.25f, 1.0f / 6.0f, 0.125f};
+inline constexpr std::uint32_t kPawnLatency = 160;
+} // namespace pawnshop
+
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeHeavyHitter();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makePawnShop();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeReelMoney();
 
 } // namespace hem::rack

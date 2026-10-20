@@ -6,6 +6,7 @@
 
 #include "hem/rack/Hideout.hpp"
 #include "hem/rack/Comeback.hpp"
+#include "hem/rack/Garage.hpp"
 #include "hem/rack/Plugins.hpp"
 
 #include <algorithm>
@@ -52,7 +53,7 @@ double peakIn(const std::vector<float>& x, std::size_t from, std::size_t to) {
 }
 
 void allRules() {
-    for (const char* name : {"COIL", "SPEAKEASY", "BIG HOUSE", "MOUTHPIECE", "SLINGER", "STREET TEAM", "COLD CASE", "SWERVE", "THE FIXER", "SIX SHOOTER", "DEAD DROP", "BACK ALLEY", "DRIVE-BY", "BODY DOUBLE", "HUSTLE", "THE INFORMANT", "STRAPPED", "SAFE HOUSE"}) {
+    for (const char* name : {"PAWN SHOP", "COIL", "SPEAKEASY", "BIG HOUSE", "MOUTHPIECE", "SLINGER", "STREET TEAM", "COLD CASE", "SWERVE", "THE FIXER", "SIX SHOOTER", "DEAD DROP", "BACK ALLEY", "DRIVE-BY", "BODY DOUBLE", "HUSTLE", "THE INFORMANT", "STRAPPED", "SAFE HOUSE"}) {
         const PluginInfo* info = findPlugin(name);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
@@ -727,6 +728,121 @@ void testBigHouse() {
     }
 }
 
+void testPawnShop() {
+    using namespace pawnshop;
+    auto mk = [](std::initializer_list<std::pair<int, float>> v) {
+        auto e = findPlugin("PAWN SHOP")->create();
+        e->set(DeviceOn, 0);
+        for (const auto& [i, x] : v) e->set(i, x);
+        e->prepare(kFs, 512);
+        return e;
+    };
+    {   // every module off: the sound comes through (only the master filters), kPawnLatency late
+        auto e = mk({});
+        CHECK(e->latency() == kPawnLatency);
+        const double g = toneGain(*e, 1000, 0.2f);
+        Stereo s = impulse(4800);
+        run(*e, s);
+        std::size_t at = 0;
+        for (std::size_t i = 0; i < s.size(); ++i)
+            if (std::fabs(s.l[i]) > std::fabs(s.l[at])) at = i;
+        std::printf("  PAWN SHOP all off: 1 kHz %+.2f dB, the click at %zu (expected %u)\n", g, at, 100 + kPawnLatency);
+        CHECK(std::fabs(g) < 0.1 && at >= 100 + kPawnLatency && at <= 100 + kPawnLatency + 2);
+    }
+    {   // DEVICE: the sounds band-limit (FLAT does not); TONE brighter lets more top through; DECADE 50s narrower than 80s
+        auto lv = [&](float dev, float tone, float era, double hz) {
+            auto e = mk({{DeviceOn, 1}, {Device, dev}, {Tone, tone}, {Styler, era}});
+            return toneGain(*e, hz, 0.05f);
+        };
+        const double deep = lv(2, 50, 3, 6000), flat = lv(3, 50, 3, 6000), dark = lv(1, 0, 3, 5000), bright = lv(1, 100, 3, 5000);
+        const double e50 = lv(3, 50, 0, 9000), e80 = lv(3, 50, 3, 9000);
+        std::printf("  PAWN SHOP 6 kHz: DEEP %+.1f, FLAT %+.1f dB; VINTAGE 5 kHz tone 0 %+.1f, 100 %+.1f dB; 9 kHz 50s %+.1f, 80s %+.1f dB\n", deep, flat,
+                    dark, bright, e50, e80);
+        CHECK(deep < flat - 12.0 && bright > dark + 5.0 && e50 < e80 - 10.0);
+    }
+    {   // SQUASH -10 squeezes: a loud and a quiet tone end up closer; RINGER adds new tones beside the old one
+        auto spread = [&](float sq) {
+            auto e = mk({{DeviceOn, 1}, {Device, 3}, {Styler, 2}, {Squash, sq}});
+            return toneGain(*e, 1000, 0.5f) - toneGain(*e, 1000, 0.01f);
+        };
+        const double s0 = spread(0), s10 = spread(-10);
+        auto r = mk({{DeviceOn, 1}, {Device, 3}, {Styler, 3}, {Ringer, 100}});
+        Stereo t = sine(1000, 1.0, 0.1f);
+        run(*r, t);
+        const double side = db(toneAmp(t.l, 1830, 24000, 24000) / std::max(toneAmp(t.l, 1000, 24000, 24000), 1e-12));
+        std::printf("  PAWN SHOP squash -10: loud vs quiet %+.1f dB (0: %+.1f dB); ringer 100: 1830 Hz %.1f dB under 1 kHz\n", s10, s0, side);
+        CHECK(s10 < s0 - 6.0 && side > -20.0);
+    }
+    {   // SPACE: the echo at TIME (MS), at a note of BPM; FEEDBACK 100 never runs away
+        auto echoAt = [&](std::initializer_list<std::pair<int, float>> v) {
+            auto e = mk(v);
+            Stereo s = impulse(48000);
+            run(*e, s);
+            std::size_t at = 100 + kPawnLatency + 480;
+            for (std::size_t i = at; i < s.size(); ++i)
+                if (std::fabs(s.l[i]) > std::fabs(s.l[at])) at = i;
+            return (static_cast<double>(at) - 100.0 - kPawnLatency) / 48.0;
+        };
+        const double ms = echoAt({{SpaceOn, 1}, {Sync, 2}, {TimeMs, 200}, {EchoLevel, 100}, {ReverbLevel, 0}, {Feedback, 0}, {SpaceMix, 100}});
+        const double q = echoAt({{SpaceOn, 1}, {Sync, 0}, {Bpm, 120}, {Note, 3}, {EchoLevel, 100}, {ReverbLevel, 0}, {Feedback, 0}, {SpaceMix, 100}});
+        auto f = mk({{SpaceOn, 1}, {Sync, 2}, {TimeMs, 120}, {EchoLevel, 100}, {Feedback, 100}, {SpaceMix, 100}});
+        Stereo u = noise(10.0, 0.5f);
+        run(*f, u);
+        std::printf("  PAWN SHOP echo: 200 ms -> %.1f ms; 1/4 at 120 -> %.1f ms; feedback 100 for 10 s: peak %.2f\n", ms, q, peakIn(u.l, 0, u.size()));
+        CHECK(std::fabs(ms - 200.0) < 1.0 && std::fabs(q - 500.0) < 1.0 && peakIn(u.l, 0, u.size()) < 8.0);
+    }
+    {   // NOISE: it plays on silence; GATE keeps it quiet without music; DUCK pulls it down under music
+        auto noiseOn = [&](float mode, float thr, float in) {
+            auto e = mk({{NoiseOn, 1}, {NoiseType, White}, {NoiseLevel, -20}, {NoiseMode, mode}, {Threshold, thr}, {LowCut, 30}});
+            Stereo s = sine(100, 1.0, in);
+            run(*e, s);
+            return db(bandLevelDb(s.l, 4000, 12000, 24000, 24000) > -999 ? rms(s.l, 24000, 24000) : 0.0);
+        };
+        auto hiBand = [&](float mode, float thr, float in) {
+            auto e = mk({{NoiseOn, 1}, {NoiseType, White}, {NoiseLevel, -20}, {NoiseMode, mode}, {Threshold, thr}});
+            Stereo s = sine(100, 1.0, in);
+            run(*e, s);
+            return bandLevelDb(s.l, 4000, 12000, 24000, 24000);
+        };
+        (void)noiseOn;
+        const double plain = hiBand(0, -60, 0.0f), gated = hiBand(1, -30, 0.0f), open = hiBand(1, -30, 0.5f), ducked = hiBand(0, -30, 0.5f);
+        std::printf("  PAWN SHOP noise 4-12 kHz: plain %.1f, gate (no music) %.1f, gate (music) %.1f, duck (music) %.1f dB\n", plain, gated, open, ducked);
+        CHECK(gated < plain - 40.0 && std::fabs(open - plain) < 2.0 && ducked < plain - 15.0);
+        int differ = 0;
+        double prev = 0;
+        for (int t = 0; t < kNoises; ++t) {
+            auto e = mk({{NoiseOn, 1}, {NoiseType, static_cast<float>(t)}, {NoiseLevel, 0}});
+            Stereo s(48000);
+            run(*e, s);
+            const double lv = energyDb(s.l, 0, s.size());
+            if (t > 0 && std::fabs(lv - prev) > 1e-3) ++differ;
+            prev = lv;
+            CHECK(lv > -200.0 && finite(s));
+        }
+        CHECK(differ == kNoises - 1);
+    }
+    {   // MECHANICS: WOW moves the pitch; WOBBLE moves the level; MONO 0 = both sides the same
+        auto e = mk({{MechOn, 1}, {WowA, 100}, {SpeedA, 50}});
+        Stereo s = sine(1000, 2.0, 0.2f), ref = s;
+        run(*e, s);
+        double moved = 0;
+        for (std::size_t i = 24000; i < s.size(); ++i) moved = std::max(moved, static_cast<double>(std::fabs(s.l[i] - ref.l[i - kPawnLatency])));
+        auto w = mk({{MechOn, 1}, {WowA, 0}, {WobbleB, 100}});
+        Stereo t = sine(1000, 3.0, 0.2f);
+        run(*w, t);
+        double lo = 1e9, hi = 0;
+        for (std::size_t k = 1; k < 28; ++k) { const double r = rms(t.l, 48000 + k * 2400, 960); lo = std::min(lo, r); hi = std::max(hi, r); }
+        auto m = mk({{Mono, 0}});
+        Stereo u = noise(0.3, 0.2f);
+        run(*m, u);
+        double lr = 0;
+        for (std::size_t i = 0; i < u.size(); ++i) lr = std::max(lr, static_cast<double>(std::fabs(u.l[i] - u.r[i])));
+        std::printf("  PAWN SHOP wow A 100: largest move from the plain tone %.2f; wobble B 100: level swings %.1f dB; mono 0: largest L-R %.1e\n", moved,
+                    db(hi / lo), lr);
+        CHECK(moved > 0.05 && db(hi / lo) > 1.5 && lr < 1e-7);
+    }
+}
+
 void testCoil() {
     using namespace coil;
     auto mk = [](std::initializer_list<std::pair<int, float>> v) {
@@ -1144,6 +1260,7 @@ void testHideout() {
     testBigHouse();
     testSpeakeasy();
     testCoil();
+    testPawnShop();
     testSixShooter();
     testBackAlley();
     testDriveBy();

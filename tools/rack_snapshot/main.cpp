@@ -19,6 +19,7 @@
 #include "hem/rack/Movement.hpp"
 #include "hem/rack/Specialty.hpp"
 #include "hem/rack/Hideout.hpp"
+#include "hem/rack/Garage.hpp"
 #include "hem/ui/FaceWindow.hpp"
 
 #include <windows.h>
@@ -168,6 +169,9 @@ int main(int argc, char** argv) {
         } else if (info.face == hem::rack::Face::Notches) {
             using namespace hem::rack::coldcase;
             fx->set(Decay, 60); fx->set(StereoSpread, 50); fx->set(Mix, 70);
+        } else if (info.face == hem::rack::Face::Pawn) {
+            using namespace hem::rack::pawnshop;
+            fx->set(SpaceOn, 1); fx->set(NoiseOn, 1); fx->set(NoiseType, Crackle); fx->set(Ringer, 20);
         } else if (info.face == hem::rack::Face::Taps) {
             using namespace hem::rack::sixshooter;
             fx->set(tap(1, EqOn), 1); fx->set(tap(1, EqType), 5); fx->set(FbOn, 1); fx->set(ModOn, 1);

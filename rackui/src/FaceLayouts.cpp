@@ -16,6 +16,7 @@
 #include "hem/rack/Arsenal.hpp"
 #include "hem/rack/ToneShop.hpp"
 #include "hem/rack/Hideout.hpp"
+#include "hem/rack/Garage.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -1393,6 +1394,70 @@ FaceLayout notchesFace(const rack::PluginInfo& info) {
     return L;
 }
 
+// PAWN SHOP: one row per module (its switch, its choices, its knobs), the master section beside the reverb.
+FaceLayout pawnFace(const rack::PluginInfo& info) {
+    using namespace rack::pawnshop;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"OLD GEAR", "NEW TRICKS"};
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 180, 1226, 640};
+    auto stepper = [&](Rect r, int param, const char* label) {
+        L.sections.push_back({{r.x, r.y - 26, r.w, 22}, label});
+        Widget st;
+        st.kind = WKind::Stepper;
+        st.param = param;
+        st.r = r;
+        L.widgets.push_back(st);
+        L.recesses.push_back({st.r.inset(-4), 9, 4, false, false});
+    };
+    struct K { int p; const char* cap; };
+    auto knobs = [&](float x0, float w, float y, std::initializer_list<K> ks) {
+        const std::size_t first = L.widgets.size();
+        const float pitch = w / static_cast<float>(ks.size());
+        int k = 0;
+        for (const K& kk : ks) {
+            const float cx = x0 + (static_cast<float>(k++) + 0.5f) * pitch;
+            L.widgets.push_back(knob({cx - 19, y, 38, 38}, kk.p, kk.cap, "", "", true));
+        }
+        seatKnobs(L, first, 4);
+    };
+    // DEVICE
+    L.widgets.push_back(toggle({410, 220, 140, 32}, DeviceOn, "DEVICE"));
+    stepper({560, 220, 140, 32}, Device, "SOUND");
+    stepper({710, 220, 130, 32}, Styler, "DECADE");
+    knobs(850, 786, 208, {{Tone, "TONE"}, {Squash, "SQUASH"}, {Ringer, "RINGER"}, {DeviceMix, "MIX"}});
+    L.grooves.push_back({410, 300, 1636, 300});
+    // SPACE: the echo
+    L.widgets.push_back(toggle({410, 340, 120, 32}, SpaceOn, "SPACE"));
+    stepper({540, 340, 110, 32}, Sync, "SYNC");
+    stepper({660, 340, 120, 32}, Note, "NOTE");
+    L.widgets.push_back(toggle({790, 340, 180, 32}, PingPong, "PING PONG"));
+    knobs(980, 656, 328, {{TimeMs, "TIME"}, {Bpm, "BPM"}, {EchoLevel, "ECHO"}, {Feedback, "FEEDBACK"}});
+    // SPACE: the reverb, and the master section
+    stepper({410, 460, 140, 32}, ReverbType, "REVERB");
+    knobs(560, 452, 448, {{ReverbLevel, "LEVEL"}, {ReverbLength, "LENGTH"}, {SpaceMix, "SPACE MIX"}});
+    L.grooves.push_back({1018, 420, 1018, 520});
+    knobs(1024, 612, 448, {{Input, "INPUT"}, {Output, "OUTPUT"}, {LowCut, "LOW CUT"}, {HighCut, "HIGH CUT"}, {Mono, "MONO"}});
+    L.grooves.push_back({410, 540, 1636, 540});
+    // NOISE
+    L.widgets.push_back(toggle({410, 580, 120, 32}, NoiseOn, "NOISE"));
+    stepper({540, 580, 170, 32}, NoiseType, "TYPE");
+    stepper({720, 580, 120, 32}, NoiseMode, "FOLLOWS");
+    stepper({850, 580, 110, 32}, NoisePlace, "PLACE");
+    knobs(970, 666, 568, {{Threshold, "THRESHOLD"}, {NoiseLevel, "LEVEL"}});
+    L.grooves.push_back({410, 660, 1636, 660});
+    // MECHANICS
+    L.widgets.push_back(toggle({410, 700, 170, 32}, MechOn, "MECHANICS"));
+    knobs(590, 1046, 688, {{WowA, "WOW A"}, {WobbleA, "WOBBLE A"}, {SpeedA, "SPEED A"}, {WowB, "WOW B"}, {WobbleB, "WOBBLE B"}, {SpeedB, "SPEED B"}});
+    // the left column
+    readoutAt(L, {70, 404, 270, 64}, 0, "IN", "dBFS", "+");
+    readoutAt(L, {70, 478, 270, 64}, 1, "OUT", "dBFS", "+");
+    buttonSeats(L);
+    bypassAt(L, {160, 650, 90, 90});
+    return L;
+}
+
 // ---- plates laid out from a PlateSpec (Face::Spec) -------------------------------------------
 // The parts go where the plate's content leaves room: a screen (or none) on top, a column of
 // buttons and switches beside it, one or two rows of knobs under it, choice lists down the left.
@@ -1741,6 +1806,7 @@ FaceLayout faceLayout(const rack::PluginInfo& info) {
     case rack::Face::Voices: return voicesFace(info);
     case rack::Face::Keys: return keysFace(info);
     case rack::Face::Notches: return notchesFace(info);
+    case rack::Face::Pawn: return pawnFace(info);
     case rack::Face::Spec: if (info.plate) return specFace(info); break;
     case rack::Face::Restorer: break;
     }
