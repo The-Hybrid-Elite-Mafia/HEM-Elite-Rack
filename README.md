@@ -56,10 +56,11 @@ C++23 audio framework, as a library.
 | **FOUR CORNERS** | Four-filter EQ with separate left / right sets: bells, shelves, resonant shelves, cuts |
 | **SMOOTH TALKER** | Six-band EQ with separate left / right sets, resonant shelves, spectrum on / off, trim |
 | **CUTTHROAT** | Sweep filter: high-pass + low-pass, one-knob SWEEP, resonance, 12 / 24 dB, drive, mix |
-| **THE BOSS** | Channel strip: gate, compressor, four-band EQ, low cut, EQ before or after the dynamics, limiter |
-| **KINGPIN** | Drum channel: gate, thump, snap, punch, crush (a squashed copy underneath), drive |
-| **GOLD CHAIN** | One-knob tone: warmth, density and sheen together; input, link, mix |
-| **IVORIES** | Piano tone: darker / brighter, body, compression, stereo slap delay, doubler, width |
+| **THE BOSS** | British-console channel: mic / line preamp, stepped 10 kHz shelf, mid boost / cut, low shelf, 50 Hz cut, analog noise, VU |
+| **INSIDE MAN** | Channel strip: gate / expander and compressor with key filters, four-band EQ, order, phase, output, rotate, clip guard |
+| **KINGPIN** | Drum channel: pick the drum (kick … room), then sensitivity, compress, gate, FX ambience, bass, treble |
+| **GOLD CHAIN** | One-knob tone: warmth, density and sheen together; input, link, output, analog |
+| **IVORIES** | Piano tone: one PIANO knob, slap delay and doubler (on + level), input, output, analog |
 | **HIGH ROLLER** | Five-band enhancer: lift and width for sub, low, mid, high and air |
 | **THE MIDDLEMAN** | Center / sides: levels, low and high balance, hits steered to the middle or the sides |
 | **DOUBLE CROSS** | Mono to stereo that folds back to mono perfectly; tight / medium / wide, low stays mono |
@@ -94,7 +95,7 @@ C++23 audio framework, as a library.
 | **UNDERGROUND** | More low end: a new sub an octave down, or harmonics small speakers can hear |
 | **SPOTLIGHT** | Vocal chain: high-pass, body, one-knob compressor, one-knob de-esser, presence, air |
 
-Eighty-five plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
+Eighty-six plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 
 ## Install
 Download `HEM-Elite-Rack-Setup-x.y.z.exe` from **Releases** and run it. Needs Windows 10 / 11

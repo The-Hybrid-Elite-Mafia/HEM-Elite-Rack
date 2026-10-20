@@ -46,6 +46,7 @@ add_library(hem_rackfx STATIC
     src/maxim/MaximPlates.cpp
     src/tone/StraightShooter.cpp
     src/tone/IirEqs.cpp
+    src/tone/InsideMan.cpp
     src/tone/TheBoss.cpp
     src/tone/Kingpin.cpp
     src/tone/GoldChain.cpp

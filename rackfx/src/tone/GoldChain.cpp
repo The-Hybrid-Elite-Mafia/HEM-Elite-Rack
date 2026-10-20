@@ -2,6 +2,7 @@
 #include "hem/rack/ToneShop.hpp"
 
 #include "ToneCommon.hpp"
+#include "../arsenal/Vintage.hpp"
 
 namespace hem::rack {
 namespace goldchain {
@@ -9,11 +10,11 @@ namespace {
 using namespace tone;
 
 const ParamInfo kParams[kCount] = {
-    {"input", "Input", "dB", -12.0f, 12.0f, 0.0f},
+    {"input", "Input", "dB", -18.0f, 18.0f, 0.0f},
     {"tone", "Tone", "%", 0.0f, 100.0f, 0.0f},
     {"link", "Link", "", 0, 1, 1, Taper::Toggle, kOnOff},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
-    {"output", "Output", "dB", -12.0f, 12.0f, 0.0f},
+    {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
+    {"analog", "Analog", "", 0, 1, 1, Taper::Toggle, kOnOff},
 };
 
 class Impl final : public hc::fx::Effect {
@@ -25,7 +26,7 @@ public:
     void prepare(double fs, std::uint32_t) override {
         fs_ = fs;
         drive_.prepare();
-        dry_.prepare(OS::latency());
+        hum_.prepare(fs);
         dcK_ = static_cast<float>(1.0 - std::exp(-2.0 * std::numbers::pi * 8.0 / fs));
         reset();
     }
@@ -36,9 +37,8 @@ public:
         dcL_ = dcR_ = 0.0f;
         drive_.clear();
         drive_.mix = p(Tone) > 0.0f ? 1.0f : 0.0f;
-        dry_.clear();
+        hum_.clear();
         in_.prepare(fs_, 30, hc::fx::dbToGain(p(Input)));
-        mix_.prepare(fs_, 30, p(Mix) * 0.01f);
         out_.prepare(fs_, 30, outGain());
         design();
         publishReduction(0.0f);
@@ -57,14 +57,10 @@ private:
         const float thr = -18.0f, ratio = 1.0f + 1.5f * t, makeup = -0.5f * downDb(-6.0f, thr, ratio, 10.0f);
         const float eAtt = coefMs(fs_, 30.0), eRel = coefMs(fs_, 300.0);
         const float att = coefMs(fs_, 20.0), rel = coefMs(fs_, 250.0);
-        float dryL[kChunk], dryR[kChunk];
         float most = 0.0f;
         for (std::uint32_t i = 0; i < n; ++i) {
             const float gi = in_.next(hc::fx::dbToGain(p(Input)));
             float l = L[i] * gi, r = R[i] * gi;
-            // the dry path: the input at the same input level, delayed like the wet one
-            dryL[i] = dry_.l.process(l, OS::latency());
-            dryR[i] = dry_.r.process(r, OS::latency());
             for (auto& b : eq_[0]) l = b.tick(l);
             for (auto& b : eq_[1]) r = b.tick(r);
             const float x = std::max(std::fabs(l), std::fabs(r));
@@ -79,15 +75,19 @@ private:
         const float drive = 1.0f + 2.5f * t;
         drive_.run(L, R, n, t > 0.0f, static_cast<float>(1.0 / (fs_ * 0.02)),
                    [t, drive](float s) { return s + t * (tubeish(s * drive, 0.15f) / drive - s); });
+        const int analog = p(Analog) >= 0.5f ? 3 : 0;   // a whisper of hiss under the music
         for (std::uint32_t i = 0; i < n; ++i) {
             float yl = L[i], yr = R[i];
             dcL_ += (yl - dcL_) * dcK_;
             dcR_ += (yr - dcR_) * dcK_;
             yl -= dcL_;
             yr -= dcR_;
-            const float o = out_.next(outGain()), m = mix_.next(p(Mix) * 0.01f);
-            L[i] = (dryL[i] + m * (yl - dryL[i])) * o;
-            R[i] = (dryR[i] + m * (yr - dryR[i])) * o;
+            const float o = out_.next(outGain());
+            yl *= o;
+            yr *= o;
+            hum_.tick(analog, 1.0f, yl, yr);
+            L[i] = yl;
+            R[i] = yr;
         }
         publishReduction(most);
     }
@@ -109,8 +109,8 @@ private:
     std::array<std::array<hc::fx::Biquad, 3>, 2> eq_{};
     float tone_ = -1.0f, env_ = 0, gr_ = 0, dcL_ = 0, dcR_ = 0, dcK_ = 0;
     Drive4 drive_;
-    Delay2 dry_;
-    hc::fx::Smoothed in_, mix_, out_;
+    arsenal::Hum hum_;
+    hc::fx::Smoothed in_, out_;
 };
 
 } // namespace

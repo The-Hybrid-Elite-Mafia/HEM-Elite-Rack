@@ -19,7 +19,8 @@ enum class Face : std::uint8_t { EliteEq, Restorer, BusGlue, Tape, TubeEq, Limit
                                 VcaComp, TubeSat, Hall, Plate, DigitalDelay,
                                 Chorus, Flanger, Phaser, Tremolo, Rotary, AutoFilter,
                                 Sub, VocalStrip, Hitman, Compander,
-                                Spec };   // Spec: laid out from PluginInfo::plate
+                                Spec,     // laid out from PluginInfo::plate
+                                Channel };   // INSIDE MAN's channel-strip plate
 
 // Where a plug-in sits in the rack's picker.
 enum class Group : std::uint8_t { Eq, Dynamics, Color, Space, Movement, Tools, kCount };

@@ -1,160 +1,166 @@
-// THE BOSS — channel strip: gate, compressor, four-band EQ, low cut, limiter (see ToneShop.hpp).
+// THE BOSS — British-console channel: preamp, three-band EQ with a low cut, analog noise (see ToneShop.hpp).
+//
+// In order: INPUT and PHASE, the preamp stage (4x oversampled; how hard it is driven comes from SOURCE
+// and PREAMP, the level is made up, so it only adds colour), the EQ (eqkit::IirBands: switching a band
+// or the whole EQ crossfades), OUTPUT and TRIM, then the analog hum and hiss (ANALOG, NOISE).
 #include "hem/rack/ToneShop.hpp"
 
-#include "../arsenal/Common.hpp"
+#include "EqKit.hpp"
+#include "ToneCommon.hpp"
+#include "../arsenal/Vintage.hpp"
 
 namespace hem::rack {
 namespace boss {
 namespace {
 using namespace arsenal;
+using eqkit::Shape;
 
-const char* const kLowN[] = {"60 Hz", "100 Hz", "200 Hz"};
-const char* const kHighN[] = {"8 kHz", "12 kHz", "16 kHz"};
-const char* const kCutN[] = {"OFF", "40 Hz", "80 Hz", "120 Hz"};
-const char* const kOrderN[] = {"EQ FIRST", "DYN FIRST"};
+const char* const kSourceN[] = {"MIC", "LINE"};
+const char* const kPreampN[] = {"20", "30", "40", "50", "60", "70"};
+const char* const kHighN[] = {"-16", "-12", "-8", "-4", "0", "+4", "+8", "+12"};
+const char* const kMidHzN[] = {"700", "1K", "1.4K", "2K", "2.8K", "3.5K", "4.5K", "6K"};
+const char* const kMidModeN[] = {"BOOST", "CUT"};
+const char* const kLowHzN[] = {"OFF", "60", "120", "250", "400"};
+const char* const kCutN[] = {"OFF", "-3", "-6", "-9", "-12", "-15"};
+const char* const kNoiseN[] = {"FULL", "LOW"};
+const char* const kMeterIoN[] = {"IN", "OUT"};
+const char* const kPushN[] = {"A", "B"};
 const ParamInfo kParams[kCount] = {
-    {"gate", "Gate", "dB", -80.0f, 0.0f, -80.0f},
-    {"threshold", "Threshold", "dB", -50.0f, 0.0f, -18.0f},
-    {"ratio", "Ratio", ":1", 1.0f, 20.0f, 3.0f, Taper::Log},
-    {"attack", "Attack", "ms", 0.1f, 100.0f, 10.0f, Taper::Log},
-    {"release", "Release", "ms", 20.0f, 2000.0f, 150.0f, Taper::Log},
-    {"lowgain", "Low", "dB", -15.0f, 15.0f, 0.0f},
-    {"lowfreq", "Low Freq", "", 0, 2, 1, Taper::Choice, kLowN},
-    {"lomidgain", "Low Mid", "dB", -15.0f, 15.0f, 0.0f},
-    {"lomidfreq", "Low Mid Freq", "Hz", 150.0f, 2000.0f, 500.0f, Taper::Log},
-    {"himidgain", "High Mid", "dB", -15.0f, 15.0f, 0.0f},
-    {"himidfreq", "High Mid Freq", "Hz", 800.0f, 8000.0f, 3000.0f, Taper::Log},
-    {"highgain", "High", "dB", -15.0f, 15.0f, 0.0f},
-    {"highfreq", "High Freq", "", 0, 2, 1, Taper::Choice, kHighN},
-    {"lowcut", "Low Cut", "", 0, 3, 0, Taper::Choice, kCutN},
-    {"order", "Order", "", 0, 1, 0, Taper::Choice, kOrderN},
-    {"limit", "Limit", "", 0, 1, 0, Taper::Toggle, kOnOff},
+    {"source", "Source", "", 0, 1, 0, Taper::Choice, kSourceN},
+    {"preamp", "Preamp", "", 0, 5, 1, Taper::Choice, kPreampN},
+    {"input", "Input", "dB", -18.0f, 18.0f, 0.0f},
+    {"high", "High", "", 0, 7, 4, Taper::Choice, kHighN},
+    {"midgain", "Mid Gain", "dB", 0.0f, 15.0f, 0.0f},
+    {"midfreq", "Mid Freq", "", 0, 7, 3, Taper::Choice, kMidHzN},
+    {"midmode", "Mid Mode", "", 0, 1, 0, Taper::Choice, kMidModeN},
+    {"lowfreq", "Low Freq", "", 0, 4, 0, Taper::Choice, kLowHzN},
+    {"lowgain", "Low Gain", "dB", 0.0f, 15.0f, 0.0f},
+    {"lowcut", "Low Cut", "", 0, 5, 0, Taper::Choice, kCutN},
+    {"eqin", "EQ", "", 0, 1, 1, Taper::Toggle, kOnOff},
+    {"analog", "Analog", "", 0, 2, 2, Taper::Choice, kMainsN},
+    {"noise", "Noise", "", 0, 1, 0, Taper::Choice, kNoiseN},
+    {"phase", "Phase", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
+    {"trim", "Trim", "", 0, 1, 0, Taper::Toggle, kPushN},
+    {"meter", "Meter", "", 0, 1, 1, Taper::Choice, kMeterIoN},
+    {"vucal", "VU Calibrate", "dB", 8.0f, 24.0f, 18.0f},
 };
-constexpr float kCeiling = 0.966f;   // -0.3 dBFS
+const hc::fx::MeterInfo kMeters[] = {{"INPUT", "VU", -20.0f, 3.0f}, {"OUTPUT", "VU", -20.0f, 3.0f}};
+constexpr float kMidQ = 1.0f, kShelfQ = 0.7071f;
+
+inline int pick(float v, int hi) noexcept { return std::clamp(static_cast<int>(std::lround(v)), 0, hi); }
 
 class Impl final : public hc::fx::Effect {
 public:
     Impl() { setDefaults(); }
     std::span<const ParamInfo> params() const noexcept override { return kParams; }
+    std::span<const hc::fx::MeterInfo> meters() const noexcept override { return kMeters; }
     std::uint32_t latency() const noexcept override { return kLatency; }
     bool paramActive(int i) const noexcept override {
-        if (i == LowFreq) return p(LowGain) != 0.0f;
-        if (i == LoMidFreq) return p(LoMidGain) != 0.0f;
-        if (i == HiMidFreq) return p(HiMidGain) != 0.0f;
-        if (i == HighFreq) return p(HighGain) != 0.0f;
+        if (i == Preamp) return p(Source) < 0.5f;
+        if (i == LowGain) return p(LowFreq) >= 0.5f;
+        if (i == VuCal || i == Meter) return true;
         return true;
     }
-
     void prepare(double fs, std::uint32_t) override {
         fs_ = fs;
-        delay_.prepare(kLatency);
+        pre_.prepare();
+        eq_[0].prepare(fs);
+        eq_[1].prepare(fs);
+        hum_.prepare(fs);
+        vuIn_.prepare(fs);
+        vuOut_.prepare(fs);
+        dcK_ = static_cast<float>(1.0 - std::exp(-2.0 * std::numbers::pi * 5.0 / fs));
         reset();
     }
     void reset() noexcept override {
-        for (auto& ch : eq_) for (auto& b : ch) b.clear();
-        delay_.clear();
-        key_.fill(-1e9f);
-        env_ = gateEnv_ = gr_ = gate_ = 0.0f;
-        open_ = false;
-        holdLeft_ = 0;
-        limG_ = 1.0f;
-        for (auto& v : want_) v = 1.0f;
-        wantPos_ = 0;
-        out_.prepare(fs_, 30, hc::fx::dbToGain(p(Output)));
-        design();
-        publishReduction(0.0f);
+        pre_.clear();
+        load();
+        eq_[0].clear();
+        eq_[1].clear();
+        hum_.clear();
+        vuIn_.clear();
+        vuOut_.clear();
+        dcL_ = dcR_ = 0.0f;
+        in_.prepare(fs_, 20, inGain());
+        out_.prepare(fs_, 20, hc::fx::dbToGain(p(Output) + trimDb_));
+        push_ = p(Trim);
+        most_ = 0.0f;
+        publishMeter(0, -20.0f);
+        publishMeter(1, -20.0f);
     }
-
     void process(float* L, float* R, std::uint32_t n) noexcept override {
-        design();
-        const bool eqFirst = p(Order) < 0.5f, limit = p(Limit) >= 0.5f;
-        const float thr = p(Threshold), ratio = p(Ratio);
-        const float att = coefMs(fs_, p(Attack)), rel = coefMs(fs_, p(Release)), envRel = coefMs(fs_, 4.0);
-        const bool gateOn = p(Gate) > -79.5f;
-        const float openDb = p(Gate), closeDb = openDb - 4.0f;
-        const float gAtt = coefMs(fs_, 0.3), gRel = coefMs(fs_, 120.0);
-        const auto holdN = static_cast<std::uint32_t>(0.03 * fs_);
-        const float limAtt = coefMs(fs_, 0.2), limRel = coefMs(fs_, 60.0);
-        float most = 0.0f, mostLim = 0.0f;
-        for (std::uint32_t i = 0; i < n; ++i) {
-            float l = L[i], r = R[i];
-            if (eqFirst) eq(l, r);
-            // dynamics: the gate, then the compressor (one detector for both sides)
-            const float x = std::max(std::fabs(l), std::fabs(r));
-            gateEnv_ = x > gateEnv_ ? x : x + coefMs(fs_, 10.0) * (gateEnv_ - x);
-            const float glv = dbOf(gateEnv_);
-            if (!gateOn) open_ = true;
-            else if (glv >= openDb) { open_ = true; holdLeft_ = holdN; }
-            else if (glv < closeDb) {
-                if (holdLeft_ > 0) --holdLeft_;
-                else open_ = false;
-            }
-            const float gTarget = open_ ? 0.0f : -40.0f;
-            gate_ = gTarget > gate_ ? gTarget + gAtt * (gate_ - gTarget) : gTarget + gRel * (gate_ - gTarget);
-            env_ = x > env_ ? x : x + envRel * (env_ - x);
-            gr_ = follow(gr_, downDb(dbOf(env_), thr, ratio, 6.0f), att, rel);
-            most = std::min(most, gr_ + gate_);
-            const float g = hc::fx::dbToGain(gr_ + gate_);
-            l *= g;
-            r *= g;
-            if (!eqFirst) eq(l, r);
-            // the limiter looks 1 ms ahead: the smallest gain any sample in the window needs, reached in time
-            const float pk = std::max(std::fabs(l), std::fabs(r));
-            want_[wantPos_] = limit && pk > kCeiling ? kCeiling / pk : 1.0f;
-            wantPos_ = (wantPos_ + 1) % (kLatency + 1);
-            float need = 1.0f;
-            for (float w : want_) need = std::min(need, w);
-            limG_ = need < limG_ ? need + limAtt * (limG_ - need) : need + limRel * (limG_ - need);
-            const float dl = delay_.l.process(l, kLatency), dr = delay_.r.process(r, kLatency);
-            float yl = dl, yr = dr;
-            if (limit) {
-                yl = std::clamp(dl * limG_, -kCeiling, kCeiling);
-                yr = std::clamp(dr * limG_, -kCeiling, kCeiling);
-                mostLim = std::min(mostLim, dbOf(limG_));
-            }
-            const float o = out_.next(hc::fx::dbToGain(p(Output)));
-            L[i] = yl * o;
-            R[i] = yr * o;
+        if (p(Trim) != push_) {
+            push_ = p(Trim);
+            if (most_ > 1e-6f) trimDb_ = std::clamp(trimDb_ - dbOf(most_), -12.0f, 12.0f);
+            most_ = 0.0f;
         }
-        if (gr_ > -1e-6f) gr_ = 0.0f;
-        if (gate_ > -1e-6f) gate_ = 0.0f;
-        if (limG_ > 1.0f - 1e-7f) limG_ = 1.0f;
-        publishReduction(std::min(most, mostLim));
+        load();
+        const float wIn = inGain();
+        for (std::uint32_t i = 0; i < n; ++i) {
+            const float g = in_.next(wIn);
+            L[i] *= g;
+            R[i] *= g;
+            vuIn_.tick(L[i], R[i]);
+        }
+        // the preamp: driven by SOURCE / PREAMP, made up again (small signals come out as they went in)
+        const float k = p(Source) < 0.5f ? static_cast<float>(pick(p(Preamp), 5)) / 5.0f : 0.1f;
+        const float a = 0.35f + 4.65f * k, even = 0.12f * k;
+        pre_.run(L, R, n, true, 1.0f, [a, even](float x) {
+            const float u = a * x;
+            return std::tanh(u + even * u * u) / a;
+        });
+        const int mains = pick(p(Analog), 2);
+        const float noise = p(Noise) < 0.5f ? 1.0f : 0.25f;
+        const float wOut = hc::fx::dbToGain(p(Output) + trimDb_);
+        float pk = 0.0f;
+        for (std::uint32_t i = 0; i < n; ++i) {
+            dcL_ += (L[i] - dcL_) * dcK_;
+            dcR_ += (R[i] - dcR_) * dcK_;
+            eq_[0].step();
+            eq_[1].step();
+            float l = eq_[0].run(0, L[i] - dcL_), r = eq_[1].run(0, R[i] - dcR_);
+            const float o = out_.next(wOut);
+            l *= o;
+            r *= o;
+            hum_.tick(mains, noise, l, r);
+            L[i] = l;
+            R[i] = r;
+            vuOut_.tick(l, r);
+            pk = std::max({pk, std::fabs(l), std::fabs(r)});
+        }
+        most_ = std::max(most_, pk);
+        publishMeter(0, vuIn_.vu(p(VuCal)));
+        publishMeter(1, vuOut_.vu(p(VuCal)));
     }
 
 private:
-    void eq(float& l, float& r) noexcept {
-        for (auto& b : eq_[0]) l = b.tick(l);
-        for (auto& b : eq_[1]) r = b.tick(r);
-    }
-    void design() noexcept {
-        std::array<float, 9> k{p(LowGain), p(LowFreq), p(LoMidGain), p(LoMidFreq), p(HiMidGain), p(HiMidFreq), p(HighGain), p(HighFreq), p(LowCut)};
-        if (k == key_) return;
-        key_ = k;
-        const C id{};
-        const int lf = std::clamp(static_cast<int>(std::lround(p(LowFreq))), 0, 2);
-        const int hf = std::clamp(static_cast<int>(std::lround(p(HighFreq))), 0, 2);
-        const int lc = std::clamp(static_cast<int>(std::lround(p(LowCut))), 0, 3);
-        const double top = fs_ * 0.45;
-        const C cut = lc > 0 ? C::make(T::HighPass, fs_, kCutHz[lc], 0.7071) : id;
-        const C low = C::make(T::LowShelf, fs_, kLowHz[lf], 0.7071, p(LowGain));
-        const C lm = C::make(T::Bell, fs_, p(LoMidFreq), 0.9, p(LoMidGain));
-        const C hm = C::make(T::Bell, fs_, p(HiMidFreq), 0.9, p(HiMidGain));
-        const C high = C::make(T::HighShelf, fs_, std::min<double>(kHighHz[hf], top), 0.7071, p(HighGain));
-        for (auto& ch : eq_) { ch[0].c = cut; ch[1].c = low; ch[2].c = lm; ch[3].c = hm; ch[4].c = high; }
+    float inGain() const noexcept { return hc::fx::dbToGain(p(Input)) * (p(Phase) >= 0.5f ? -1.0f : 1.0f); }
+    // the EQ's four sections from the switches
+    void load() noexcept {
+        const bool on = p(EqIn) >= 0.5f;
+        eqkit::BandSet b[4];
+        if (on) {
+            const float high = kHighDb[pick(p(High), 7)];
+            if (high != 0.0f) b[0] = {Shape::HighShelf, 10000.0f, high, kShelfQ};
+            if (p(MidGain) > 0.0f) b[1] = {Shape::Bell, kMidHz[pick(p(MidFreq), 7)], p(MidMode) < 0.5f ? p(MidGain) : -p(MidGain), kMidQ};
+            const int lf = pick(p(LowFreq), 4);
+            if (lf > 0 && p(LowGain) > 0.0f) b[2] = {Shape::LowShelf, kLowHz[lf], p(LowGain), kShelfQ};
+            const int lc = pick(p(LowCut), 5);
+            if (lc > 0) b[3] = {Shape::LowShelf, 50.0f, kCutDb[lc], kShelfQ};
+        }
+        for (int s = 0; s < 2; ++s)
+            for (int k = 0; k < 4; ++k) eq_[s].set(k, b[k]);
     }
 
     double fs_ = 48000.0;
-    std::array<std::array<hc::fx::Biquad, 5>, 2> eq_{};
-    std::array<float, 9> key_{};
-    Delay2 delay_;
-    float env_ = 0, gateEnv_ = 0, gr_ = 0, gate_ = 0, limG_ = 1;
-    bool open_ = false;
-    std::uint32_t holdLeft_ = 0;
-    std::array<float, kLatency + 1> want_{};   // the window covers the sample going out now
-    std::uint32_t wantPos_ = 0;
-    hc::fx::Smoothed out_;
+    tone::Drive4 pre_;
+    eqkit::IirBands<4> eq_[2];
+    Hum hum_;
+    Vu vuIn_, vuOut_;
+    hc::fx::Smoothed in_, out_;
+    float dcL_ = 0, dcR_ = 0, dcK_ = 0;
+    float trimDb_ = 0.0f, push_ = 0.0f, most_ = 0.0f;   // trimDb_: only a push changes it
 };
 
 } // namespace

@@ -1,3 +1,20 @@
+# HEM-Elite-Rack 0.26.0
+
+**Channel strips, drums and tone, wave 2 part 2** — one plug-in per original, every control:
+- **THE BOSS** — rebuilt as a British-console channel: MIC / LINE, PREAMP 20-70, INPUT, stepped HIGH shelf, MID
+  boost / cut at eight frequencies, LOW shelf at four, LOW CUT at 50 Hz, EQ in / out, ANALOG hum, NOISE, PHASE,
+  OUTPUT, TRIM, VU meter IN / OUT and VU calibration
+- **INSIDE MAN** (new) — channel strip: gate / expander and compressor, each with its own key filter, four-band
+  EQ, order, phase, output, rotate, clip guard (the gate and compressor of THE BOSS's old version live on here)
+- **KINGPIN** — rebuilt as a drum channel: TYPE (kick, snare, hats, toms, overhead, room), SENS, COMPRESS, GATE,
+  FX, BASS, TREBLE, OUTPUT, VU meter, ANALOG
+- **GOLD CHAIN** — input and output now ±18, MIX made way for ANALOG
+- **IVORIES** — one PIANO knob, DELAY and DOUBLER each with a level, INPUT, OUTPUT, ANALOG
+
+Not possible in the rack (said plainly): INSIDE MAN's sidechain from another track.
+EQ screens: the dB numbers no longer crowd on short screens; ten-band type buttons give their arrows'
+room to the words; the EQs' bottom row spreads out.
+
 # HEM-Elite-Rack 0.25.0
 
 **The EQs, wave 2 part 1** — one plug-in per original, every control:

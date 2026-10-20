@@ -14,6 +14,7 @@
 #include "hem/rack/Movement.hpp"
 #include "hem/rack/Specialty.hpp"
 #include "hem/rack/Arsenal.hpp"
+#include "hem/rack/ToneShop.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -883,6 +884,98 @@ FaceLayout companderFace(const rack::PluginInfo& info) {
     return L;
 }
 
+// ---- INSIDE MAN: the EQ curve and the two reduction readouts on top; gate and compressor side by side,
+// each a row of knobs over a row of switches (named above them); the four EQ bands under them; order,
+// phase, output and rotate down the left.
+FaceLayout channelFace(const rack::PluginInfo& info) {
+    using namespace rack::insideman;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"GATE, SQUEEZE", "AND SHAPE IT"};
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 180, 820, 150};
+    Widget cv;
+    cv.kind = WKind::CurveDisplay;
+    cv.r = L.display;
+    L.widgets.push_back(cv);
+    L.recesses.push_back({cv.r, 14, 9, false, true});
+    readoutAt(L, {1246, 180, 188, 150}, 0, "GATE", "dB", "+");
+    readoutAt(L, {1448, 180, 188, 150}, 1, "COMP", "dB", "+");
+    L.grooves.push_back({410, 342, 1636, 342});
+    auto stepper = [&](Rect r, int param) {
+        Widget st;
+        st.kind = WKind::Stepper;
+        st.param = param;
+        st.r = r;
+        L.widgets.push_back(st);
+        L.recesses.push_back({st.r.inset(-4), 9, 4, false, false});
+    };
+    // a dynamics section: knobs (param, caption) over switches (param, name, stepper?) in [x0, x0 + w)
+    struct K { int p; const char* cap; };
+    struct S { int p; const char* cap; bool stepper; };
+    auto section = [&](float x0, float w, const char* name, std::span<const K> ks, std::span<const S> ss) {
+        L.sections.push_back({{x0, 346, w, 26}, name});
+        const std::size_t first = L.widgets.size();
+        const float kp = w / static_cast<float>(ks.size());
+        for (std::size_t k = 0; k < ks.size(); ++k) {
+            const float cx = x0 + (static_cast<float>(k) + 0.5f) * kp;
+            L.widgets.push_back(knob({cx - 24, 402, 48, 48}, ks[k].p, ks[k].cap, "", "", true));
+        }
+        seatKnobs(L, first, 6);
+        const float sp = w / static_cast<float>(ss.size());
+        for (std::size_t k = 0; k < ss.size(); ++k) {
+            const float x = x0 + static_cast<float>(k) * sp;
+            L.sections.push_back({{x + 2, 482, sp - 4, 22}, ss[k].cap});
+            const Rect r{x + 5, 508, sp - 10, 40};
+            if (ss[k].stepper) stepper(r, ss[k].p);
+            else L.widgets.push_back(toggle(r, ss[k].p, ""));
+        }
+    };
+    constexpr K gk[] = {{GateThreshold, "THRESHOLD"}, {Floor, "FLOOR"}, {GateRelease, "RELEASE"}, {GKeyFreq, "KEY FREQ"}, {GKeyWidth, "KEY WIDTH"}};
+    constexpr S gs[] = {{GateOn, "GATE", false}, {GateMode, "MODE", true}, {GKeyOn, "KEY", false}, {GKeySource, "KEY FROM", true},
+                        {GKeyType, "KEY TYPE", true}};
+    constexpr K ck[] = {{CompThreshold, "THRESHOLD"}, {Ratio, "RATIO"}, {Attack, "ATTACK"}, {Release, "RELEASE"}, {CKeyFreq, "KEY FREQ"},
+                        {CKeyWidth, "KEY WIDTH"}};
+    constexpr S cs[] = {{CompOn, "COMP", false}, {CompType, "TYPE", true}, {Arc, "ARC", false}, {CKeyOn, "KEY", false},
+                        {CKeySource, "KEY FROM", true}, {CKeyType, "KEY TYPE", true}};
+    section(410, 590, "GATE / EXPANDER", gk, gs);
+    L.grooves.push_back({1013, 352, 1013, 550});
+    section(1026, 610, "COMPRESSOR", ck, cs);
+    L.grooves.push_back({410, 562, 1636, 562});
+    // the EQ: a block per band
+    const float bw = 1226.0f / kBands;
+    static const char* const kBandN[kBands] = {"BAND 1", "BAND 2", "BAND 3", "BAND 4"};
+    for (int b = 0; b < kBands; ++b) {
+        const float x0 = 410 + static_cast<float>(b) * bw;
+        L.sections.push_back({{x0, 568, bw, 24}, kBandN[b]});
+        const std::size_t first = L.widgets.size();
+        const struct { int p; const char* cap; } kk[3] = {{kFreq[b], "FREQ"}, {kGain[b], "GAIN"}, {kQ[b], "Q"}};
+        for (int k = 0; k < 3; ++k) {
+            const float cx = x0 + (static_cast<float>(k) + 0.5f) * (bw / 3.0f);
+            L.widgets.push_back(knob({cx - 24, 624, 48, 48}, kk[k].p, kk[k].cap, "", "", true));
+        }
+        seatKnobs(L, first, 6);
+        if (kType[b] >= 0) {
+            stepper({x0 + 8, 706, bw * 0.62f - 12, 40}, kType[b]);
+            L.widgets.push_back(toggle({x0 + bw * 0.62f + 4, 706, bw * 0.38f - 12, 40}, kOn[b], ""));
+        } else {
+            L.widgets.push_back(toggle({x0 + bw * 0.25f, 706, bw * 0.5f, 40}, kOn[b], ""));
+        }
+        if (b > 0) L.grooves.push_back({x0, 572, x0, 748});
+    }
+    // the left column
+    stepper({160, 452, 180, 40}, Order);
+    L.sections.push_back({{60, 452, 96, 40}, "ORDER"});
+    L.widgets.push_back(toggle({70, 502, 270, 40}, Phase, "PHASE"));
+    const std::size_t first = L.widgets.size();
+    L.widgets.push_back(knob({100, 580, 56, 56}, Output, "OUTPUT", "", "", true));
+    L.widgets.push_back(knob({230, 580, 56, 56}, Rotate, "ROTATE", "", "", true));
+    seatKnobs(L, first, 6);
+    buttonSeats(L);
+    bypassAt(L, {160, 690, 80, 80});
+    return L;
+}
+
 // ---- plates laid out from a PlateSpec (Face::Spec) -------------------------------------------
 // The parts go where the plate's content leaves room: a screen (or none) on top, a column of
 // buttons and switches beside it, one or two rows of knobs under it, choice lists down the left.
@@ -967,7 +1060,8 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
     auto globals = [&](float top) {
         const std::size_t first = L.widgets.size();
         const int items = static_cast<int>(S.row1.size() + S.toggles.size());
-        const float pitch = items > n ? static_cast<float>(n) / static_cast<float>(items) : 1.0f;
+        // EQs spread the globals across the whole width; the multiband plates keep one per column
+        const float pitch = items > n || eq ? static_cast<float>(n) / static_cast<float>(std::max(items, 1)) : 1.0f;
         int slot = 0;
         for (const rack::PlateKnob& k : S.row1) {
             const float x = gx + (static_cast<float>(slot++) + 0.5f) * pitch * colW;
@@ -1219,6 +1313,7 @@ FaceLayout faceLayout(const rack::PluginInfo& info) {
     case rack::Face::VocalStrip: return vocalFace(info);
     case rack::Face::Hitman: return hitmanFace(info);
     case rack::Face::Compander: return companderFace(info);
+    case rack::Face::Channel: return channelFace(info);
     case rack::Face::Spec: if (info.plate) return specFace(info); break;
     case rack::Face::Restorer: break;
     }

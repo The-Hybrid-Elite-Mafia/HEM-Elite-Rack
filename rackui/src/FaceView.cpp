@@ -227,12 +227,16 @@ void FaceView::stepper(const Ctx& c, const Widget& w, int wi) const {
     const Rect b = c.T(w.r);
     const bool on = c.host.active(param), hot = c.st.hover == wi;
     r.fillRound(b.inset(2 * z), 8 * z, kGlass, Blend::Over);
-    const float s = b.h * 0.42f;
+    // a narrow one (the 10-band grids) gives the arrows' room to the words; its halves still step
+    const bool arrows = w.r.w >= 130.0f;
+    const float s = arrows ? b.h * 0.42f : 0.0f;
     const Rgba ic = on ? (hot ? th_.silver : th_.teal) : th_.dim;
-    r.sprite(Sprite::IconPrev, {b.x + 8 * z, b.cy() - s * 0.5f, s, s}, ic, Blend::Over, false);
-    r.sprite(Sprite::IconNext, {b.right() - 8 * z - s, b.cy() - s * 0.5f, s, s}, ic, Blend::Over, false);
+    if (arrows) {
+        r.sprite(Sprite::IconPrev, {b.x + 8 * z, b.cy() - s * 0.5f, s, s}, ic, Blend::Over, false);
+        r.sprite(Sprite::IconNext, {b.right() - 8 * z - s, b.cy() - s * 0.5f, s, s}, ic, Blend::Over, false);
+    }
     const std::string v = c.host.text(param);
-    const TextStyle vs = c.fit(TextStyle::Label, v, b.w - 2 * s - 26 * z);
+    const TextStyle vs = c.fit(TextStyle::Label, v, b.w - 2 * s - (arrows ? 26.0f : 12.0f) * z);
     r.text(vs, v, b.cx(), c.mid(b, vs), on ? th_.teal : th_.dim, Align::Center, on ? TextFx::Shadowed : TextFx::Shadowed);
     const TextStyle cs = c.ts(TextStyle::Caption);
     r.text(cs, w.caption, b.x - 12 * z, c.mid(b, cs), on ? th_.label : th_.dim, Align::Right, TextFx::Shadowed);
@@ -296,9 +300,13 @@ void FaceView::grid(const Ctx& c, Rect plot, float dbTop, float dbBottom, float 
         if (major || hz == 50.f || hz == 200.f || hz == 500.f || hz == 2000.f || hz == 5000.f)
             r.text(s, hzText(hz), x, p.bottom() + 26 * z, th_.dim, Align::Center, TextFx::Shadowed);
     }
+    // on a short screen only every k-th line gets its number (always including 0), so they never touch
+    const float stepH = plot.h * dbStep / std::max(dbTop - dbBottom, 1e-3f);
+    const int every = std::max(1, static_cast<int>(std::ceil(26.0f / std::max(stepH, 1.0f))));
     for (float db = dbTop; db >= dbBottom - 1e-3f; db -= dbStep) {
         const float y = p.y + (dbTop - db) / (dbTop - dbBottom) * p.h;
         r.fillRound({p.x, y - 0.5f * z, p.w, 1.0f * z}, 0.5f * z, {1, 1, 1, std::fabs(db) < 1e-3f ? 0.16f : 0.06f}, Blend::Over);
+        if (static_cast<int>(std::lround(db / dbStep)) % every != 0) continue;
         const std::string t = signedLabels && db > 0 ? fmt("+%.0f", db) : fmt("%.0f", db);
         r.text(s, t, p.x - 12 * z, y + r.capHeight(s) * 0.5f, th_.dim, Align::Right, TextFx::Shadowed);
     }
@@ -774,8 +782,10 @@ void FaceView::vuMeter(const Ctx& c, const Widget& w, int meter, const char* cap
 }
 
 void FaceView::grMeter(const Ctx& c, const Widget& w) const {
-    if (w.param2 >= 0 && w.meter >= 0) {   // a meter selector: 0 IN, 1 GR, 2 OUT
-        const int sel = std::clamp(static_cast<int>(std::lround(plain(c.host, w.param2))), 0, 2);
+    if (w.param2 >= 0 && w.meter >= 0) {   // a meter selector: 0 IN, 1 GR, 2 OUT (or, with two choices, IN / OUT)
+        const bool twoWay = static_cast<std::size_t>(w.param2) < params_.size() && params_[static_cast<std::size_t>(w.param2)].max < 1.5f;
+        const int raw = static_cast<int>(std::lround(plain(c.host, w.param2)));
+        const int sel = twoWay ? (raw >= 1 ? 2 : 0) : std::clamp(raw, 0, 2);
         if (sel != 1) {
             vuMeter(c, w, w.meter + (sel == 2 ? 1 : 0), sel == 0 ? "INPUT  VU" : "OUTPUT  VU");
             return;

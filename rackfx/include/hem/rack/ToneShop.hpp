@@ -34,20 +34,41 @@
 //                    ON, GAIN ±18, FREQ 16 Hz–21.4 kHz, Q (bells 0.26–6.5; shelves and cuts 0.71–1.41).
 //                    LINK, LEFT / RIGHT tabs, SPECTRUM (the music behind the curve on / off), OUTPUT
 //                    (off..+12), TRIM (a push). Zero latency.
-//  THE BOSS          channel strip: GATE, compressor (THRESHOLD, RATIO, ATTACK, RELEASE), four-band
-//                    EQ (LOW shelf at 60 / 100 / 200 Hz, LOW MID and HIGH MID bells with their
-//                    frequency, HIGH shelf at 8 / 12 / 16 kHz), LOW CUT, ORDER (EQ before or after
-//                    the dynamics), LIMIT (1 ms look-ahead ceiling at -0.3 dBFS), OUTPUT. Latency 48.
-//  KINGPIN           drum channel: GATE (and its RELEASE), THUMP (low boost, THUMP FREQ), SNAP (high
-//                    presence, SNAP FREQ), PUNCH (hits come forward), CRUSH (a squashed copy mixed in
-//                    under the drums), DRIVE (tape-style saturation, 4x oversampled), OUTPUT. Latency 23.
+//  THE BOSS          British-console channel: SOURCE (MIC / LINE), PREAMP (MIC: 20–70 dB in 10 dB steps;
+//                    more = the input stage driven harder, the level made up, so only the colour
+//                    grows), INPUT ±18, the EQ: HIGH (a 10 kHz shelf, -16..+12 in 4 dB steps), MID
+//                    (0–15 dB at 700 Hz–6 kHz, BOOST or CUT), LOW (a shelf at 60 / 120 / 250 / 400 Hz,
+//                    0–15 dB, or OFF) and LOW CUT (a 50 Hz shelf down 3–15 dB, or OFF), EQ (in / out),
+//                    ANALOG (mains hum OFF / 50 / 60 Hz), NOISE (FULL / LOW), PHASE, OUTPUT ±18, TRIM (a
+//                    push: the loudest peak since the last push onto 0 dBFS, ±12 dB), METER (IN / OUT
+//                    VU), VU CAL (0 VU = 8–24 dB under full scale). Latency 23.
+//  INSIDE MAN        channel strip: GATE / EXPANDER (ON, MODE, THRESHOLD -80..+18, FLOOR off..0, RELEASE
+//                    10 ms–5 s, and a key filter: ON, SOURCE MAIN / PRE EQ, TYPE LO CUT / HI CUT / BAND /
+//                    NOTCH, FREQ, WIDTH 0.1–8 octaves), COMPRESSOR (ON, TYPE CLASSIC / VOCAL: the vocal
+//                    one picks its own ratio, more the further over, THRESHOLD -60..+18, RATIO 0.5–50:
+//                    under 1 the loud parts get louder, ATTACK, RELEASE, ARC: the release follows the
+//                    music, and its own key filter), a four-band EQ (band 1: LO CUT / LO SHELF / LO SHELF
+//                    RES / BELL; 2 and 3: BELL; 4: HI CUT / HI SHELF / HI SHELF RES / BELL; ON, GAIN ±18,
+//                    FREQ, Q), ORDER (EQ first or the dynamics first), PHASE, OUTPUT ±30, ROTATE ±45°
+//                    (turns the stereo picture; a centred sound moves to one side), and a clip guard that
+//                    rounds anything over 0 dBFS (always on). The sidechain from outside is not possible in
+//                    the rack. Zero latency.
+//  KINGPIN           drum channel: TYPE (KICK, SNARE, HATS, TOMS, OVERHEAD, ROOM) picks how every
+//                    control acts: the compressor's speed and the BASS / TREBLE frequencies. SENS ±50 (how
+//                    hard the drum hits the compressor), COMPRESS 0–100, GATE ±50 (KICK only; all the way
+//                    down = off), FX 0–100 (KICK: a short low boom, SNARE: a bright plate, TOMS: a room;
+//                    not on the others), BASS and TREBLE 0–5 (1.5 dB a step; no BASS on OVERHEAD), OUTPUT
+//                    ±50 (a fifth of a dB a step: ±10 dB), METER (IN / OUT VU), ANALOG (a whisper of hiss
+//                    under the music). Zero latency.
 //  GOLD CHAIN        one-knob tone: TONE adds warmth, density and sheen together (soft saturation,
-//                    a gentle smile curve and slow glue compression that all grow with it); INPUT
-//                    drives it, LINK turns the output down as much as INPUT turns up, MIX, OUTPUT.
-//                    Latency 23.
-//  IVORIES           piano tone: TONE (darker / brighter), BODY (low-mid bloom), COMPRESS, DELAY (a
-//                    soft stereo slap, TIME), DOUBLER (two slightly delayed and detuned copies, left
-//                    and right), WIDTH, OUTPUT. Zero latency.
+//                    a gentle smile curve and slow glue compression that all grow with it); INPUT ±18
+//                    drives it, LINK turns the output down as much as INPUT turns up, OUTPUT ±18, ANALOG
+//                    (a whisper of hiss under the music). Latency 23.
+//  IVORIES           piano tone: INPUT ±18, PIANO -50..+50 (up: brighter, leaner, more present; down: darker
+//                    and fuller; either way it leans on a gentle compressor more), DELAY (on, and its LEVEL
+//                    -24..0 dB: a soft stereo slap, left 120 ms, right 156 ms), DOUBLER (on, and its LEVEL:
+//                    two slightly late, drifting copies, one each side), OUTPUT ±18, ANALOG (a whisper of
+//                    hiss under the music). Zero latency.
 //  HIGH ROLLER       five-band enhancer: SUB / LOW / MID / HIGH / AIR, each with LIFT (a dense,
 //                    squeezed copy of that band added in: detail comes up) and WIDTH (0 = mono,
 //                    100 = as it was, 200 = twice the sides); MIX, OUTPUT. Splits at 90, 400, 2000,
@@ -129,24 +150,43 @@ extern const CurveInfo kCurve;
 } // namespace smoothtalker
 
 namespace boss {
-enum P : int { Gate, Threshold, Ratio, Attack, Release, LowGain, LowFreq, LoMidGain, LoMidFreq, HiMidGain, HiMidFreq,
-               HighGain, HighFreq, LowCut, Order, Limit, Output, kCount };
-inline constexpr float kLowHz[] = {60.0f, 100.0f, 200.0f};
-inline constexpr float kHighHz[] = {8000.0f, 12000.0f, 16000.0f};
-inline constexpr float kCutHz[] = {0.0f, 40.0f, 80.0f, 120.0f};
-inline constexpr std::uint32_t kLatency = 48;
+enum P : int { Source, Preamp, Input, High, MidGain, MidFreq, MidMode, LowFreq, LowGain, LowCut, EqIn, Analog, Noise, Phase,
+               Output, Trim, Meter, VuCal, kCount };
+inline constexpr float kHighDb[] = {-16, -12, -8, -4, 0, 4, 8, 12};
+inline constexpr float kMidHz[] = {700, 1000, 1400, 2000, 2800, 3500, 4500, 6000};
+inline constexpr float kLowHz[] = {0, 60, 120, 250, 400};
+inline constexpr float kCutDb[] = {0, -3, -6, -9, -12, -15};
+inline constexpr std::uint32_t kLatency = 23;
 } // namespace boss
 
+namespace insideman {
+inline constexpr int kBands = 4;
+enum Filter : int { FLowCut, FHighCut, FBand, FNotch };
+enum P : int { GateOn, GateMode, GateThreshold, Floor, GateRelease, GKeyOn, GKeySource, GKeyType, GKeyFreq, GKeyWidth,
+               CompOn, CompType, CompThreshold, Ratio, Attack, Release, Arc, CKeyOn, CKeySource, CKeyType, CKeyFreq, CKeyWidth,
+               B1On, B1Type, B1Freq, B1Gain, B1Q, B2On, B2Freq, B2Gain, B2Q, B3On, B3Freq, B3Gain, B3Q, B4On, B4Type, B4Freq, B4Gain, B4Q,
+               Order, Phase, Output, Rotate, kCount };
+// band b's controls (bands 2 and 3 are bells only: no TYPE, -1)
+inline constexpr int kOn[kBands] = {B1On, B2On, B3On, B4On}, kType[kBands] = {B1Type, -1, -1, B4Type};
+inline constexpr int kFreq[kBands] = {B1Freq, B2Freq, B3Freq, B4Freq}, kGain[kBands] = {B1Gain, B2Gain, B3Gain, B4Gain};
+inline constexpr int kQ[kBands] = {B1Q, B2Q, B3Q, B4Q};
+[[nodiscard]] double curveDb(const float* plain, double fs, double hz) noexcept;
+extern const CurveInfo kCurve;
+} // namespace insideman
+
 namespace kingpin {
-enum P : int { Gate, GateRelease, Thump, ThumpFreq, Snap, SnapFreq, Punch, Crush, Drive, Output, kCount };
+enum Drum : int { Kick, Snare, Hats, Toms, Overhead, Room, kDrums };
+enum P : int { Type, Sens, Compress, Gate, Fx, Bass, Treble, Output, Meter, Analog, kCount };
+inline constexpr float kBassHz[kDrums] = {60, 180, 300, 100, 0, 100};
+inline constexpr float kTrebleHz[kDrums] = {4000, 6000, 10000, 5000, 12000, 8000};
 } // namespace kingpin
 
 namespace goldchain {
-enum P : int { Input, Tone, Link, Mix, Output, kCount };
+enum P : int { Input, Tone, Link, Output, Analog, kCount };
 } // namespace goldchain
 
 namespace ivories {
-enum P : int { Tone, Body, Compress, Delay, Time, Doubler, Width, Output, kCount };
+enum P : int { Input, Piano, DelayOn, DelayLevel, DoublerOn, DoublerLevel, Output, Analog, kCount };
 } // namespace ivories
 
 namespace highroller {
@@ -179,6 +219,7 @@ extern const CurveInfo kCurve;
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeTenToes();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeFourCorners();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeSmoothTalker();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeInsideMan();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeTheBoss();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeKingpin();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeGoldChain();

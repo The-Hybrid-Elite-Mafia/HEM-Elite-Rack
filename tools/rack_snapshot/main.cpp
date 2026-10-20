@@ -13,6 +13,7 @@
 #include "hem/rack/Tools.hpp"
 #include "hem/rack/MoreDynamics.hpp"
 #include "hem/rack/Hitman.hpp"
+#include "hem/rack/ToneShop.hpp"
 #include "hem/rack/ColorFx.hpp"
 #include "hem/rack/Space.hpp"
 #include "hem/rack/Movement.hpp"
@@ -153,6 +154,9 @@ int main(int argc, char** argv) {
             using namespace hem::rack::hitman;
             fx->set(Input1, 14); fx->set(Ratio, 1); fx->set(ScEq, 1); fx->set(ScHpf, 90); fx->set(ScBellFreq, 3000); fx->set(ScBellGain, 6);
             fx->set(Saturation, 2);
+        } else if (info.face == hem::rack::Face::Channel) {
+            using namespace hem::rack::insideman;
+            fx->set(GateOn, 1); fx->set(CompOn, 1); fx->set(CompThreshold, -24); fx->set(B1Gain, 3); fx->set(B3Gain, 2.5f);
         } else if (info.face == hem::rack::Face::Spec && info.plate && info.plate->demo) {
             info.plate->demo(*fx);
         } else if (info.face == hem::rack::Face::Restorer) {

@@ -68,7 +68,8 @@ constexpr float kSpecLo = -120.0f, kSpecHi = 0.0f;
 bool isCompressor(const rack::PluginInfo& info) {
     const rack::Face f = info.face;
     if (f == rack::Face::Spec) return info.plate && info.plate->reportsReduction;
-    return f == rack::Face::BusGlue || f == rack::Face::Limiter || f == rack::Face::VcaComp || f == rack::Face::VocalStrip || f == rack::Face::Hitman;
+    return f == rack::Face::BusGlue || f == rack::Face::Limiter || f == rack::Face::VcaComp || f == rack::Face::VocalStrip || f == rack::Face::Hitman ||
+           f == rack::Face::Channel;
 }
 
 // <bundle>/Contents/x86_64-win/<dll> -> <bundle>/Contents/Resources (fonts/, faceplates/, brand/).

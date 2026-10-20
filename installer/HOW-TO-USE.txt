@@ -257,20 +257,32 @@ CUTTHROAT
   SLOPE 24 dB is steeper, DRIVE dirties it up first.
 
 THE BOSS
-  A whole channel on one plate. GATE (all the way left = off), then the compressor (THRESHOLD, RATIO,
-  ATTACK, RELEASE), then the EQ row. ORDER: EQ FIRST or DYN FIRST. LIMIT keeps the output under -0.3 dB.
+  A British console channel. SOURCE MIC or LINE; on MIC the PREAMP knob (20-70) drives the input
+  stage harder for more colour (the level stays put). HIGH is a 10 kHz shelf in 4 dB steps, MID boosts
+  or cuts (the MID button) at MID FREQ, LOW lifts at LOW FREQ, LOW CUT takes 50 Hz down. EQ switches the
+  whole EQ in or out, PHASE flips it. ANALOG adds the hum of the old desk (50 or 60 Hz) and NOISE says
+  how much hiss. TRIM: press it after the loudest part; the output is set so that peak hits 0 dB.
+  METER IN / OUT picks what the VU shows, VU CAL how hot 0 VU is.
+
+INSIDE MAN
+  A whole channel: the gate (or expander) and the compressor side by side, the four-band EQ under them.
+  KEY (on each) makes that section listen through a filter: KEY TYPE and KEY FREQ / WIDTH pick what it
+  hears, KEY FROM MAIN or PRE EQ. Compressor TYPE VOCAL picks its own ratio; ARC makes the release
+  follow the music; a RATIO under 1 makes the loud parts louder. ORDER: EQ first or the dynamics
+  first. ROTATE turns the stereo picture. Nothing ever goes over 0 dB (the clip guard rounds it).
 
 KINGPIN
-  For drums. PUNCH brings the hits forward, CRUSH mixes in a smashed copy under them (bigger room,
-  fatter body), DRIVE saturates. THUMP / SNAP boost the low hit and the crack at their frequencies.
+  For drums. Pick the drum with TYPE first: it sets how the compressor moves and where BASS and TREBLE
+  work. SENS = how hard the drum hits the compressor, COMPRESS = how much. GATE only on KICK (all the
+  way down = off). FX adds a short low boom on KICK, a bright plate on SNARE, a room on TOMS.
 
 GOLD CHAIN
   One knob: TONE. Turn it up for a warmer, thicker, shinier sound. INPUT pushes harder; with LINK on,
-  the output comes down by the same amount so the level stays put.
+  the output comes down by the same amount so the level stays put. ANALOG adds a whisper of hiss.
 
 IVORIES
-  For piano and keys. TONE darker or brighter, BODY for the low-mid weight, COMPRESS to even it out.
-  DELAY adds a soft stereo slap (TIME), DOUBLER two drifting copies left and right, WIDTH 0..200 %.
+  For piano and keys. PIANO up = brighter and more present, down = darker and fuller. DELAY adds a soft
+  stereo slap, DOUBLER two drifting copies left and right; each has its own LEVEL.
 
 HIGH ROLLER
   Five bands: SUB, LOW, MID, HIGH, AIR. LIFT brings up the detail in that band (quiet parts more

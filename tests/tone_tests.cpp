@@ -47,7 +47,7 @@ Stereo impulse(std::size_t n, std::size_t at = 100) {
 double rmsDb(const std::vector<float>& x, std::size_t from, std::size_t len) { return db(rms(x, from, len)); }
 
 void allRules() {
-    for (const char* name : {"STRAIGHT SHOOTER", "BOTTOM LINE", "TEN TOES", "FOUR CORNERS", "SMOOTH TALKER", "THE BOSS", "KINGPIN", "GOLD CHAIN", "IVORIES", "HIGH ROLLER", "THE MIDDLEMAN", "DOUBLE CROSS",
+    for (const char* name : {"STRAIGHT SHOOTER", "BOTTOM LINE", "TEN TOES", "FOUR CORNERS", "SMOOTH TALKER", "INSIDE MAN", "THE BOSS", "KINGPIN", "GOLD CHAIN", "IVORIES", "HIGH ROLLER", "THE MIDDLEMAN", "DOUBLE CROSS",
                              "CUTTHROAT"}) {
         const PluginInfo* info = findPlugin(name);
         CHECK(info != nullptr);
@@ -339,39 +339,146 @@ void testSmoothTalker() {
 
 void testTheBoss() {
     using namespace boss;
-    // compressor: a loud tone comes down; the reduction is reported
+    // flat at rest: a quiet tone goes through untouched (the preamp's colour only shows when it's driven)
     {
-        auto e = make("THE BOSS", {{Threshold, -30}, {Ratio, 4}});
-        const double g = toneGain(*e, 1000, 0.5f);
-        std::printf("  THE BOSS -6 dBFS tone, threshold -30, 4:1: %+.1f dB, reduction %.1f dB\n", g, e->reductionDb());
-        CHECK(g < -12.0 && g > -22.0 && e->reductionDb() < -10.0f);
+        auto e = make("THE BOSS", {{Analog, 0}});
+        CHECK(e->latency() == kLatency);
+        const double g = toneGain(*e, 1000, 0.01f), lo = toneGain(*e, 40, 0.01f), hi = toneGain(*e, 15000, 0.01f);
+        std::printf("  THE BOSS at rest, -40 dBFS: 40 Hz %+.2f, 1 kHz %+.2f, 15 kHz %+.2f dB\n", lo, g, hi);
+        CHECK(std::fabs(g) < 0.1 && std::fabs(lo) < 0.2 && std::fabs(hi) < 0.2);
     }
-    // EQ (dynamics out of the way): LOW +6 at 100 Hz lifts 40 Hz by about 6 dB, LOW MID cuts its frequency
+    // the EQ
     {
-        auto e = make("THE BOSS", {{Ratio, 1}, {LowGain, 6}, {LowFreq, 1}, {LoMidGain, -8}, {LoMidFreq, 700}});
-        const double lo = toneGain(*e, 40, 0.1f), mid = toneGain(*e, 700, 0.1f), hi = toneGain(*e, 10000, 0.1f);
-        std::printf("  THE BOSS EQ: 40 Hz %+.1f, 700 Hz %+.1f, 10 kHz %+.1f dB\n", lo, mid, hi);
-        CHECK(lo > 5.0 && lo < 6.5 && mid < -7.0 && std::fabs(hi) < 0.5);
+        auto e = make("THE BOSS", {{Analog, 0}, {High, 6}, {MidGain, 10}, {MidFreq, 3}, {LowFreq, 3}, {LowGain, 12}});
+        const double hi = toneGain(*e, 18000, 0.01f), mid = toneGain(*e, 2000, 0.01f), lo = toneGain(*e, 40, 0.01f, false, 2.0);
+        e->set(MidMode, 1);
+        const double cut = toneGain(*e, 2000, 0.01f);
+        e->set(EqIn, 0);
+        const double off = toneGain(*e, 2000, 0.01f);
+        std::printf("  THE BOSS EQ: HIGH +8 -> 18 kHz %+.1f; MID 10 at 2 kHz: boost %+.1f, cut %+.1f; LOW 12 at 250 -> 40 Hz %+.1f; EQ out %+.2f dB\n", hi, mid,
+                    cut, lo, off);
+        CHECK(hi > 6.5 && hi < 8.3 && std::fabs(mid - 10) < 0.3 && std::fabs(cut + 10) < 0.3 && lo > 11.0 && lo < 12.3 && std::fabs(off) < 0.1);
     }
-    // gate: a quiet tone under GATE is shut down
     {
-        auto e = make("THE BOSS", {{Ratio, 1}, {Gate, -30}});
-        const double g = toneGain(*e, 1000, 0.003f);
-        std::printf("  THE BOSS gate -30, a -50 dBFS tone: %+.1f dB\n", g);
-        CHECK(g < -35.0);
+        auto e = make("THE BOSS", {{Analog, 0}, {LowCut, 5}});
+        const double lo = toneGain(*e, 20, 0.01f, false, 2.0), keep = toneGain(*e, 1000, 0.01f);
+        std::printf("  THE BOSS LOW CUT -15: 20 Hz %+.1f dB, 1 kHz %+.2f dB\n", lo, keep);
+        CHECK(lo < -11.0 && std::fabs(keep) < 0.1);
     }
-    // limiter: nothing over -0.3 dBFS, latency the same with it on or off
+    // the preamp: harder = more harmonics on a loud tone, the level stays about the same
     {
-        auto e = make("THE BOSS", {{Ratio, 1}, {Limit, 1}, {LowGain, 12}});
-        Stereo s = sine(100, 1.0, 1.5f);
+        auto soft = make("THE BOSS", {{Analog, 0}, {Preamp, 0}}), hard = make("THE BOSS", {{Analog, 0}, {Preamp, 5}});
+        const double h3s = harmonicDb(*soft, 200, 3, 0.7f), h3h = harmonicDb(*hard, 200, 3, 0.7f);
+        const double gs = toneGain(*soft, 200, 0.05f), gh = toneGain(*hard, 200, 0.05f);
+        std::printf("  THE BOSS PREAMP 20 vs 70, a -3 dBFS tone: 3rd harmonic %.1f vs %.1f dB; level at -26 dBFS %+.2f vs %+.2f dB\n", h3s, h3h, gs, gh);
+        CHECK(h3h > h3s + 10.0 && std::fabs(gs) < 0.3 && std::fabs(gh) < 1.0);
+    }
+    // PHASE flips; the VU reads 0 for a -18 dBFS RMS tone with VU CAL 18; TRIM
+    {
+        auto e = make("THE BOSS", {{Analog, 0}, {Phase, 1}});
+        Stereo s = sine(1000, 0.5, 0.25f, kFs);
+        Stereo in = s;
         run(*e, s);
-        const double pk = peak(s);
-        std::printf("  THE BOSS limit on, a +3.5 dBFS tone +12 dB: peak %.3f, latency %u\n", pk, e->latency());
-        CHECK(pk <= 0.9661 && e->latency() == kLatency);
+        double corr = 0;
+        for (std::size_t i = 12000; i < s.size(); ++i) corr += s.l[i] * in.l[i - kLatency];
+        auto v = make("THE BOSS", {{Analog, 0}});
+        Stereo t = sine(1000, 1.0, static_cast<float>(std::sqrt(2.0) * std::pow(10.0, -18.0 / 20.0)), kFs);
+        run(*v, t);
+        const float vu = v->meter(0);
+        std::printf("  THE BOSS PHASE: %s; VU for a -18 dBFS RMS tone: %+.2f\n", corr < 0 ? "flipped" : "not flipped", vu);
+        CHECK(corr < 0 && std::fabs(vu) < 0.2f);
     }
-    const double d = blockSizeDifference(*findPlugin("THE BOSS"), [](hc::fx::Effect& x) { x.set(Threshold, -30); x.set(Gate, -20); x.set(Limit, 1); x.set(Order, 1); },
+    {
+        auto e = make("THE BOSS", {{Analog, 0}});
+        Stereo s = sine(1000, 0.5, 0.063f, kFs);
+        run(*e, s);
+        e->set(Trim, 1);
+        Stereo blk(512);
+        run(*e, blk);
+        const double g = toneGain(*e, 1000, 0.01f);
+        std::printf("  THE BOSS TRIM after a -24 dBFS tone: %+.2f dB (most it gives: +12)\n", g);
+        CHECK(std::fabs(g - 12.0) < 0.2);
+    }
+    // ANALOG: the hum sits far under the music
+    {
+        auto e = make("THE BOSS", {{Analog, 2}});
+        Stereo s = sine(1000, 1.5, 0.25f, kFs);
+        run(*e, s);
+        const double hum = db(toneAmp(s.l, 60, s.size() - 24000, 24000) / 0.25);
+        std::printf("  THE BOSS ANALOG 60 Hz: hum %.1f dB under the music\n", -hum);
+        CHECK(hum < -55.0 && hum > -80.0);
+    }
+    const double d = blockSizeDifference(*findPlugin("THE BOSS"), [](hc::fx::Effect& x) { x.set(Analog, 0); x.set(MidGain, 8); x.set(Preamp, 4); },
                                          noise(1.0, 0.8f));
     std::printf("  THE BOSS block size 512 vs 1: %.2e\n", d);
+    CHECK(d < 1e-5);
+}
+
+void testInsideMan() {
+    using namespace insideman;
+    // at rest: untouched
+    {
+        auto e = make("INSIDE MAN");
+        Stereo s = noise(0.5, 0.3f), ref = s;
+        run(*e, s);
+        double diff = 0;
+        for (std::size_t i = 0; i < s.size(); ++i) diff = std::max(diff, static_cast<double>(std::fabs(s.l[i] - ref.l[i])));
+        std::printf("  INSIDE MAN at rest: largest change %.2e\n", diff);
+        CHECK(diff < 1e-5);
+    }
+    // the EQ follows its drawn curve
+    {
+        auto e = make("INSIDE MAN", {{B1Type, 2}, {B1Gain, 5}, {B1Q, 2}, {B2Gain, -6}, {B4Type, 0}, {B4Freq, 9000}});
+        std::vector<float> v(kCount);
+        for (int i = 0; i < kCount; ++i) v[static_cast<std::size_t>(i)] = e->get(i);
+        double worst = 0;
+        for (double hz : {40.0, 100.0, 250.0, 1000.0, 5000.0, 12000.0}) worst = std::max(worst, std::fabs(toneGain(*e, hz, 0.05f) - curveDb(v.data(), kFs, hz)));
+        std::printf("  INSIDE MAN EQ: audio vs drawn curve, worst %.3f dB\n", worst);
+        CHECK(worst < 0.05);
+    }
+    // compressor: 4:1 at -30 on a -6 dBFS tone; VOCAL picks a ratio by itself; ratio under 1 lifts
+    {
+        auto c = make("INSIDE MAN", {{CompOn, 1}, {CompThreshold, -30}, {Ratio, 4}});
+        const double g = toneGain(*c, 1000, 0.5f);
+        auto up = make("INSIDE MAN", {{CompOn, 1}, {CompThreshold, -30}, {Ratio, 0.5f}});
+        const double gu = toneGain(*up, 1000, 0.05f);
+        std::printf("  INSIDE MAN comp: -6 dBFS tone, -30, 4:1: %+.1f dB (18 expected); ratio 0.5 on a -26 dBFS tone: %+.1f dB\n", g, gu);
+        CHECK(g < -16.0 && g > -19.5 && gu > 2.0 && gu <= 12.01);
+    }
+    // gate: a quiet tone under the threshold goes down to FLOOR; the expander takes 1 dB per dB under
+    {
+        auto gt = make("INSIDE MAN", {{GateOn, 1}, {GateThreshold, -30}, {Floor, -40}});
+        auto ex = make("INSIDE MAN", {{GateOn, 1}, {GateMode, 1}, {GateThreshold, -30}, {Floor, -80}});
+        const double g = toneGain(*gt, 1000, 0.01f), x = toneGain(*ex, 1000, 0.01f);
+        std::printf("  INSIDE MAN a -40 dBFS tone: gate at -30 (floor -40) %+.1f dB; expander %+.1f dB\n", g, x);
+        CHECK(std::fabs(g + 40.0) < 0.5 && x < -8.5 && x > -11.5);
+    }
+    // the key filter: a low cut at 2 kHz keeps a 100 Hz tone from opening the gate
+    {
+        auto k = make("INSIDE MAN", {{GateOn, 1}, {GateThreshold, -30}, {Floor, -40}, {GKeyOn, 1}, {GKeyType, FLowCut}, {GKeyFreq, 2000}});
+        const double g = toneGain(*k, 100, 0.25f);
+        std::printf("  INSIDE MAN gate keyed through a 2 kHz low cut: a -12 dBFS 100 Hz tone %+.1f dB\n", g);
+        CHECK(g < -30.0);
+    }
+    // ORDER: EQ after the compressor changes the result; ROTATE +45 turns a centred sound hard right; clip guard
+    {
+        auto e = make("INSIDE MAN", {{Rotate, 45}});
+        Stereo s = sine(1000, 0.5, 0.25f, kFs);
+        run(*e, s);
+        const double l = rms(s.l, 12000, 12000), r = rms(s.r, 12000, 12000);
+        auto hot = make("INSIDE MAN", {{Output, 12}});
+        Stereo h = sine(1000, 0.5, 0.9f, kFs);
+        run(*hot, h);
+        std::printf("  INSIDE MAN ROTATE +45: left %.1e, right %+.1f dB; OUTPUT +12 on a loud tone: peak %.3f\n", l, db(r / (0.25 / std::sqrt(2.0))), peak(h));
+        CHECK(l < 1e-4 && std::fabs(db(r / (0.25 / std::sqrt(2.0))) - 3.01) < 0.1 && peak(h) <= 1.0);
+    }
+    const double d = blockSizeDifference(*findPlugin("INSIDE MAN"),
+                                         [](hc::fx::Effect& x) {
+                                             x.set(GateOn, 1); x.set(GateThreshold, -30); x.set(CompOn, 1); x.set(CompThreshold, -20); x.set(Arc, 1);
+                                             x.set(Order, 1); x.set(B1Gain, 4);
+                                         },
+                                         noise(1.0, 0.6f));
+    std::printf("  INSIDE MAN block size 512 vs 1: %.2e\n", d);
     CHECK(d < 1e-5);
 }
 
@@ -401,40 +508,53 @@ void hitAndTail(const Stereo& s, std::uint32_t lat, double& hitDb, double& tailD
 void testKingpin() {
     using namespace kingpin;
     {
-        auto e = make("KINGPIN");
+        auto e = make("KINGPIN", {{Analog, 0}});
         const double g = toneGain(*e, 1000, 0.3f);
-        std::printf("  KINGPIN at its defaults: 1 kHz %+.2f dB (latency %u)\n", g, e->latency());
-        CHECK(std::fabs(g) < 0.1);
+        std::printf("  KINGPIN at rest: %+.3f dB\n", g);
+        CHECK(std::fabs(g) < 0.05);
     }
-    double h0, t0, hp, tp, hc, tc;
+    // COMPRESS: the hits come down (SENS pushes it harder)
     {
-        auto e = make("KINGPIN");
-        Stereo s = hits(3.0, 0.3f);
-        run(*e, s);
-        hitAndTail(s, e->latency(), h0, t0);
-        auto p = make("KINGPIN", {{Punch, 100}});
-        Stereo sp = hits(3.0, 0.3f);
-        run(*p, sp);
-        hitAndTail(sp, p->latency(), hp, tp);
-        auto c = make("KINGPIN", {{Crush, 100}});
-        Stereo sc = hits(3.0, 0.3f);
-        run(*c, sc);
-        hitAndTail(sc, c->latency(), hc, tc);
+        auto e = make("KINGPIN", {{Analog, 0}, {Compress, 100}, {Sens, 30}});
+        Stereo s = hits(3.0, 0.8f);
+        float most = 0.0f;
+        for (std::size_t off = 0; off < s.size(); off += 512) {
+            const auto m = static_cast<std::uint32_t>(std::min<std::size_t>(512, s.size() - off));
+            e->process(s.l.data() + off, s.r.data() + off, m);
+            most = std::min(most, e->reductionDb());
+        }
+        std::printf("  KINGPIN KICK COMPRESS 100, SENS +30: most reduction %.1f dB\n", most);
+        CHECK(most < -10.0f);
     }
-    std::printf("  KINGPIN hits: plain %.1f / tail %.1f dB, PUNCH 100 %.1f / %.1f, CRUSH 100 %.1f / %.1f\n", h0, t0, hp, tp, hc, tc);
-    CHECK(hp > h0 + 2.0 && tp < t0 + 1.0);
-    CHECK(tc > t0 + 4.0);
+    // GATE (KICK only): a quiet tone under it is shut; on SNARE the gate does nothing
     {
-        auto e = make("KINGPIN", {{Thump, 6}, {ThumpFreq, 70}});
-        const double g = toneGain(*e, 70, 0.1f);
-        auto d0 = make("KINGPIN");
-        auto d1 = make("KINGPIN", {{Drive, 100}});
-        const double h3a = harmonicDb(*d0, 200, 3, 0.5f), h3b = harmonicDb(*d1, 200, 3, 0.5f);
-        std::printf("  KINGPIN THUMP 6 dB at 70 Hz: %+.1f dB; DRIVE 100: 3rd harmonic %.1f -> %.1f dB\n", g, h3a, h3b);
-        CHECK(g > 5.5 && g < 6.5 && h3b > h3a + 20.0);
+        auto k = make("KINGPIN", {{Analog, 0}, {Gate, 0}});
+        auto sn = make("KINGPIN", {{Analog, 0}, {Gate, 0}, {Type, Snare}});
+        const double gk = toneGain(*k, 200, 0.003f), gs = toneGain(*sn, 200, 0.003f);
+        std::printf("  KINGPIN GATE 0 (-35 dBFS), a -50 dBFS tone: KICK %+.1f dB, SNARE %+.1f dB\n", gk, gs);
+        CHECK(gk < -30.0 && std::fabs(gs) < 0.1);
     }
-    const double d = blockSizeDifference(*findPlugin("KINGPIN"), [](hc::fx::Effect& x) { x.set(Gate, -30); x.set(Punch, 50); x.set(Crush, 50); x.set(Drive, 50); },
-                                         hits(1.5, 0.5f));
+    // FX: a tail after a snare hit
+    {
+        auto wet = make("KINGPIN", {{Analog, 0}, {Type, Snare}, {Fx, 100}}), dry = make("KINGPIN", {{Analog, 0}, {Type, Snare}});
+        Stereo a = impulse(48000, 100), b = impulse(48000, 100);
+        run(*wet, a);
+        run(*dry, b);
+        const double tw = rmsDb(a.l, 4900, 9600), td = rms(b.l, 4900, 9600);
+        std::printf("  KINGPIN SNARE FX 100: tail 100-300 ms after a hit %.1f dB (dry: %.1e)\n", tw, td);
+        CHECK(tw > -70.0 && tw < -20.0 && td < 1e-9);
+    }
+    // BASS / TREBLE follow TYPE; OUTPUT ±50 = ±10 dB
+    {
+        auto k = make("KINGPIN", {{Analog, 0}, {Bass, 5}}), oh = make("KINGPIN", {{Analog, 0}, {Bass, 5}, {Type, Overhead}});
+        auto h = make("KINGPIN", {{Analog, 0}, {Treble, 5}, {Type, Hats}}), o = make("KINGPIN", {{Analog, 0}, {Output, 50}});
+        const double kb = toneGain(*k, 30, 0.05f, false, 2.0), ob = toneGain(*oh, 30, 0.05f, false, 2.0), ht = toneGain(*h, 18000, 0.05f),
+                     og = toneGain(*o, 1000, 0.05f);
+        std::printf("  KINGPIN BASS 5: KICK 30 Hz %+.1f, OVERHEAD %+.2f; HATS TREBLE 5: 18 kHz %+.1f; OUTPUT +50: %+.2f dB\n", kb, ob, ht, og);
+        CHECK(kb > 6.5 && kb < 7.6 && std::fabs(ob) < 0.05 && ht > 6.0 && ht < 7.6 && std::fabs(og - 10.0) < 0.05);
+    }
+    const double d = blockSizeDifference(*findPlugin("KINGPIN"), [](hc::fx::Effect& x) { x.set(Analog, 0); x.set(Compress, 70); x.set(Gate, -10); x.set(Fx, 50); x.set(Bass, 3); },
+                                         noise(1.0, 0.8f));
     std::printf("  KINGPIN block size 512 vs 1: %.2e\n", d);
     CHECK(d < 1e-5);
 }
@@ -442,21 +562,21 @@ void testKingpin() {
 void testGoldChain() {
     using namespace goldchain;
     {
-        auto e = make("GOLD CHAIN");
+        auto e = make("GOLD CHAIN", {{Analog, 0}});
         const double g = toneGain(*e, 1000, 0.3f);
-        auto l = make("GOLD CHAIN", {{Input, 6}});
+        auto l = make("GOLD CHAIN", {{Input, 6}, {Analog, 0}});
         const double gl = toneGain(*l, 1000, 0.3f);
         std::printf("  GOLD CHAIN tone 0: 1 kHz %+.2f dB; INPUT +6 with LINK: %+.2f dB\n", g, gl);
         CHECK(std::fabs(g) < 0.1 && std::fabs(gl) < 0.1);
     }
     {
-        auto a = make("GOLD CHAIN"), b = make("GOLD CHAIN", {{Tone, 100}});
+        auto a = make("GOLD CHAIN", {{Analog, 0}}), b = make("GOLD CHAIN", {{Tone, 100}, {Analog, 0}});
         const double h2a = harmonicDb(*a, 200, 2, 0.5f), h2b = harmonicDb(*b, 200, 2, 0.5f);
         const double lo = toneGain(*b, 60, 0.02f), hi = toneGain(*b, 14000, 0.02f), mid = toneGain(*b, 1000, 0.02f);
         std::printf("  GOLD CHAIN tone 100: 2nd harmonic %.1f -> %.1f dB; quiet 60 Hz %+.1f, 1 kHz %+.1f, 14 kHz %+.1f dB\n", h2a, h2b, lo, mid, hi);
         CHECK(h2b > h2a + 20.0 && lo > mid + 1.0 && hi > mid + 1.0);
     }
-    const double d = blockSizeDifference(*findPlugin("GOLD CHAIN"), [](hc::fx::Effect& x) { x.set(Tone, 80); x.set(Mix, 70); x.set(Input, 4); },
+    const double d = blockSizeDifference(*findPlugin("GOLD CHAIN"), [](hc::fx::Effect& x) { x.set(Tone, 80); x.set(Analog, 0); x.set(Input, 4); },
                                          noise(1.0, 0.5f));
     std::printf("  GOLD CHAIN block size 512 vs 1: %.2e\n", d);
     CHECK(d < 1e-5);
@@ -465,7 +585,7 @@ void testGoldChain() {
 void testIvories() {
     using namespace ivories;
     {
-        auto e = make("IVORIES");
+        auto e = make("IVORIES", {{Analog, 0}});
         Stereo s = noise(0.5, 0.3f), ref = s;
         run(*e, s);
         double diff = 0;
@@ -474,16 +594,16 @@ void testIvories() {
         CHECK(diff < 1e-4);
     }
     {
-        auto e = make("IVORIES", {{Tone, 100}});
-        const double lo = toneGain(*e, 100, 0.1f), hi = toneGain(*e, 8000, 0.1f);
-        std::printf("  IVORIES TONE +100: 100 Hz %+.1f, 8 kHz %+.1f dB\n", lo, hi);
-        CHECK(lo < -2.5 && hi > 3.5);
+        auto up = make("IVORIES", {{Analog, 0}, {Piano, 50}}), down = make("IVORIES", {{Analog, 0}, {Piano, -50}});
+        const double u1 = toneGain(*up, 1000, 0.01f), d1 = toneGain(*down, 1000, 0.01f);
+        const double uh = toneGain(*up, 8000, 0.01f) - u1, dh = toneGain(*down, 8000, 0.01f) - d1, db180 = toneGain(*down, 180, 0.01f) - d1;
+        std::printf("  IVORIES PIANO, against 1 kHz: +50: 8 kHz %+.1f dB; -50: 8 kHz %+.1f, 180 Hz %+.1f dB\n", uh, dh, db180);
+        CHECK(uh > 3.5 && dh < -3.5 && db180 > 2.5);
     }
     {
-        auto e = make("IVORIES", {{Delay, 100}, {Time, 100}});
+        auto e = make("IVORIES", {{Analog, 0}, {DelayOn, 1}, {DelayLevel, 0}});
         Stereo s = impulse(24000);
         run(*e, s);
-        // the echo: left at 100 ms, right at 130 ms
         auto at = [&](const std::vector<float>& x, std::size_t from, std::size_t to) {
             double pk = 0;
             std::size_t where = 0;
@@ -492,16 +612,22 @@ void testIvories() {
         };
         const std::size_t l = at(s.l, 2000, 20000) - 100, r = at(s.r, 2000, 20000) - 100;
         std::printf("  IVORIES DELAY: echo left after %.1f ms, right after %.1f ms\n", l / 48.0, r / 48.0);
-        CHECK(l > 4700 && l < 4950 && r > 6150 && r < 6400);
+        CHECK(l > 5700 && l < 5900 && r > 7400 && r < 7600);
     }
     {
-        auto e = make("IVORIES", {{Width, 0}, {Doubler, 100}});
-        Stereo s = noise(0.5, 0.3f);
-        run(*e, s);
-        double diff = 0;
-        for (std::size_t i = 0; i < s.size(); ++i) diff = std::max(diff, static_cast<double>(std::fabs(s.l[i] - s.r[i])));
-        std::printf("  IVORIES WIDTH 0 (doubler on): largest left/right difference %.2e\n", diff);
-        CHECK(diff < 1e-5);
+        auto on = make("IVORIES", {{Analog, 0}, {DoublerOn, 1}}), off = make("IVORIES", {{Analog, 0}, {DoublerLevel, 0}});
+        Stereo a = noise(0.5, 0.3f);
+        a.r = a.l;
+        Stereo b = a;
+        run(*on, a);
+        run(*off, b);
+        double dOn = 0, dOff = 0;
+        for (std::size_t i = 0; i < a.size(); ++i) {
+            dOn = std::max(dOn, static_cast<double>(std::fabs(a.l[i] - a.r[i])));
+            dOff = std::max(dOff, static_cast<double>(std::fabs(b.l[i] - b.r[i])));
+        }
+        std::printf("  IVORIES DOUBLER on: left/right differ by up to %.3f; off (level up): %.1e\n", dOn, dOff);
+        CHECK(dOn > 0.01 && dOff < 1e-6);
     }
 }
 
@@ -662,6 +788,7 @@ void testToneShop() {
     testTenToes();
     testFourCorners();
     testSmoothTalker();
+    testInsideMan();
     testTheBoss();
     testKingpin();
     testGoldChain();
