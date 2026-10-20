@@ -1,13 +1,20 @@
 # HEM-Elite-Rack 0.30.0
 
-- **THE INFORMANT** — rebuilt with every control: a 48-key keyboard on its plate (eight voices, NORMAL or SUSTAIN), ten
-  synth sounds, TUNE, SPREAD; carrier and modulator sources; noise with its filter; PRESSURE, FORMANT, SMOOTHING,
-  RELEASE; a five-band EQ on the vocoded sound; a mixer with CARRIER, MODULATOR, NOISE and MORPH levels, SOLO and MUTE.
+- **THE INFORMANT** — rebuilt with every control: a 48-key keyboard on its plate (eight voices, HOLD or LATCH), ten
+  synth sounds, TUNE, SPREAD; carrier and modulator sources; noise with its filter; SQUEEZE, FORMANT, LAG, HOLD;
+  a five-band EQ on the vocoded sound; a mixer with CARRIER, MODULATOR, NOISE and VOCODED levels, SOLO and MUTE.
   Not possible in the rack: playing it from MIDI, and a sidechain carrier or modulator.
 
-**Our own words on every control:** labels that copied an original's wording are renamed, meaning the same thing:
-EASE OUT / SNAP BACK (TERRITORY, OLD MONEY), STACKED ratios (HITMAN, QUICK DRAW), ERA (QUICK DRAW), STAGE + BLEED FLOOR
-(WHEELMAN), IGNORE BLEED (CHAUFFEUR). Saved settings are not affected.
+**Our own words on every control:** every rebuilt plug-in's labels were checked word for word against the original's
+manual; the ones that copied its wording are renamed to our own words that mean the same thing. Among them: LET-GO EASE OUT /
+SNAP BACK, STACKED ratios, ERA, HUM (the old ANALOG mains hum), VINTAGE, SQUEEZE, BRIGHT DETECT, TIMING, SNAP, PICKUP,
+LENGTH, SAFETY, CURVE, QUIET UP / LOUD DOWN, EVENER, STAGE + BLEED FLOOR, VOICE / NOTE PICKUP, LOWEST / HIGHEST RIDE,
+REST POINT, BIT DEPTH, NOISE SHAPE, PEAK MODE, WEIGHT, BAND FREEDOM, RELEASE FEEL, BAND ONLY / WHOLE, CATCH WIDTH,
+SOFT START / END, ROOM FLOOR, SMART REL, AUTO REL, PLACE, BUMP shelves, VIEW RANGE, VU ZERO, AMBIENCE, VOICING, SLAP,
+THICKEN, DRY, AIM, COMBS, SWEEP FOCUS / SPACING, FINE SHIFT, NEW OCTAVE, LOWS, LINE UP, OCTAVE DOWN, TWO DOWN, FOLLOW,
+REAL BASS, OVERTONES, SPLIT TIMES, LO-RES, TIE FILTERS, LOCK, WOBBLE, PASS TIME, CLOSEST AT, AIR LOSS, LOOP / ONCE,
+IN TIME, FEED, MULTIPLIER, LEVEL / PITCH / SWING, CLEAN TONE / EDGE / HIGH GAIN, STYLE, ROOM, SPEAKER ANGLE, HEAD TURN,
+HEAD SIZE, EAR TO EAR. Only the words changed: the sound is the same and saved settings keep working.
 
 # HEM-Elite-Rack 0.29.0
 

@@ -20,15 +20,15 @@ constexpr double kGridBeats[] = {0.0, 1.0, 2.0 / 3.0, 0.5, 1.0 / 3.0, 0.25};
 const char* const kModSyncN[] = {"TEMPO", "MANUAL"};
 const char* const kModNoteN[] = {"4 BEATS", "2 BEATS", "1 BEAT", "1/2", "1/4", "1/8"};
 constexpr double kModBeats[] = {4, 2, 1, 0.5, 0.25, 0.125};
-const char* const kFbModeN[] = {"NORMAL", "TAP"};
-const char* const kFbFilterN[] = {"LO-PASS", "LO SHELF", "LO DECAY"};
+const char* const kFbModeN[] = {"ALL TAPS", "OWN DELAY"};
+const char* const kFbFilterN[] = {"LO-PASS", "LO SHELF", "LO FADE"};
 const char* const kPushN[] = {"A", "B"};
 
 #define HEM_TAP(n, ms, g, rot)                                                                     \
     {"tap" #n "on", "Tap " #n " On", "", 0, 1, 1, Taper::Toggle, kOnOff},                          \
     {"tap" #n "delay", "Tap " #n " Delay", "ms", 1.0f, 6000.0f, ms, Taper::Log},                  \
     {"tap" #n "gain", "Tap " #n " Gain", "dB", -24.0f, 0.0f, g},                                   \
-    {"tap" #n "rotate", "Tap " #n " Rotate", "deg", -45.0f, 45.0f, rot},                           \
+    {"tap" #n "rotate", "Tap " #n " Place", "deg", -45.0f, 45.0f, rot},                           \
     {"tap" #n "eqon", "Tap " #n " EQ", "", 0, 1, 0, Taper::Toggle, kOnOff},                        \
     {"tap" #n "eqtype", "Tap " #n " EQ Type", "", 0, 5, 0, Taper::Choice, kEqN},                   \
     {"tap" #n "eqfreq", "Tap " #n " EQ Freq", "Hz", 100.0f, 20000.0f, 2000.0f, Taper::Log},       \
@@ -36,15 +36,15 @@ const char* const kPushN[] = {"A", "B"};
 const ParamInfo kParams[kCount] = {
     HEM_TAP(1, 125.0f, -6.0f, -30.0f), HEM_TAP(2, 250.0f, -8.0f, 30.0f), HEM_TAP(3, 375.0f, -10.0f, -20.0f),
     HEM_TAP(4, 500.0f, -12.0f, 20.0f), HEM_TAP(5, 625.0f, -15.0f, -10.0f), HEM_TAP(6, 750.0f, -18.0f, 10.0f),
-    {"directon", "Direct", "", 0, 1, 1, Taper::Toggle, kOnOff},
-    {"directgain", "Direct Gain", "dB", -24.0f, 0.0f, 0.0f},
-    {"directrotate", "Direct Rotate", "deg", -45.0f, 45.0f, 0.0f},
+    {"directon", "Dry", "", 0, 1, 1, Taper::Toggle, kOnOff},
+    {"directgain", "Dry Gain", "dB", -24.0f, 0.0f, 0.0f},
+    {"directrotate", "Direct Place", "deg", -45.0f, 45.0f, 0.0f},
     {"sync", "Tempo", "", 0, 1, 0, Taper::Choice, kSyncN},
     {"bpm", "BPM", "", 40.0f, 1200.0f, 120.0f, Taper::Log},
     {"grid", "Grid", "", 0, 5, 0, Taper::Choice, kGridN},
-    {"snap", "Snap", "", 0, 1, 0, Taper::Toggle, kOnOff},
+    {"snap", "Lock", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"tap", "Tap Tempo", "", 0, 1, 0, Taper::Toggle, kPushN},
-    {"modon", "Modulator", "", 0, 1, 0, Taper::Toggle, kOnOff},
+    {"modon", "Wobble", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"modsync", "Mod Sync", "", 0, 1, 1, Taper::Choice, kModSyncN},
     {"modrate", "Mod Rate", "Hz", 0.0f, 20.0f, 1.0f},
     {"modnote", "Mod Note", "", 0, 5, 2, Taper::Choice, kModNoteN},
@@ -53,7 +53,7 @@ const ParamInfo kParams[kCount] = {
     {"fbmode", "Feedback Mode", "", 0, 1, 0, Taper::Choice, kFbModeN},
     {"fbgain", "Feedback Gain", "%", 0.0f, 100.0f, 30.0f},
     {"fbdelay", "Feedback Delay", "ms", 1.0f, 6000.0f, 500.0f, Taper::Log},
-    {"fbrotate", "Feedback Rotate", "deg", -45.0f, 45.0f, 0.0f},
+    {"fbrotate", "Feedback Place", "deg", -45.0f, 45.0f, 0.0f},
     {"fbfilter", "Feedback Filter", "", 0, 2, 0, Taper::Choice, kFbFilterN},
     {"fbfreq", "Feedback Freq", "Hz", 100.0f, 20000.0f, 6000.0f, Taper::Log},
     {"fbfiltergain", "Feedback Filter Gain", "dB", -18.0f, 0.0f, -3.0f},

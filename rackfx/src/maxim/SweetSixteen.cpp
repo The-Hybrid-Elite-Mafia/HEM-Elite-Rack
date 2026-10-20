@@ -41,7 +41,7 @@ const char* const kTypeN[] = {"BELL", "LOW SHELF", "HIGH SHELF"};
 
 #define HEM_BAND(n, hz, type)                                                                             \
     {"gain" #n, "Band " #n " Gain", "dB", -18.0f, 18.0f, 0.0f},                                           \
-    {"priority" #n, "Band " #n " Priority", "dB", -18.0f, 18.0f, 0.0f},                                   \
+    {"priority" #n, "Band " #n " Weight", "dB", -18.0f, 18.0f, 0.0f},                                   \
     {"link" #n, "Band " #n " Link", "", 0, 1, 0, Taper::Toggle, kOnOff},                                  \
     {"freq" #n, "Band " #n " Freq", "Hz", 16.0f, 20000.0f, hz, Taper::Log},                               \
     {"q" #n, "Band " #n " Q", "", 0.5f, 2.0f, 1.0f},                                                      \
@@ -53,11 +53,11 @@ const ParamInfo kParams[kCount] = {
     {"ceiling", "Ceiling", "dB", -30.0f, 0.0f, 0.0f},
     {"link", "Link", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"release", "Release", "x", 0.1f, 10.0f, 1.0f, Taper::Log},
-    {"character", "Release Character", "", 0, kCharacters - 1, 0, Taper::Choice, kCharN},
-    {"separation", "Separation", "", 0, 2, 1, Taper::Choice, kSepN},
-    {"quantize", "Quantize", "", 0, 4, 0, Taper::Choice, kQuantN},
+    {"character", "Release Feel", "", 0, kCharacters - 1, 0, Taper::Choice, kCharN},
+    {"separation", "Band Freedom", "", 0, 2, 1, Taper::Choice, kSepN},
+    {"quantize", "Bit Depth", "", 0, 4, 0, Taper::Choice, kQuantN},
     {"dither", "Dither", "", 0, 2, 0, Taper::Choice, kDitherN},
-    {"shaping", "Shaping", "", 0, 3, 1, Taper::Choice, kShapeN},
+    {"shaping", "Noise Shape", "", 0, 3, 1, Taper::Choice, kShapeN},
     HEM_BAND(1, 100.0f, 1), HEM_BAND(2, 200.0f, 0), HEM_BAND(3, 400.0f, 0), HEM_BAND(4, 800.0f, 0), HEM_BAND(5, 1600.0f, 0), HEM_BAND(6, 3200.0f, 2),
 };
 #undef HEM_BAND

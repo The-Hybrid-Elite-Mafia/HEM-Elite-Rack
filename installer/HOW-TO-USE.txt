@@ -81,8 +81,8 @@ HITMAN (dual FET peak compressor)
 
 SWITCHBLADE
   A compressor and a gate on one plate, plus a filter. Compressor row: THRESHOLD, RATIO (under 1 lifts
-  the loud parts; CANCEL makes the loudest parts come out quieter), ATTACK, RELEASE, PDR (short peaks
-  let go at PDR instead: punchier), MAKEUP; LEVEL REF LOW is the classic, PEAK keeps full-scale peaks
+  the loud parts; CANCEL makes the loudest parts come out quieter), ATTACK, RELEASE, SMART REL (short peaks
+  let go at SMART REL instead: punchier), MAKEUP; LEVEL REF LOW is the classic, PEAK keeps full-scale peaks
   where they were. Gate row: GATE OPEN, CLOSE (under OPEN: no chatter), FLOOR (how far down; -80 = all
   the way), SLOPE (EXPANDER mode), ATTACK, RELEASE, HOLD; LINK gives the gate the compressor's times.
   Each row's EQ: WIDE (the whole sound), SIDECHAIN (it only hears the FILTER), SPLIT (it only works on
@@ -94,40 +94,40 @@ TERRITORY / STRAIGHT EDGE
   Each band: THRESHOLD, GAIN, RANGE (minus = that band comes down when it's loud, plus = it gets lifted,
   0 = no movement; GAIN still works as an EQ), ATTACK, RELEASE, SOLO, BYPASS. The MASTER column moves
   every band at once. SPLIT knobs move the borders. KNEE 0 = soft and wide, 100 = hard. RELEASE AUTO
-  follows the music; EASE OUT lets go slowly at the end, SNAP BACK quickly. TERRITORY: Q = how steep the steps
+  follows the music; LET-GO EASE OUT lets go slowly at the end, SNAP BACK quickly. TERRITORY: Q = how steep the steps
   between bands are. STRAIGHT EDGE (no phase shift, 53 ms late): MAKEUP AUTO gives each band back half
   its RANGE, ADAPTIVE lets a band work only when it stands out over the band under it, TRIM (one push)
   brings the loudest peak since the last push to 0 dBFS, DITHER for 24-bit.
 
 THE HARDWARE-STYLE COMPRESSORS - most have a METER switch: IN and OUT show VU level on the needle
-(0 VU = -18 dBFS), GR shows how much it's turning down. ANALOG / MAINS 50 or 60 HZ adds the faint hum
+(0 VU = -18 dBFS), GR shows how much it's turning down. HUM 50 or 60 HZ adds the faint hum
 of the hardware under the music (never on silence).
 
 CONSIGLIERE / STONE COLD
-  PEAK REDUCTION (how much) and GAIN (level back up), or AUTO MAKEUP to keep the level put. MODE
-  COMPRESS or LIMIT. HI FREQ makes it react more to the highs. MIX for parallel, TRIM after it.
+  SQUEEZE (how much) and GAIN (level back up), or AUTO MAKEUP to keep the level put. MODE
+  COMPRESS or LIMIT. BRIGHT DETECT makes it react more to the highs. MIX for parallel, TRIM after it.
   CONSIGLIERE is smooth and slow; STONE COLD is quicker and firmer, with a bit of grit.
 
 HEAVYWEIGHT
-  THRESHOLD, RATIO, ATTACK, RELEASE (it makes up the level by itself). PUNCH lets the hits through
+  THRESHOLD, RATIO, ATTACK, RELEASE (it makes up the level by itself). SNAP lets the hits through
   while the body is held. RELEASE IN: MS (the RELEASE knob), HOST (the song's tempo, with NOTE) or
-  BPM (the BPM knob, with NOTE). ANALOG 1-4 adds weight and grit (4 has no hiss). LIMITER on rounds
+  BPM (the BPM knob, with NOTE). VINTAGE 1-4 adds weight and grit (4 has no hiss). LIMITER on rounds
   peaks under -0.3 dBFS; off, a clipper stops them at 0 dBFS.
 
 THE DON
   The old broadcast bus sound: it listens to its own output, so it breathes. THRESHOLD steps down
-  until the needle moves, pick RATIO and DECAY (1 = fast, 32 = slow). VU CALIBRATE sets where 0 VU
+  until the needle moves, pick RATIO and DECAY (1 = fast, 32 = slow). VU ZERO sets where 0 VU
   sits (and so where the threshold sits).
 
 SLOW BURN / LONE WOLF
   Tube limiting that gets firmer the harder you push. INPUT at -14 = no level change; THRESHOLD up
-  from 0 to start compressing. TIME CONSTANT 1-6 sets the speed (5 and 6 let go by themselves).
+  from 0 to start compressing. TIMING 1-6 sets the speed (5 and 6 let go by themselves).
   SLOW BURN's LINK: SEPARATE, LINKED or MID / SIDE. COMPRESS OFF leaves just the tubes.
 
 IRON FIST
   Like a console channel: turn INPUT up to compress harder, OUTPUT to set the level (AUTO MAKEUP
   does that for you). RATIO, RELEASE (AUTO follows the music), DE-ESS makes it react only to esses.
-  LIMITER with LIMIT LEVEL / ATTACK / RELEASE catches the peaks. ANALOG = the output iron and hum.
+  LIMITER with LIMIT AT / ATTACK / RELEASE catches the peaks. VINTAGE = the output iron and hum.
 
 QUICK DRAW
   More INPUT = more limiting (-30 is where it starts); OUTPUT sets the level (-18 = no change).
@@ -136,39 +136,39 @@ QUICK DRAW
 
 OLD MONEY
   A clean, smooth all-rounder. RATIO under 1 makes loud parts louder. RELEASE AUTO follows the
-  music; SNAP BACK lets go quicker (more level), EASE OUT smoother. WARM adds a touch of colour. OUTPUT has
+  music; SNAP BACK lets go quicker (more level), EASE OUT smoother. COLOR COLORED adds a touch of colour, PURE stays clean. OUTPUT has
   a soft limiter after it so it never goes over.
 
 KNOCKOUT
   ATTACK + makes hits snap, - softens them. SUSTAIN + brings up the ring and room, - dries it.
-  SENSITIVITY and LENGTH for each, SHAPE for the feel. GUARD CLIP / LIMIT keeps it under 0 dBFS.
+  PICKUP and LENGTH for each, CURVE for the feel. SAFETY CLIP / LIMIT keeps it under 0 dBFS.
 
 HAYMAKER / FOUR KINGS
-  RANGE + makes hits stand out, - softens them; SENS = how big a jump counts as a hit; DURATION = how
+  RANGE + makes hits stand out, - softens them; PICKUP = how big a jump counts as a hit; LENGTH = how
   fast a rise must be; RELEASE = how quickly it lets go. FOUR KINGS does it in four bands (each with
-  ON, RANGE, SENS; MASTER moves them all). TRIM (one push) brings the loudest peak to 0 dBFS.
+  ON, RANGE, PICKUP; MASTER moves them all). TRIM (one push) brings the loudest peak to 0 dBFS.
 
 BACKBONE
-  Two faders. LOW LEVEL up = the quiet parts come up (it lifts noise too, so go easy). HIGH LEVEL down =
+  Two faders. QUIET UP = the quiet parts come up (it lifts noise too, so go easy). LOUD DOWN =
   the loud parts are held, with the level made back up. OUTPUT trims the end result.
 
 FULL HOUSE
-  Four sections, each with its own ON. LEVELER brings loud passages toward its level, slowly (LOUD lets
-  go sooner). GATE keeps quiet noise down. LOW LEVEL lifts what's under its THRESHOLD by up to GAIN.
-  HIGH LEVEL holds what's over its THRESHOLD; its GAIN is the most that ever comes out.
+  Four sections, each with its own ON. EVENER brings loud passages toward its level, slowly (STRONG lets
+  go sooner). GATE keeps quiet noise down. LOW lifts what's under its THRESHOLD by up to GAIN.
+  HIGH holds what's over its THRESHOLD; its GAIN is the most that ever comes out.
 
 WHEELMAN / CHAUFFEUR
   Set TARGET to the level you want the vocal (WHEELMAN) or bass (CHAUFFEUR) to sit at; it rides the
-  level between RANGE MIN and MAX. IDLE = where it sits when the part isn't playing. WHEELMAN: VOCAL
-  SENSITIVITY = how loud the voice must be to count; STAGE + BLEED FLOOR ignores other instruments in the mic.
-  CHAUFFEUR: NOTE DETECT, IGNORE BLEED and IGNORE CLICKS decide what counts as a bass note.
+  level between LOWEST RIDE and HIGHEST RIDE. REST POINT = where it sits when the part isn't playing. WHEELMAN: VOICE
+  PICKUP = how loud the voice must be to count; STAGE + BLEED FLOOR ignores other instruments in the mic.
+  CHAUFFEUR: NOTE PICKUP, SPEED, IGNORE BLEED and IGNORE CLICKS decide what counts as a bass note.
   (No music sidechain and no automation writing: the rack doesn't have those.)
 
 THE MAXIMIZERS - every one ends with the same three steppers:
-  QUANTIZE = the word length of what comes out (24 BIT unless the file is going to 16 bit).
-  DITHER TYPE 1 = plain, safe; TYPE 2 = less noise, a little grit at very low levels; NONE.
-  SHAPING MODERATE / NORMAL / ULTRA moves that noise away from where the ear hears best (ULTRA only
-  on the very last step of a master); NONE. Silence stays silent.
+  BIT DEPTH = the word length of what comes out (24 BIT unless the file is going to 16 bit).
+  DITHER SOFT = plain, safe; FULL = less noise, a little grit at very low levels; NONE.
+  NOISE SHAPE LIGHT / MEDIUM / STRONG moves that noise away from where the ear hears best (STRONG only
+  on the very last step of a master); OFF. Silence stays silent.
 
 BIG SHOT
   THRESHOLD down = louder; CEILING = nothing comes out above it. AUTO REL on (best for most things)
@@ -177,15 +177,15 @@ BIG SHOT
 LAST WORD
   INPUT L / R trim each side first (INPUT LINK on: both follow INPUT L). THRESHOLD, CEILING, RELEASE
   (0.01 ms to 1 s), AUTO REL (quicker after single peaks, up to RELEASE when it works hard).
-  DOMAIN: DIGITAL = no sample above the ceiling; TRUE PEAK = not even between the samples (what
-  streaming services check); ANALOG = like TRUE PEAK, rounded softly into the ceiling.
+  PEAK MODE: SAMPLE = no sample above the ceiling; TRUE PEAK = not even between the samples (what
+  streaming services check); SMOOTHED = like TRUE PEAK, rounded softly into the ceiling.
 
 HIGH STAKES / FAST MONEY
   Five bands. THRESHOLD, CEILING, LINK (on: the ceiling comes down with the threshold, so you hear
-  the limiting without the loudness going up), RELEASE (times every band's release), SEPARATION
+  the limiting without the loudness going up), RELEASE (times every band's release), BAND FREEDOM
   (0 = all bands give the same, 100 = the band carrying the peak gives the most), the four SPLIT
-  knobs between the bands. Per band: GAIN (pushes that band in harder), PRIORITY (that band gives up
-  less, the others more), LINK (GAIN also raises PRIORITY: louder band, kept), RELEASE, SOLO.
+  knobs between the bands. Per band: GAIN (pushes that band in harder), WEIGHT (that band gives up
+  less, the others more), LINK (GAIN also raises WEIGHT: louder band, kept), RELEASE, SOLO.
   RELEASE stepper: AUTO, AUTO LOWS (adapts most in the lows), AUTO HIGHS, HARD (loudest), MANUAL
   (each band's own release). HIGH STAKES is linear phase (55 ms late, the host lines it up);
   FAST MONEY is 2 ms late, for tracking and live.
@@ -196,28 +196,28 @@ TOP DOG / QUICK CASH
   (lean), QUIET LIFT (brings quiet parts up). THRESHOLD, CEILING, LINK, RELEASE. QUICK CASH = 2 ms late.
 
 SWEET SIXTEEN
-  Sixteen bands. Six EQ / priority columns: GAIN is an EQ before the limiter, PRIORITY uses the same
+  Sixteen bands. Six EQ / priority columns: GAIN is an EQ before the limiter, WEIGHT uses the same
   curve to say where the limiting may come from, LINK moves them together, FREQ, Q, the type
-  stepper (BELL / LOW SHELF / HIGH SHELF), IN. CHARACTER = how the sixteen bands let go (22 of them:
+  stepper (BELL / LOW SHELF / HIGH SHELF), IN. RELEASE FEEL = how the sixteen bands let go (22 of them:
   VOCAL UP lets the vocal range back quicker, HARSH DOWN keeps 2-6 kHz down longer, and so on);
-  SEPARATION LOW / MEDIUM / HIGH = how sharply the sixteen bands are cut apart. The lowest bands
+  BAND FREEDOM LOW / MEDIUM / HIGH = how sharply the sixteen bands are cut apart. The lowest bands
   overlap (no linear-phase filter can cut sharply that low).
 
 SILENCER / TIGHT LIPS
   THRESHOLD down until the esses get caught. FREQUENCY = where the esses are; SIDECHAIN HIGH-PASS
-  listens to everything above it, BAND-PASS only around it. SPLIT turns down only the highs, WIDE the
+  listens to everything above it, BAND-PASS only around it. MODE BAND ONLY turns down only the highs, WHOLE the
   whole sound for that moment. TIGHT LIPS: RANGE = the most it takes off; LISTEN plays what it hears.
-  SILENCER: MONITOR SIDECHAIN plays what it hears.
+  SILENCER: MONITOR DETECTOR plays what it hears.
 
 OMERTA
   No frequency to set: it hears how bright each sound is, so loud and soft esses at any pitch are
-  caught the same. THRESHOLD, RANGE, DETECTION WIDTH (0 = only pure esses), MODE from WIDE to SPLIT,
+  caught the same. THRESHOLD, RANGE, CATCH WIDTH (0 = only pure esses), MODE from WHOLE to BAND,
   LOOKAHEAD catches each ess from its start. MONITOR plays what it takes out.
 
 BREATHLESS
   LEVEL GATE: breaths are quieter than this. SENSITIVITY: how breath-like a sound must be.
-  REDUCTION: how far they go down (all the way left = gone). FADE OUT / IN for smooth edges.
-  ROOM TONE: breaths only go down to the room's level, so gaps don't go dead. LISTEN BREATHS plays only
+  REDUCTION: how far they go down (all the way left = gone). SOFT END / START for smooth edges.
+  ROOM FLOOR: breaths only go down to the room's level, so gaps don't go dead. LISTEN REMOVED plays only
   what it takes out.
 
 TOMMY GUN
@@ -228,10 +228,10 @@ STRAIGHT SHOOTER
   An EQ that never shifts the phase: good on the mix bus and for mastering. The curve is on top; under
   it one column per band: TYPE, FREQ, GAIN, Q, and BAND (on / off). Band 1 is for the lows (cuts,
   shelves, a bell). Bands 2-6 have nine shapes: BELL; LO CUT / LO SHELF / HI SHELF / HI CUT, where Q
-  sets how steep (never a bump); and the "RES" ones, where Q adds a bump at the corner.
+  sets how steep (never a bump); and the "BUMP" ones, where Q adds a bump at the corner.
   At the bottom: GAIN (the output), TRIM (press it after the loudest part has played: the output is
   set so that peak hits 0 dB), DITHER (only when you bounce to 24-bit). Left: FILTER (STANDARD, EXACT
-  for the tightest curve, SMOOTH for the least ripple) and SCALE (the screen shows ±12 or ±30 dB).
+  for the tightest curve, SMOOTH for the least ripple) and VIEW RANGE (the screen shows ±12 or ±30 dB).
   It delays the sound by 96 ms; DAWs make up for that by themselves, in the rack you won't notice.
 
 BOTTOM LINE
@@ -262,82 +262,82 @@ TUNNEL VISION
   One knob: FILTER 10 = open, turn it down and the highs close in. RESONANCE adds a whistle at the edge.
 
 THE SETUP
-  A filter that moves by itself. Pick the TYPE (low / high / band pass, notch, comb, amp) and set it,
+  A filter that moves by itself. Pick the TYPE (low / high / band pass, notch, comb, level) and set it,
   then give it a mover: the LFO (a wave), the SEQUENCER (16 steps, each up or down; LAST = how many) or
   the FOLLOWER (how loud the track is). Each mover has three depth knobs: > FREQ, > RES, > TIME (the
-  delay). SYNC locks a mover to the tempo (pick the NOTE). SMOOTH rounds off the steps. DRIVE, CRUSH
+  delay). SYNC locks a mover to the tempo (pick the NOTE). GLIDE rounds off the steps. DRIVE, CRUSH
   (lo-fi) and SPREAD (left and right apart). The DELAY: TIME, FEEDBACK, DRY / WET, RIGHT (the right
-  side later), STYLE ANALOG bends the pitch when the time moves, ROUTE IN FEEDBACK puts the filter
+  side later), STYLE WARM bends the pitch when the time moves, ROUTE IN FEEDBACK puts the filter
   inside the echoes.
 
 THE BOSS
   A British console channel. SOURCE MIC or LINE; on MIC the PREAMP knob (20-70) drives the input
   stage harder for more colour (the level stays put). HIGH is a 10 kHz shelf in 4 dB steps, MID boosts
   or cuts (the MID button) at MID FREQ, LOW lifts at LOW FREQ, LOW CUT takes 50 Hz down. EQ switches the
-  whole EQ in or out, PHASE flips it. ANALOG adds the hum of the old desk (50 or 60 Hz) and NOISE says
+  whole EQ in or out, PHASE flips it. HUM adds the hum of the old desk (50 or 60 Hz) and HISS says
   how much hiss. TRIM: press it after the loudest part; the output is set so that peak hits 0 dB.
-  METER IN / OUT picks what the VU shows, VU CAL how hot 0 VU is.
+  METER IN / OUT picks what the VU shows, VU ZERO how hot 0 VU is.
 
 INSIDE MAN
   A whole channel: the gate (or expander) and the compressor side by side, the four-band EQ under them.
   KEY (on each) makes that section listen through a filter: KEY TYPE and KEY FREQ / WIDTH pick what it
-  hears, KEY FROM MAIN or PRE EQ. Compressor TYPE VOCAL picks its own ratio; ARC makes the release
+  hears, KEY FROM MAIN or BEFORE EQ. Compressor TYPE VOCAL picks its own ratio; AUTO REL makes the release
   follow the music; a RATIO under 1 makes the loud parts louder. ORDER: EQ first or the dynamics
-  first. ROTATE turns the stereo picture. Nothing ever goes over 0 dB (the clip guard rounds it).
+  first. PLACE turns the stereo picture. Nothing ever goes over 0 dB (the clip guard rounds it).
 
 KINGPIN
   For drums. Pick the drum with TYPE first: it sets how the compressor moves and where BASS and TREBLE
-  work. SENS = how hard the drum hits the compressor, COMPRESS = how much. GATE only on KICK (all the
-  way down = off). FX adds a short low boom on KICK, a bright plate on SNARE, a room on TOMS.
+  work. PICKUP = how hard the drum hits the compressor, COMPRESS = how much. GATE only on KICK (all the
+  way down = off). AMBIENCE adds a short low boom on KICK, a bright plate on SNARE, a room on TOMS.
 
 GOLD CHAIN
   One knob: TONE. Turn it up for a warmer, thicker, shinier sound. INPUT pushes harder; with LINK on,
-  the output comes down by the same amount so the level stays put. ANALOG adds a whisper of hiss.
+  the output comes down by the same amount so the level stays put. HUM adds a whisper of hiss.
 
 IVORIES
-  For piano and keys. PIANO up = brighter and more present, down = darker and fuller. DELAY adds a soft
-  stereo slap, DOUBLER two drifting copies left and right; each has its own LEVEL.
+  For piano and keys. VOICING up = brighter and more present, down = darker and fuller. SLAP adds a soft
+  stereo slap, THICKEN two drifting copies left and right; each has its own LEVEL.
 
 HIGH ROLLER
   Five bands, each with its own GAIN: how much of a squeezed, rounded copy of that band is added
   (the quiet detail comes up; 0 = almost nothing). WIDTH spreads that band (1 = as it was, 0 = mono,
   3 = very wide). SOLO plays only the soloed bands, BYPASS takes that band's copy out. XOVER knobs
-  move the band edges. DIRECT is the untouched sound (all the way down = off). PUNCH up = crisper
+  move the band edges. DRY is the untouched sound (all the way down = off). SNAP up = crisper
   hits, down = smoother.
 
 THE MIDDLEMAN
-  CENTER and SIDES are two faders: the middle (vocal, kick, bass) and the sides. LOW, HIGH and PUNCH
+  CENTER and SIDES are two faders: the middle (vocal, kick, bass) and the sides. LOW, HIGH and SNAP
   say which fader the lows (under 200 Hz), the highs (over 4 kHz) and the hits follow: 0 = CENTER,
-  100 = SIDES. So: pull CENTER down to take a vocal out, then turn LOW up to keep the bass. MASTER is
+  100 = SIDES. So: pull CENTER down to take a vocal out, then turn LOW up to keep the bass. ALL is
   the overall level. The CENTER readout says how much of what comes out is in the middle.
 
 DOUBLE CROSS
   Makes a mono sound stereo by sending each frequency a bit left or right, sweeping back and forth
   across the spectrum; added back to mono it is exactly the original. SPREAD = how wide (1 = the
-  space between the speakers). SWEEPS = how many times it swings; F CENTER / F DENSITY bunch them up
-  around one frequency (keep F DENSITY under about 0.6). TWEAK balances the picture. Under FREQ, LF
-  SPREAD takes over (0 keeps the bass in the middle). KIND SPLIT uses SHAPE (triangle to square).
-  INPUT, WIDTH, ROTATION, POLARITY and SWAP prepare what comes in. RESET clears the peak readouts.
+  space between the speakers). COMBS = how many times it swings; SWEEP FOCUS / SWEEP SPACING bunch them up
+  around one frequency (keep SWEEP SPACING under about 0.6). FINE SHIFT balances the picture. Under FREQ, BASS
+  SPREAD takes over (0 keeps the bass in the middle). KIND SPLIT uses CURVE (triangle to square).
+  INPUT, WIDTH, AIM, POLARITY and SWAP prepare what comes in. RESET clears the peak readouts.
   It delays the sound by 43 ms (DAWs make up for it).
 
 LOW RIDER
-  Adds a new low octave under the bass. RANGE picks the bass it listens to, LOW AIR is the new octave,
-  LO the original lows, DIRECT the untouched sound. LOW AIR and LO above 0 dB start to saturate.
-  ALIGN lines the original up with the new low end. It delays the sound by 70 ms.
+  Adds a new low octave under the bass. RANGE picks the bass it listens to, NEW OCTAVE is the new octave,
+  LOWS the original lows, DRY the untouched sound. NEW OCTAVE and LOWS above 0 dB start to saturate.
+  LINE UP lines the original up with the new low end. It delays the sound by 70 ms.
 
 UNDERTOW
-  Subs from the bass: SUB -1 an octave down, SUB -2 two. RANGE MIN / MAX pick the bass it follows.
-  DYNAMICS 0 keeps the subs steady, 100 lets them follow every note. MIX 50 = original and subs in
-  full; DRIVE roughens the subs; MONO SUB puts one sub in the middle.
+  Subs from the bass: OCTAVE DOWN an octave down, TWO DOWN two. LOWEST / HIGHEST pick the bass it follows.
+  FOLLOW 0 keeps the subs steady, 100 lets them follow every note. MIX 50 = original and subs in
+  full; DRIVE roughens the subs; SUB IN MIDDLE puts one sub in the middle.
 
 DEEP POCKETS
   Bass that comes through on phones and laptops: under FREQUENCY the bass is (partly) replaced by
-  its harmonics. ORIGINAL BASS and HARMONICS set the mix. DECAY near -9 = richer, near -24 = more
-  natural. RATIO lifts the quiet bass notes' harmonics, RESPONSE is how fast. MONITOR lets you hear
-  just the harmonics or just the bass being replaced.
+  its harmonics. REAL BASS and OVERTONES set the mix. DECAY near -9 = richer, near -24 = more
+  natural. RATIO lifts the quiet bass notes' harmonics, SPEED is how fast. MONITOR lets you hear
+  just the overtones or just the bass being replaced.
 
 LOW PROFILE
-  The quick version: FREQUENCY, INTENSITY (how much harmonics), ORIGINAL BASS in or out, GAIN.
+  The quick version: FREQUENCY, AMOUNT (how much harmonics), REAL BASS in or out, GAIN.
 
 THE FIXER
   Three bands that only turn down when they get nasty: MUD (boxy lows), HARSH (the bite) and FIZZ
@@ -347,15 +347,16 @@ THE FIXER
 
 DEAD DROP
   A delay that can be clean or dirty. TIME in ms, or a NOTE when SYNC is HOST or BPM; TAP twice to set
-  it. DUAL gives the right side its own time. FEEDBACK past 100 % builds up (the analog stage holds it
-  in). PING PONG bounces left / right. HI-PASS and LO-PASS darken or thin the repeats (LINK moves both).
-  MOD wobbles the time, ANALOG 1-4 adds grit and a little hiss, LOFI lowers the sample rate. MIX, OUTPUT.
+  it. SPLIT TIMES gives the right side its own time. FEEDBACK past 100 % builds up (the vintage stage
+  holds it in). PING PONG bounces left / right. HI-PASS and LO-PASS darken or thin the repeats (TIE
+  FILTERS moves both). MOD wobbles the time, VINTAGE 1-4 adds grit and a little hiss, LO-RES lowers the
+  sample rate. MIX, OUTPUT.
 
 SIX SHOOTER
-  Six echoes you place one by one. Each TAP: ON, DELAY (how late), GAIN, ROTATE (where it sits left to
-  right) and its own EQ. DIRECT is the dry sound. TEMPO: HOST follows the song, MANUAL uses BPM (or TAP it
-  in); GRID with SNAP puts the taps on notes. MODULATOR swings the delay times. FEEDBACK sends the echoes
-  round again (MODE: all taps, or its own DELAY), with its own FILTER. RESET clears the held peaks.
+  Six echoes you place one by one. Each TAP: ON, DELAY (how late), GAIN, PLACE (where it sits left to
+  right) and its own EQ. DRY is the untouched sound. TEMPO: HOST follows the song, MANUAL uses BPM (or
+  TAP it in); GRID with LOCK puts the taps on notes. WOBBLE swings the delay times. FEEDBACK sends the
+  echoes round again (MODE: ALL TAPS, or OWN DELAY), with its own FILTER. RESET clears the held peaks.
 
 BACK ALLEY
   The cheap-room sound: an ECHO (TIME in ms or a NOTE, FEEDBACK, PING PONG, LEVEL) and a SPRING or
@@ -363,44 +364,46 @@ BACK ALLEY
   it toward the middle (10 = as it was), MIX blends it in. The worn tone and wobble are built in.
 
 DRIVE-BY
-  A sound driving past you. TRACK TIME = how long the whole pass takes, CENTER TIME = when it's closest,
-  START / END = where it begins and ends, CLOSE = how near it passes, DIRECTION = which way. MODE
-  CONTINUOUS passes again and again; ONE-SHOT goes once per TRIGGER (ENERGY: when the sound starts;
-  MANUAL: press FIRE). GAIN, PAN, PITCH, AIR and REVERB set how real it is (100 = as in life), each with ON.
+  A sound driving past you. PASS TIME = how long the whole pass takes, CLOSEST AT = when it's nearest,
+  START / END = where it begins and ends, CLOSE = how near it passes, WAY = which direction. MODE LOOP
+  passes again and again; ONCE goes once per TRIGGER (SOUND: when the sound starts; BUTTON: press FIRE).
+  GAIN, PAN, PITCH, AIR LOSS and REVERB set how real it is (100 = as in life), each with ON; REVERB
+  LENGTH and REVERB TONE shape the room.
 
 BODY DOUBLE
   Makes one take sound like two to five. Each of the four VOICES: ON, GAIN, PAN, DELAY, DETUNE,
-  FEEDBACK, OCTAVE (an octave down) and MOD (a wobble: DEPTH, RATE). DIRECT is the original; ALIGN DIRECT
-  makes 0 ms mean together. ROUTING SPLIT feeds voices 1 / 3 from the left and 2 / 4 from the right.
-  LOW and HIGH shelves shape the voices. RESET clears the held peaks.
+  FEEDBACK, OCTAVE (an octave down) and MOD (a wobble: DEPTH, RATE). DRY is the original; IN TIME
+  makes 0 ms mean together. FEED SPLIT feeds voices 1 / 3 from the left and 2 / 4 from the right.
+  LOWEST (20 or 80 Hz) = the lowest note it detunes cleanly. LOW and HIGH shelves shape the voices.
+  RESET clears the held peaks.
 
 HUSTLE
-  One wobble, three moves: AM (level), FM (pitch) and ROTATION (where it sits), each with ON, depth and
-  PHASE. RATE x FACTOR is the speed; SYNC AUTO locks it to one cycle a beat of the song. WAVE changes the
+  One wobble, three moves: LEVEL, PITCH and SWING (where it sits), each with ON, depth and PHASE.
+  RATE x MULTIPLIER is the speed; SYNC HOST locks it to one cycle a beat of the song. WAVE changes the
   shape. GAIN and MIX at the end.
 
 THE INFORMANT
   Talk or sing into it and its own synth "speaks" your words. Play the synth on the 48 KEYS (up to
-  eight at once): NORMAL = a key sounds while you hold it (drag across for a glide), SUSTAIN = a click
+  eight at once): HOLD = a key sounds while you hold it (drag across for a glide), LATCH = a click
   keeps it on until you click it again. SOUND picks one of ten synth sounds, TUNE moves the whole synth
   (A = 440 Hz normally), SPREAD fans the notes across left and right. CARRIER can also be your track's
   left / right / stereo instead of the synth; MODULATOR picks which side of the input does the talking.
-  NOISE adds whispery breath (FILTER and FREQ shape it). PRESSURE evens out quiet and loud words, FORMANT
-  makes the voice smaller or bigger, SMOOTHING trades crisp words for a smoother sound, RELEASE holds the
-  last word's shape in the pauses. The EQ shapes the vocoded sound. The MIXER blends CARRIER, MODULATOR,
-  NOISE and MORPH (-60 = off), each with SOLO and MUTE. MIDI playing is not possible in the rack.
+  NOISE adds whispery breath (FILTER and FREQ shape it). SQUEEZE evens out quiet and loud words, FORMANT
+  makes the voice smaller or bigger, LAG trades crisp words for a smoother sound, HOLD keeps the last
+  word's shape in the pauses. The EQ shapes the vocoded sound. The MIXER blends CARRIER, MODULATOR,
+  NOISE and VOCODED (-60 = off), each with SOLO and MUTE. MIDI playing is not possible in the rack.
 
 STRAPPED
-  A guitar desk. MODE: CLEAN, CRUNCH or HEAVY (each its own tone; BYPASS = none). RE-AMP runs it
+  A guitar desk. MODE: CLEAN TONE, EDGE or HIGH GAIN (each its own tone; BYPASS = none). RE-AMP runs it
   through an amp for that mode. SENSITIVITY is the level in, BALANCE tips it left or right, OUTPUT the
-  level out. Then six faders, each with a COLOR (OFF switches it out): BASS and TREBLE (which frequency),
+  level out. Then six faders, each with a STYLE (OFF switches it out): BASS and TREBLE (which frequency),
   COMPRESS (LIGHT / MEDIUM / HEAVY, the fader is how hard), REVERB (room size), DELAY (a note of the
   tempo) and PITCH (how wide the doubled spread is) - those three faders are how much.
 
 SAFE HOUSE
-  For checking a mix on headphones: it sounds like two speakers in a room in front of you. AMOUNT = how
-  much of the room, FRONT = how wide the speakers sit (60 is the usual triangle), ROTATE = turn your head
-  (+ = to the right). HEAD CIRCUMFERENCE and INTER-AURAL ARC (over the top, ear to ear) match it to your
+  For checking a mix on headphones: it sounds like two speakers in a room in front of you. ROOM = how
+  much of the room, SPEAKER ANGLE = how wide the speakers sit (60 is the usual triangle), HEAD TURN =
+  turn your head (+ = to the right). HEAD SIZE (around) and EAR TO EAR (over the top) match it to your
   own head. MUTE L / MUTE R switch a speaker off. It is for listening only: switch it off before you export.
 
 TORCH

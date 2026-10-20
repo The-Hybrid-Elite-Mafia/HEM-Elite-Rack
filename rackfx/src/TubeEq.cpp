@@ -32,7 +32,7 @@ const ParamInfo kParams[kCount] = {
     {"drive", "Tube Drive", "%", 0.0f, 100.0f, 20.0f},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
     {"eqin", "EQ", "", 0, 1, 1, Taper::Toggle, kInOutN},
-    {"analog", "Analog", "", 0, 2, 0, Taper::Choice, arsenal::kMainsN},
+    {"analog", "Hum", "", 0, 2, 0, Taper::Choice, arsenal::kMainsN},
 };
 eq::Section fromRbj(const hc::fx::BiquadCoefs& c) { return {c.b0, c.b1, c.b2, c.a1, c.a2}; }
 double sectionDb(const eq::Section& c, double fs, double hz) {

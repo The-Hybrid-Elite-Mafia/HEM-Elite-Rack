@@ -11,13 +11,13 @@ using namespace tone;
 
 const ParamInfo kParams[kCount] = {
     {"input", "Input", "dB", -18.0f, 18.0f, 0.0f},
-    {"piano", "Piano", "", -50.0f, 50.0f, 0.0f},
-    {"delayon", "Delay", "", 0, 1, 0, Taper::Toggle, kOnOff},
-    {"delaylevel", "Delay Level", "dB", -24.0f, 0.0f, -13.6f},
-    {"doubleron", "Doubler", "", 0, 1, 0, Taper::Toggle, kOnOff},
-    {"doublerlevel", "Doubler Level", "dB", -24.0f, 0.0f, -8.7f},
+    {"piano", "Voicing", "", -50.0f, 50.0f, 0.0f},
+    {"delayon", "Slap", "", 0, 1, 0, Taper::Toggle, kOnOff},
+    {"delaylevel", "Slap Level", "dB", -24.0f, 0.0f, -13.6f},
+    {"doubleron", "Thicken", "", 0, 1, 0, Taper::Toggle, kOnOff},
+    {"doublerlevel", "Thicken Level", "dB", -24.0f, 0.0f, -8.7f},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
-    {"analog", "Analog", "", 0, 1, 1, Taper::Toggle, kOnOff},
+    {"analog", "Hum", "", 0, 1, 1, Taper::Toggle, kOnOff},
 };
 constexpr float kTimeMs = 120.0f;   // the slap: left 120 ms, right 156 ms
 constexpr double kMaxDelayS = 0.45;

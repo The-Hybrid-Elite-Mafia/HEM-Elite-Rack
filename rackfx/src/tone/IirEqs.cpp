@@ -70,7 +70,7 @@ struct Cfg {
 // ---- FOUR CORNERS ------------------------------------------------------------------------------
 namespace fc {
 using namespace fourcorners;
-const char* const kEdgeN[] = {"BELL", "LO SHELF", "HI SHELF", "LO SHELF RES", "HI SHELF RES", "LO CUT", "HI CUT"};
+const char* const kEdgeN[] = {"BELL", "LO SHELF", "HI SHELF", "LO SHELF BUMP", "HI SHELF BUMP", "LO CUT", "HI CUT"};
 const char* const kMidN[] = {"BELL", "LO SHELF", "HI SHELF"};
 #define HEM_BAND(s, n, names, kinds, hz, ty)                                                              \
     {s "b" #n "on", s " Filter " #n " On", "", 0, 1, 1, Taper::Toggle, kOnOff},                           \
@@ -106,10 +106,10 @@ struct Cfg {
 // ---- SMOOTH TALKER -----------------------------------------------------------------------------
 namespace sx {
 using namespace smoothtalker;
-const char* const kFirstN[] = {"LO CUT", "LO SHELF RES", "BELL"};
+const char* const kFirstN[] = {"LO CUT", "LO SHELF BUMP", "BELL"};
 const char* const kLowN[] = {"LO SHELF", "BELL"};
 const char* const kHighN[] = {"HI SHELF", "BELL"};
-const char* const kLastN[] = {"HI CUT", "HI SHELF RES", "BELL"};
+const char* const kLastN[] = {"HI CUT", "HI SHELF BUMP", "BELL"};
 #define HEM_BAND(s, n, names, kinds, hz, ty, q, on)                                                       \
     {s "b" #n "on", s " Band " #n " On", "", 0, 1, on, Taper::Toggle, kOnOff},                            \
     {s "b" #n "type", s " Band " #n " Type", "", 0, kinds - 1, ty, Taper::Choice, names},                 \

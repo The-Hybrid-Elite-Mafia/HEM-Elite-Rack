@@ -15,16 +15,16 @@ namespace fullhouse {
 namespace {
 using namespace arsenal;
 
-const char* const kLevelN[] = {"LOUD", "SOFT"};
+const char* const kLevelN[] = {"STRONG", "GENTLE"};
 const ParamInfo kParams[kCount] = {
     {"gateon", "Gate On", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"gate", "Gate", "dB", -96.0f, 0.0f, -60.0f},
     {"lowon", "Low Level On", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"lowthreshold", "Low Threshold", "dB", -96.0f, 0.0f, -40.0f},
     {"lowgain", "Low Gain", "dB", 0.0f, 48.0f, 6.0f},
-    {"leveleron", "Leveler On", "", 0, 1, 0, Taper::Toggle, kOnOff},
-    {"leveler", "Leveler", "dB", -48.0f, 0.0f, -12.0f},
-    {"levelermode", "Leveler Release", "", 0, 1, 0, Taper::Choice, kLevelN},
+    {"leveleron", "Evener On", "", 0, 1, 0, Taper::Toggle, kOnOff},
+    {"leveler", "Evener", "dB", -48.0f, 0.0f, -12.0f},
+    {"levelermode", "Evener Release", "", 0, 1, 0, Taper::Choice, kLevelN},
     {"highon", "High Level On", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"highthreshold", "High Threshold", "dB", -48.0f, 0.0f, -6.0f},
     {"highgain", "High Gain", "dB", -48.0f, 0.0f, 0.0f},

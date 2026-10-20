@@ -38,7 +38,7 @@ const ParamInfo kParams[kCount] = {
     {"x3", "Crossover 3", "Hz", 1000.0f, 16000.0f, 5000.0f, Taper::Log},
     {"q", "Crossover Q", "", 0.1f, 0.75f, 0.6f},
     {"releasemode", "Release Mode", "", 0, 1, 0, Taper::Choice, kRelN},
-    {"behavior", "Behavior", "", 0, 1, 0, Taper::Choice, kBehaviorN},
+    {"behavior", "Let-Go", "", 0, 1, 0, Taper::Choice, kBehaviorN},
     {"knee", "Knee", "", 0.0f, 100.0f, 50.0f},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
 };
@@ -57,7 +57,7 @@ const ParamInfo kParams[kCount] = {
     {"makeup", "Makeup", "", 0, 1, 0, Taper::Choice, kMakeupN},
     {"adaptive", "Adaptive", "dB", -40.0f, 12.0f, -40.0f},
     {"releasemode", "Release Mode", "", 0, 1, 0, Taper::Choice, kRelN},
-    {"behavior", "Behavior", "", 0, 1, 1, Taper::Choice, kBehaviorN},
+    {"behavior", "Let-Go", "", 0, 1, 1, Taper::Choice, kBehaviorN},
     {"knee", "Knee", "", 0.0f, 100.0f, 50.0f},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
     {"trim", "Trim", "", 0, 1, 0, Taper::Toggle, kPushN},

@@ -18,11 +18,11 @@ using namespace arsenal;
 using eqkit::Shape;
 
 const char* const kGateModeN[] = {"GATE", "EXPANDER"};
-const char* const kSourceN[] = {"MAIN", "PRE EQ"};
+const char* const kSourceN[] = {"MAIN", "BEFORE EQ"};
 const char* const kFilterN[] = {"LO CUT", "HI CUT", "BAND", "NOTCH"};
 const char* const kCompTypeN[] = {"CLASSIC", "VOCAL"};
-const char* const kFirstN[] = {"LO CUT", "LO SHELF", "LO SHELF RES", "BELL"};
-const char* const kLastN[] = {"HI CUT", "HI SHELF", "HI SHELF RES", "BELL"};
+const char* const kFirstN[] = {"LO CUT", "LO SHELF", "LO SHELF BUMP", "BELL"};
+const char* const kLastN[] = {"HI CUT", "HI SHELF", "HI SHELF BUMP", "BELL"};
 const char* const kOrderN[] = {"EQ FIRST", "DYN FIRST"};
 
 #define HEM_KEY(pre, Pre)                                                                                   \
@@ -50,7 +50,7 @@ const ParamInfo kParams[kCount] = {
     {"ratio", "Ratio", ":1", 0.5f, 50.0f, 3.0f, Taper::Log},
     {"attack", "Attack", "ms", 0.01f, 500.0f, 16.0f, Taper::Log},
     {"release", "Release", "ms", 5.0f, 5000.0f, 160.0f, Taper::Log},
-    {"arc", "ARC", "", 0, 1, 1, Taper::Toggle, kOnOff},
+    {"arc", "Auto Rel", "", 0, 1, 1, Taper::Toggle, kOnOff},
     HEM_KEY("c", "Comp"),
     HEM_ON(1), HEM_TYPE(1, kFirstN), HEM_BAND(1, 60.0f, 0.71f),
     HEM_ON(2), HEM_BAND(2, 250.0f, 1.0f),
@@ -59,7 +59,7 @@ const ParamInfo kParams[kCount] = {
     {"order", "Order", "", 0, 1, 0, Taper::Choice, kOrderN},
     {"phase", "Phase", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"output", "Output", "dB", -30.0f, 30.0f, 0.0f},
-    {"rotate", "Rotate", "deg", -45.0f, 45.0f, 0.0f},
+    {"rotate", "Place", "deg", -45.0f, 45.0f, 0.0f},
 };
 #undef HEM_BAND
 #undef HEM_ON

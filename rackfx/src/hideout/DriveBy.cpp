@@ -15,12 +15,12 @@ namespace {
 using namespace hideout;
 
 const char* const kDirN[] = {"LEFT TO RIGHT", "RIGHT TO LEFT"};
-const char* const kModeN[] = {"CONTINUOUS", "ONE-SHOT"};
-const char* const kTriggerN[] = {"ENERGY", "MANUAL"};
+const char* const kModeN[] = {"LOOP", "ONCE"};
+const char* const kTriggerN[] = {"SOUND", "BUTTON"};
 const char* const kPushN[] = {"A", "B"};
 const ParamInfo kParams[kCount] = {
-    {"tracktime", "Track Time", "s", 0.5f, 30.0f, 4.0f, Taper::Log},
-    {"centertime", "Center Time", "%", 5.0f, 95.0f, 50.0f},
+    {"tracktime", "Pass Time", "s", 0.5f, 30.0f, 4.0f, Taper::Log},
+    {"centertime", "Closest At", "%", 5.0f, 95.0f, 50.0f},
     {"start", "Start", "%", -100.0f, 100.0f, -100.0f},
     {"end", "End", "%", -100.0f, 100.0f, 100.0f},
     {"close", "Close", "%", 0.0f, 100.0f, 70.0f},
@@ -34,14 +34,14 @@ const ParamInfo kParams[kCount] = {
     {"panon", "Pan On", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"pitch", "Pitch", "%", 0.0f, 200.0f, 100.0f},
     {"pitchon", "Pitch On", "", 0, 1, 1, Taper::Toggle, kOnOff},
-    {"air", "Air Damp", "%", 0.0f, 200.0f, 100.0f},
-    {"airon", "Air Damp On", "", 0, 1, 1, Taper::Toggle, kOnOff},
+    {"air", "Air Loss", "%", 0.0f, 200.0f, 100.0f},
+    {"airon", "Air Loss On", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"reverb", "Reverb", "dB", -60.0f, 0.0f, -18.0f},
     {"reverbon", "Reverb On", "", 0, 1, 1, Taper::Toggle, kOnOff},
-    {"reverbtime", "Reverb Time", "s", 0.2f, 10.0f, 2.0f, Taper::Log},
-    {"brightness", "Brightness", "", 0.0f, 1.0f, 0.5f},
+    {"reverbtime", "Reverb Length", "s", 0.2f, 10.0f, 2.0f, Taper::Log},
+    {"brightness", "Reverb Tone", "", 0.0f, 1.0f, 0.5f},
 };
-const hc::fx::MeterInfo kMeters[] = {{"ELAPSED", "s", 0.0f, 30.0f}};
+const hc::fx::MeterInfo kMeters[] = {{"PROGRESS", "s", 0.0f, 30.0f}};
 constexpr double kC = 343.0, kHalfTrack = 60.0;   // metres either side of the listener at START / END +-100 %
 constexpr double kFar = 50.0, kNear = 1.0;          // CLOSE 0 % passes 50 m away, 100 % 1 m away
 

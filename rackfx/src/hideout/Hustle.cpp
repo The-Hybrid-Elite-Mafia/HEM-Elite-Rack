@@ -8,7 +8,7 @@ namespace hustle {
 namespace {
 using namespace hideout;
 
-const char* const kSyncN[] = {"AUTO", "MANUAL"};
+const char* const kSyncN[] = {"HOST", "FREE"};
 const char* const kFactorN[] = {"x0.25", "x0.5", "x1", "x2", "x4", "x8", "x16", "x32", "x64", "x100"};
 constexpr double kFactor[] = {0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 100};
 const char* const kWaveN[] = {"SQUARE", "TRIANGLE", "SAW UP", "SAW DOWN", "SINE"};
@@ -17,17 +17,17 @@ const char* const kPhaseN[] = {"0", "90", "180", "270"};
 const ParamInfo kParams[kCount] = {
     {"sync", "Sync", "", 0, 1, 1, Taper::Choice, kSyncN},
     {"rate", "Rate", "Hz", 0.01f, 60.0f, 0.2f, Taper::Log},
-    {"factor", "x Factor", "", 0, 9, 2, Taper::Choice, kFactorN},
+    {"factor", "Multiplier", "", 0, 9, 2, Taper::Choice, kFactorN},
     {"wave", "Wave", "", 0, 4, 4, Taper::Choice, kWaveN},
-    {"amdepth", "AM Depth", "%", 0.0f, 100.0f, 50.0f},
-    {"amon", "AM", "", 0, 1, 1, Taper::Toggle, kOnOff},
-    {"amphase", "AM Phase", "", 0, 3, 0, Taper::Choice, kPhaseN},
-    {"fmdepth", "FM Depth", "%", 0.0f, 100.0f, 50.0f},
-    {"fmon", "FM", "", 0, 1, 1, Taper::Toggle, kOnOff},
-    {"fmphase", "FM Phase", "", 0, 3, 0, Taper::Choice, kPhaseN},
-    {"rotcenter", "Rotation Center", "deg", -180.0f, 180.0f, 0.0f},
-    {"roton", "Rotation", "", 0, 1, 1, Taper::Toggle, kOnOff},
-    {"rotrange", "Rotation Range", "deg", 1.0f, 360.0f, 90.0f},
+    {"amdepth", "Level Depth", "%", 0.0f, 100.0f, 50.0f},
+    {"amon", "Level", "", 0, 1, 1, Taper::Toggle, kOnOff},
+    {"amphase", "Level Phase", "", 0, 3, 0, Taper::Choice, kPhaseN},
+    {"fmdepth", "Pitch Depth", "%", 0.0f, 100.0f, 50.0f},
+    {"fmon", "Pitch", "", 0, 1, 1, Taper::Toggle, kOnOff},
+    {"fmphase", "Pitch Phase", "", 0, 3, 0, Taper::Choice, kPhaseN},
+    {"rotcenter", "Swing Center", "deg", -180.0f, 180.0f, 0.0f},
+    {"roton", "Swing", "", 0, 1, 1, Taper::Toggle, kOnOff},
+    {"rotrange", "Swing Range", "deg", 1.0f, 360.0f, 90.0f},
     {"gain", "Gain", "dB", -12.0f, 12.0f, 0.0f},
     {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
 };

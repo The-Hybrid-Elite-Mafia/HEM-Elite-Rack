@@ -17,7 +17,7 @@ const char* const kModN[] = {"L+R", "LEFT", "RIGHT"};
 const char* const kCarN[] = {"SYNTH", "LEFT", "RIGHT", "STEREO"};
 const char* const kNoiseN[] = {"OFF", "HI-PASS", "LO-PASS"};
 const char* const kSoundN[] = {"WARM PAD", "BRIGHT SAW", "HOLLOW", "REED", "BUZZ", "GLASS", "CHOIR", "SUB BASS", "AIR", "GRIT"};
-const char* const kSustainN[] = {"NORMAL", "SUSTAIN"};
+const char* const kSustainN[] = {"HOLD", "LATCH"};
 
 #define HEM_EQ(n, hz, q)                                                       \
     {"eq" #n "on", "EQ " #n " On", "", 0, 1, 1, Taper::Toggle, kOnOff},        \
@@ -34,23 +34,23 @@ const ParamInfo kParams[kCount] = {
     {"tune", "Tune", "Hz", 220.0f, 880.0f, 440.0f},
     {"spread", "Spread", "", 0.0f, 1.0f, 0.0f},
     HEM_EQ(1, 258.0f, 2.0f), HEM_EQ(2, 689.0f, 1.0f), HEM_EQ(3, 1804.0f, 1.0f), HEM_EQ(4, 4478.0f, 1.0f), HEM_EQ(5, 11046.0f, 2.0f),
-    {"pressure", "Pressure", "dB", 0.0f, 50.0f, 20.0f},
+    {"pressure", "Squeeze", "dB", 0.0f, 50.0f, 20.0f},
     {"formant", "Formant", "x", 0.5f, 2.0f, 1.0f, Taper::Log},
-    {"smoothing", "Smoothing", "", 60.0f, 800.0f, 60.0f, Taper::Log},
-    {"release", "Release", "ms", 50.0f, 5000.0f, 100.0f, Taper::Log},
+    {"smoothing", "Lag", "", 60.0f, 800.0f, 60.0f, Taper::Log},
+    {"release", "Hold", "ms", 50.0f, 5000.0f, 100.0f, Taper::Log},
     {"carrierlevel", "Carrier Level", "dB", -60.0f, 0.0f, -60.0f},
     {"modulatorlevel", "Modulator Level", "dB", -60.0f, 0.0f, -60.0f},
     {"noiselevel", "Noise Level", "dB", -60.0f, 0.0f, -14.0f},
-    {"morphlevel", "Morph Level", "dB", -60.0f, 6.0f, 0.0f},
+    {"morphlevel", "Vocoded Level", "dB", -60.0f, 6.0f, 0.0f},
     {"carriersolo", "Carrier Solo", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"modulatorsolo", "Modulator Solo", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"noisesolo", "Noise Solo", "", 0, 1, 0, Taper::Toggle, kOnOff},
-    {"morphsolo", "Morph Solo", "", 0, 1, 0, Taper::Toggle, kOnOff},
+    {"morphsolo", "Vocoded Solo", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"carriermute", "Carrier Mute", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"modulatormute", "Modulator Mute", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"noisemute", "Noise Mute", "", 0, 1, 0, Taper::Toggle, kOnOff},
-    {"morphmute", "Morph Mute", "", 0, 1, 0, Taper::Toggle, kOnOff},
-    {"sustain", "Sustain", "", 0, 1, 0, Taper::Toggle, kSustainN},
+    {"morphmute", "Vocoded Mute", "", 0, 1, 0, Taper::Toggle, kOnOff},
+    {"sustain", "Latch", "", 0, 1, 0, Taper::Toggle, kSustainN},
     HEM_KEY("key0", "Key C2"), HEM_KEY("key1", "Key C#2"), HEM_KEY("key2", "Key D2"), HEM_KEY("key3", "Key D#2"),
     HEM_KEY("key4", "Key E2"), HEM_KEY("key5", "Key F2"), HEM_KEY("key6", "Key F#2"), HEM_KEY("key7", "Key G2"),
     HEM_KEY("key8", "Key G#2"), HEM_KEY("key9", "Key A2"), HEM_KEY("key10", "Key A#2"), HEM_KEY("key11", "Key B2"),

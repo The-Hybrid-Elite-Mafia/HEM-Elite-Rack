@@ -4,8 +4,8 @@
 //
 //  HEM WIDE LOAD — WIDTH 0..200 % (0 = mono, 100 = as it was, 200 = twice the sides),
 //    MONO BASS (below 80..250 Hz the sides are removed: tight, centred low end), BALANCE, OUTPUT,
-//    SHUFFLE (more width in the lows and low mids, under 600 Hz), ROTATION (turns the whole image left or
-//    right, -45..+45 degrees), ASYMMETRY (moves the centre over without moving the edges).
+//    LOW WIDEN (more width in the lows and low mids, under 600 Hz), ROTATION (turns the whole image left or
+//    right, -45..+45 degrees), CENTER SHIFT (moves the centre over without moving the edges).
 //    Meters: 0 = correlation (-1..+1), 1 = width of what comes out (side vs mid, dB). Zero latency.
 //
 //  HEM SPARK — adds fresh harmonics above FREQ: brightness and air without EQ boost.

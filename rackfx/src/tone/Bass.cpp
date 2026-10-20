@@ -57,12 +57,12 @@ namespace lr {
 using namespace lowrider;
 const ParamInfo kParams[kCount] = {
     {"range", "Range", "Hz", 20.0f, 120.0f, 80.0f},
-    {"lowair", "Low Air", "dB", -60.0f, 30.0f, 3.0f},
-    {"lo", "Lo", "dB", -60.0f, 30.0f, 3.0f},
+    {"lowair", "New Octave", "dB", -60.0f, 30.0f, 3.0f},
+    {"lo", "Lows", "dB", -60.0f, 30.0f, 3.0f},
     {"direct", "Direct", "dB", -60.0f, 0.0f, 0.0f},
     {"output", "Output", "dB", -60.0f, 0.0f, 0.0f},
     {"trim", "Trim", "dB", -12.0f, 12.0f, 0.0f},
-    {"align", "Align", "", 0, 1, 0, Taper::Toggle, kOnOff},
+    {"align", "Line Up", "", 0, 1, 0, Taper::Toggle, kOnOff},
 };
 const hc::fx::MeterInfo kMeters[] = {{"OUTPUT", "dBFS", -50.0f, 0.0f}};
 
@@ -146,15 +146,15 @@ namespace ut {
 using namespace undertow;
 const char* const kMonoN[] = {"STEREO", "MONO"};
 const ParamInfo kParams[kCount] = {
-    {"rangemin", "Range Min", "Hz", 20.0f, 120.0f, 20.0f},
-    {"rangemax", "Range Max", "Hz", 40.0f, 240.0f, 150.0f},
-    {"sub1on", "Sub -1", "", 0, 1, 1, Taper::Toggle, kOnOff},
-    {"sub1", "Sub -1 Level", "dB", -60.0f, 12.0f, 0.0f},
-    {"sub2on", "Sub -2", "", 0, 1, 0, Taper::Toggle, kOnOff},
-    {"sub2", "Sub -2 Level", "dB", -60.0f, 12.0f, 0.0f},
+    {"rangemin", "Lowest", "Hz", 20.0f, 120.0f, 20.0f},
+    {"rangemax", "Highest", "Hz", 40.0f, 240.0f, 150.0f},
+    {"sub1on", "Octave Down", "", 0, 1, 1, Taper::Toggle, kOnOff},
+    {"sub1", "Octave Down Level", "dB", -60.0f, 12.0f, 0.0f},
+    {"sub2on", "Two Down", "", 0, 1, 0, Taper::Toggle, kOnOff},
+    {"sub2", "Two Down Level", "dB", -60.0f, 12.0f, 0.0f},
     {"drive", "Drive", "%", 0.0f, 100.0f, 0.0f},
-    {"dynamics", "Dynamics", "%", 0.0f, 100.0f, 50.0f},
-    {"monosub", "Mono Sub", "", 0, 1, 1, Taper::Choice, kMonoN},
+    {"dynamics", "Follow", "%", 0.0f, 100.0f, 50.0f},
+    {"monosub", "Sub In Middle", "", 0, 1, 1, Taper::Choice, kMonoN},
     {"mix", "Mix", "%", 0.0f, 100.0f, 50.0f},
     {"output", "Output", "dB", -18.0f, 0.0f, 0.0f},
 };
@@ -344,16 +344,16 @@ private:
 namespace dp {
 using namespace deeppockets;
 const char* const kHpN[] = {"6 dB 16 Hz", "12 dB", "24 dB"};
-const char* const kListenN[] = {"ALL", "HARMONICS", "ORIGINAL"};
+const char* const kListenN[] = {"ALL", "OVERTONES", "REAL BASS"};
 const ParamInfo kParams[kCount] = {
     {"frequency", "Frequency", "Hz", 32.0f, 256.0f, 90.0f, Taper::Log},
     {"input", "Input", "dB", -60.0f, 0.0f, 0.0f},
-    {"original", "Original Bass", "dB", -60.0f, 12.0f, 0.0f},
-    {"harmonics", "Harmonics", "dB", -60.0f, 12.0f, 0.0f},
+    {"original", "Real Bass", "dB", -60.0f, 12.0f, 0.0f},
+    {"harmonics", "Overtones", "dB", -60.0f, 12.0f, 0.0f},
     {"highpass", "High-Pass", "", 0, 2, 1, Taper::Choice, kHpN},
     {"decay", "Decay", "dB", -24.0f, -9.0f, -15.0f},
     {"ratio", "Ratio", ":1", 1.0f, 4.0f, 1.0f},
-    {"response", "Response", "ms", 1.0f, 200.0f, 20.0f, Taper::Log},
+    {"response", "Speed", "ms", 1.0f, 200.0f, 20.0f, Taper::Log},
     {"monitor", "Monitor", "", 0, 2, 0, Taper::Choice, kListenN},
     {"reset", "Reset", "", 0, 1, 0, Taper::Toggle, kPushN},
 };
@@ -417,8 +417,8 @@ namespace lp {
 using namespace lowprofile;
 const ParamInfo kParams[kCount] = {
     {"frequency", "Frequency", "Hz", 32.0f, 256.0f, 90.0f, Taper::Log},
-    {"originalin", "Original Bass", "", 0, 1, 1, Taper::Toggle, kOnOff},
-    {"intensity", "Intensity", "dB", -24.0f, 24.0f, 0.0f},
+    {"originalin", "Real Bass", "", 0, 1, 1, Taper::Toggle, kOnOff},
+    {"intensity", "Amount", "dB", -24.0f, 24.0f, 0.0f},
     {"gain", "Gain", "dB", -60.0f, 0.0f, 0.0f},
 };
 const hc::fx::MeterInfo kMeters[] = {{"OUTPUT", "dBFS", -60.0f, 3.0f}};

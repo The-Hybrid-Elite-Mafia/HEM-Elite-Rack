@@ -32,18 +32,18 @@ const ParamInfo kParams[kCount] = {
     {"high", "High", "", 0, 7, 4, Taper::Choice, kHighN},
     {"midgain", "Mid Gain", "dB", 0.0f, 15.0f, 0.0f},
     {"midfreq", "Mid Freq", "", 0, 7, 3, Taper::Choice, kMidHzN},
-    {"midmode", "Mid Mode", "", 0, 1, 0, Taper::Choice, kMidModeN},
+    {"midmode", "Mid Style", "", 0, 1, 0, Taper::Choice, kMidModeN},
     {"lowfreq", "Low Freq", "", 0, 4, 0, Taper::Choice, kLowHzN},
     {"lowgain", "Low Gain", "dB", 0.0f, 15.0f, 0.0f},
     {"lowcut", "Low Cut", "", 0, 5, 0, Taper::Choice, kCutN},
     {"eqin", "EQ", "", 0, 1, 1, Taper::Toggle, kOnOff},
-    {"analog", "Analog", "", 0, 2, 2, Taper::Choice, kMainsN},
-    {"noise", "Noise", "", 0, 1, 0, Taper::Choice, kNoiseN},
+    {"analog", "Hum", "", 0, 2, 2, Taper::Choice, kMainsN},
+    {"noise", "Hiss", "", 0, 1, 0, Taper::Choice, kNoiseN},
     {"phase", "Phase", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
     {"trim", "Trim", "", 0, 1, 0, Taper::Toggle, kPushN},
     {"meter", "Meter", "", 0, 1, 1, Taper::Choice, kMeterIoN},
-    {"vucal", "VU Calibrate", "dB", 8.0f, 24.0f, 18.0f},
+    {"vucal", "VU Zero", "dB", 8.0f, 24.0f, 18.0f},
 };
 const hc::fx::MeterInfo kMeters[] = {{"INPUT", "VU", -20.0f, 3.0f}, {"OUTPUT", "VU", -20.0f, 3.0f}};
 constexpr float kMidQ = 1.0f, kShelfQ = 0.7071f;

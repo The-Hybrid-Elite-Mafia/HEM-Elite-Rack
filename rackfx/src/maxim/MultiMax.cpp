@@ -11,7 +11,7 @@ using namespace maxim;
 
 #define HEM_BAND(n, rel, relMax)                                                                          \
     {"gain" #n, "Band " #n " Gain", "dB", -12.0f, 12.0f, 0.0f},                                           \
-    {"priority" #n, "Band " #n " Priority", "dB", -12.0f, 12.0f, 0.0f},                                   \
+    {"priority" #n, "Band " #n " Weight", "dB", -12.0f, 12.0f, 0.0f},                                   \
     {"link" #n, "Band " #n " Link", "", 0, 1, 0, Taper::Toggle, kOnOff},                                  \
     {"release" #n, "Band " #n " Release", "ms", 0.1f, relMax, rel, Taper::Log},                           \
     {"solo" #n, "Band " #n " Solo", "", 0, 1, 0, Taper::Toggle, kOnOff}
@@ -26,10 +26,10 @@ using namespace maxim;
     {"xover2", "Crossover 2", "Hz", 150.0f, 3000.0f, 320.0f, Taper::Log},                                 \
     {"xover3", "Crossover 3", "Hz", 1022.0f, 4757.0f, 1278.0f, Taper::Log},                               \
     {"xover4", "Crossover 4", "Hz", 4000.0f, 16000.0f, 5113.0f, Taper::Log},                              \
-    {"separation", "Separation", "%", 0.0f, 100.0f, 100.0f},                                              \
-    {"quantize", "Quantize", "", 0, 4, 0, Taper::Choice, kQuantN},                                        \
+    {"separation", "Band Freedom", "%", 0.0f, 100.0f, 100.0f},                                              \
+    {"quantize", "Bit Depth", "", 0, 4, 0, Taper::Choice, kQuantN},                                        \
     {"dither", "Dither", "", 0, 2, 0, Taper::Choice, kDitherN},                                           \
-    {"shaping", "Shaping", "", 0, 3, 1, Taper::Choice, kShapeN}
+    {"shaping", "Noise Shape", "", 0, 3, 1, Taper::Choice, kShapeN}
 
 const ParamInfo kLinearParams[kCount] = {
     HEM_GLOBALS,

@@ -8,14 +8,14 @@ namespace {
 using namespace arsenal;
 using namespace breathless;
 
-const char* const kListenN[] = {"VOICE", "BREATHS"};
+const char* const kListenN[] = {"CLEANED", "REMOVED"};
 const ParamInfo kParams[kCount] = {
     {"sensitivity", "Sensitivity", "%", 0.0f, 100.0f, 50.0f},
     {"levelgate", "Level Gate", "dB", -64.0f, 0.0f, -30.0f},
     {"reduction", "Reduction", "dB", -80.0f, 0.0f, -80.0f},
-    {"fadeout", "Fade Out", "ms", 0.1f, 200.0f, 5.0f, Taper::Log},
-    {"fadein", "Fade In", "ms", 0.1f, 200.0f, 5.0f, Taper::Log},
-    {"roomtone", "Room Tone", "", 0, 1, 0, Taper::Toggle, kOnOff},
+    {"fadeout", "Soft End", "ms", 0.1f, 200.0f, 5.0f, Taper::Log},
+    {"fadein", "Soft Start", "ms", 0.1f, 200.0f, 5.0f, Taper::Log},
+    {"roomtone", "Room Floor", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"listen", "Listen", "", 0, 1, 0, Taper::Choice, kListenN},
 };
 const hc::fx::MeterInfo kMeters[] = {{"BREATH", "%", 0.0f, 100.0f}, {"LEVEL", "dB", -80.0f, 0.0f}, {"REDUCTION", "dB", -60.0f, 0.0f}};

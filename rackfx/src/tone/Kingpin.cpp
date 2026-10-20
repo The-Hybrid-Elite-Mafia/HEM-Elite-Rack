@@ -22,15 +22,15 @@ const char* const kTypeN[] = {"KICK", "SNARE", "HATS", "TOMS", "OVERHEAD", "ROOM
 const char* const kMeterIoN[] = {"IN", "OUT"};
 const ParamInfo kParams[kCount] = {
     {"type", "Type", "", 0, kDrums - 1, 0, Taper::Choice, kTypeN},
-    {"sens", "Sens", "", -50.0f, 50.0f, 0.0f},
+    {"sens", "Pickup", "", -50.0f, 50.0f, 0.0f},
     {"compress", "Compress", "%", 0.0f, 100.0f, 0.0f},
     {"gate", "Gate", "", -50.0f, 50.0f, -50.0f},
-    {"fx", "FX", "%", 0.0f, 100.0f, 0.0f},
+    {"fx", "Ambience", "%", 0.0f, 100.0f, 0.0f},
     {"bass", "Bass", "", 0.0f, 5.0f, 0.0f},
     {"treble", "Treble", "", 0.0f, 5.0f, 0.0f},
     {"output", "Output", "", -50.0f, 50.0f, 0.0f},
     {"meter", "Meter", "", 0, 1, 1, Taper::Choice, kMeterIoN},
-    {"analog", "Analog", "", 0, 1, 1, Taper::Toggle, kOnOff},
+    {"analog", "Hum", "", 0, 1, 1, Taper::Toggle, kOnOff},
 };
 const hc::fx::MeterInfo kMeters[] = {{"INPUT", "VU", -20.0f, 3.0f}, {"OUTPUT", "VU", -20.0f, 3.0f}};
 constexpr float kAttackMs[kDrums] = {10, 4, 1, 8, 15, 25};

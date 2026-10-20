@@ -22,7 +22,7 @@ template <int kOut>
 struct Globals {
     static constexpr PlateKnob row1[] = {{kOut, "GAIN"}};
     static constexpr PlateToggle toggles[] = {{kOut + 1, "TRIM", true}, {kOut + 3, "DITHER"}};
-    static constexpr PlateChoice steppers[] = {{kOut + 2, "FILTER"}, {kOut + 4, "SCALE"}};
+    static constexpr PlateChoice steppers[] = {{kOut + 2, "FILTER"}, {kOut + 4, "VIEW RANGE"}};
 };
 using SG = Globals<straight::Output>;
 using BG = Globals<bottomline::Output>;
@@ -57,28 +57,28 @@ constexpr PlateToggle sxLeft[] = {{smoothtalker::Link, "LINK"}, {smoothtalker::S
 namespace lo {
 namespace r = lowrider;
 constexpr PlateReadout rReadouts[] = {{0, "OUTPUT", "dBFS", "+"}};
-constexpr PlateToggle rToggles[] = {{r::Align, "ALIGN"}};
-constexpr PlateKnob rRow1[] = {{r::Range, "RANGE", "20", "120", K::Big}, {r::LowAir, "LOW AIR", "OFF", "+30"}, {r::Lo, "LO", "OFF", "+30"},
-                               {r::Direct, "DIRECT", "OFF", "0"}, {r::Output, "OUTPUT", "-60", "0"}, {r::Trim, "TRIM", "-12", "+12", K::Small}};
+constexpr PlateToggle rToggles[] = {{r::Align, "LINE UP"}};
+constexpr PlateKnob rRow1[] = {{r::Range, "RANGE", "20", "120", K::Big}, {r::LowAir, "NEW OCTAVE", "OFF", "+30"}, {r::Lo, "LOWS", "OFF", "+30"},
+                               {r::Direct, "DRY", "OFF", "0"}, {r::Output, "OUTPUT", "-60", "0"}, {r::Trim, "TRIM", "-12", "+12", K::Small}};
 namespace u = undertow;
 constexpr PlateReadout uReadouts[] = {{0, "SUB", "dBFS", "+"}, {1, "OUTPUT", "dBFS", "+"}};
 constexpr PlateChoice uChoices[] = {{u::MonoSub, "SUB IS"}};
-constexpr PlateToggle uToggles[] = {{u::Sub1On, "SUB -1"}, {u::Sub2On, "SUB -2"}};
-constexpr PlateKnob uRow1[] = {{u::RangeMin, "RANGE MIN", "20", "120"}, {u::RangeMax, "RANGE MAX", "40", "240"}, {u::Sub1, "SUB -1", "OFF", "+12"},
-                               {u::Sub2, "SUB -2", "OFF", "+12"}};
-constexpr PlateKnob uRow2[] = {{u::Drive, "DRIVE", "0", "100"}, {u::Dynamics, "DYNAMICS", "STEADY", "FOLLOW"}, {u::Mix, "MIX", "DRY", "SUBS"},
+constexpr PlateToggle uToggles[] = {{u::Sub1On, "OCTAVE DOWN"}, {u::Sub2On, "TWO DOWN"}};
+constexpr PlateKnob uRow1[] = {{u::RangeMin, "LOWEST", "20", "120"}, {u::RangeMax, "HIGHEST", "40", "240"}, {u::Sub1, "OCTAVE DOWN", "OFF", "+12"},
+                               {u::Sub2, "TWO DOWN", "OFF", "+12"}};
+constexpr PlateKnob uRow2[] = {{u::Drive, "DRIVE", "0", "100"}, {u::Dynamics, "FOLLOW", "STEADY", "FOLLOW"}, {u::Mix, "MIX", "DRY", "SUBS"},
                                {u::Output, "OUTPUT", "-18", "0"}};
 namespace d = deeppockets;
 constexpr PlateReadout dReadouts[] = {{0, "PEAK", "dBFS", "+"}};
 constexpr PlateChoice dChoices[] = {{d::Listen, "MONITOR"}, {d::HighPass, "HIGH-PASS"}};
 constexpr PlateToggle dToggles[] = {{d::Reset, "RESET PEAK", true}};
-constexpr PlateKnob dRow1[] = {{d::Frequency, "FREQUENCY", "32", "256", K::Big}, {d::Original, "ORIGINAL BASS", "OFF", "+12"},
-                               {d::Harmonics, "HARMONICS", "OFF", "+12"}, {d::Input, "INPUT", "OFF", "0"}};
-constexpr PlateKnob dRow2[] = {{d::Decay, "DECAY", "-24", "-9"}, {d::Ratio, "RATIO", "1", "4"}, {d::Response, "RESPONSE", "FAST", "SLOW"}};
+constexpr PlateKnob dRow1[] = {{d::Frequency, "FREQUENCY", "32", "256", K::Big}, {d::Original, "REAL BASS", "OFF", "+12"},
+                               {d::Harmonics, "OVERTONES", "OFF", "+12"}, {d::Input, "INPUT", "OFF", "0"}};
+constexpr PlateKnob dRow2[] = {{d::Decay, "DECAY", "-24", "-9"}, {d::Ratio, "RATIO", "1", "4"}, {d::Response, "SPEED", "FAST", "SLOW"}};
 namespace l = lowprofile;
 constexpr PlateReadout lReadouts[] = {{0, "OUTPUT", "dBFS", "+"}};
-constexpr PlateToggle lToggles[] = {{l::OriginalIn, "ORIGINAL BASS"}};
-constexpr PlateKnob lRow1[] = {{l::Frequency, "FREQUENCY", "32", "256"}, {l::Intensity, "INTENSITY", "-24", "+24", K::Big}, {l::Gain, "GAIN", "OFF", "0"}};
+constexpr PlateToggle lToggles[] = {{l::OriginalIn, "REAL BASS"}};
+constexpr PlateKnob lRow1[] = {{l::Frequency, "FREQUENCY", "32", "256"}, {l::Intensity, "AMOUNT", "-24", "+24", K::Big}, {l::Gain, "GAIN", "OFF", "0"}};
 } // namespace lo
 
 // ---- THE BOSS: the needle, order / low cut / limit beside it, dynamics over EQ
@@ -91,8 +91,8 @@ constexpr PlateToggle leftToggles[] = {{Trim, "TRIM", true}};
 constexpr PlateKnob row1[] = {{Input, "INPUT", "-18", "+18"}, {Preamp, "PREAMP", "20", "70"}, {High, "HIGH 10K", "-16", "+12"},
                               {MidGain, "MID", "0", "15"}, {MidFreq, "MID FREQ", ".7K", "6K"}, {LowGain, "LOW", "0", "15"},
                               {LowFreq, "LOW FREQ", "OFF", "400"}, {LowCut, "LOW CUT 50", "OFF", "-15"}};
-constexpr PlateKnob row2[] = {{Analog, "ANALOG", "OFF", "60"}, {Noise, "NOISE", "FULL", "LOW"}, {Output, "OUTPUT"},
-                              {VuCal, "VU CAL", "8", "24"}};
+constexpr PlateKnob row2[] = {{Analog, "HUM", "OFF", "60"}, {Noise, "HISS", "FULL", "LOW"}, {Output, "OUTPUT"},
+                              {VuCal, "VU ZERO", "8", "24"}};
 } // namespace bo
 
 // ---- KINGPIN: three big moves on top, gate and tone under them
@@ -101,8 +101,8 @@ using namespace kingpin;
 constexpr PlateChoice choices[] = {{Meter, "METER"}};
 constexpr PlateToggle toggles[] = {{Analog, "ANALOG"}};
 constexpr PlateChoice steppers[] = {{Type, "TYPE"}};
-constexpr PlateKnob row1[] = {{Sens, "SENS", "-50", "+50"}, {Compress, "COMPRESS", "0", "100", K::Big}, {Gate, "GATE", "OFF", "+50"},
-                              {Fx, "FX", "0", "100"}, {Bass, "BASS", "0", "5"}, {Treble, "TREBLE", "0", "5"}, {Output, "OUTPUT", "-50", "+50"}};
+constexpr PlateKnob row1[] = {{Sens, "PICKUP", "-50", "+50"}, {Compress, "COMPRESS", "0", "100", K::Big}, {Gate, "GATE", "OFF", "+50"},
+                              {Fx, "AMBIENCE", "0", "100"}, {Bass, "BASS", "0", "5"}, {Treble, "TREBLE", "0", "5"}, {Output, "OUTPUT", "-50", "+50"}};
 } // namespace kp
 
 // ---- GOLD CHAIN: the needle, LINK beside it, the one big knob between in and out
@@ -115,8 +115,8 @@ constexpr PlateKnob row1[] = {{Input, "INPUT", "-18", "+18"}, {Tone, "TONE", "0"
 // ---- IVORIES
 namespace iv {
 using namespace ivories;
-constexpr PlateToggle toggles[] = {{DelayOn, "DELAY"}, {DoublerOn, "DOUBLER"}, {Analog, "ANALOG"}};
-constexpr PlateKnob row1[] = {{Input, "INPUT", "-18", "+18"}, {Piano, "PIANO", "DARK", "BRIGHT", K::Big}, {DelayLevel, "DELAY LEVEL", "-24", "0"},
+constexpr PlateToggle toggles[] = {{DelayOn, "SLAP"}, {DoublerOn, "THICKEN"}, {Analog, "HUM"}};
+constexpr PlateKnob row1[] = {{Input, "INPUT", "-18", "+18"}, {Piano, "VOICING", "DARK", "BRIGHT", K::Big}, {DelayLevel, "SLAP LEVEL", "-24", "0"},
                               {DoublerLevel, "DOUBLER LEVEL", "-24", "0"}, {Output, "OUTPUT", "-18", "+18"}};
 } // namespace iv
 
@@ -127,15 +127,15 @@ constexpr PlateKnob bandKnobs[] = {{Gain, "GAIN"}, {Width, "WIDTH"}};
 constexpr PlateToggle bandToggles[] = {{Solo, "SOLO"}, {Bypass, "BYPASS"}};
 constexpr PlateKnob borders[] = {{Cross1, "XOVER"}, {Cross2, "XOVER"}, {Cross3, "XOVER"}, {Cross4, "XOVER"}};
 constexpr PlateBands bands{.count = kBands, .first = 0, .stride = kStride, .knobs = bandKnobs, .toggles = bandToggles, .borders = borders, .meter = 0};
-constexpr PlateKnob row1[] = {{Input, "INPUT"}, {Direct, "DIRECT", "OFF", "0"}, {Punch, "PUNCH", "0", "5"}, {Output, "OUTPUT"}};
+constexpr PlateKnob row1[] = {{Input, "INPUT"}, {Direct, "DRY", "OFF", "0"}, {Punch, "SNAP", "0", "5"}, {Output, "OUTPUT"}};
 } // namespace hr
 
 // ---- THE MIDDLEMAN: centre and sides read out, one row of moves
 namespace mm {
 using namespace middleman;
 constexpr PlateReadout readouts[] = {{0, "CENTER", "%"}, {1, "OUT L", "dBFS"}, {2, "OUT R", "dBFS"}};
-constexpr PlateKnob row1[] = {{Low, "LOW", "CENTER", "SIDES"}, {High, "HIGH", "CENTER", "SIDES"}, {Punch, "PUNCH", "CENTER", "SIDES"},
-                              {Center, "CENTER", "OFF", "+6", K::Big}, {Sides, "SIDES", "OFF", "+6", K::Big}, {Master, "MASTER", "-24", "+6"}};
+constexpr PlateKnob row1[] = {{Low, "LOW", "CENTER", "SIDES"}, {High, "HIGH", "CENTER", "SIDES"}, {Punch, "SNAP", "CENTER", "SIDES"},
+                              {Center, "CENTER", "OFF", "+6", K::Big}, {Sides, "SIDES", "OFF", "+6", K::Big}, {Master, "ALL", "-24", "+6"}};
 } // namespace mm
 
 // ---- DOUBLE CROSS
@@ -145,10 +145,10 @@ constexpr PlateReadout readouts[] = {{0, "PEAK L / M", "dBFS", "+"}, {1, "PEAK R
 constexpr PlateChoice choices[] = {{Kind, "KIND"}};
 constexpr PlateToggle toggles[] = {{PolarityL, "POLARITY L"}, {PolarityR, "POLARITY R"}, {Swap, "SWAP"}, {Reset, "RESET", true}};
 constexpr PlateChoice left[] = {{MeterMode, "METER"}};
-constexpr PlateKnob row1[] = {{Spread, "SPREAD", "0", "1.2"}, {Freq, "FREQ", "32", "16K"}, {LfSpread, "LF SPREAD", "0", "2"},
-                              {Sweeps, "SWEEPS", "2", "22"}, {Shape, "SHAPE", "TRI", "SQ+"}};
-constexpr PlateKnob row2[] = {{FCenter, "F CENTER"}, {FDensity, "F DENSITY", "-1", "+1"}, {Tweak, "TWEAK", "-1", "+1"}, {Input, "INPUT", "-24", "0"},
-                              {Width, "WIDTH", "MONO", "1"}, {Rotation, "ROTATION", "L", "R"}};
+constexpr PlateKnob row1[] = {{Spread, "SPREAD", "0", "1.2"}, {Freq, "FREQ", "32", "16K"}, {LfSpread, "BASS SPREAD", "0", "2"},
+                              {Sweeps, "COMBS", "2", "22"}, {Shape, "CURVE", "TRI", "SQ+"}};
+constexpr PlateKnob row2[] = {{FCenter, "SWEEP FOCUS"}, {FDensity, "SWEEP SPACING", "-1", "+1"}, {Tweak, "FINE SHIFT", "-1", "+1"}, {Input, "INPUT", "-24", "0"},
+                              {Width, "WIDTH", "MONO", "1"}, {Rotation, "AIM", "L", "R"}};
 } // namespace dc
 
 // ---- CUTTHROAT: the curve, the slope beside it, the sweep first

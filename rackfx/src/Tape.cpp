@@ -26,7 +26,7 @@ const ParamInfo kParams[kCount] = {
     {"hiss", "Hiss", "%", 0.0f, 100.0f, 0.0f},
     {"autotrim", "Auto Trim", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
-    {"vucal", "VU Calibration", "", 0, 3, 2, Taper::Choice, kCalN},
+    {"vucal", "VU Zero", "", 0, 3, 2, Taper::Choice, kCalN},
 };
 const hc::fx::MeterInfo kMeters[] = {{"VU L", "dB", -40.0f, 6.0f}, {"VU R", "dB", -40.0f, 6.0f}};
 

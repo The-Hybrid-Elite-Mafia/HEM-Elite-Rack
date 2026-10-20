@@ -10,12 +10,12 @@ using K = KnobSize;
 // ---- CONSIGLIERE / STONE COLD: the needle (IN / GR / OUT), meter, mode and mains beside it
 namespace op {
 using namespace opto;
-constexpr PlateChoice choices[] = {{Meter, "METER"}, {Mode, "MODE"}, {Analog, "ANALOG"}};
+constexpr PlateChoice choices[] = {{Meter, "METER"}, {Mode, "MODE"}, {Analog, "HUM"}};
 constexpr PlateToggle toggles[] = {{AutoMakeup, "AUTO MAKEUP"}};
-constexpr PlateKnob row2A[] = {{PeakReduction, "PEAK REDUCTION", "0", "100", K::Big}, {Gain, "GAIN", "0", "100", K::Big},
-                               {HiFreq, "HI FREQ", "FLAT", "MORE"}, {Mix, "MIX", "DRY", "WET", K::Small}, {Trim, "TRIM", "", "", K::Small}};
-constexpr PlateKnob row3A[] = {{PeakReduction, "PEAK REDUCTION", "0", "10", K::Big}, {Gain, "GAIN", "0", "10", K::Big},
-                               {HiFreq, "HI FREQ", "FLAT", "MORE"}, {Mix, "MIX", "DRY", "WET", K::Small}, {Trim, "TRIM", "", "", K::Small}};
+constexpr PlateKnob row2A[] = {{PeakReduction, "SQUEEZE", "0", "100", K::Big}, {Gain, "GAIN", "0", "100", K::Big},
+                               {HiFreq, "BRIGHT DETECT", "FLAT", "MORE"}, {Mix, "MIX", "DRY", "WET", K::Small}, {Trim, "TRIM", "", "", K::Small}};
+constexpr PlateKnob row3A[] = {{PeakReduction, "SQUEEZE", "0", "10", K::Big}, {Gain, "GAIN", "0", "10", K::Big},
+                               {HiFreq, "BRIGHT DETECT", "FLAT", "MORE"}, {Mix, "MIX", "DRY", "WET", K::Small}, {Trim, "TRIM", "", "", K::Small}};
 } // namespace op
 
 // ---- HEAVYWEIGHT
@@ -24,32 +24,32 @@ using namespace heavyweight;
 constexpr PlateChoice choices[] = {{Meter, "METER"}, {Sync, "RELEASE IN"}};
 constexpr PlateToggle toggles[] = {{Limiter, "LIMITER"}};
 constexpr PlateKnob row1[] = {{Threshold, "THRESHOLD", "-48", "0"}, {Ratio, "RATIO", "1", "50"}, {Attack, "ATTACK"},
-                              {Punch, "PUNCH", "0", "30"}, {Release, "RELEASE"}};
+                              {Punch, "SNAP", "0", "30"}, {Release, "RELEASE"}};
 constexpr PlateKnob row2[] = {{Bpm, "BPM", "", "", K::Small}, {Mix, "MIX", "", "", K::Small}, {Output, "OUTPUT", "", "", K::Small}};
-constexpr PlateChoice steppers[] = {{Note, "NOTE"}, {Analog, "ANALOG"}};
+constexpr PlateChoice steppers[] = {{Note, "NOTE"}, {Analog, "HUM"}};
 } // namespace hw
 
 // ---- THE DON
 namespace dn {
 using namespace thedon;
-constexpr PlateChoice choices[] = {{Meter, "METER"}, {Ratio, "RATIO"}, {Analog, "ANALOG"}};
+constexpr PlateChoice choices[] = {{Meter, "METER"}, {Ratio, "RATIO"}, {Analog, "HUM"}};
 constexpr PlateKnob row1[] = {{Threshold, "THRESHOLD", "-24", "+16", K::Big}, {Decay, "DECAY", "1", "32"}, {Output, "OUTPUT"},
-                              {VuCal, "VU CALIBRATE", "8", "24", K::Small}};
+                              {VuCal, "VU ZERO", "8", "24", K::Small}};
 } // namespace dn
 
 // ---- SLOW BURN / LONE WOLF
 namespace sb {
 using namespace slowburn;
-constexpr PlateChoice choices[] = {{Link, "LINK"}, {Mains, "MAINS"}};
+constexpr PlateChoice choices[] = {{Link, "LINK"}, {Mains, "HUM"}};
 constexpr PlateToggle toggles[] = {{Compress, "COMPRESS"}};
-constexpr PlateKnob row1[] = {{Input, "INPUT", "-20", "0"}, {Threshold, "THRESHOLD", "0", "10", K::Big}, {Time, "TIME CONSTANT", "1", "6"},
+constexpr PlateKnob row1[] = {{Input, "INPUT", "-20", "0"}, {Threshold, "THRESHOLD", "0", "10", K::Big}, {Time, "TIMING", "1", "6"},
                               {Output, "OUTPUT"}};
 } // namespace sb
 namespace lw {
 using namespace lonewolf;
-constexpr PlateChoice choices[] = {{Mains, "MAINS"}};
+constexpr PlateChoice choices[] = {{Mains, "HUM"}};
 constexpr PlateToggle toggles[] = {{Compress, "COMPRESS"}};
-constexpr PlateKnob row1[] = {{Input, "INPUT", "-20", "0"}, {Threshold, "THRESHOLD", "0", "10", K::Big}, {Time, "TIME CONSTANT", "1", "6"},
+constexpr PlateKnob row1[] = {{Input, "INPUT", "-20", "0"}, {Threshold, "THRESHOLD", "0", "10", K::Big}, {Time, "TIMING", "1", "6"},
                               {Output, "OUTPUT"}};
 } // namespace lw
 
@@ -59,9 +59,9 @@ using namespace ironfist;
 constexpr PlateChoice choices[] = {{Meter, "METER"}, {Ratio, "RATIO"}};
 constexpr PlateToggle toggles[] = {{Compress, "COMPRESS"}, {DeEss, "DE-ESS"}};
 constexpr PlateKnob row1[] = {{Input, "INPUT", "-24", "+18"}, {Output, "OUTPUT"}, {Mix, "MIX", "DRY", "WET"}, {Trim, "TRIM"}};
-constexpr PlateKnob row2[] = {{LimitLevel, "LIMIT LEVEL", "", "", K::Small}, {LimitAttack, "LIMIT ATTACK", "", "", K::Small}};
+constexpr PlateKnob row2[] = {{LimitLevel, "LIMIT AT", "", "", K::Small}, {LimitAttack, "LIMIT ATTACK", "", "", K::Small}};
 constexpr PlateToggle leftT[] = {{Limiter, "LIMITER"}, {AutoMakeup, "AUTO MAKEUP"}};
-constexpr PlateChoice steppers[] = {{Release, "RELEASE"}, {LimitRelease, "LIMIT REL"}, {Analog, "ANALOG"}};
+constexpr PlateChoice steppers[] = {{Release, "RELEASE"}, {LimitRelease, "LIMIT REL"}, {Analog, "HUM"}};
 } // namespace ir
 
 // ---- QUICK DRAW
@@ -72,7 +72,7 @@ constexpr PlateToggle toggles[] = {{Compress, "COMPRESS"}};
 constexpr PlateKnob row1[] = {{Input, "INPUT", "-60", "0", K::Big}, {Output, "OUTPUT", "-60", "0", K::Big}, {Attack, "ATTACK", "1", "7"},
                               {Release, "RELEASE", "1", "7"}, {Mix, "MIX", "", "", K::Small}, {Trim, "TRIM", "", "", K::Small}};
 constexpr PlateToggle leftT[] = {{AutoMakeup, "AUTO MAKEUP"}};
-constexpr PlateChoice steppers[] = {{Ratio, "RATIO"}, {Analog, "ANALOG"}};
+constexpr PlateChoice steppers[] = {{Ratio, "RATIO"}, {Analog, "HUM"}};
 } // namespace qd
 
 // ---- OLD MONEY
@@ -82,7 +82,7 @@ constexpr PlateReadout readouts[] = {{0, "INPUT PEAK", "dBFS"}, {1, "OUTPUT PEAK
 constexpr PlateKnob row1[] = {{Threshold, "THRESHOLD", "-60", "0", K::Big}, {Ratio, "RATIO"}, {Attack, "ATTACK"}, {Release, "RELEASE"},
                               {Output, "OUTPUT"}};
 constexpr PlateKnob row2[] = {{Mix, "MIX", "", "", K::Small}, {Trim, "TRIM", "", "", K::Small}};
-constexpr PlateChoice steppers[] = {{ReleaseMode, "RELEASE"}, {Behavior, "BEHAVIOR"}, {Character, "CHARACTER"}};
+constexpr PlateChoice steppers[] = {{ReleaseMode, "RELEASE"}, {Behavior, "LET-GO"}, {Character, "COLOR"}};
 } // namespace om
 
 // ---- TERRITORY / STRAIGHT EDGE: band columns and the MASTER column, crossovers between the bands
@@ -94,13 +94,13 @@ constexpr PlateKnob borders4[] = {{territory::X1, "SPLIT"}, {territory::X2, "SPL
 constexpr PlateBands bands4{.count = territory::kBands + 1, .first = 0, .stride = territory::kPerBand, .knobs = bandKnobs, .toggles = bandToggles,
                             .borders = borders4, .meter = 0, .lastIsMaster = true};
 constexpr PlateKnob row4[] = {{territory::Q, "Q"}, {territory::Knee, "KNEE"}, {territory::Output, "OUTPUT"}};
-constexpr PlateChoice steppers4[] = {{territory::ReleaseMode, "RELEASE"}, {territory::Behavior, "BEHAVIOR"}};
+constexpr PlateChoice steppers4[] = {{territory::ReleaseMode, "RELEASE"}, {territory::Behavior, "LET-GO"}};
 constexpr PlateKnob borders5[] = {{straightedge::X1, "SPLIT"}, {straightedge::X2, "SPLIT"}, {straightedge::X3, "SPLIT"}, {straightedge::X4, "SPLIT"}};
 constexpr PlateBands bands5{.count = straightedge::kBands + 1, .first = 0, .stride = straightedge::kPerBand, .knobs = bandKnobs,
                             .toggles = bandToggles, .borders = borders5, .meter = 0, .lastIsMaster = true};
 constexpr PlateKnob row5[] = {{straightedge::Adaptive, "ADAPTIVE"}, {straightedge::Knee, "KNEE"}, {straightedge::Output, "OUTPUT"}};
 constexpr PlateToggle toggles5[] = {{straightedge::Trim, "TRIM", true}, {straightedge::Dither, "DITHER"}};
-constexpr PlateChoice steppers5[] = {{straightedge::Makeup, "MAKEUP"}, {straightedge::ReleaseMode, "RELEASE"}, {straightedge::Behavior, "BEHAVIOR"}};
+constexpr PlateChoice steppers5[] = {{straightedge::Makeup, "MAKEUP"}, {straightedge::ReleaseMode, "RELEASE"}, {straightedge::Behavior, "LET-GO"}};
 } // namespace mb
 
 } // namespace

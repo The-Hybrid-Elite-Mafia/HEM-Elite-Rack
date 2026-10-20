@@ -326,7 +326,7 @@ FaceLayout tape(const rack::PluginInfo& info) {
         Widget cal;
         cal.kind = WKind::Stepper;
         cal.param = VuCal;
-        cal.caption = "VU CAL";
+        cal.caption = "VU ZERO";
         cal.r = {170, 626, 170, 40};
         L.widgets.push_back(cal);
         L.recesses.push_back({cal.r.inset(-4), 9, 4, false, false});
@@ -378,7 +378,7 @@ FaceLayout tubeEq(const rack::PluginInfo& info) {
     Widget an;
     an.kind = WKind::Stepper;
     an.param = Analog;
-    an.caption = "ANALOG";
+    an.caption = "HUM";
     an.r = {170, 652, 170, 40};
     L.widgets.push_back(an);
     L.recesses.push_back({an.r.inset(-4), 9, 4, false, false});
@@ -457,9 +457,9 @@ FaceLayout widthFace(const rack::PluginInfo& info) {
     stepper({508, 418, 190, 40}, InputMode, "INPUT");
     stepper({908, 418, 190, 40}, MeterMode, "METER");
     L.grooves.push_back({410, 524, 1636, 524});
-    knobRow(L, {{Width, "WIDTH", 112, "MONO", "200%", false}, {Shuffle, "SHUFFLE", 76, "", "", true}, {ShuffleFreq, "SHUFFLE FREQ", 76, "350", "1.4k", true},
-                {BassTrim, "BASS TRIM", 76, "-12", "+12", true}, {Rotation, "ROTATION", 76, "L", "R", true},
-                {Asymmetry, "ASYMMETRY", 76, "L", "R", true}, {Balance, "BALANCE", 76, "L", "R", true}, {Output, "OUTPUT", 76, "", "", true}}, 568);
+    knobRow(L, {{Width, "WIDTH", 112, "MONO", "200%", false}, {Shuffle, "LOW WIDEN", 76, "", "", true}, {ShuffleFreq, "WIDEN BELOW", 76, "350", "1.4k", true},
+                {BassTrim, "LOW TRIM", 76, "-12", "+12", true}, {Rotation, "AIM", 76, "L", "R", true},
+                {Asymmetry, "CENTER SHIFT", 76, "L", "R", true}, {Balance, "BALANCE", 76, "L", "R", true}, {Output, "OUTPUT", 76, "", "", true}}, 568);
     buttonSeats(L);
     bypassAt(L, {160, 640, 90, 90});
     return L;
@@ -873,7 +873,7 @@ FaceLayout companderFace(const rack::PluginInfo& info) {
     // the compressor row
     first = L.widgets.size();
     const struct { int p; const char* cap; } comp[6] = {{Threshold, "THRESHOLD"}, {Ratio, "RATIO"}, {Attack, "ATTACK"},
-                                                         {Release, "RELEASE"}, {Pdr, "PDR"}, {Makeup, "MAKEUP"}};
+                                                         {Release, "RELEASE"}, {Pdr, "SMART REL"}, {Makeup, "MAKEUP"}};
     for (int k = 0; k < 6; ++k) {
         const float cx = 410 + (static_cast<float>(k) + 0.5f) * (820.0f / 6.0f);
         L.widgets.push_back(knob({cx - 35, 446, 70, 70}, comp[k].p, comp[k].cap, "", "", true));
@@ -961,7 +961,7 @@ FaceLayout channelFace(const rack::PluginInfo& info) {
                         {GKeyType, "FILTER", true}};
     constexpr K ck[] = {{CompThreshold, "THRESH"}, {Ratio, "RATIO"}, {Attack, "ATTACK"}, {Release, "RELEASE"}, {CKeyFreq, "KEY HZ"},
                         {CKeyWidth, "WIDTH"}};
-    constexpr S cs[] = {{CompOn, "COMP", false}, {CompType, "TYPE", true}, {Arc, "ARC", false}, {CKeyOn, "KEY", false},
+    constexpr S cs[] = {{CompOn, "COMP", false}, {CompType, "TYPE", true}, {Arc, "AUTO REL", false}, {CKeyOn, "KEY", false},
                         {CKeySource, "FROM", true}, {CKeyType, "FILTER", true}};
     section(410, 590, "GATE / EXPANDER", gk, gs);
     L.grooves.push_back({1013, 352, 1013, 550});
@@ -994,7 +994,7 @@ FaceLayout channelFace(const rack::PluginInfo& info) {
     L.widgets.push_back(toggle({70, 502, 270, 40}, Phase, "PHASE"));
     const std::size_t first = L.widgets.size();
     L.widgets.push_back(knob({100, 580, 56, 56}, Output, "OUTPUT", "", "", true));
-    L.widgets.push_back(knob({230, 580, 56, 56}, Rotate, "ROTATE", "", "", true));
+    L.widgets.push_back(knob({230, 580, 56, 56}, Rotate, "PLACE", "", "", true));
     seatKnobs(L, first, 6);
     buttonSeats(L);
     bypassAt(L, {160, 690, 80, 80});
@@ -1041,7 +1041,7 @@ FaceLayout moversFace(const rack::PluginInfo& info) {
     knobs(912, 724, 256, 40, {{Freq, "FREQ"}, {CombDelay, "DELAY"}, {Gain, "GAIN"}, {Res, "RES"}, {CombFeedback, "FEEDBACK"}});
     L.grooves.push_back({410, 344, 1636, 344});
     // the globals
-    knobs(410, 1226, 376, 38, {{Spread, "SPREAD"}, {Smooth, "SMOOTH"}, {Drive, "DRIVE"}, {Crush, "CRUSH"}, {Mix, "MIX"}, {Input, "INPUT"},
+    knobs(410, 1226, 376, 38, {{Spread, "SPREAD"}, {Smooth, "GLIDE"}, {Drive, "DRIVE"}, {Crush, "CRUSH"}, {Mix, "MIX"}, {Input, "INPUT"},
                                {Output, "OUTPUT"}});
     L.grooves.push_back({410, 448, 1636, 448});
     // the movers: the LFO, the sequencer, and the depths (mover x target)
@@ -1137,7 +1137,7 @@ FaceLayout tapsFace(const rack::PluginInfo& info) {
         const float x0 = 410 + static_cast<float>(t) * cw;
         L.sections.push_back({{x0 + 4, 180, cw * 0.5f - 8, 26}, kTapN[t]});
         L.widgets.push_back(toggle({x0 + cw * 0.5f + 2, 180, cw * 0.5f - 10, 30}, tap(t, On), ""));
-        knobs(x0, cw, 236, 32, {{tap(t, Delay), "DELAY"}, {tap(t, Gain), "GAIN"}, {tap(t, Rotate), "ROTATE"}});
+        knobs(x0, cw, 236, 32, {{tap(t, Delay), "DELAY"}, {tap(t, Gain), "GAIN"}, {tap(t, Rotate), "PLACE"}});
         L.widgets.push_back(toggle({x0 + 6, 312, 88, 30}, tap(t, EqOn), "EQ"));
         stepper({x0 + 100, 312, cw - 108, 30}, tap(t, EqType));
         knobs(x0, cw, 376, 32, {{tap(t, EqFreq), "EQ FREQ"}, {tap(t, EqGain), "EQ GAIN"}});
@@ -1145,15 +1145,15 @@ FaceLayout tapsFace(const rack::PluginInfo& info) {
     }
     L.grooves.push_back({410, 454, 1636, 454});
     // direct, tempo, modulator
-    L.sections.push_back({{410, 460, 230, 22}, "DIRECT"});
+    L.sections.push_back({{410, 460, 230, 22}, "DRY"});
     L.sections.push_back({{648, 460, 420, 22}, "TEMPO"});
-    L.sections.push_back({{1076, 460, 560, 22}, "MODULATOR"});
+    L.sections.push_back({{1076, 460, 560, 22}, "WOBBLE"});
     L.widgets.push_back(toggle({414, 490, 80, 32}, DirectOn, ""));
-    knobs(494, 146, 512, 32, {{DirectGain, "GAIN"}, {DirectRotate, "ROTATE"}});
+    knobs(494, 146, 512, 32, {{DirectGain, "GAIN"}, {DirectRotate, "PLACE"}});
     stepper({652, 490, 130, 32}, Sync);
     knobs(782, 100, 512, 32, {{Bpm, "BPM"}});
     stepper({886, 490, 120, 32}, Grid);
-    L.widgets.push_back(toggle({886, 530, 120, 32}, Snap, "SNAP"));
+    L.widgets.push_back(toggle({886, 530, 120, 32}, Snap, "LOCK"));
     L.widgets.push_back(toggle({652, 530, 130, 32}, Tap, "TAP"));
     L.widgets.back().hi = "PRESS";
     L.widgets.push_back(toggle({1080, 490, 110, 32}, ModOn, ""));
@@ -1167,7 +1167,7 @@ FaceLayout tapsFace(const rack::PluginInfo& info) {
     L.sections.push_back({{410, 598, 1226, 22}, "FEEDBACK"});
     L.widgets.push_back(toggle({414, 632, 90, 32}, FbOn, ""));
     stepper({414, 676, 90, 32}, FbMode);
-    knobs(510, 450, 640, 32, {{FbGain, "GAIN"}, {FbDelay, "DELAY"}, {FbRotate, "ROTATE"}});
+    knobs(510, 450, 640, 32, {{FbGain, "GAIN"}, {FbDelay, "DELAY"}, {FbRotate, "PLACE"}});
     stepper({966, 654, 150, 32}, FbFilter);
     knobs(1120, 300, 640, 32, {{FbFreq, "FREQ"}, {FbFilterGain, "GAIN"}});
     knobs(1430, 206, 632, 44, {{Output, "OUTPUT"}});
@@ -1222,13 +1222,13 @@ FaceLayout voicesFace(const rack::PluginInfo& info) {
     }
     L.grooves.push_back({410, 420, 1636, 420});
     // the direct and the shared settings
-    L.sections.push_back({{410, 426, 400, 22}, "DIRECT"});
+    L.sections.push_back({{410, 426, 400, 22}, "DRY"});
     L.widgets.push_back(toggle({414, 456, 130, 32}, DirectOn, ""));
     knobs(560, 250, 474, 32, {{DirectGain, "GAIN"}, {DirectPan, "PAN"}});
-    L.widgets.push_back(toggle({414, 500, 130, 32}, AlignDirect, "ALIGN"));
+    L.widgets.push_back(toggle({414, 500, 130, 32}, AlignDirect, "IN TIME"));
     L.sections.push_back({{820, 426, 816, 22}, "ALL VOICES"});
-    stepper({920, 456, 150, 32}, Range, "RANGE");
-    stepper({920, 500, 150, 32}, Routing, "ROUTING");
+    stepper({920, 456, 150, 32}, Range, "LOWEST");
+    stepper({920, 500, 150, 32}, Routing, "FEED");
     L.widgets.push_back(toggle({1084, 456, 170, 32}, ModReset, "MOD RESET"));
     L.widgets.back().hi = "PRESS";
     knobs(1260, 376, 466, 32, {{FbHighPass, "FB HI-PASS"}, {Output, "OUTPUT"}});
@@ -1286,11 +1286,11 @@ FaceLayout keysFace(const rack::PluginInfo& info) {
     small(1001, 284, NoiseFreq, "NOISE FREQ");
     // the morphing
     L.grooves.push_back({1088, 184, 1088, 344});
-    L.sections.push_back({{1100, 180, 536, 22}, "MORPH"});
-    small(1167, 240, Pressure, "PRESSURE");
+    L.sections.push_back({{1100, 180, 536, 22}, "VOCODING"});
+    small(1167, 240, Pressure, "SQUEEZE");
     small(1301, 240, Formant, "FORMANT");
-    small(1435, 240, Smoothing, "SMOOTHING");
-    small(1569, 240, Release, "RELEASE");
+    small(1435, 240, Smoothing, "LAG");
+    small(1569, 240, Release, "HOLD");
     L.grooves.push_back({410, 352, 1636, 352});
     // the morphed sound's EQ
     static const char* const kEqN[kEqBands] = {"LOW SHELF", "BELL 2", "BELL 3", "BELL 4", "HIGH SHELF"};
@@ -1305,7 +1305,7 @@ FaceLayout keysFace(const rack::PluginInfo& info) {
     }
     L.grooves.push_back({410, 508, 1636, 508});
     // the mixer
-    static const char* const kPathN[kPaths] = {"CARRIER", "MODULATOR", "NOISE", "MORPH"};
+    static const char* const kPathN[kPaths] = {"CARRIER", "MODULATOR", "NOISE", "VOCODED"};
     const float mw = 1226.0f / kPaths;
     for (int q = 0; q < kPaths; ++q) {
         const float x0 = 410 + static_cast<float>(q) * mw;
@@ -1326,7 +1326,7 @@ FaceLayout keysFace(const rack::PluginInfo& info) {
     // the left column: the output peaks and SUSTAIN
     readoutAt(L, {70, 404, 270, 64}, 0, "OUT L", "dBFS", "+");
     readoutAt(L, {70, 478, 270, 64}, 1, "OUT R", "dBFS", "+");
-    L.widgets.push_back(toggle({70, 560, 270, 40}, Sustain, "SUSTAIN"));
+    L.widgets.push_back(toggle({70, 560, 270, 40}, Sustain, "LATCH"));
     buttonSeats(L);
     bypassAt(L, {160, 650, 90, 90});
     return L;

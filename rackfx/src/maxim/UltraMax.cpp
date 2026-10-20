@@ -46,9 +46,9 @@ const ParamInfo kParams[kCount] = {
     {"link", "Link", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"release", "Release", "x", 0.1f, 10.0f, 1.0f, Taper::Log},
     {"profile", "Profile", "", 0, kProfiles - 1, 0, Taper::Choice, kProfileN},
-    {"quantize", "Quantize", "", 0, 4, 0, Taper::Choice, kQuantN},
+    {"quantize", "Bit Depth", "", 0, 4, 0, Taper::Choice, kQuantN},
     {"dither", "Dither", "", 0, 2, 0, Taper::Choice, kDitherN},
-    {"shaping", "Shaping", "", 0, 3, 1, Taper::Choice, kShapeN},
+    {"shaping", "Noise Shape", "", 0, 3, 1, Taper::Choice, kShapeN},
 };
 const hc::fx::MeterInfo kMeters[] = {{"BAND 1", "dB", -30.0f, 0.0f}, {"BAND 2", "dB", -30.0f, 0.0f}, {"BAND 3", "dB", -30.0f, 0.0f},
                                      {"BAND 4", "dB", -30.0f, 0.0f}, {"BAND 5", "dB", -30.0f, 0.0f},

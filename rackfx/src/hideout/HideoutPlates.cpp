@@ -26,11 +26,11 @@ namespace dd {
 using namespace deaddrop;
 constexpr PlateReadout readouts[] = {{0, "OUTPUT", "dBFS", "+"}};
 constexpr PlateChoice choices[] = {{Sync, "SYNC"}};
-constexpr PlateToggle toggles[] = {{Dual, "DUAL"}, {PingPong, "PING PONG"}, {LoFi, "LOFI"}, {Tap, "TAP", true}};
-constexpr PlateChoice steppers[] = {{PingStart, "START"}, {Analog, "ANALOG"}};
+constexpr PlateToggle toggles[] = {{Dual, "SPLIT TIMES"}, {PingPong, "PING PONG"}, {LoFi, "LO-RES"}, {Tap, "TAP", true}};
+constexpr PlateChoice steppers[] = {{PingStart, "START"}, {Analog, "VINTAGE"}};
 constexpr PlateToggle leftToggles[] = {{PhaseL, "PHASE L"}, {PhaseR, "PHASE R"}};
 constexpr PlateKnob row1[] = {{Time, "TIME"}, {Note, "NOTE"}, {Bpm, "BPM"}, {TimeR, "TIME R"}, {NoteR, "NOTE R"}, {Feedback, "FEEDBACK", "0", "200"}};
-constexpr PlateKnob row2[] = {{HighPass, "HI-PASS", "OFF", "20K"}, {LowPass, "LO-PASS", "20", "OFF"}, {Link, "FILTER LINK"}, {ModDepth, "MOD DEPTH"},
+constexpr PlateKnob row2[] = {{HighPass, "HI-PASS", "OFF", "20K"}, {LowPass, "LO-PASS", "20", "OFF"}, {Link, "TIE FILTERS"}, {ModDepth, "MOD DEPTH"},
                               {ModRate, "MOD RATE"}, {Mix, "MIX"}, {Output, "OUTPUT"}};
 } // namespace dd
 
@@ -49,9 +49,9 @@ namespace db {
 using namespace driveby;
 constexpr PlateKnob bandKnobs[] = {{0, "AMOUNT"}};
 constexpr PlateToggle bandToggles[] = {{1, "ON"}};
-constexpr const char* columnNames[] = {"GAIN", "PAN", "PITCH", "AIR DAMP", "REVERB"};
+constexpr const char* columnNames[] = {"GAIN", "PAN", "PITCH", "AIR LOSS", "REVERB"};
 constexpr PlateBands bands{.count = 5, .first = Gain, .stride = 2, .knobs = bandKnobs, .toggles = bandToggles, .columnNames = columnNames};
-constexpr PlateKnob row1[] = {{TrackTime, "TRACK TIME"}, {CenterTime, "CENTER"}, {Start, "START", "L", "R"}, {End, "END", "L", "R"},
+constexpr PlateKnob row1[] = {{TrackTime, "PASS TIME"}, {CenterTime, "CLOSEST AT"}, {Start, "START", "L", "R"}, {End, "END", "L", "R"},
                               {Close, "CLOSE", "FAR", "NEAR"}, {ReverbTime, "REV TIME"}, {Brightness, "BRIGHT", "0", "1"}};
 constexpr PlateToggle toggles[] = {{Fire, "FIRE", true}};
 constexpr PlateChoice steppers[] = {{Direction, "WAY"}, {Mode, "MODE"}, {Trigger, "TRIGGER"}};
@@ -64,17 +64,17 @@ namespace hu {
 using namespace hustle;
 constexpr PlateChoice choices[] = {{Sync, "SYNC"}};
 constexpr PlateChoice steppers[] = {{P::Wave, "WAVE"}};
-constexpr PlateToggle toggles[] = {{AmOn, "AM"}, {FmOn, "FM"}, {RotOn, "ROTATION"}};
-constexpr PlateKnob row1[] = {{Rate, "RATE"}, {Factor, "x FACTOR", "x0.25", "x100"}, {AmDepth, "AM DEPTH"}, {AmPhase, "AM PHASE", "0", "270"},
-                              {FmDepth, "FM DEPTH"}, {FmPhase, "FM PHASE", "0", "270"}};
-constexpr PlateKnob row2[] = {{RotCenter, "ROT CENTER", "R", "L"}, {RotRange, "ROT RANGE"}, {P::Gain, "GAIN"}, {Mix, "MIX"}};
+constexpr PlateToggle toggles[] = {{AmOn, "LEVEL"}, {FmOn, "PITCH"}, {RotOn, "SWING"}};
+constexpr PlateKnob row1[] = {{Rate, "RATE"}, {Factor, "MULTIPLIER", "x0.25", "x100"}, {AmDepth, "LEVEL DEPTH"}, {AmPhase, "LEVEL PHASE", "0", "270"},
+                              {FmDepth, "PITCH DEPTH"}, {FmPhase, "PITCH PHASE", "0", "270"}};
+constexpr PlateKnob row2[] = {{RotCenter, "SWING CENTER", "R", "L"}, {RotRange, "SWING RANGE"}, {P::Gain, "GAIN"}, {Mix, "MIX"}};
 } // namespace hu
 
 // ---- STRAPPED
 namespace st {
 using namespace strapped;
 constexpr PlateKnob bandKnobs[] = {{0, "LEVEL"}};
-constexpr PlateChoice bandSteppers[] = {{kFaders, "COLOR"}};
+constexpr PlateChoice bandSteppers[] = {{kFaders, "STYLE"}};
 constexpr const char* columnNames[] = {"BASS", "TREBLE", "COMPRESS", "REVERB", "DELAY", "PITCH"};
 constexpr PlateBands bands{.count = kFaders, .first = Fader0, .stride = 1, .knobs = bandKnobs, .steppers = bandSteppers,
                            .columnNames = columnNames};
@@ -86,8 +86,8 @@ constexpr PlateChoice steppers[] = {{Mode, "MODE"}};
 // ---- SAFE HOUSE
 namespace sh {
 using namespace safehouse;
-constexpr PlateKnob row1[] = {{Amount, "AMOUNT", "0", "100", K::Big}, {Front, "FRONT"}, {Rotate, "ROTATE"}, {Output, "OUTPUT"}};
-constexpr PlateKnob row2[] = {{Head, "HEAD CIRCUMFERENCE"}, {Arc, "INTER-AURAL ARC"}};
+constexpr PlateKnob row1[] = {{Amount, "ROOM", "0", "100", K::Big}, {Front, "SPEAKER ANGLE"}, {Rotate, "HEAD TURN"}, {Output, "OUTPUT"}};
+constexpr PlateKnob row2[] = {{Head, "HEAD SIZE"}, {Arc, "EAR TO EAR"}};
 constexpr PlateToggle toggles[] = {{MuteL, "MUTE L"}, {MuteR, "MUTE R"}};
 } // namespace sh
 

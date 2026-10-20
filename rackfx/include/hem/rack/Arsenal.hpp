@@ -10,7 +10,7 @@
 //               PEAK (full-scale peaks stay where they are), MAKEUP -40..+40, THRESHOLD -100..0,
 //               RATIO 0.5..50 (under 1: upward expansion), CANCEL (the ratio turns negative, -5..-50:
 //               the louder it gets, the quieter it comes out), ATTACK 0.01..1000 ms, RELEASE 1..10000 ms,
-//               PDR 0..1000 ms (peaks shorter than this let go at PDR instead: program-dependent),
+//               SMART REL 0..1000 ms (peaks shorter than this let go at SMART REL instead: program-dependent),
 //               EQ WIDE / SIDECHAIN / SPLIT. Gate: ON, MODE GATE (opens at OPEN, shuts under CLOSE,
 //               HOLD, down to FLOOR -80 (= off) .. +12 dB) or EXPANDER (below OPEN at SLOPE 2..10:1,
 //               no deeper than FLOOR; a FLOOR over 0 lifts quiet parts instead), ATTACK, RELEASE, EQ.
@@ -31,13 +31,13 @@
 //               OUTPUT, TRIM (a push: the output comes down by the loudest peak since the last push, so
 //               that peak would land on 0 dBFS), DITHER (24-bit). Latency 2559 samples.
 //               Meters 0..4 band moves (dB), 5 output peak (dBFS).
-//  CONSIGLIERE  light-cell (opto) leveler: GAIN 0..100, PEAK REDUCTION 0..100, AUTO MAKEUP, COMPRESS /
-//               LIMIT, HI FREQ (how much harder the detector listens to the highs; 50 = +6 dB above
+//  CONSIGLIERE  light-cell (opto) leveler: GAIN 0..100, SQUEEZE 0..100, AUTO MAKEUP, COMPRESS /
+//               LIMIT, BRIGHT DETECT (how much harder the detector listens to the highs; 50 = +6 dB above
 //               1.5 kHz), ANALOG OFF / 50 / 60 HZ (the hardware's hum, riding under the music), MIX, TRIM,
 //               METER IN / GR / OUT (the needle; IN and OUT read VU, 0 VU = -18 dBFS RMS).
 //               Release in two stages: half in ~60 ms, half in 0.5..5 s (longer after long hard work).
 //               Meters: 0 / 1 input / output VU.
-//  STONE COLD   the solid-state light-cell leveler: GAIN 0..10, PEAK REDUCTION 0..10, the rest as
+//  STONE COLD   the solid-state light-cell leveler: GAIN 0..10, SQUEEZE 0..10, the rest as
 //               CONSIGLIERE. Quicker (1.5 ms attack, 40 ms then 0.3..1.5 s) with a touch of grit.
 //  HEAVYWEIGHT  punchy modern compressor: THRESHOLD, RATIO 1..50, ATTACK 0.5..100 ms, PUNCH 0..30 (lets the
 //               hits through while the body is held), RELEASE 3 ms..3 s, or RELEASE IN HOST / BPM tempo
@@ -48,16 +48,16 @@
 //  THE DON      old-school broadcast bus compressor; the detector listens to the OUTPUT (feedback), so
 //               it breathes with the music. THRESHOLD -24..+16 dB in 2 dB steps (around 0 VU), RATIO 1:1 / 2 /
 //               3 / 5 / LIMIT, DECAY 1..32 (x 100 ms), OUTPUT, METER IN / GR / OUT, ANALOG OFF / 50 / 60 HZ,
-//               VU CALIBRATE 8..24 dB (0 VU = that far under full scale). Meters: 0 / 1 input / output VU.
+//               VU ZERO 8..24 dB (0 VU = that far under full scale). Meters: 0 / 1 input / output VU.
 //  SLOW BURN    stereo variable-mu tube limiter: INPUT -20..0 (-14 = unity), THRESHOLD 0..10 (0 = none),
-//               TIME CONSTANT 1..6 (5 and 6 let go by themselves, slower after long passages), LINK
-//               SEPARATE / LINKED / MID / SIDE, MAINS OFF / 50 / 60 HZ, COMPRESS ON / OFF (off: the tubes
+//               TIMING 1..6 (5 and 6 let go by themselves, slower after long passages), LINK
+//               SEPARATE / LINKED / MID / SIDE, HUM OFF / 50 / 60 HZ, COMPRESS ON / OFF (off: the tubes
 //               only), OUTPUT. 4x oversampled tubes, latency 23 samples.
 //  LONE WOLF    one channel of the same circuit (the same on both sides; no LINK).
 //  IRON FIST    console channel compressor and limiter, driven by INPUT -24..+18 (its threshold is fixed
 //               at 0 dBu = -22 dBFS: more input, more compression), OUTPUT, METER IN / GR / OUT, ANALOG
 //               OFF / 25 / 50 / 100 % (output iron and hum), COMPRESS, RATIO 1.5..6:1, RELEASE 400 MS /
-//               800 MS / 1.5 S / AUTO, DE-ESS (the compressor hears only the highs), LIMITER, LIMIT LEVEL
+//               800 MS / 1.5 S / AUTO, DE-ESS (the compressor hears only the highs), LIMITER, LIMIT AT
 //               +4..+12 dBu, LIMIT ATTACK 1..1000 us, LIMIT RELEASE 100 / 200 / 800 MS / AUTO, AUTO MAKEUP
 //               (OUTPUT follows INPUT the other way), MIX, TRIM. 4x oversampled iron, latency 23 samples.
 //  QUICK DRAW   fast transistor limiting amp: INPUT (-30 = unity into it), OUTPUT (-18 = unity),
@@ -69,7 +69,7 @@
 //               OUTPUT (a soft limiter keeps it under 0 dBFS), MIX, TRIM. Meters: 0 / 1 input / output
 //               peak (dBFS), 2 the output limiter (dB).
 //  KNOCKOUT     transient designer: ATTACK (boost / cut the hits), SENSITIVITY, LENGTH, SHAPE SHARP / PUNCHY /
-//               ROUND; the same for SUSTAIN (shape EVEN / CURVED / SOFT); GUARD OFF / CLIP / LIMIT; MIX,
+//               ROUND; the same for SUSTAIN (shape EVEN / CURVED / SOFT); SAFETY OFF / CLIP / LIMIT; MIX,
 //               OUTPUT. Zero latency.
 //  HAYMAKER     transient shaper: RANGE -24..+18 dB (how far the hits move), SENS -10..+10, DURATION (how
 //               fast a rise counts as a hit), RELEASE, OUTPUT, TRIM (a push). Meters: 0 gain, 1 output peak.
@@ -77,16 +77,16 @@
 //               SENS, DURATION, RELEASE, OUTPUT, TRIM. Meters 0..3 band gains, 4 output peak.
 //  BACKBONE     two-fader loudness: LOW LEVEL 0..48 (lifts the quiet parts), HIGH LEVEL 0..-48 (holds the
 //               loud parts, made up so full scale stays full scale), OUTPUT. Meters: 0 cut, 1 boost, 2 output.
-//  FULL HOUSE   loudness without squash, four sections each with ON: LEVELER (slowly brings anything louder
+//  FULL HOUSE   loudness without squash, four sections each with ON: EVENER (slowly brings anything louder
 //               than its fader toward it; release LOUD / SOFT), GATE (gentle downward expansion under its
 //               threshold), LOW LEVEL (THRESHOLD, GAIN: lifts the quiet parts), HIGH LEVEL (THRESHOLD: holds
 //               the loud parts with make-up; GAIN: the most that comes out). Meters: 0 energy, 1 low gain,
 //               2 high level, 3 output peak.
-//  WHEELMAN     vocal rider: TARGET, VOCAL SENSITIVITY (how loud the voice must be to count), ATTACK FAST /
+//  WHEELMAN     vocal rider: TARGET, VOICE PICKUP (how loud the voice must be to count), ATTACK FAST /
 //               SLOW, RANGE MIN / MAX (how far the wheel may turn), IDLE (where it sits with no voice),
 //               STAGE + BLEED FLOOR (anything under BLEED FLOOR is other instruments in the mic), OUTPUT.
 //               Meters: 0 ride (dB), 1 level (dB). Zero latency.
-//  CHAUFFEUR    bass rider: TARGET, NOTE DETECT, RESPONSE FAST / SLOW, IGNORE BLEED, IGNORE ARTIFACTS (clicks and
+//  CHAUFFEUR    bass rider: TARGET, NOTE PICKUP, RESPONSE FAST / SLOW, IGNORE BLEED, IGNORE CLICKS (clicks and
 //               finger noise), RANGE MIN / MAX, IDLE, OUTPUT. Meters as WHEELMAN. Zero latency.
 //  BIG SHOT     (and the other maximizers): see Maximizers.hpp.
 //  SILENCER     de-esser: THRESHOLD, FREQUENCY, AUDIO SPLIT (only the highs come down) / WIDE, SIDECHAIN
@@ -94,10 +94,10 @@
 //  TIGHT LIPS   de-esser: THRESHOLD, RANGE (the most it takes off), FREQUENCY, SIDECHAIN HIGH-PASS / BAND-PASS,
 //               MODE SPLIT / WIDE, LISTEN.
 //  OMERTA       smart de-esser (hears how much of a sound is highs, at any pitch): THRESHOLD, RANGE,
-//               DETECTION WIDTH, MODE 0 (wide) .. 100 (split), LOOKAHEAD, MONITOR (hear what's taken out).
+//               CATCH WIDTH, MODE 0 (wide) .. 100 (split), LOOKAHEAD, MONITOR (hear what's taken out).
 //               Latency 240 samples, always.
 //  BREATHLESS   breath remover: SENSITIVITY (how breath-like a sound must be), LEVEL GATE (breaths are quieter
-//               than this), REDUCTION 0..-80 (-80 = all the way), FADE OUT / FADE IN, ROOM TONE (a breath only
+//               than this), REDUCTION 0..-80 (-80 = all the way), SOFT END / SOFT START, ROOM FLOOR (a breath only
 //               comes down to the room's level), LISTEN VOICE / BREATHS. Latency 480 samples.
 //               Meters: 0 breath score (%), 1 level (dB), 2 reduction (dB).
 //  TOMMY GUN    one-knob pump: AMOUNT 0..10 (how deep and how hard), RATE (a note of the tempo),

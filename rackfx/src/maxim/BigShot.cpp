@@ -12,9 +12,9 @@ const ParamInfo kParams[kCount] = {
     {"threshold", "Threshold", "dB", -30.0f, 0.0f, 0.0f},
     {"ceiling", "Ceiling", "dB", -30.0f, 0.0f, -0.3f},
     {"autorelease", "Auto Release", "", 0, 1, 1, Taper::Toggle, kOnOff},
-    {"quantize", "Quantize", "", 0, 4, 0, Taper::Choice, kQuantN},
+    {"quantize", "Bit Depth", "", 0, 4, 0, Taper::Choice, kQuantN},
     {"dither", "Dither", "", 0, 2, 0, Taper::Choice, kDitherN},
-    {"shaping", "Shaping", "", 0, 3, 1, Taper::Choice, kShapeN},
+    {"shaping", "Noise Shape", "", 0, 3, 1, Taper::Choice, kShapeN},
 };
 const hc::fx::MeterInfo kMeters[] = {{"MOST OFF", "dB", -30.0f, 0.0f}, {"INPUT", "dBFS", -60.0f, 3.0f}};
 

@@ -15,7 +15,7 @@ using namespace arsenal;
 using namespace lineq;
 using eqkit::Shape;
 
-const char* const kKindN[] = {"BELL", "LO CUT", "LO SHELF", "HI SHELF", "HI CUT", "LO CUT RES", "LO SHELF RES", "HI SHELF RES", "HI CUT RES"};
+const char* const kKindN[] = {"BELL", "LO CUT", "LO SHELF", "HI SHELF", "HI CUT", "LO CUT BUMP", "LO SHELF BUMP", "HI SHELF BUMP", "HI CUT BUMP"};
 const char* const kFirstN[] = {"LO CUT", "LO SHELF", "BELL", "HI SHELF", "HI CUT"};
 const char* const kFilterN[] = {"STANDARD", "EXACT", "SMOOTH"};
 const char* const kScaleN[] = {"12 dB", "30 dB"};
@@ -36,7 +36,7 @@ constexpr Shape kFirstShape[kFirstKinds] = {Shape::LowCut, Shape::LowShelf, Shap
     {"trim", "Trim", "", 0, 1, 0, Taper::Toggle, kPushN},                                                    \
     {"filter", "Filter", "", 0, 2, 0, Taper::Choice, kFilterN},                                              \
     {"dither", "Dither", "", 0, 1, 0, Taper::Toggle, kOnOff},                                                \
-    {"scale", "Scale", "", 0, 1, 1, Taper::Choice, kScaleN}
+    {"scale", "View Range", "", 0, 1, 1, Taper::Choice, kScaleN}
 
 const ParamInfo kStraight[straight::kCount] = {
     HEM_BAND(1, kFirstN, kFirstKinds, 22.0f, 1000.0f, 96.0f, FLowShelf, 1.2f, 0.6f, 2.0f, 1),

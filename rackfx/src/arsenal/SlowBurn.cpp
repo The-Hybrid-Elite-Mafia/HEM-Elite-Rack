@@ -28,17 +28,17 @@ const char* const kLinkN[] = {"SEPARATE", "LINKED", "MID / SIDE"};
 const ParamInfo kStereoParams[slowburn::kCount] = {
     {"input", "Input", "dB", -20.0f, 0.0f, -14.0f},
     {"threshold", "Threshold", "/10", 0.0f, 10.0f, 0.0f},
-    {"time", "Time Constant", "", 0, 5, 0, Taper::Choice, kTimeN},
+    {"time", "Timing", "", 0, 5, 0, Taper::Choice, kTimeN},
     {"link", "Link", "", 0, 2, 1, Taper::Choice, kLinkN},
-    {"mains", "Mains", "", 0, 2, 0, Taper::Choice, kMainsN},
+    {"mains", "Hum", "", 0, 2, 0, Taper::Choice, kMainsN},
     {"compress", "Compress", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
 };
 const ParamInfo kMonoParams[lonewolf::kCount] = {
     {"input", "Input", "dB", -20.0f, 0.0f, -14.0f},
     {"threshold", "Threshold", "/10", 0.0f, 10.0f, 0.0f},
-    {"time", "Time Constant", "", 0, 5, 0, Taper::Choice, kTimeN},
-    {"mains", "Mains", "", 0, 2, 0, Taper::Choice, kMainsN},
+    {"time", "Timing", "", 0, 5, 0, Taper::Choice, kTimeN},
+    {"mains", "Hum", "", 0, 2, 0, Taper::Choice, kMainsN},
     {"compress", "Compress", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
 };

@@ -12,7 +12,7 @@ namespace strapped {
 namespace {
 using namespace hideout;
 
-const char* const kModeN[] = {"CLEAN", "CRUNCH", "HEAVY", "BYPASS"};
+const char* const kModeN[] = {"CLEAN TONE", "EDGE", "HIGH GAIN", "BYPASS"};
 const char* const kBassN[] = {"OFF", "80 HZ", "160 HZ", "320 HZ"};
 const char* const kTrebleN[] = {"OFF", "3 KHZ", "6 KHZ", "12 KHZ"};
 const char* const kCompN[] = {"OFF", "LIGHT", "MEDIUM", "HEAVY"};
@@ -29,8 +29,8 @@ const ParamInfo kParams[kCount] = {
     {"output", "Output", "dB", -10.0f, 10.0f, 0.0f},
     HEM_FADER("bass", "Bass"), HEM_FADER("treble", "Treble"), HEM_FADER("compress", "Compress"),
     HEM_FADER("reverb", "Reverb"), HEM_FADER("delay", "Delay"), HEM_FADER("pitch", "Pitch"),
-    HEM_COLOR("basscolor", "Bass Color", kBassN), HEM_COLOR("treblecolor", "Treble Color", kTrebleN), HEM_COLOR("compresscolor", "Compress Color", kCompN),
-    HEM_COLOR("reverbcolor", "Reverb Color", kVerbN), HEM_COLOR("delaycolor", "Delay Color", kDelayN), HEM_COLOR("pitchcolor", "Pitch Color", kPitchN),
+    HEM_COLOR("basscolor", "Bass Style", kBassN), HEM_COLOR("treblecolor", "Treble Style", kTrebleN), HEM_COLOR("compresscolor", "Compress Style", kCompN),
+    HEM_COLOR("reverbcolor", "Reverb Style", kVerbN), HEM_COLOR("delaycolor", "Delay Style", kDelayN), HEM_COLOR("pitchcolor", "Pitch Style", kPitchN),
 };
 #undef HEM_FADER
 #undef HEM_COLOR

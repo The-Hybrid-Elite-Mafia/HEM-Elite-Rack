@@ -16,15 +16,15 @@ using namespace arsenal;
 
 const char* const kRelModeN[] = {"AUTO", "MANUAL"};
 const char* const kBehaviorN[] = {"SNAP BACK", "EASE OUT"};
-const char* const kCharacterN[] = {"WARM", "SMOOTH"};
+const char* const kCharacterN[] = {"COLORED", "PURE"};
 const ParamInfo kParams[kCount] = {
     {"threshold", "Threshold", "dB", -60.0f, 0.0f, -20.0f},
     {"ratio", "Ratio", ":1", 0.5f, 50.0f, 1.0f, Taper::Log},
     {"attack", "Attack", "ms", 0.5f, 500.0f, 16.0f, Taper::Log},
     {"release", "Release", "ms", 5.0f, 5000.0f, 160.0f, Taper::Log},
     {"releasemode", "Release Mode", "", 0, 1, 0, Taper::Choice, kRelModeN},
-    {"behavior", "Behavior", "", 0, 1, 0, Taper::Choice, kBehaviorN},
-    {"character", "Character", "", 0, 1, 0, Taper::Choice, kCharacterN},
+    {"behavior", "Let-Go", "", 0, 1, 0, Taper::Choice, kBehaviorN},
+    {"character", "Color", "", 0, 1, 0, Taper::Choice, kCharacterN},
     {"output", "Output", "dB", -30.0f, 30.0f, 0.0f},
     {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
     {"trim", "Trim", "dB", -18.0f, 18.0f, 0.0f},

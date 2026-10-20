@@ -18,8 +18,8 @@ const ParamInfo kParams[kCount] = {
     {"decay", "Decay", "", 0, 5, 2, Taper::Choice, kDecayN},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
     {"meter", "Meter", "", 0, 2, 1, Taper::Choice, kMeterN},
-    {"analog", "Analog", "", 0, 2, 0, Taper::Choice, kMainsN},
-    {"vucal", "VU Calibrate", "dB", 8.0f, 24.0f, 18.0f},
+    {"analog", "Hum", "", 0, 2, 0, Taper::Choice, kMainsN},
+    {"vucal", "VU Zero", "dB", 8.0f, 24.0f, 18.0f},
 };
 const hc::fx::MeterInfo kMeters[] = {{"INPUT", "VU", -20.0f, 3.0f}, {"OUTPUT", "VU", -20.0f, 3.0f}};
 constexpr float kAttackMs = 2.0f;     // fixed, as on the hardware

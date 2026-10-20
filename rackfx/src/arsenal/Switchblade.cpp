@@ -23,7 +23,7 @@ const ParamInfo kParams[kCount] = {
     {"cancel", "Cancel", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"attack", "Attack", "ms", 0.01f, 1000.0f, 5.0f, Taper::Log},
     {"release", "Release", "ms", 1.0f, 10000.0f, 120.0f, Taper::Log},
-    {"pdr", "PDR", "ms", 0.0f, 1000.0f, 0.0f},
+    {"pdr", "Smart Rel", "ms", 0.0f, 1000.0f, 0.0f},
     {"compeq", "Comp EQ", "", 0, 2, 0, Taper::Choice, kEqN},
     {"gateon", "Gate On", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"gatemode", "Gate Mode", "", 0, 1, 0, Taper::Choice, kGateModeN},

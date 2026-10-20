@@ -13,31 +13,31 @@ using namespace bigshot;
 constexpr PlateReadout readouts[] = {{0, "MOST OFF", "dB", "+"}, {1, "INPUT PEAK", "dBFS"}};
 constexpr PlateKnob row1[] = {{Threshold, "THRESHOLD", "-30", "0", K::Big}, {Ceiling, "CEILING", "-30", "0", K::Big}};
 constexpr PlateToggle leftT[] = {{AutoRelease, "AUTO REL"}};
-constexpr PlateChoice steppers[] = {{Quantize, "QUANTIZE"}, {Dither, "DITHER"}, {Shaping, "SHAPING"}};
+constexpr PlateChoice steppers[] = {{Quantize, "BIT DEPTH"}, {Dither, "DITHER"}, {Shaping, "NOISE SHAPE"}};
 } // namespace bs
 
 // ---- LAST WORD
 namespace lw {
 using namespace lastword;
 constexpr PlateReadout readouts[] = {{0, "IN LEFT", "dBFS"}, {1, "IN RIGHT", "dBFS"}};
-constexpr PlateChoice choices[] = {{Domain, "DOMAIN"}};
+constexpr PlateChoice choices[] = {{Domain, "PEAK MODE"}};
 constexpr PlateKnob row1[] = {{InputL, "INPUT L", "-60", "0", K::Small}, {InputR, "INPUT R", "-60", "0", K::Small}, {Threshold, "THRESHOLD", "-30", "0", K::Big},
                               {Ceiling, "CEILING", "-30", "0"}, {Release, "RELEASE"}};
 constexpr PlateToggle leftT[] = {{InputLink, "INPUT LINK"}, {AutoRelease, "AUTO REL"}};
-constexpr PlateChoice steppers[] = {{Quantize, "QUANTIZE"}, {Dither, "DITHER"}, {Shaping, "SHAPING"}};
+constexpr PlateChoice steppers[] = {{Quantize, "BIT DEPTH"}, {Dither, "DITHER"}, {Shaping, "NOISE SHAPE"}};
 } // namespace lw
 
 // ---- HIGH STAKES / FAST MONEY: five band columns, the crossovers between them
 namespace mm {
 using namespace multimax;
-constexpr PlateKnob bandKnobs[] = {{Gain, "GAIN"}, {Priority, "PRIORITY"}, {BandRelease, "RELEASE"}};
+constexpr PlateKnob bandKnobs[] = {{Gain, "GAIN"}, {Priority, "WEIGHT"}, {BandRelease, "RELEASE"}};
 constexpr PlateToggle bandToggles[] = {{BandLink, "LINK"}, {Solo, "SOLO"}};
 constexpr PlateKnob borders[] = {{X1, "SPLIT"}, {X2, "SPLIT"}, {X3, "SPLIT"}, {X4, "SPLIT"}};
 constexpr PlateBands bands{.count = kBands, .first = Band0, .stride = kPerBand, .knobs = bandKnobs, .toggles = bandToggles,
                            .borders = borders, .meter = 0};
-constexpr PlateKnob row1[] = {{Threshold, "THRESHOLD"}, {Ceiling, "CEILING"}, {Release, "RELEASE"}, {Separation, "SEPARATION"}};
+constexpr PlateKnob row1[] = {{Threshold, "THRESHOLD"}, {Ceiling, "CEILING"}, {Release, "RELEASE"}, {Separation, "BAND FREEDOM"}};
 constexpr PlateToggle toggles[] = {{Link, "LINK"}};
-constexpr PlateChoice steppers[] = {{ReleaseType, "RELEASE"}, {Quantize, "QUANTIZE"}, {Dither, "DITHER"}, {Shaping, "SHAPING"}};
+constexpr PlateChoice steppers[] = {{ReleaseType, "RELEASE"}, {Quantize, "BIT DEPTH"}, {Dither, "DITHER"}, {Shaping, "NOISE SHAPE"}};
 void demo(hc::fx::Effect& e) {
     e.set(Threshold, -8);
     e.set(band(0, Priority), 3);
@@ -50,20 +50,20 @@ using namespace ultramax;
 constexpr PlateReadout readouts[] = {{5, "INPUT PEAK", "dBFS"}, {6, "OUTPUT PEAK", "dBFS"}};
 constexpr PlateKnob row1[] = {{Threshold, "THRESHOLD", "-30", "0", K::Big}, {Ceiling, "CEILING", "-30", "0", K::Big}, {Release, "RELEASE"}};
 constexpr PlateToggle toggles[] = {{Link, "LINK"}};
-constexpr PlateChoice steppers[] = {{Profile, "PROFILE"}, {Quantize, "QUANTIZE"}, {Dither, "DITHER"}, {Shaping, "SHAPING"}};
+constexpr PlateChoice steppers[] = {{Profile, "PROFILE"}, {Quantize, "BIT DEPTH"}, {Dither, "DITHER"}, {Shaping, "NOISE SHAPE"}};
 } // namespace ud
 
 // ---- SWEET SIXTEEN: six EQ / priority columns
 namespace s16 {
 using namespace sixteen;
-constexpr PlateKnob bandKnobs[] = {{Gain, "GAIN"}, {Priority, "PRIORITY"}, {Freq, "FREQ"}, {Q, "Q"}};
+constexpr PlateKnob bandKnobs[] = {{Gain, "GAIN"}, {Priority, "WEIGHT"}, {Freq, "FREQ"}, {Q, "Q"}};
 constexpr PlateChoice bandSteppers[] = {{Type, "TYPE"}};
 constexpr PlateToggle bandToggles[] = {{BandLink, "LINK"}, {In, "IN"}};
 constexpr PlateBands bands{.count = kEqBands, .first = Band0, .stride = kPerBand, .knobs = bandKnobs, .steppers = bandSteppers,
                            .toggles = bandToggles, .meter = 0};
 constexpr PlateKnob row1[] = {{Threshold, "THRESHOLD"}, {Ceiling, "CEILING"}, {Release, "RELEASE"}};
 constexpr PlateToggle toggles[] = {{Link, "LINK"}};
-constexpr PlateChoice steppers[] = {{Character, "CHARACTER"}, {Separation, "SEPARATION"}, {Quantize, "QUANTIZE"}, {Dither, "DITHER"}, {Shaping, "SHAPING"}};
+constexpr PlateChoice steppers[] = {{Character, "RELEASE FEEL"}, {Separation, "BAND FREEDOM"}, {Quantize, "BIT DEPTH"}, {Dither, "DITHER"}, {Shaping, "NOISE SHAPE"}};
 void demo(hc::fx::Effect& e) {
     e.set(Threshold, -8);
     e.set(band(2, Gain), 3);

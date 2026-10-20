@@ -14,7 +14,7 @@ const ParamInfo kParams[kCount] = {
     {"tone", "Tone", "%", 0.0f, 100.0f, 0.0f},
     {"link", "Link", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
-    {"analog", "Analog", "", 0, 1, 1, Taper::Toggle, kOnOff},
+    {"analog", "Hum", "", 0, 1, 1, Taper::Toggle, kOnOff},
 };
 
 class Impl final : public hc::fx::Effect {

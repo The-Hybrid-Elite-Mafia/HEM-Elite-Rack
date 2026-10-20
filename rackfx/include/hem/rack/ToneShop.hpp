@@ -46,7 +46,7 @@
 //                    10 ms–5 s, and a key filter: ON, SOURCE MAIN / PRE EQ, TYPE LO CUT / HI CUT / BAND /
 //                    NOTCH, FREQ, WIDTH 0.1–8 octaves), COMPRESSOR (ON, TYPE CLASSIC / VOCAL: the vocal
 //                    one picks its own ratio, more the further over, THRESHOLD -60..+18, RATIO 0.5–50:
-//                    under 1 the loud parts get louder, ATTACK, RELEASE, ARC: the release follows the
+//                    under 1 the loud parts get louder, ATTACK, RELEASE, AUTO REL: the release follows the
 //                    music, and its own key filter), a four-band EQ (band 1: LO CUT / LO SHELF / LO SHELF
 //                    RES / BELL; 2 and 3: BELL; 4: HI CUT / HI SHELF / HI SHELF RES / BELL; ON, GAIN ±18,
 //                    FREQ, Q), ORDER (EQ first or the dynamics first), PHASE, OUTPUT ±30, ROTATE ±45°
@@ -66,7 +66,7 @@
 //                    (a whisper of hiss under the music). Latency 23.
 //  IVORIES           piano tone: INPUT ±18, PIANO -50..+50 (up: brighter, leaner, more present; down: darker
 //                    and fuller; either way it leans on a gentle compressor more), DELAY (on, and its LEVEL
-//                    -24..0 dB: a soft stereo slap, left 120 ms, right 156 ms), DOUBLER (on, and its LEVEL:
+//                    -24..0 dB: a soft stereo slap, left 120 ms, right 156 ms), THICKEN (on, and its LEVEL:
 //                    two slightly late, drifting copies, one each side), OUTPUT ±18, ANALOG (a whisper of
 //                    hiss under the music). Zero latency.
 //  HIGH ROLLER       five-band parallel enhancer: each band's processed copy (squeezed hard and rounded,
@@ -95,15 +95,15 @@
 //                    ROUTE: before the filter, or with the filter inside its feedback. MIX, INPUT, OUTPUT
 //                    (-40..+10). MIDI keyboard tracking and the outside sidechain are not possible in the rack.
 //                    Zero latency.
-//  LOW RIDER         a new low octave: RANGE (20–120 Hz: the low-pass that picks what is used), LOW AIR (the
+//  LOW RIDER         a new low octave: RANGE (20–120 Hz: the low-pass that picks what is used), NEW OCTAVE (the
 //                    new signal an octave down, off..+30 dB), LO (the low-passed original, off..+30 dB; both
 //                    saturate softly above 0 dB and never pass full scale), DIRECT (the untouched sound,
 //                    off..0 dB), OUTPUT (-60..0), TRIM ±12, ALIGN (delays the untouched sound to line up with
 //                    the new low end at its lowest notes). Latency 70 ms, always.
 //  UNDERTOW          sub generator: RANGE MIN (20–120 Hz, 48 dB / oct) and RANGE MAX (40–240 Hz, 24 dB / oct)
-//                    pick the band it follows; SUB -1 (an octave down) and SUB -2 (two), each ON and a LEVEL
+//                    pick the band it follows; OCTAVE DOWN (an octave down) and TWO DOWN (two), each ON and a LEVEL
 //                    (off..+12 dB); DRIVE (saturates the subs), DYNAMICS (0: the subs stay steady, 100: they
-//                    follow every move of the bass), MONO SUB (one sub from both sides, or one each), MIX
+//                    follow every move of the bass), SUB IN MIDDLE (one sub from both sides, or one each), MIX
 //                    (0 the original only, 50 both in full, 100 the subs only), OUTPUT (-18..0). Zero latency.
 //  DEEP POCKETS      bass you hear on small speakers: under FREQUENCY (32–256 Hz) the bass is replaced, as much
 //                    as you like, by its harmonics (which small speakers can play). INPUT (off..0), ORIGINAL
@@ -111,16 +111,16 @@
 //                    at FREQUENCY), DECAY (-24..-9 dB: how fast each next harmonic falls; nearer 0 = richer),
 //                    RATIO (1–4: quiet bass gets more harmonics), RESPONSE (how fast that follows), MONITOR
 //                    (all / the harmonics / the original bass), the peak (held until RESET). Zero latency.
-//  LOW PROFILE       the same idea, simpler: FREQUENCY, ORIGINAL BASS (in / out), INTENSITY (-24..+24 dB of
+//  LOW PROFILE       the same idea, simpler: FREQUENCY, REAL BASS (in / out), AMOUNT (-24..+24 dB of
 //                    harmonics), GAIN (off..0). Zero latency.
 //  DOUBLE CROSS      mono to stereo that folds back to mono exactly: the middle is sent left and right by
 //                    an amount that sweeps across the spectrum (L + R is always the original middle). KIND:
-//                    SPREAD (2–22 sweeps), SPREAD 10 (2–10) or SPLIT (2–10, LF SPREAD always 0, and SHAPE:
+//                    SPREAD (2–22 sweeps), SPREAD 10 (2–10) or SPLIT (2–10, BASS SPREAD always 0, and SHAPE:
 //                    0 triangle-like sweeps, 0.15 smooth, 1 square, past 1 beyond full). SPREAD 0–1.2 (1
-//                    fills the space between the speakers), FREQ (32 Hz–16 kHz: under it LF SPREAD takes over;
-//                    LF SPREAD 0 keeps the lows in the middle, 1 like the rest, more = wider), SWEEPS, FCENTER
+//                    fills the space between the speakers), FREQ (32 Hz–16 kHz: under it BASS SPREAD takes over;
+//                    BASS SPREAD 0 keeps the lows in the middle, 1 like the rest, more = wider), COMBS, FCENTER
 //                    and FDENSITY (plus: the sweeps crowd around FCENTER; minus: they thin out there and crowd
-//                    at the ends), TWEAK ±1 (slides every frequency along the sweep, to balance the picture).
+//                    at the ends), FINE SHIFT ±1 (slides every frequency along the sweep, to balance the picture).
 //                    The input first: INPUT 0..-24 dB, WIDTH 0 (mono)..1 (as it was), ROTATION ±45°, POLARITY
 //                    L / R, SWAP. Meters: the highest peak left and right (or middle and sides, METER), held
 //                    until RESET. Done on 2048-point frames; latency 2047 samples (43 ms), always.

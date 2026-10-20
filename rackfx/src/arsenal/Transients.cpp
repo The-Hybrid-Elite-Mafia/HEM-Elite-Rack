@@ -39,8 +39,8 @@ namespace hm {
 using namespace haymaker;
 const ParamInfo kParams[kCount] = {
     {"range", "Range", "dB", -24.0f, 18.0f, 6.0f},
-    {"sens", "Sens", "", -10.0f, 10.0f, 0.0f},
-    {"duration", "Duration", "ms", 0.01f, 500.0f, 4.1f, Taper::Log},
+    {"sens", "Pickup", "", -10.0f, 10.0f, 0.0f},
+    {"duration", "Length", "ms", 0.01f, 500.0f, 4.1f, Taper::Log},
     {"release", "Release", "ms", 0.5f, 500.0f, 10.0f, Taper::Log},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
     {"trim", "Trim", "", 0, 1, 0, Taper::Toggle, kPushN},
@@ -98,13 +98,13 @@ namespace fk {
 using namespace fourkings;
 #define HEM_BAND(n)                                                                                   \
     {"range" #n, "Band " #n " Range", "dB", -24.0f, 18.0f, 6.0f},                                     \
-    {"sens" #n, "Band " #n " Sens", "", -10.0f, 10.0f, 0.0f},                                         \
+    {"sens" #n, "Band " #n " Pickup", "", -10.0f, 10.0f, 0.0f},                                         \
     {"on" #n, "Band " #n " On", "", 0, 1, 1, Taper::Toggle, kOnOff}
 const ParamInfo kParams[kCount] = {
     HEM_BAND(1), HEM_BAND(2), HEM_BAND(3), HEM_BAND(4),
     {"mrange", "Master Range", "dB", -24.0f, 24.0f, 0.0f},
-    {"msens", "Master Sens", "", -10.0f, 10.0f, 0.0f},
-    {"duration", "Duration", "ms", 0.01f, 500.0f, 4.1f, Taper::Log},
+    {"msens", "Master Pickup", "", -10.0f, 10.0f, 0.0f},
+    {"duration", "Length", "ms", 0.01f, 500.0f, 4.1f, Taper::Log},
     {"release", "Release", "ms", 0.5f, 500.0f, 10.0f, Taper::Log},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
     {"trim", "Trim", "", 0, 1, 0, Taper::Toggle, kPushN},

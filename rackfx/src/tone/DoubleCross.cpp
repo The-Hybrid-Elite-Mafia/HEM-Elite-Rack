@@ -18,25 +18,25 @@ namespace doublecross {
 namespace {
 using namespace tone;
 
-const char* const kKindN[] = {"SPREAD", "SPREAD 10", "SPLIT"};
+const char* const kKindN[] = {"FAN", "FAN 10", "SPLIT"};
 const char* const kIoN[] = {"L / R", "M / S"};
 const char* const kPushN[] = {"A", "B"};
 const ParamInfo kParams[kCount] = {
     {"kind", "Kind", "", 0, 2, 0, Taper::Choice, kKindN},
     {"input", "Input", "dB", -24.0f, 0.0f, 0.0f},
     {"width", "Width", "", 0.0f, 1.0f, 1.0f},
-    {"rotation", "Rotation", "deg", -45.0f, 45.0f, 0.0f},
+    {"rotation", "Aim", "deg", -45.0f, 45.0f, 0.0f},
     {"polarityl", "Polarity L", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"polarityr", "Polarity R", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"swap", "Swap", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"spread", "Spread", "", 0.0f, 1.2f, 1.0f},
     {"freq", "Freq", "Hz", 32.0f, 16000.0f, 200.0f, Taper::Log},
-    {"lfspread", "LF Spread", "", 0.0f, 2.0f, 0.0f},
-    {"sweeps", "Sweeps", "", 2.0f, 22.0f, 8.0f},
-    {"fcenter", "F Center", "Hz", 100.0f, 12000.0f, 2600.0f, Taper::Log},
-    {"fdensity", "F Density", "", -1.0f, 1.0f, 0.0f},
-    {"tweak", "Tweak", "", -1.0f, 1.0f, 0.0f},
-    {"shape", "Shape", "", 0.0f, 1.25f, 0.15f},
+    {"lfspread", "Bass Spread", "", 0.0f, 2.0f, 0.0f},
+    {"sweeps", "Combs", "", 2.0f, 22.0f, 8.0f},
+    {"fcenter", "Sweep Focus", "Hz", 100.0f, 12000.0f, 2600.0f, Taper::Log},
+    {"fdensity", "Sweep Spacing", "", -1.0f, 1.0f, 0.0f},
+    {"tweak", "Fine Shift", "", -1.0f, 1.0f, 0.0f},
+    {"shape", "Curve", "", 0.0f, 1.25f, 0.15f},
     {"metermode", "Meter", "", 0, 1, 0, Taper::Choice, kIoN},
     {"reset", "Reset", "", 0, 1, 0, Taper::Toggle, kPushN},
 };

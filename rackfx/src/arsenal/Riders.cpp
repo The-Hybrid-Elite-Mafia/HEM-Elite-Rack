@@ -30,11 +30,11 @@ namespace wm {
 using namespace wheelman;
 const ParamInfo kParams[kCount] = {
     {"target", "Target", "dB", -42.0f, 0.0f, -21.0f},
-    {"sensitivity", "Vocal Sensitivity", "dB", -12.0f, 12.0f, 0.0f},
+    {"sensitivity", "Voice Pickup", "dB", -12.0f, 12.0f, 0.0f},
     {"attack", "Attack", "", 0, 1, 0, Taper::Choice, kSpeedN},
-    {"rangemin", "Range Min", "dB", -12.0f, 11.0f, -6.0f},
-    {"rangemax", "Range Max", "dB", -11.0f, 12.0f, 6.0f},
-    {"idle", "Idle", "dB", -12.0f, 12.0f, 0.0f},
+    {"rangemin", "Lowest Ride", "dB", -12.0f, 11.0f, -6.0f},
+    {"rangemax", "Highest Ride", "dB", -11.0f, 12.0f, 6.0f},
+    {"idle", "Rest Point", "dB", -12.0f, 12.0f, 0.0f},
     {"live", "Stage", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"spill", "Bleed Floor", "dB", -48.0f, -12.0f, -30.0f},
     {"output", "Output", "dB", -12.0f, 12.0f, 0.0f},
@@ -99,13 +99,13 @@ namespace cf {
 using namespace chauffeur;
 const ParamInfo kParams[kCount] = {
     {"target", "Target", "dB", -42.0f, 0.0f, -14.0f},
-    {"notesens", "Note Detect", "%", 0.0f, 100.0f, 50.0f},
-    {"response", "Response", "", 0, 1, 1, Taper::Choice, kSpeedN},
+    {"notesens", "Note Pickup", "%", 0.0f, 100.0f, 50.0f},
+    {"response", "Speed", "", 0, 1, 1, Taper::Choice, kSpeedN},
     {"ignorespill", "Ignore Bleed", "dB", -50.0f, -3.0f, -40.0f},
-    {"ignoreartifacts", "Ignore Artifacts", "%", 0.0f, 100.0f, 50.0f},
-    {"rangemin", "Range Min", "dB", -12.0f, 11.0f, -6.0f},
-    {"rangemax", "Range Max", "dB", -11.0f, 12.0f, 6.0f},
-    {"idle", "Idle", "dB", -12.0f, 12.0f, 0.0f},
+    {"ignoreartifacts", "Ignore Clicks", "%", 0.0f, 100.0f, 50.0f},
+    {"rangemin", "Lowest Ride", "dB", -12.0f, 11.0f, -6.0f},
+    {"rangemax", "Highest Ride", "dB", -11.0f, 12.0f, 6.0f},
+    {"idle", "Rest Point", "dB", -12.0f, 12.0f, 0.0f},
     {"output", "Output", "dB", -12.0f, 12.0f, 0.0f},
 };
 class Impl final : public hc::fx::Effect {

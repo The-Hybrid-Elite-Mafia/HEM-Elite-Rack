@@ -10,9 +10,9 @@ using K = KnobSize;
 // ---- KNOCKOUT: no screen; the shapes and guard across the top, the hits and tails on one row
 namespace ko {
 using namespace knockout;
-constexpr PlateChoice choices[] = {{AttackShape, "ATTACK SHAPE"}, {SustainShape, "SUSTAIN SHAPE"}, {Guard, "GUARD"}};
+constexpr PlateChoice choices[] = {{AttackShape, "ATTACK CURVE"}, {SustainShape, "SUSTAIN CURVE"}, {Guard, "SAFETY"}};
 constexpr PlateKnob row1[] = {{Attack, "ATTACK", "-", "+"}, {AttackSens, "SENSITIVITY"}, {AttackTime, "LENGTH"},
-                              {Sustain, "SUSTAIN", "-", "+"}, {SustainSens, "SENSITIVITY"}, {SustainTime, "LENGTH"}};
+                              {Sustain, "SUSTAIN", "-", "+"}, {SustainSens, "PICKUP"}, {SustainTime, "LENGTH"}};
 constexpr PlateKnob row2[] = {{Mix, "MIX", "", "", K::Small}, {Output, "OUTPUT", "", "", K::Small}};
 } // namespace ko
 
@@ -20,7 +20,7 @@ constexpr PlateKnob row2[] = {{Mix, "MIX", "", "", K::Small}, {Output, "OUTPUT",
 namespace hm {
 using namespace haymaker;
 constexpr PlateReadout readouts[] = {{0, "GAIN", "dB", "+"}, {1, "OUTPUT PEAK", "dBFS"}};
-constexpr PlateKnob row1[] = {{Range, "RANGE", "-24", "+18", K::Big}, {Sens, "SENS", "-10", "+10"}, {Duration, "DURATION"}, {Release, "RELEASE"},
+constexpr PlateKnob row1[] = {{Range, "RANGE", "-24", "+18", K::Big}, {Sens, "PICKUP", "-10", "+10"}, {Duration, "LENGTH"}, {Release, "RELEASE"},
                               {Output, "OUTPUT"}};
 constexpr PlateToggle leftT[] = {{Trim, "TRIM", true}};
 } // namespace hm
@@ -28,11 +28,11 @@ constexpr PlateToggle leftT[] = {{Trim, "TRIM", true}};
 // ---- FOUR KINGS: four band columns and the MASTER column
 namespace fk {
 using namespace fourkings;
-constexpr PlateKnob bandKnobs[] = {{Range, "RANGE"}, {Sens, "SENS"}};
+constexpr PlateKnob bandKnobs[] = {{Range, "RANGE"}, {Sens, "PICKUP"}};
 constexpr PlateToggle bandToggles[] = {{On, "ON"}};
 constexpr PlateBands bands{.count = kBands + 1, .first = 0, .stride = kPerBand, .knobs = bandKnobs, .toggles = bandToggles, .meter = 0,
                            .lastIsMaster = true};
-constexpr PlateKnob row1[] = {{Duration, "DURATION"}, {Release, "RELEASE"}, {Output, "OUTPUT"}};
+constexpr PlateKnob row1[] = {{Duration, "LENGTH"}, {Release, "RELEASE"}, {Output, "OUTPUT"}};
 constexpr PlateToggle toggles[] = {{Trim, "TRIM", true}};
 } // namespace fk
 
@@ -40,7 +40,7 @@ constexpr PlateToggle toggles[] = {{Trim, "TRIM", true}};
 namespace bb {
 using namespace backbone;
 constexpr PlateReadout readouts[] = {{0, "CUT", "dB", "+"}, {1, "BOOST", "dB", "+"}, {2, "OUTPUT PEAK", "dBFS"}};
-constexpr PlateKnob row1[] = {{LowLevel, "LOW LEVEL", "0", "48", K::Big}, {HighLevel, "HIGH LEVEL", "0", "-48", K::Big}, {Output, "OUTPUT", "0", "-48"}};
+constexpr PlateKnob row1[] = {{LowLevel, "QUIET UP", "0", "48", K::Big}, {HighLevel, "LOUD DOWN", "0", "-48", K::Big}, {Output, "OUTPUT", "0", "-48"}};
 } // namespace bb
 
 // ---- FULL HOUSE
@@ -50,7 +50,7 @@ constexpr PlateReadout readouts[] = {{0, "ENERGY", "dB"}, {1, "LOW GAIN", "dB", 
 constexpr PlateChoice choices[] = {{LevelerMode, "LEVELER RELEASE"}};
 constexpr PlateToggle toggles[] = {{GateOn, "GATE ON"}, {LowOn, "LOW ON"}, {LevelerOn, "LEVELER ON"}, {HighOn, "HIGH ON"}};
 constexpr PlateKnob row1[] = {{Gate, "GATE", "-96", "0"}, {LowThreshold, "LOW THRESHOLD"}, {LowGain, "LOW GAIN", "0", "48"},
-                              {Leveler, "LEVELER", "-48", "0"}, {HighThreshold, "HIGH THRESHOLD"}, {HighGain, "HIGH GAIN", "-48", "0"}};
+                              {Leveler, "EVENER", "-48", "0"}, {HighThreshold, "HIGH THRESHOLD"}, {HighGain, "HIGH GAIN", "-48", "0"}};
 } // namespace fh
 
 // ---- WHEELMAN / CHAUFFEUR
@@ -61,15 +61,15 @@ constexpr PlateChoice left[] = {{Attack, "ATTACK"}};
 constexpr PlateToggle leftT[] = {{Live, "STAGE"}};
 constexpr PlateKnob row1[] = {{Target, "TARGET", "-42", "0", K::Big}, {Sensitivity, "SENSITIVITY", "-12", "+12"}, {Spill, "BLEED FLOOR", "-48", "-12"},
                               {Output, "OUTPUT"}};
-constexpr PlateKnob row2[] = {{RangeMin, "RANGE MIN", "", "", K::Small}, {RangeMax, "RANGE MAX", "", "", K::Small}, {Idle, "IDLE", "", "", K::Small}};
+constexpr PlateKnob row2[] = {{RangeMin, "LOWEST RIDE", "", "", K::Small}, {RangeMax, "HIGHEST RIDE", "", "", K::Small}, {Idle, "REST POINT", "", "", K::Small}};
 } // namespace wm
 namespace cf {
 using namespace chauffeur;
 constexpr PlateReadout readouts[] = {{0, "RIDING", "dB", "+"}, {1, "LEVEL", "dB"}};
-constexpr PlateChoice left[] = {{Response, "RESPONSE"}};
-constexpr PlateKnob row1[] = {{Target, "TARGET", "-42", "0", K::Big}, {NoteSens, "NOTE DETECT", "0", "100"}, {IgnoreSpill, "IGNORE BLEED"},
+constexpr PlateChoice left[] = {{Response, "SPEED"}};
+constexpr PlateKnob row1[] = {{Target, "TARGET", "-42", "0", K::Big}, {NoteSens, "NOTE PICKUP", "0", "100"}, {IgnoreSpill, "IGNORE BLEED"},
                               {IgnoreArtifacts, "IGNORE CLICKS", "0", "100"}, {Output, "OUTPUT"}};
-constexpr PlateKnob row2[] = {{RangeMin, "RANGE MIN", "", "", K::Small}, {RangeMax, "RANGE MAX", "", "", K::Small}, {Idle, "IDLE", "", "", K::Small}};
+constexpr PlateKnob row2[] = {{RangeMin, "LOWEST RIDE", "", "", K::Small}, {RangeMax, "HIGHEST RIDE", "", "", K::Small}, {Idle, "REST POINT", "", "", K::Small}};
 } // namespace cf
 
 // ---- SILENCER / TIGHT LIPS / OMERTA
@@ -88,8 +88,8 @@ constexpr PlateKnob row1[] = {{Threshold, "THRESHOLD", "-80", "0", K::Big}, {Ran
 namespace om {
 using namespace omerta;
 constexpr PlateToggle toggles[] = {{Lookahead, "LOOKAHEAD"}, {Monitor, "MONITOR"}};
-constexpr PlateKnob row1[] = {{Threshold, "THRESHOLD", "-80", "0", K::Big}, {Range, "RANGE", "-48", "0"}, {Width, "DETECTION WIDTH", "0", "100"},
-                              {Mode, "MODE", "WIDE", "SPLIT"}};
+constexpr PlateKnob row1[] = {{Threshold, "THRESHOLD", "-80", "0", K::Big}, {Range, "RANGE", "-48", "0"}, {Width, "CATCH WIDTH", "0", "100"},
+                              {Mode, "MODE", "WHOLE", "BAND"}};
 } // namespace om
 
 // ---- BREATHLESS
@@ -97,9 +97,9 @@ namespace br {
 using namespace breathless;
 constexpr PlateReadout readouts[] = {{0, "BREATH", "%"}, {1, "LEVEL", "dB"}, {2, "TAKEN OFF", "dB", "+"}};
 constexpr PlateChoice left[] = {{Listen, "LISTEN"}};
-constexpr PlateToggle leftT[] = {{RoomTone, "ROOM TONE"}};
+constexpr PlateToggle leftT[] = {{RoomTone, "ROOM FLOOR"}};
 constexpr PlateKnob row1[] = {{Sensitivity, "SENSITIVITY", "0", "100", K::Big}, {LevelGate, "LEVEL GATE"}, {Reduction, "REDUCTION", "ALL", "0", K::Big},
-                              {FadeOut, "FADE OUT", "", "", K::Small}, {FadeIn, "FADE IN", "", "", K::Small}};
+                              {FadeOut, "SOFT END", "", "", K::Small}, {FadeIn, "SOFT START", "", "", K::Small}};
 } // namespace br
 
 // ---- TOMMY GUN

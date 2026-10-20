@@ -8,7 +8,7 @@ namespace lastword {
 namespace {
 using namespace maxim;
 
-const char* const kDomainN[] = {"DIGITAL", "ANALOG", "TRUE PEAK"};
+const char* const kDomainN[] = {"SAMPLE", "SMOOTHED", "TRUE PEAK"};
 const char* const kQuantN6[] = {"NONE", "8 BIT", "12 BIT", "16 BIT", "20 BIT", "24 BIT"};
 constexpr int kBits6[] = {0, 8, 12, 16, 20, 24};
 const ParamInfo kParams[kCount] = {
@@ -19,10 +19,10 @@ const ParamInfo kParams[kCount] = {
     {"ceiling", "Ceiling", "dB", -30.0f, 0.0f, 0.0f},
     {"release", "Release", "ms", 0.01f, 1000.0f, 100.0f, Taper::Log},
     {"autorelease", "Auto Release", "", 0, 1, 0, Taper::Toggle, kOnOff},
-    {"domain", "Domain", "", 0, 2, 0, Taper::Choice, kDomainN},
-    {"quantize", "Quantize", "", 0, 5, 0, Taper::Choice, kQuantN6},
+    {"domain", "Peak Mode", "", 0, 2, 0, Taper::Choice, kDomainN},
+    {"quantize", "Bit Depth", "", 0, 5, 0, Taper::Choice, kQuantN6},
     {"dither", "Dither", "", 0, 2, 0, Taper::Choice, kDitherN},
-    {"shaping", "Shaping", "", 0, 3, 3, Taper::Choice, kShapeN},
+    {"shaping", "Noise Shape", "", 0, 3, 3, Taper::Choice, kShapeN},
 };
 const hc::fx::MeterInfo kMeters[] = {{"IN LEFT", "dBFS", -60.0f, 3.0f}, {"IN RIGHT", "dBFS", -60.0f, 3.0f}};
 

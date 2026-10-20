@@ -15,8 +15,8 @@ namespace {
 using namespace arsenal;
 
 const ParamInfo kParams[kCount] = {
-    {"lowlevel", "Low Level", "dB", 0.0f, 48.0f, 0.0f},
-    {"highlevel", "High Level", "dB", -48.0f, 0.0f, 0.0f},
+    {"lowlevel", "Quiet Up", "dB", 0.0f, 48.0f, 0.0f},
+    {"highlevel", "Loud Down", "dB", -48.0f, 0.0f, 0.0f},
     {"output", "Output", "dB", -48.0f, 0.0f, 0.0f},
 };
 const hc::fx::MeterInfo kMeters[] = {{"CUT", "dB", -48.0f, 0.0f}, {"BOOST", "dB", 0.0f, 48.0f}, {"OUTPUT", "dBFS", -60.0f, 3.0f}};

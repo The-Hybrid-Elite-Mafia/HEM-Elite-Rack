@@ -17,9 +17,9 @@ namespace hem::rack {
 namespace {
 using namespace arsenal;
 
-const char* const kSplitN[] = {"SPLIT", "WIDE"};
+const char* const kSplitN[] = {"BAND ONLY", "WHOLE"};
 const char* const kFilterN[] = {"HIGH-PASS", "BAND-PASS"};
-const char* const kMonitorN[] = {"AUDIO", "SIDECHAIN"};
+const char* const kMonitorN[] = {"RESULT", "DETECTOR"};
 
 // the classic detector + splitter (SILENCER, TIGHT LIPS)
 struct Classic {
@@ -158,7 +158,7 @@ constexpr float kSplitHz = 4500.0f;   // where "the highs" start for its ear and
 const ParamInfo kParams[kCount] = {
     {"threshold", "Threshold", "dB", -80.0f, 0.0f, -12.5f},
     {"range", "Range", "dB", -48.0f, 0.0f, -14.0f},
-    {"width", "Detection Width", "%", 0.0f, 100.0f, 50.0f},
+    {"width", "Catch Width", "%", 0.0f, 100.0f, 50.0f},
     {"mode", "Mode", "%", 0.0f, 100.0f, 50.0f},
     {"lookahead", "Lookahead", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"monitor", "Monitor", "", 0, 1, 0, Taper::Toggle, kOnOff},

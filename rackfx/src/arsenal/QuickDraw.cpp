@@ -29,7 +29,7 @@ const ParamInfo kParams[kCount] = {
     {"compress", "Compress", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"revision", "Era", "", 0, 1, 0, Taper::Choice, kRevN},
     {"automakeup", "Auto Makeup", "", 0, 1, 0, Taper::Toggle, kOnOff},
-    {"analog", "Analog", "", 0, 2, 0, Taper::Choice, kMainsN},
+    {"analog", "Hum", "", 0, 2, 0, Taper::Choice, kMainsN},
     {"meter", "Meter", "", 0, 2, 1, Taper::Choice, kMeterN},
     {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
     {"trim", "Trim", "dB", -18.0f, 18.0f, 0.0f},

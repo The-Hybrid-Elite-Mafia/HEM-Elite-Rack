@@ -21,8 +21,8 @@ const ParamInfo kParams[kCount] = {
     {"cross4", "Crossover 4", "Hz", 20.0f, 18000.0f, 9310.0f, Taper::Log},
     {"input", "Input", "dB", -18.0f, 18.0f, 0.0f},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
-    {"direct", "Direct", "dB", -45.0f, 0.0f, 0.0f},
-    {"punch", "Punch", "", 0.0f, 5.0f, 3.0f},
+    {"direct", "Dry", "dB", -45.0f, 0.0f, 0.0f},
+    {"punch", "Snap", "", 0.0f, 5.0f, 3.0f},
 };
 #undef HEM_BAND
 const hc::fx::MeterInfo kMeters[] = {{"LOW", "dB", 0.0f, 48.0f}, {"LOW MID", "dB", 0.0f, 48.0f}, {"MID", "dB", 0.0f, 48.0f},

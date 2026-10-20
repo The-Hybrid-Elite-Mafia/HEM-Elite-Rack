@@ -3,8 +3,8 @@
 //  The HEM maximizers (brick-wall limiters for loudness). Each one is its own plug-in with its own
 //  full set of controls; they share their insides (rackfx/src/maxim/LimitKit.hpp).
 //
-//  Every one ends with the same IDR section: QUANTIZE (the word length), DITHER TYPE 1 (flat
-//  triangular, +-1 LSB) / TYPE 2 (half as much, tilted to the highs) / NONE, and SHAPING MODERATE /
+//  Every one ends with the same IDR section: BIT DEPTH (the word length), DITHER TYPE 1 (flat
+//  triangular, +-1 LSB) / TYPE 2 (half as much, tilted to the highs) / NONE, and NOISE SHAPE MODERATE /
 //  NORMAL / ULTRA / NONE (pushes the dither noise away from the 3-4 kHz region the ear hears best).
 //  Neither dither type adds anything to digital silence.
 //
@@ -13,16 +13,16 @@
 //                IDR. Look-ahead 1.5 ms. Meters: 0 the most it took off lately (dB), 1 input peak.
 //  LAST WORD     one band: INPUT LEFT / RIGHT and LINK (on: both sides follow INPUT LEFT), THRESHOLD,
 //                CEILING, RELEASE 0.01..1000 ms, AUTO RELEASE (on: shorter on single peaks, up to
-//                RELEASE when it works hard), DOMAIN DIGITAL (sample peaks never pass the ceiling) /
+//                RELEASE when it works hard), PEAK MODE DIGITAL (sample peaks never pass the ceiling) /
 //                ANALOG (the peaks between the samples, rounded softly into the ceiling) / TRUE PEAK
-//                (the peaks between the samples never pass), IDR with QUANTIZE NONE / 8..24 BIT.
+//                (the peaks between the samples never pass), IDR with BIT DEPTH NONE / 8..24 BIT.
 //                Meters: 0 / 1 input peak left / right.
 //  HIGH STAKES   five bands, linear phase: THRESHOLD, CEILING, LINK (on: the ceiling comes down with
 //                the threshold — you hear the limiting without the loudness going up), RELEASE TYPE
 //                (AUTO / AUTO LOWS / AUTO HIGHS / HARD / MANUAL), RELEASE (x0.1..x10 on every band),
-//                four CROSSOVERS, SEPARATION (0: every band gives the same; 100: each band by its own
-//                energy), per band GAIN (before the limiter), PRIORITY (gives up less, the others
-//                more), LINK (GAIN also raises PRIORITY by as much), RELEASE (0.1..5000 ms), SOLO; IDR.
+//                four CROSSOVERS, BAND FREEDOM (0: every band gives the same; 100: each band by its own
+//                energy), per band GAIN (before the limiter), WEIGHT (gives up less, the others
+//                more), LINK (GAIN also raises WEIGHT by as much), RELEASE (0.1..5000 ms), SOLO; IDR.
 //                Latency 2559 + 72 + 32 samples. Meters: 0..4 the bands' reduction (dB), 5 / 6 input /
 //                output peak (dBFS).
 //  FAST MONEY    HIGH STAKES with a low-latency (minimum phase) band split; band RELEASE 0.1..2500 ms.
@@ -31,8 +31,8 @@
 //                RELEASE (x0.1..x10), IDR. Linear phase. Meters as HIGH STAKES.
 //  QUICK CASH    TOP DOG with the low-latency band split.
 //  SWEET SIXTEEN sixteen bands, linear phase: THRESHOLD, CEILING, LINK, RELEASE (x0.1..x10), RELEASE
-//                CHARACTER (22 of ours), SEPARATION LOW / MEDIUM / HIGH (how sharp the 16 bands are
-//                cut apart); six EQ / priority bands, each GAIN (an EQ before the limiter), PRIORITY
+//                CHARACTER (22 of ours), BAND FREEDOM LOW / MEDIUM / HIGH (how sharp the 16 bands are
+//                cut apart); six EQ / priority bands, each GAIN (an EQ before the limiter), WEIGHT
 //                (the same curve, steering where the limiting goes), LINK, FREQ, Q, TYPE BELL / LOW
 //                SHELF / HIGH SHELF, IN; IDR. Meters: 0..5 the reduction at each of the six bands.
 // =============================================================================

@@ -13,14 +13,14 @@ const char* const kSusShapeN[] = {"EVEN", "CURVED", "SOFT"};
 const char* const kGuardN[] = {"OFF", "CLIP", "LIMIT"};
 const ParamInfo kParams[kCount] = {
     {"attack", "Attack", "%", -100.0f, 100.0f, 0.0f},
-    {"attacksens", "Attack Sensitivity", "%", 0.0f, 100.0f, 50.0f},
+    {"attacksens", "Attack Pickup", "%", 0.0f, 100.0f, 50.0f},
     {"attacktime", "Attack Length", "ms", 0.5f, 500.0f, 20.0f, Taper::Log},
-    {"attackshape", "Attack Shape", "", 0, 2, 1, Taper::Choice, kAttShapeN},
+    {"attackshape", "Attack Curve", "", 0, 2, 1, Taper::Choice, kAttShapeN},
     {"sustain", "Sustain", "%", -100.0f, 100.0f, 0.0f},
-    {"sustainsens", "Sustain Sensitivity", "%", 0.0f, 100.0f, 50.0f},
+    {"sustainsens", "Sustain Pickup", "%", 0.0f, 100.0f, 50.0f},
     {"sustaintime", "Sustain Length", "ms", 30.0f, 1000.0f, 200.0f, Taper::Log},
-    {"sustainshape", "Sustain Shape", "", 0, 2, 0, Taper::Choice, kSusShapeN},
-    {"guard", "Guard", "", 0, 2, 0, Taper::Choice, kGuardN},
+    {"sustainshape", "Sustain Curve", "", 0, 2, 0, Taper::Choice, kSusShapeN},
+    {"guard", "Safety", "", 0, 2, 0, Taper::Choice, kGuardN},
     {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
     {"output", "Output", "dB", -24.0f, 24.0f, 0.0f},
 };

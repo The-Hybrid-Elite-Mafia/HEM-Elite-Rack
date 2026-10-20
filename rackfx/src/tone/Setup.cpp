@@ -18,7 +18,7 @@ namespace thesetup {
 namespace {
 using namespace tone;
 
-const char* const kTypeN[] = {"LO PASS", "HI PASS", "BAND PASS", "NOTCH", "COMB", "AMP"};
+const char* const kTypeN[] = {"LO PASS", "HI PASS", "BAND PASS", "NOTCH", "COMB", "LEVEL"};
 const char* const kSlopeN[] = {"12 dB", "24 dB"};
 const char* const kLfoNoteN[] = {"4/1", "2/1", "1/1", "1/2", "1/4", "1/8", "1/16", "1/32"};
 constexpr double kLfoBeats[] = {16, 8, 4, 2, 1, 0.5, 0.25, 0.125};
@@ -29,7 +29,7 @@ constexpr double kDelayBeats[] = {0.125, 0.25, 0.5, 1, 2, 4};
 const char* const kWaveN[] = {"SINE", "TRIANGLE", "PULSE", "SAW", "RANDOM"};
 const char* const kRightN[] = {"100 %", "150 %", "200 %"};
 constexpr float kRight[] = {1.0f, 1.5f, 2.0f};
-const char* const kAnalogN[] = {"DIGITAL", "ANALOG"};
+const char* const kAnalogN[] = {"CLEAN", "WARM"};
 const char* const kRouteN[] = {"PRE FILTER", "IN FEEDBACK"};
 
 #define HEM_STEP(n) {"step" #n, "Step " #n, "%", -100.0f, 100.0f, 0.0f}
@@ -43,7 +43,7 @@ const ParamInfo kParams[kCount] = {
     {"combfeedback", "Comb Feedback", "%", 0.0f, 100.0f, 0.0f},
     {"slope", "Slope", "", 0, 1, 0, Taper::Choice, kSlopeN},
     {"spread", "Spread", "%", -50.0f, 50.0f, 0.0f},
-    {"smooth", "Smooth", "%", 0.0f, 100.0f, 0.0f},
+    {"smooth", "Glide", "%", 0.0f, 100.0f, 0.0f},
     {"drive", "Drive", "%", 0.0f, 100.0f, 0.0f},
     {"crush", "Crush", "%", 0.0f, 100.0f, 0.0f},
     {"lforate", "LFO Rate", "Hz", 0.1f, 100.0f, 1.0f, Taper::Log},

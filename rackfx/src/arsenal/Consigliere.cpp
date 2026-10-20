@@ -12,19 +12,19 @@ const char* const kModeN[] = {"COMPRESS", "LIMIT"};
 #define HEM_OPTO_TAIL                                                                          \
     {"automakeup", "Auto Makeup", "", 0, 1, 0, Taper::Toggle, kOnOff},                         \
     {"mode", "Mode", "", 0, 1, 0, Taper::Choice, kModeN},                                      \
-    {"hifreq", "Hi Freq", "", 0.0f, 100.0f, 50.0f},                                            \
-    {"analog", "Analog", "", 0, 2, 0, Taper::Choice, kMainsN},                                 \
+    {"hifreq", "Bright Detect", "", 0.0f, 100.0f, 50.0f},                                            \
+    {"analog", "Hum", "", 0, 2, 0, Taper::Choice, kMainsN},                                 \
     {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},                                                 \
     {"trim", "Trim", "dB", -18.0f, 18.0f, 0.0f},                                               \
     {"meter", "Meter", "", 0, 2, 1, Taper::Choice, kMeterN}
 const ParamInfo kParams2A[kCount] = {
     {"gain", "Gain", "", 0.0f, 100.0f, 0.0f},
-    {"peakreduction", "Peak Reduction", "", 0.0f, 100.0f, 30.0f},
+    {"peakreduction", "Squeeze", "", 0.0f, 100.0f, 30.0f},
     HEM_OPTO_TAIL,
 };
 const ParamInfo kParams3A[kCount] = {
     {"gain", "Gain", "/10", 0.0f, 10.0f, 0.0f},
-    {"peakreduction", "Peak Reduction", "/10", 0.0f, 10.0f, 3.0f},
+    {"peakreduction", "Squeeze", "/10", 0.0f, 10.0f, 3.0f},
     HEM_OPTO_TAIL,
 };
 #undef HEM_OPTO_TAIL

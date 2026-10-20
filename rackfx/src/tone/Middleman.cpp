@@ -12,8 +12,8 @@ using namespace tone;
 const ParamInfo kParams[kCount] = {
     {"low", "Low", "%", 0.0f, 100.0f, 0.0f},
     {"high", "High", "%", 0.0f, 100.0f, 0.0f},
-    {"punch", "Punch", "%", 0.0f, 100.0f, 0.0f},
-    {"master", "Master", "dB", -24.0f, 6.0f, 0.0f},
+    {"punch", "Snap", "%", 0.0f, 100.0f, 0.0f},
+    {"master", "All", "dB", -24.0f, 6.0f, 0.0f},
     {"center", "Center", "dB", -60.0f, 6.0f, 0.0f},
     {"sides", "Sides", "dB", -60.0f, 6.0f, 0.0f},
 };
