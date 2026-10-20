@@ -9,9 +9,13 @@ using K = KnobSize;
 
 namespace to {
 using namespace torch;
-constexpr PlateChoice choices[] = {{Model, "MODEL"}, {Cabinet, "CABINET"}};
-constexpr PlateKnob row1[] = {{Gain, "GAIN", "0", "100", K::Big}, {Bass, "BASS"}, {P::Mid, "MID"}, {Treble, "TREBLE"}, {Presence, "PRESENCE"}};
-constexpr PlateKnob row2[] = {{Gate, "GATE", "", "", K::Small}, {Room, "ROOM", "", "", K::Small}, {Master, "MASTER", "", "", K::Small}};
+constexpr PlateToggle toggles[] = {{AmpOn, "AMP"}, {PhaseB, "PHASE B"}};
+constexpr PlateChoice steppers[] = {{Type, "TYPE"}, {Routing, "ROUTING"}};
+constexpr PlateKnob row1[] = {{Input, "INPUT", "-12", "+12"}, {P::Drive, "DRIVE", "0", "10", K::Big}, {Bass, "BASS", "0", "10"}, {P::Mid, "MID", "0", "10"},
+                              {Treble, "TREBLE", "0", "10"}, {Presence, "PRESENCE", "0", "10"}, {Master, "MASTER", "0", "10"}, {Output, "OUTPUT", "-12", "+12"}};
+constexpr PlateKnob row2[] = {{CabA, "CAB A", "", "", K::Small}, {MicA, "MIC A", "", "", K::Small}, {VolA, "VOLUME A", "0", "10", K::Small},
+                              {PanA, "PAN A", "L", "R", K::Small}, {CabB, "CAB B", "", "", K::Small}, {MicB, "MIC B", "", "", K::Small},
+                              {VolB, "VOLUME B", "0", "10", K::Small}, {PanB, "PAN B", "L", "R", K::Small}};
 } // namespace to
 
 namespace rk {
@@ -74,9 +78,9 @@ constexpr PlateToggle leftT[] = {{On, "TONE"}};
 
 } // namespace
 
-const PlateSpec kTorch{.note1 = "LIGHT IT UP", .note2 = "AMP AND CABINET", .screen = Screen::None, .choices = to::choices,
-                       .row1 = to::row1, .row2 = to::row2,
-                       .demo = [](hc::fx::Effect& e) { using namespace torch; e.set(Model, 2); e.set(Gain, 60); }};
+const PlateSpec kTorch{.note1 = "LIGHT IT UP", .note2 = "AMP AND TWO CABINETS", .screen = Screen::None, .toggles = to::toggles,
+                       .row1 = to::row1, .row2 = to::row2, .steppers = to::steppers,
+                       .demo = [](hc::fx::Effect& e) { using namespace torch; e.set(Type, Crunch); e.set(Drive, 7); e.set(VolB, 4); }};
 const PlateSpec kRacket{.note1 = "MAKE SOME NOISE", .note2 = "STEP ON IT", .screen = Screen::None, .choices = rk::choices, .row1 = rk::row1,
                         .demo = [](hc::fx::Effect& e) { using namespace racket; e.set(Type, 2); e.set(Drive, 70); }};
 const PlateSpec kSnitch{.note1 = "TELLS YOU", .note2 = "WHEN YOU'RE OFF", .screen = Screen::Readouts, .readouts = sn::readouts,

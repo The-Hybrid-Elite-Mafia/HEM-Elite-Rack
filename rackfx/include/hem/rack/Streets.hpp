@@ -2,9 +2,12 @@
 // =============================================================================
 //  The HEM streets: guitar, pitch, meters and test tones (our own designs, our own names).
 //
-//  TORCH         guitar / bass amp: MODEL CLEAN / CRUNCH / LEAD / BASS, GATE, GAIN, BASS / MID /
-//                TREBLE (dB), PRESENCE, CABINET (1X12 open back / 4X12 closed / 8X10 bass / OFF), ROOM (a
-//                little of the room the cabinet sits in), MASTER. 4x oversampled; latency 23.
+//  TORCH         guitar amp with two cabinets: AMP on / off, TYPE (ten amps of our own, from DIRECT and CLEAN up
+//                to HOT, LEAD and MODERN), DRIVE, BASS, MID, TREBLE, PRESENCE and MASTER (all 0..10, 5 = middle),
+//                INPUT and OUTPUT ±12 dB; two cabinet paths A and B, each its CABINET (NONE or one of eight), MIC
+//                (dynamic, condenser or ribbon, on or off axis), VOLUME 0..10 (0 = off) and PAN; B has a PHASE
+//                flip; ROUTING DUAL (both paths hear the amp) or STEREO (left through A, right through B).
+//                4x oversampled; latency 23.
 //  THE RACKET    drive pedal: TYPE OVERDRIVE / DISTORTION / FUZZ / OCTAVE (an octave up on top of
 //                the fuzz), DRIVE, TONE, LEVEL, MIX. 4x oversampled; latency 23.
 //  THE SNITCH    tuner: MODE CHROMATIC (any note) / GUITAR / DROP D / OPEN G / OPEN D / OPEN E / DADGAD /
@@ -37,7 +40,10 @@
 namespace hem::rack {
 
 namespace torch {
-enum P : int { Model, Gate, Gain, Bass, Mid, Treble, Presence, Cabinet, Room, Master, kCount };
+enum P : int { AmpOn, Type, Drive, Bass, Mid, Treble, Presence, Master, Input, Output,
+               CabA, MicA, VolA, PanA, CabB, MicB, VolB, PanB, PhaseB, Routing, kCount };
+enum Amp : int { Direct, Clean, Sparkle, Edge, DriveAmp, Crunch, Brit, Hot, Lead, Modern, kAmps };
+inline constexpr int kCabs = 9;   // NONE + eight
 } // namespace torch
 
 namespace racket {

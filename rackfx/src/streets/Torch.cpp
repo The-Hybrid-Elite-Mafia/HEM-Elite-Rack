@@ -1,75 +1,106 @@
-// TORCH — guitar / bass amp with cabinet (see Streets.hpp).
+// TORCH — guitar amp with two cabinet paths (see Streets.hpp).
 //
-// Per channel: gate -> input filter -> 4x oversampled preamp stages (asymmetric soft clipping, a
-// high-pass between stages) and a softer power stage -> tone stack (bass / mid / treble, presence)
-// -> cabinet (a filter model of the speaker and box) -> a little room -> master.
+// In order: INPUT; the amp (its voicing, the preamp and power stages 4x oversampled with DRIVE setting the
+// gain, the tone stack BASS / MID / TREBLE and PRESENCE, MASTER), or nothing when AMP is off; then the two
+// cabinet paths A and B (each a cabinet and its mic, its VOLUME and PAN; B can be flipped), added together,
+// OUTPUT. ROUTING STEREO sends the left side through A and the right through B instead of both into both.
 #include "hem/rack/Streets.hpp"
 
-#include "../tone/ToneCommon.hpp"
+#include "AmpKit.hpp"
 
 namespace hem::rack {
 namespace torch {
 namespace {
-using namespace tone;
+using namespace amps;
 
-const char* const kModelN[] = {"CLEAN", "CRUNCH", "LEAD", "BASS"};
-const char* const kCabN[] = {"1X12", "4X12", "8X10", "OFF"};
+const char* const kTypeN[] = {"DIRECT", "CLEAN", "SPARKLE", "EDGE", "DRIVE", "CRUNCH", "BRIT", "HOT", "LEAD", "MODERN"};
+const char* const kCabN[] = {"NONE", "1X12 OPEN", "2X12 OPEN", "4X10 OPEN", "2X12 CLOSED", "4X12 VINTAGE", "4X12 MODERN", "1X15", "8X10"};
+const char* const kMicN[] = {"DYNAMIC ON", "DYNAMIC OFF", "CONDENSER ON", "CONDENSER OFF", "RIBBON ON", "RIBBON OFF"};
+const char* const kRouteN[] = {"DUAL", "STEREO"};
 const ParamInfo kParams[kCount] = {
-    {"model", "Model", "", 0, 3, 1, Taper::Choice, kModelN},
-    {"gate", "Gate", "dB", -80.0f, -20.0f, -80.0f},
-    {"gain", "Gain", "%", 0.0f, 100.0f, 40.0f},
-    {"bass", "Bass", "dB", -12.0f, 12.0f, 0.0f},
-    {"mid", "Mid", "dB", -12.0f, 12.0f, 0.0f},
-    {"treble", "Treble", "dB", -12.0f, 12.0f, 0.0f},
-    {"presence", "Presence", "%", 0.0f, 100.0f, 30.0f},
-    {"cabinet", "Cabinet", "", 0, 3, 1, Taper::Choice, kCabN},
-    {"room", "Room", "%", 0.0f, 100.0f, 15.0f},
-    {"master", "Master", "dB", -24.0f, 12.0f, 0.0f},
+    {"amp", "Amp", "", 0, 1, 1, Taper::Toggle, kOnOff},
+    {"type", "Type", "", 0, kAmps - 1, Clean, Taper::Choice, kTypeN},
+    {"drive", "Drive", "", 0.0f, 10.0f, 5.0f},
+    {"bass", "Bass", "", 0.0f, 10.0f, 5.0f},
+    {"mid", "Mid", "", 0.0f, 10.0f, 5.0f},
+    {"treble", "Treble", "", 0.0f, 10.0f, 5.0f},
+    {"presence", "Presence", "", 0.0f, 10.0f, 5.0f},
+    {"master", "Master", "", 0.0f, 10.0f, 5.0f},
+    {"input", "Input", "dB", -12.0f, 12.0f, 0.0f},
+    {"output", "Output", "dB", -12.0f, 12.0f, 0.0f},
+    {"caba", "Cabinet A", "", 0, kCabs - 1, 2, Taper::Choice, kCabN},
+    {"mica", "Mic A", "", 0, kMics - 1, DynamicOn, Taper::Choice, kMicN},
+    {"vola", "Volume A", "", 0.0f, 10.0f, 5.0f},
+    {"pana", "Pan A", "", -100.0f, 100.0f, 0.0f},
+    {"cabb", "Cabinet B", "", 0, kCabs - 1, 5, Taper::Choice, kCabN},
+    {"micb", "Mic B", "", 0, kMics - 1, RibbonOn, Taper::Choice, kMicN},
+    {"volb", "Volume B", "", 0.0f, 10.0f, 0.0f},
+    {"panb", "Pan B", "", -100.0f, 100.0f, 0.0f},
+    {"phaseb", "Phase B", "", 0, 1, 0, Taper::Toggle, kOnOff},
+    {"routing", "Routing", "", 0, 1, 0, Taper::Choice, kRouteN},
 };
-struct AmpModel {
-    double inHp, preHz, preDb, midHz;
-    float gainLo, gainHi, bias;   // preamp gain range (dB) and how lopsided the clipping is
-    int stages;
+// The amps: voicing, gain range across DRIVE 0..10 (dB), where MID sits, where TREBLE and PRESENCE work.
+struct AmpModel { Voice v; float gainLo, gainHi; double midHz, trebleHz, presHz; };
+constexpr AmpModel kModels[kAmps] = {
+    {{20.0, 1000.0, 0.0, 0.0f, 1}, -6.0f, 6.0f, 700.0, 3000.0, 5000.0},       // DIRECT: almost a clean line
+    {{60.0, 800.0, 0.0, 0.05f, 1}, 0.0f, 18.0f, 600.0, 2800.0, 4500.0},      // CLEAN
+    {{80.0, 2500.0, 3.0, 0.04f, 1}, 0.0f, 20.0f, 700.0, 3500.0, 5500.0},     // SPARKLE: a bright clean
+    {{90.0, 1200.0, 2.0, 0.10f, 2}, 4.0f, 28.0f, 650.0, 3000.0, 4500.0},     // EDGE
+    {{90.0, 900.0, 3.0, 0.12f, 2}, 8.0f, 32.0f, 650.0, 2800.0, 4500.0},      // DRIVE
+    {{100.0, 900.0, 4.0, 0.12f, 2}, 10.0f, 36.0f, 700.0, 2800.0, 4500.0},    // CRUNCH
+    {{100.0, 1000.0, 5.0, 0.14f, 3}, 10.0f, 38.0f, 800.0, 3000.0, 5000.0},   // BRIT
+    {{110.0, 800.0, 6.0, 0.15f, 3}, 14.0f, 44.0f, 800.0, 3000.0, 4500.0},    // HOT
+    {{110.0, 900.0, 6.0, 0.15f, 3}, 16.0f, 48.0f, 900.0, 3200.0, 5000.0},    // LEAD
+    {{120.0, 700.0, 4.0, 0.10f, 3}, 18.0f, 50.0f, 500.0, 3500.0, 5500.0},    // MODERN: tight lows, scooped
 };
-constexpr AmpModel kModels[4] = {
-    {60.0, 800.0, 0.0, 600.0, 0.0f, 18.0f, 0.05f, 1},
-    {90.0, 900.0, 3.0, 650.0, 8.0f, 34.0f, 0.12f, 2},
-    {110.0, 800.0, 6.0, 800.0, 14.0f, 46.0f, 0.15f, 3},
-    {30.0, 500.0, 0.0, 500.0, 0.0f, 24.0f, 0.08f, 1},
+constexpr CabSpec kCabSpecs[kCabs - 1] = {
+    {75.0, 1.0, 120.0, 2.0, 2400.0, 3.0, 4000.0, -5.0, 5500.0},     // 1X12 OPEN
+    {70.0, 1.0, 110.0, 2.5, 2200.0, 3.0, 3800.0, -4.0, 5200.0},     // 2X12 OPEN
+    {80.0, 0.9, 140.0, 2.0, 2600.0, 4.0, 4200.0, -4.0, 6000.0},     // 4X10 OPEN
+    {70.0, 1.2, 100.0, 3.0, 2000.0, 2.5, 3400.0, -4.0, 5000.0},     // 2X12 CLOSED
+    {65.0, 1.2, 95.0, 3.5, 1800.0, 2.0, 3200.0, -5.0, 4600.0},      // 4X12 VINTAGE
+    {60.0, 1.3, 90.0, 4.0, 2500.0, 3.0, 3600.0, -3.0, 5400.0},      // 4X12 MODERN
+    {45.0, 0.9, 80.0, 3.0, 1500.0, 2.0, 2800.0, -4.0, 4000.0},      // 1X15
+    {40.0, 0.9, 70.0, 3.0, 800.0, -3.0, 2200.0, -3.0, 3500.0},      // 8X10
 };
-constexpr int kTaps = 4;
-constexpr float kTapMs[kTaps] = {3.1f, 5.3f, 7.9f, 11.3f};
-constexpr float kTapGain[kTaps] = {0.30f, 0.22f, 0.16f, 0.11f};
-
-float stage(float x, float bias) noexcept { return softClip(x + bias) - softClip(bias); }
 
 class Impl final : public hc::fx::Effect {
 public:
     Impl() { setDefaults(); }
     std::span<const ParamInfo> params() const noexcept override { return kParams; }
-    std::uint32_t latency() const noexcept override { return OS::latency(); }
-
+    std::uint32_t latency() const noexcept override { return Preamp::latency(); }
+    bool paramActive(int i) const noexcept override {
+        if (i >= Type && i <= Master) return p(AmpOn) >= 0.5f;
+        if (i == MicA) return p(CabA) >= 0.5f;
+        if (i == MicB) return p(CabB) >= 0.5f;
+        return true;
+    }
     void prepare(double fs, std::uint32_t) override {
         fs_ = fs;
-        for (auto& d : room_) d.prepare(static_cast<std::uint32_t>(0.015 * fs) + 8);
-        // one-pole high-pass between the preamp stages, at the 4x rate
-        interK_ = static_cast<float>(std::exp(-2.0 * std::numbers::pi * 140.0 / (fs * OS::kFactor)));
+        pre_.prepare(fs);
+        clean_.prepare(Preamp::latency());
+        fade_ = static_cast<float>(1.0 / (0.02 * fs));
         reset();
     }
     void reset() noexcept override {
-        for (auto& o : os_) o.clear();
-        for (auto& ch : pre_) for (auto& b : ch) b.clear();
-        for (auto& ch : post_) for (auto& b : ch) b.clear();
-        for (auto& d : room_) d.clear();
-        for (auto& ch : inter_) for (auto& v : ch) v = 0.0f;
-        gate_.clear();
+        pre_.clear();
+        clean_.clear();
+        for (auto& ch : in_) for (auto& b : ch) b.clear();
+        for (auto& ch : stack_) for (auto& b : ch) b.clear();
+        a_.clear();
+        b_.clear();
         key_.fill(-1e9f);
-        dcL_ = dcR_ = 0.0f;
-        master_.prepare(fs_, 30, hc::fx::dbToGain(p(Master)));
-        roomAmt_.prepare(fs_, 30, p(Room) * 0.01f);
         design();
+        dc_[0] = dc_[1] = 0.0f;
+        ampMix_ = p(AmpOn) >= 0.5f ? 1.0f : 0.0f;
+        inG_.prepare(fs_, 20, hc::fx::dbToGain(p(Input)));
+        outG_.prepare(fs_, 20, hc::fx::dbToGain(p(Output)));
+        master_.prepare(fs_, 30, hc::fx::dbToGain(knobDb(p(Master), 3.6f)));
+        volA_.prepare(fs_, 30, knobVol(p(VolA)));
+        volB_.prepare(fs_, 30, knobVol(p(VolB)) * (p(PhaseB) >= 0.5f ? -1.0f : 1.0f));
+        panA_.prepare(fs_, 30, p(PanA) * 0.01f);
+        panB_.prepare(fs_, 30, p(PanB) * 0.01f);
     }
-
     void process(float* L, float* R, std::uint32_t n) noexcept override {
         for (std::uint32_t off = 0; off < n; off += kChunk) chunk(L + off, R + off, std::min(kChunk, n - off));
     }
@@ -79,111 +110,88 @@ private:
 
     void chunk(float* L, float* R, std::uint32_t n) noexcept {
         design();
-        const AmpModel& m = kModels[model_];
-        const float g1 = hc::fx::dbToGain(m.gainLo + (m.gainHi - m.gainLo) * p(Gain) * 0.01f);
-        // one clean stage follows its gain; stacked stages clip to about the same level whatever the gain
-        const float makeup = m.stages == 1 ? 1.0f / std::sqrt(g1) : 0.35f;
-        const bool gateOn = p(Gate) > -79.5f;
-        const float gEnvRel = coefMs(fs_, 8.0), gAtt = coefMs(fs_, 0.5), gRel = coefMs(fs_, 80.0);
-        const auto holdN = static_cast<std::uint32_t>(0.03 * fs_);
-        float* io[2] = {L, R};
-        // gate (both sides together) and the input filters, at the normal rate
+        const AmpModel& m = kModels[type_];
+        const bool ampOn = p(AmpOn) >= 0.5f;
+        const float g = hc::fx::dbToGain(m.gainLo + (m.gainHi - m.gainLo) * p(Drive) * 0.1f);
+        const float makeup = m.v.stages == 1 ? 1.0f / std::sqrt(std::max(g, 1.0f)) : 0.35f;
+        const float wIn = hc::fx::dbToGain(p(Input)), wOut = hc::fx::dbToGain(p(Output)), wMaster = hc::fx::dbToGain(knobDb(p(Master), 3.6f));
+        const float wA = knobVol(p(VolA)), wB = knobVol(p(VolB)) * (p(PhaseB) >= 0.5f ? -1.0f : 1.0f), wPa = p(PanA) * 0.01f, wPb = p(PanB) * 0.01f;
+        const bool stereo = p(Routing) >= 0.5f;
+        float dry[2][kChunk], amp[2][kChunk];
         for (std::uint32_t i = 0; i < n; ++i) {
-            const float gg = hc::fx::dbToGain(gate_.tick(std::max(std::fabs(L[i]), std::fabs(R[i])), gateOn, p(Gate), -70.0f, holdN, gEnvRel, gAtt, gRel));
+            const float gi = inG_.next(wIn);
             for (int c = 0; c < 2; ++c) {
-                float x = io[c][i] * gg;
-                for (auto& b : pre_[c]) x = b.tick(x);
-                io[c][i] = x;
+                float x = (c == 0 ? L[i] : R[i]) * gi;
+                dry[c][i] = x;
+                for (auto& b : in_[static_cast<std::size_t>(c)]) x = b.tick(x);
+                amp[c][i] = x;
             }
         }
-        // the preamp and power stages at 4x
-        float x4[kChunk * OS::kFactor];
-        for (int c = 0; c < 2; ++c) {
-            os_[c].up(io[c], x4, n);
-            float* hp = inter_[c];
-            for (std::uint32_t j = 0; j < n * OS::kFactor; ++j) {
-                float v = stage(x4[j] * g1, m.bias);
-                for (int s = 1; s < m.stages; ++s) {
-                    // the coupling between stages takes the lows out, then the next stage clips again
-                    const float lp = v + interK_ * (hp[s] - v);
-                    hp[s] = lp;
-                    v = stage((v - lp) * 2.0f, m.bias * 0.7f);
-                }
-                x4[j] = softClip(v * 1.4f) / 1.4f;   // the power stage: softer, rounder
-            }
-            os_[c].down(x4, io[c], n);
-        }
-        // tone stack, presence, cabinet, room, master
+        pre_.run(amp[0], amp[1], n, m.v, g, makeup);
         for (std::uint32_t i = 0; i < n; ++i) {
-            const float rm = roomAmt_.next(p(Room) * 0.01f), mg = master_.next(hc::fx::dbToGain(p(Master)));
+            // the amp's tone stack and master (or the plain input, delayed to match, when AMP is off)
+            ampMix_ = ampOn ? std::min(1.0f, ampMix_ + fade_) : std::max(0.0f, ampMix_ - fade_);
+            const float mg = master_.next(wMaster);
+            float x[2];
             for (int c = 0; c < 2; ++c) {
-                float x = io[c][i] * makeup;
-                for (auto& b : post_[c]) x = b.tick(x);
-                room_[c].write(x);
-                float r = 0.0f;
-                for (int k = 0; k < kTaps; ++k) r += kTapGain[k] * room_[c].read(kTapMs[k] * 0.001f * static_cast<float>(fs_) * (c == 0 ? 1.0f : 1.13f));
-                float& dc = c == 0 ? dcL_ : dcR_;
-                x += rm * r;
-                dc += (x - dc) * 0.0005f;
-                io[c][i] = (x - dc) * mg;
+                float v = amp[c][i];
+                dc_[c] += (v - dc_[c]) * 0.0005f;
+                v -= dc_[c];
+                for (auto& b : stack_[static_cast<std::size_t>(c)]) v = b.tick(v);
+                const float d = c == 0 ? clean_.l.process(dry[0][i], Preamp::latency()) : clean_.r.process(dry[1][i], Preamp::latency());
+                x[c] = d + ampMix_ * (v * mg - d);
             }
+            // the two cabinet paths
+            const float va = volA_.next(wA), vb = volB_.next(wB), pa = panA_.next(wPa), pb = panB_.next(wPb);
+            const float inA[2] = {stereo ? x[0] : x[0], stereo ? x[0] : x[1]};
+            const float inB[2] = {stereo ? x[1] : x[0], x[1]};
+            float oa[2], ob[2];
+            for (int c = 0; c < 2; ++c) {
+                oa[c] = cabA_ ? a_.tick(c, inA[c]) : inA[c];
+                ob[c] = cabB_ ? b_.tick(c, inB[c]) : inB[c];
+            }
+            // pan: -100 = left only .. +100 = right only (constant level in the middle)
+            const float aL = va * std::min(1.0f, 1.0f - pa), aR = va * std::min(1.0f, 1.0f + pa);
+            const float bL = vb * std::min(1.0f, 1.0f - pb), bR = vb * std::min(1.0f, 1.0f + pb);
+            const float o = outG_.next(wOut);
+            L[i] = (aL * oa[0] + bL * ob[0]) * o;
+            R[i] = (aR * oa[1] + bR * ob[1]) * o;
         }
     }
 
     void design() noexcept {
-        const std::array<float, 6> k{p(Model), p(Bass), p(Mid), p(Treble), p(Presence), p(Cabinet)};
+        const std::array<float, 9> k{p(Type), p(Bass), p(Mid), p(Treble), p(Presence), p(CabA), p(MicA), p(CabB), p(MicB)};
         if (k == key_) return;
         key_ = k;
-        model_ = std::clamp(static_cast<int>(std::lround(p(Model))), 0, 3);
-        const AmpModel& m = kModels[model_];
+        type_ = std::clamp(static_cast<int>(std::lround(p(Type))), 0, kAmps - 1);
+        const AmpModel& m = kModels[type_];
         const double top = fs_ * 0.45;
-        const C id{};
-        const C inHp = C::make(T::HighPass, fs_, m.inHp, 0.7071);
-        const C pre = m.preDb != 0.0 ? C::make(T::Bell, fs_, m.preHz, 0.7, m.preDb) : id;
-        for (auto& ch : pre_) { ch[0].c = inHp; ch[1].c = pre; }
-        // tone stack and presence
-        std::array<C, kPost> post{};
-        post[0] = C::make(T::LowShelf, fs_, 120.0, 0.7071, p(Bass));
-        post[1] = C::make(T::Bell, fs_, m.midHz, 0.7, p(Mid));
-        post[2] = C::make(T::HighShelf, fs_, std::min(2800.0, top), 0.7071, p(Treble));
-        post[3] = C::make(T::HighShelf, fs_, std::min(4500.0, top), 0.7071, 8.0 * p(Presence) * 0.01);
-        // the cabinet
-        const int cab = std::clamp(static_cast<int>(std::lround(p(Cabinet))), 0, 3);
-        for (int i = 4; i < kPost; ++i) post[static_cast<std::size_t>(i)] = id;
-        if (cab == 0) {   // open back 1x12: looser lows, a bright edge
-            post[4] = C::make(T::HighPass, fs_, 75.0, 1.0);
-            post[5] = C::make(T::Bell, fs_, 2400.0, 1.2, 3.0);
-            post[6] = C::make(T::Bell, fs_, std::min(4000.0, top), 2.0, -5.0);
-            post[7] = C::make(T::LowPass, fs_, std::min(5500.0, top), 0.6);
-            post[8] = C::make(T::LowPass, fs_, std::min(5500.0, top), 1.0);
-        } else if (cab == 1) {   // closed 4x12: tight thump, darker top
-            post[4] = C::make(T::HighPass, fs_, 70.0, 1.2);
-            post[5] = C::make(T::Bell, fs_, 100.0, 1.0, 3.0);
-            post[6] = C::make(T::Bell, fs_, std::min(3200.0, top), 1.5, -4.0);
-            post[7] = C::make(T::LowPass, fs_, std::min(4800.0, top), 0.6);
-            post[8] = C::make(T::LowPass, fs_, std::min(4800.0, top), 1.0);
-        } else if (cab == 2) {   // bass 8x10: deep, no fizz
-            post[4] = C::make(T::HighPass, fs_, 40.0, 0.9);
-            post[5] = C::make(T::Bell, fs_, 70.0, 1.0, 3.0);
-            post[6] = C::make(T::Bell, fs_, 800.0, 1.0, -3.0);
-            post[7] = C::make(T::LowPass, fs_, std::min(3500.0, top), 0.6);
-            post[8] = C::make(T::LowPass, fs_, std::min(3500.0, top), 1.0);
-        }
-        for (auto& ch : post_) for (int i = 0; i < kPost; ++i) ch[static_cast<std::size_t>(i)].c = post[static_cast<std::size_t>(i)];
+        const C inHp = C::make(T::HighPass, fs_, m.v.inHp, 0.7071);
+        const C pre = m.v.preDb != 0.0 ? C::make(T::Bell, fs_, m.v.preHz, 0.7, m.v.preDb) : C{};
+        for (auto& ch : in_) { ch[0].c = inHp; ch[1].c = pre; }
+        const C st[4] = {C::make(T::LowShelf, fs_, 120.0, 0.7071, knobDb(p(Bass))), C::make(T::Bell, fs_, m.midHz, 0.7, knobDb(p(Mid))),
+                         C::make(T::HighShelf, fs_, std::min(m.trebleHz, top), 0.7071, knobDb(p(Treble))),
+                         C::make(T::HighShelf, fs_, std::min(m.presHz, top), 0.7071, knobDb(p(Presence), 1.6f))};
+        for (auto& ch : stack_) for (int i = 0; i < 4; ++i) ch[static_cast<std::size_t>(i)].c = st[i];
+        const int ca = std::clamp(static_cast<int>(std::lround(p(CabA))), 0, kCabs - 1), cb = std::clamp(static_cast<int>(std::lround(p(CabB))), 0, kCabs - 1);
+        const int ma = std::clamp(static_cast<int>(std::lround(p(MicA))), 0, kMics - 1), mb = std::clamp(static_cast<int>(std::lround(p(MicB))), 0, kMics - 1);
+        cabA_ = ca > 0;
+        cabB_ = cb > 0;
+        if (cabA_) a_.set(cabinet(kCabSpecs[ca - 1], ma, fs_));
+        if (cabB_) b_.set(cabinet(kCabSpecs[cb - 1], mb, fs_));
     }
 
-    static constexpr int kPost = 9;
     double fs_ = 48000.0;
-    OS os_[2];
-    std::array<std::array<hc::fx::Biquad, 2>, 2> pre_{};
-    std::array<std::array<hc::fx::Biquad, kPost>, 2> post_{};
-    hc::fx::DelayLine room_[2];
-    float inter_[2][4]{};
-    float interK_ = 0.0f, dcL_ = 0.0f, dcR_ = 0.0f;
-    GateStage gate_;
-    int model_ = 1;
-    std::array<float, 6> key_{};
-    hc::fx::Smoothed master_, roomAmt_;
+    Preamp pre_;
+    Delay2 clean_;
+    std::array<std::array<hc::fx::Biquad, 2>, 2> in_{};
+    std::array<std::array<hc::fx::Biquad, 4>, 2> stack_{};
+    CabPath a_, b_;
+    bool cabA_ = true, cabB_ = true;
+    int type_ = Clean;
+    std::array<float, 9> key_{};
+    float dc_[2]{}, ampMix_ = 1.0f, fade_ = 0.001f;
+    hc::fx::Smoothed inG_, outG_, master_, volA_, volB_, panA_, panB_;
 };
 
 } // namespace

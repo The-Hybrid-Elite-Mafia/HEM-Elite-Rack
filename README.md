@@ -91,7 +91,7 @@ C++23 audio framework, as a library.
 | **THE INFORMANT** | Vocoder with its own 8-voice synth on 48 keys (hold or latch), ten sounds, tune, spread; noise with its filter; squeeze, formant, lag, hold; five-band EQ; carrier / modulator / noise / vocoded mixer with solo and mute |
 | **STRAPPED** | Guitar mix desk: clean tone / edge / high gain, re-amp, then six faders with a style each: bass, treble, compress, reverb, delay, pitch |
 | **SAFE HOUSE** | Speakers in your headphones: room, speaker angle, head turn, head size, ear to ear, mute left / right (for listening; bypass before export) |
-| **TORCH** | Guitar / bass amp: clean, crunch, lead or bass; gate, gain, bass / mid / treble, presence, 1x12 / 4x12 / 8x10 cabinet, room |
+| **TORCH** | Guitar amp: ten amp types, drive, bass / mid / treble, presence, master, input, output; two cabinet paths (eight cabinets, six mic placements, volume, pan, phase), dual or stereo |
 | **THE RACKET** | Drive pedal: overdrive, distortion, fuzz or octave fuzz; drive, tone, level, mix |
 | **THE SNITCH** | Tuner: chromatic, guitar and six other tunings or your own notes (twelve switches); reference A ±6 cents; note, cents and frequency |
 | **PROMOTION** | Pitch shifter: ±12 semitones and cents, smooth or tight |

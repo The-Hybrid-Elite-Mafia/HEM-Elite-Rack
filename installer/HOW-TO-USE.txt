@@ -497,9 +497,13 @@ SAFE HOUSE
   own head. MUTE L / MUTE R switch a speaker off. It is for listening only: switch it off before you export.
 
 TORCH
-  A guitar (or bass) amp with its cabinet. MODEL: CLEAN, CRUNCH, LEAD or BASS. GAIN is how hard it's
-  driven; BASS / MID / TREBLE and PRESENCE shape it; CABINET picks the speaker box (OFF if you use your
-  own). GATE quiets the hiss between notes. MASTER is the volume.
+  A guitar amp and two miked cabinets. TYPE picks the amp (DIRECT and CLEAN up to HOT, LEAD and
+  MODERN); DRIVE is how hard it's driven; BASS / MID / TREBLE and PRESENCE shape it; MASTER is its
+  volume (all 0..10, 5 = the middle). AMP off = only the cabinets. Each cabinet path (A, B) has its CAB
+  (NONE = no cabinet and no mic), MIC (dynamic, condenser or ribbon, on or off the speaker's centre),
+  VOLUME (0 = off) and PAN; PHASE B flips B (try it when the two sound thin together). ROUTING DUAL
+  feeds both cabinets the amp; STEREO sends the left side to A and the right to B (pan them apart).
+  The old GATE and ROOM are gone: the original has neither.
 
 THE RACKET
   A drive pedal. TYPE: OVERDRIVE (warm), DISTORTION (harder), FUZZ (square and wild) or OCTAVE (fuzz

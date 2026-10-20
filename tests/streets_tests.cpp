@@ -57,23 +57,44 @@ void allRules() {
     }
 }
 
+double peakIn(const std::vector<float>& x, std::size_t from, std::size_t to) {
+    double m = 0;
+    for (std::size_t k = from; k < to && k < x.size(); ++k) m = std::max(m, static_cast<double>(std::fabs(x[k])));
+    return m;
+}
+
 void testTorch() {
     using namespace torch;
     double lv[3], h3[3];
-    const float gains[3] = {0, 50, 100};
+    const float drives[3] = {0, 5, 10};
     for (int k = 0; k < 3; ++k) {
-        auto e = make("TORCH", {{Model, 1}, {Gain, gains[k]}, {Cabinet, 3}, {Room, 0}});
+        auto e = make("TORCH", {{Type, Crunch}, {Drive, drives[k]}, {CabA, 0}});
         lv[k] = componentDb(*e, 200, 0.1f, 200);
         h3[k] = componentDb(*e, 200, 0.1f, 600) - lv[k];
     }
-    std::printf("  TORCH crunch, a -20 dBFS 200 Hz note, gain 0 / 50 / 100: level %.1f / %.1f / %.1f dB, 3rd harmonic %.1f / %.1f / %.1f dB under it\n",
+    std::printf("  TORCH crunch, a -20 dBFS 200 Hz note, drive 0 / 5 / 10: level %.1f / %.1f / %.1f dB, 3rd harmonic %.1f / %.1f / %.1f dB under it\n",
                 lv[0], lv[1], lv[2], h3[0], h3[1], h3[2]);
     CHECK(lv[0] > -30 && lv[2] < 6 && lv[1] > -30 && h3[2] > h3[0] + 6.0);
-    auto c = make("TORCH", {{Model, 0}, {Gain, 0}, {Cabinet, 1}, {Room, 0}, {Presence, 0}});
+    // a cabinet takes the fizz off: 8 kHz well under 1 kHz through the 4x12; with NONE it isn't
+    auto c = make("TORCH", {{Type, Clean}, {Drive, 0}, {CabA, 5}, {Presence, 0}});
+    auto o = make("TORCH", {{Type, Clean}, {Drive, 0}, {CabA, 0}, {Presence, 0}});
     const double k1 = componentDb(*c, 1000, 0.01f, 1000), k8 = componentDb(*c, 8000, 0.01f, 8000);
-    std::printf("  TORCH clean through the 4x12: 1 kHz %.1f dB, 8 kHz %.1f dB\n", k1, k8);
-    CHECK(k8 < k1 - 15.0);
-    const double d = blockSizeDifference(*findPlugin("TORCH"), [](hc::fx::Effect& x) { x.set(Gain, 70); x.set(Gate, -50); }, noise(0.5, 0.3f));
+    const double n1 = componentDb(*o, 1000, 0.01f, 1000), n8 = componentDb(*o, 8000, 0.01f, 8000);
+    std::printf("  TORCH clean, 4x12 vintage: 1 kHz %.1f, 8 kHz %.1f dB; no cabinet: %.1f, %.1f dB\n", k1, k8, n1, n8);
+    CHECK(k8 < k1 - 15.0 && n8 > n1 - 10.0);
+    // AMP off: the input through the cabinet only; VOLUME 0 = silent path; PAN hard left = only left; PHASE B flips B
+    auto off = make("TORCH", {{AmpOn, 0}, {CabA, 0}});
+    const double thru = componentDb(*off, 1000, 0.1f, 1000);
+    auto pan = make("TORCH", {{AmpOn, 0}, {CabA, 0}, {PanA, -100}});
+    Stereo t = sine(1000, 0.5, 0.1f);
+    run(*pan, t);
+    auto both = make("TORCH", {{AmpOn, 0}, {CabA, 0}, {CabB, 0}, {VolB, 5}});
+    auto flip = make("TORCH", {{AmpOn, 0}, {CabA, 0}, {CabB, 0}, {VolB, 5}, {PhaseB, 1}});
+    const double sum = componentDb(*both, 1000, 0.1f, 1000), cancel = componentDb(*flip, 1000, 0.1f, 1000);
+    std::printf("  TORCH amp off, a -20 dBFS tone: %+.2f dBFS; pan A left: right side peak %.1e; A + B %+.2f dBFS, B flipped %.1f dBFS\n", thru, peakIn(t.r, 0, t.size()), sum,
+                cancel);
+    CHECK(std::fabs(thru + 20.0) < 0.05 && peakIn(t.r, 0, t.size()) < 1e-6 && std::fabs(sum + 20.0 - 6.02) < 0.1 && cancel < -80.0);
+    const double d = blockSizeDifference(*findPlugin("TORCH"), [](hc::fx::Effect& x) { x.set(Drive, 7); x.set(VolB, 4); }, noise(0.5, 0.3f));
     std::printf("  TORCH block size 512 vs 1: %.2e\n", d);
     CHECK(d < 1e-5);
 }
