@@ -51,9 +51,12 @@
 //                hard), REVERB (SMALL / MEDIUM / LARGE; the fader is how much), DELAY (1/8, 1/8 D, 1/4 of the tempo;
 //                how much) and PITCH (NARROW / WIDE / WIDEST doubled-and-detuned spread; how much). Meters: input and
 //                output peaks. Latency 23 samples, always.
-//  SAFE HOUSE    speakers in your headphones: each ear hears both speakers, the far one later and
-//                darker, plus the room. ROOM DRY / STUDIO / LIVE, ANGLE (how wide the speakers sit),
-//                CROSSFEED, ROOM level, BASS, OUTPUT. For listening only: bypass it before exporting.
+//  SAFE HOUSE    speakers in your headphones: two speakers in a mixing room, heard through your own head. AMOUNT 0–100
+//                (how much of the room), FRONT 0–180° (how wide the speakers sit, 60 = the usual triangle), ROTATE
+//                ±180° (your head turned, + = to the right: the speakers move the other way), HEAD CIRCUMFERENCE 35–75 cm and
+//                INTER-AURAL ARC 15–40 cm (your head's size: how late and how shaded the far ear is), MUTE L / MUTE R
+//                (switch a speaker off), OUTPUT -24..+12 dB. For listening only: bypass it before exporting.
+//                Not possible here: head tracking (a camera or sensor), headphone models. Zero latency.
 //  DEAD DROP     hybrid delay: TIME (1 ms–3.5 s, or a NOTE when SYNC is HOST or BPM; TAP sets it from two
 //                presses: the time in MS, the tempo in BPM, the nearest note in HOST), DUAL (a separate right
 //                time), FEEDBACK 0–200 % (past 100 it builds up, held in by the analog stage), PING PONG (and which
@@ -117,7 +120,7 @@ enum P : int { Mode, ReAmp, Sensitivity, Balance, Output, Fader0, Color0 = Fader
 } // namespace strapped
 
 namespace safehouse {
-enum P : int { Room, Angle, Crossfeed, RoomLevel, Bass, Output, kCount };
+enum P : int { Amount, Front, Rotate, Head, Arc, MuteL, MuteR, Output, kCount };
 } // namespace safehouse
 
 namespace deaddrop {

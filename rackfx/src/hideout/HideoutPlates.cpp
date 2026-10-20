@@ -95,9 +95,9 @@ constexpr PlateChoice steppers[] = {{Mode, "MODE"}};
 // ---- SAFE HOUSE
 namespace sh {
 using namespace safehouse;
-constexpr PlateChoice choices[] = {{Room, "ROOM"}};
-constexpr PlateKnob row1[] = {{Angle, "ANGLE"}, {Crossfeed, "CROSSFEED", "0", "100", K::Big}, {RoomLevel, "ROOM LEVEL"}, {Bass, "BASS"},
-                              {Output, "OUTPUT", "", "", K::Small}};
+constexpr PlateKnob row1[] = {{Amount, "AMOUNT", "0", "100", K::Big}, {Front, "FRONT"}, {Rotate, "ROTATE"}, {Output, "OUTPUT"}};
+constexpr PlateKnob row2[] = {{Head, "HEAD CIRCUMFERENCE"}, {Arc, "INTER-AURAL ARC"}};
+constexpr PlateToggle toggles[] = {{MuteL, "MUTE L"}, {MuteR, "MUTE R"}};
 } // namespace sh
 
 } // namespace
@@ -133,7 +133,7 @@ const PlateSpec kStrapped{.note1 = "THE GUITAR", .note2 = "READY FOR THE MIX", .
                               e.set(Mode, 1); e.set(Fader0 + CompressF, 3); e.set(Fader0 + ReverbF, -2); e.set(Fader0 + DelayF, -4);
                               e.set(Fader0 + BassF, 2); e.set(Fader0 + PitchF, -3);
                           }};
-const PlateSpec kSafeHouse{.note1 = "SPEAKERS IN", .note2 = "YOUR HEADPHONES", .screen = Screen::None, .choices = sh::choices, .row1 = sh::row1,
-                           .demo = [](hc::fx::Effect& e) { e.set(safehouse::Room, 2); }};
+const PlateSpec kSafeHouse{.note1 = "SPEAKERS IN", .note2 = "YOUR HEADPHONES", .screen = Screen::None, .toggles = sh::toggles, .row1 = sh::row1,
+                           .row2 = sh::row2, .demo = [](hc::fx::Effect& e) { e.set(safehouse::Amount, 35); e.set(safehouse::Rotate, -20); }};
 
 } // namespace hem::rack::plates

@@ -23,8 +23,11 @@
 - **HUSTLE** — rebuilt: one LFO for level, pitch and position, each with depth, on and phase; rate x factor, five waves
 - **STRAPPED** — rebuilt: guitar desk with CLEAN / CRUNCH / HEAVY, re-amp, sensitivity, balance, output and six faders
   with a colour each (bass, treble, compress, reverb, delay, pitch)
+- **SAFE HOUSE** — rebuilt: AMOUNT of room, FRONT spread, ROTATE your head, HEAD CIRCUMFERENCE, INTER-AURAL ARC,
+  MUTE L / R, OUTPUT
 
-Not possible in the rack (said plainly): setting SIX SHOOTER's taps by tapping a rhythm.
+Not possible in the rack (said plainly): setting SIX SHOOTER's taps by tapping a rhythm; SAFE HOUSE's head tracking
+(it needs a camera or sensor) and headphone models.
 
 # HEM-Elite-Rack 0.28.0
 

@@ -392,9 +392,10 @@ STRAPPED
   tempo) and PITCH (how wide the doubled spread is) - those three faders are how much.
 
 SAFE HOUSE
-  For checking a mix on headphones: it sounds like speakers in front of you. ANGLE = how wide they
-  sit, CROSSFEED = how much each ear hears the other speaker, ROOM DRY / STUDIO / LIVE and ROOM LEVEL.
-  It is for listening only: switch it off before you export.
+  For checking a mix on headphones: it sounds like two speakers in a room in front of you. AMOUNT = how
+  much of the room, FRONT = how wide the speakers sit (60 is the usual triangle), ROTATE = turn your head
+  (+ = to the right). HEAD CIRCUMFERENCE and INTER-AURAL ARC (over the top, ear to ear) match it to your
+  own head. MUTE L / MUTE R switch a speaker off. It is for listening only: switch it off before you export.
 
 TORCH
   A guitar (or bass) amp with its cabinet. MODEL: CLEAN, CRUNCH, LEAD or BASS. GAIN is how hard it's

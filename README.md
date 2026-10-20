@@ -79,7 +79,7 @@ C++23 audio framework, as a library.
 | **HUSTLE** | One LFO for level, pitch and position: rate (or the tempo) x factor, five waves, phase per move, gain, mix |
 | **THE INFORMANT** | Vocoder with its own synth carrier: note, octave, chord, saw / pulse / noise, 16–32 bands, formant shift |
 | **STRAPPED** | Guitar mix desk: clean / crunch / heavy, re-amp, then six faders with a colour each: bass, treble, compress, reverb, delay, pitch |
-| **SAFE HOUSE** | Headphone room: hear speakers at an angle in a dry, studio or live room (for listening; bypass before export) |
+| **SAFE HOUSE** | Speakers in your headphones: room amount, speaker spread, head turn, head size (circumference, arc), mute left / right (for listening; bypass before export) |
 | **TORCH** | Guitar / bass amp: clean, crunch, lead or bass; gate, gain, bass / mid / treble, presence, 1x12 / 4x12 / 8x10 cabinet, room |
 | **THE RACKET** | Drive pedal: overdrive, distortion, fuzz or octave fuzz; drive, tone, level, mix |
 | **THE SNITCH** | Tuner: note, cents and frequency; reference A 430–450 Hz; mute while tuning |

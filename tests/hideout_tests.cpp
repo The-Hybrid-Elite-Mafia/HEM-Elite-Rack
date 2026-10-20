@@ -466,17 +466,58 @@ void testStrapped() {
 
 void testSafeHouse() {
     using namespace safehouse;
-    auto e = make("SAFE HOUSE", {{Room, 0}, {Crossfeed, 100}, {Angle, 30}});
-    Stereo s(4800);
-    s.l[100] = 1.0f;
-    run(*e, s);
-    const std::size_t r = peakAt(s.r, 90, 200);
-    std::printf("  SAFE HOUSE: a click on the left reaches the right ear %.2f ms later (30 degrees)\n", (r - 100) / 48.0);
-    CHECK(r >= 110 && r <= 116);
-    auto m = make("SAFE HOUSE", {{Room, 0}, {Crossfeed, 100}});
-    const double g = toneGain(*m, 200, 0.3f);
-    std::printf("  SAFE HOUSE mono 200 Hz level change: %+.1f dB\n", g);
-    CHECK(std::fabs(g) < 3.0);
+    {   // the usual triangle (speakers at +-30 degrees), a 55 cm head: the left speaker reaches the right ear ~0.26 ms later
+        auto e = make("SAFE HOUSE", {{Amount, 0}});
+        Stereo s(4800);
+        s.l[100] = 1.0f;
+        run(*e, s);
+        const std::size_t r = peakAt(s.r, 90, 200), l = peakAt(s.l, 90, 200);
+        std::printf("  SAFE HOUSE: a click from the left speaker - left ear at %zu, right ear %.2f ms later\n", l, (r - 100) / 48.0);
+        CHECK(l == 100);
+        CHECK(r >= 110 && r <= 116);
+    }
+    {   // a bigger head: later still
+        auto e = make("SAFE HOUSE", {{Amount, 0}, {Head, 75}, {Arc, 40}});
+        Stereo s(4800);
+        s.l[100] = 1.0f;
+        run(*e, s);
+        const std::size_t r = peakAt(s.r, 90, 300);
+        std::printf("  SAFE HOUSE head 75 cm, arc 40 cm: %.2f ms\n", (r - 100) / 48.0);
+        CHECK(r > 125);
+    }
+    {   // head turned 30 degrees right: the right speaker is now straight ahead, both ears hear it together
+        auto e = make("SAFE HOUSE", {{Amount, 0}, {Rotate, 30}});
+        Stereo s(4800);
+        s.r[100] = 1.0f;
+        run(*e, s);
+        const std::size_t l = peakAt(s.l, 90, 200), r = peakAt(s.r, 90, 200);
+        std::printf("  SAFE HOUSE rotate +30: right speaker reaches left ear at %zu, right ear at %zu\n", l, r);
+        CHECK(l == r);
+    }
+    {   // MUTE L: the left speaker is gone from both ears
+        auto e = make("SAFE HOUSE", {{Amount, 50}, {MuteL, 1}});
+        Stereo s = sine(500.0, 0.5, 0.3f);
+        for (auto& x : s.r) x = 0.0f;
+        run(*e, s);
+        const double pk = std::max(peakIn(s.l, 4800, s.size()), peakIn(s.r, 4800, s.size()));
+        std::printf("  SAFE HOUSE mute L, left only in: peak %.2e\n", pk);
+        CHECK(pk < 1e-5);
+    }
+    {   // a centred (mono) sound keeps about its level
+        auto m = make("SAFE HOUSE", {{Amount, 0}});
+        const double g = toneGain(*m, 200, 0.3f);
+        std::printf("  SAFE HOUSE mono 200 Hz level change: %+.1f dB\n", g);
+        CHECK(std::fabs(g) < 3.0);
+    }
+    {   // AMOUNT brings the room: sound after the click has ended
+        auto dry = make("SAFE HOUSE", {{Amount, 0}}), wet = make("SAFE HOUSE", {{Amount, 100}});
+        Stereo a = impulse(24000), b = impulse(24000);
+        run(*dry, a);
+        run(*wet, b);
+        const double ta = db(rms(a.l, 2000, 9600)), tb = db(rms(b.l, 2000, 9600));
+        std::printf("  SAFE HOUSE room 40-240 ms after a click: amount 0 %.0f dB, amount 100 %.0f dB\n", ta, tb);
+        CHECK(tb > ta + 40.0);
+    }
 }
 
 } // namespace
