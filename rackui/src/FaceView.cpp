@@ -656,13 +656,11 @@ void FaceView::history(const Ctx& c, const Widget& w) const {
     histPos_ = (histPos_ + 1) % kHistory;
     histCount_ = std::min(histCount_ + 1, kHistory);
     const TextStyle ts = c.ts(TextStyle::Caption);
-    for (float db : {0.0f, -6.0f, -12.0f, -18.0f, -24.0f}) {
+    constexpr float kGrid[] = {0.0f, -6.0f, -12.0f, -18.0f, -24.0f};
+    for (float db : kGrid) {
         const float y = p.y + (-db / 24.0f) * p.h;
         const float xs[2] = {p.x, p.right()}, ys[2] = {y, y};
         r.polyline(xs, ys, 2, 1.0f * z, th_.silver.withAlpha(0.10f), Blend::Over, false);
-        char t[8];
-        std::snprintf(t, sizeof t, "%.0f", static_cast<double>(db));
-        r.text(ts, t, p.x + 4 * z, y + (db == 0.0f ? r.capHeight(ts) + 4 * z : -4 * z), th_.dim, Align::Left, TextFx::Shadowed);
     }
     const int n = histCount_;
     if (n >= 2) {
@@ -698,6 +696,17 @@ void FaceView::history(const Ctx& c, const Widget& w) const {
         line(1, -24.0f, th_.gold, 2.0f, false);
         line(0, -24.0f, th_.red, 2.4f, false);
     }
+    // the dB numbers (gain reduction scale) on top of the traces, on a dark chip so a loud input
+    // line can't hide them
+    for (float db : kGrid) {
+        const float y = p.y + (-db / 24.0f) * p.h;
+        char t[8];
+        std::snprintf(t, sizeof t, "%.0f", static_cast<double>(db));
+        const float base = y + (db == 0.0f ? r.capHeight(ts) + 4 * z : -4 * z);
+        const float tw = r.textWidth(ts, t);
+        r.fillRound({p.x + 1 * z, base - r.capHeight(ts) - 3 * z, tw + 7 * z, r.capHeight(ts) + 6 * z}, 3 * z, rgb8(0x0A0E12, 0.78f), Blend::Over);
+        r.text(ts, t, p.x + 4 * z, base, th_.dim, Align::Left, TextFx::Shadowed);
+    }
     float lx = p.right() - 8 * z;
     auto legend = [&](const char* t, Rgba col) {
         const float tw = r.textWidth(ts, t);
@@ -720,7 +729,20 @@ void FaceView::grMeter(const Ctx& c, const Widget& w) const {
     if (needle_ > 0.5f) needle_ = target;    // the first frame shows where it is
     needle_ += (target - needle_) * 0.35f;   // then it swings like a real needle, ~0.1 s
     if (std::fabs(needle_) < 0.01f) needle_ = 0.0f;
-    const float px = d.cx(), py = d.bottom() - 34 * z, R = std::min(d.w * 0.42f, d.h * 0.78f);
+    // A small meter (HITMAN's pair) gets a smaller number in a band of its own at the top, and its pivot
+    // lifted clear of the caption when the caption reaches the middle; the scale shrinks to fit under
+    // the number. Big meters keep the layout they always had.
+    const TextStyle ls = c.ts(TextStyle::Caption);
+    const std::string caption = w.caption.empty() ? std::string("GAIN REDUCTION  dB") : w.caption;
+    const bool small = w.r.h < 260.0f;
+    const float px = d.cx();
+    const bool captionUnderPivot = d.x + 20 * z + r.textWidth(ls, caption) > px - 16 * z;
+    const float py = small && captionUnderPivot ? d.bottom() - 18 * z - r.capHeight(ls) - 8 * z - 13 * z : d.bottom() - 34 * z;
+    const TextStyle ts = c.ts(TextStyle::Caption);
+    const TextStyle big = c.ts(small ? TextStyle::Title : TextStyle::Panel);
+    const float bigBaseline = d.y + (small ? 40 : 52) * z;
+    float R = std::min(d.w * 0.42f, d.h * 0.78f);
+    if (small) R = std::max(30.0f * z, std::min(R, py - (bigBaseline + 8 * z) - 30 * z - r.capHeight(ts) * 0.5f - 2 * z));
     auto angle = [](float db) {   // 0 dB at +50°, -20 dB at -50° (more room for the first few dB)
         const float t = std::pow(std::clamp(-db / 20.0f, 0.0f, 1.0f), 0.6f);
         return (50.0f - 100.0f * t) * kPi / 180.0f;
@@ -728,15 +750,32 @@ void FaceView::grMeter(const Ctx& c, const Widget& w) const {
     // the scale: a lit arc, ticks and numbers
     r.arc(px, py, R, 3.0f * z, angle(-20.0f), angle(0.0f), th_.teal.withAlpha(0.35f), true);
     r.arc(px, py, R, 5.0f * z, angle(-3.0f), angle(0.0f), th_.teal.withAlpha(0.75f), true);
-    const TextStyle ts = c.ts(TextStyle::Caption);
-    for (float db : {0.0f, -1.0f, -2.0f, -3.0f, -4.0f, -6.0f, -8.0f, -10.0f, -14.0f, -20.0f}) {
-        const float a = angle(db), sx = std::sin(a), sy = -std::cos(a);
+    // Every tick is drawn; a number is left out when it would touch the one before it (20 and 0 always stay).
+    constexpr float kMarks[] = {0.0f, -1.0f, -2.0f, -3.0f, -4.0f, -6.0f, -8.0f, -10.0f, -14.0f, -20.0f};
+    constexpr int kN = static_cast<int>(std::size(kMarks));
+    Rect boxes[kN];
+    char texts[kN][8];
+    bool show[kN];
+    const float capH = r.capHeight(ts);
+    for (int i = 0; i < kN; ++i) {
+        const float a = angle(kMarks[i]), sx = std::sin(a), sy = -std::cos(a);
         const float xs[2] = {px + sx * (R - 14 * z), px + sx * (R + 8 * z)}, ys[2] = {py + sy * (R - 14 * z), py + sy * (R + 8 * z)};
         r.polyline(xs, ys, 2, 2.2f * z, th_.silver.withAlpha(0.8f), Blend::Over, false);
-        char b[8];
-        std::snprintf(b, sizeof b, "%.0f", static_cast<double>(std::fabs(db)));
-        r.text(ts, b, px + sx * (R + 30 * z), py + sy * (R + 30 * z) + r.capHeight(ts) * 0.5f, th_.label, Align::Center, TextFx::Shadowed);
+        std::snprintf(texts[i], sizeof texts[i], "%.0f", static_cast<double>(std::fabs(kMarks[i])));
+        const float tw = r.textWidth(ts, texts[i]), cx = px + sx * (R + 30 * z), cy = py + sy * (R + 30 * z);
+        boxes[i] = {cx - tw * 0.5f - 3 * z, cy - capH * 0.5f - 2 * z, tw + 6 * z, capH + 4 * z};
+        show[i] = true;
     }
+    auto touch = [](const Rect& p, const Rect& q) { return p.x < q.right() && q.x < p.right() && p.y < q.bottom() && q.y < p.bottom(); };
+    int last = 0;
+    for (int i = 1; i < kN - 1; ++i) {
+        if (touch(boxes[last], boxes[i])) show[i] = false;
+        else last = i;
+    }
+    for (int i = kN - 2; i > 0; --i)   // 20 stays: anything in its way goes instead
+        if (show[i] && touch(boxes[i], boxes[kN - 1])) show[i] = false;
+    for (int i = 0; i < kN; ++i)
+        if (show[i]) r.text(ts, texts[i], boxes[i].cx(), boxes[i].cy() + capH * 0.5f, th_.label, Align::Center, TextFx::Shadowed);
     // the needle and its pivot
     const float a = angle(needle_);
     const float nx[2] = {px, px + std::sin(a) * R * 0.97f}, ny[2] = {py, py - std::cos(a) * R * 0.97f};
@@ -745,12 +784,10 @@ void FaceView::grMeter(const Ctx& c, const Widget& w) const {
     r.fillRound({px - 13 * z, py - 13 * z, 26 * z, 26 * z}, 13 * z, rgb8(0x9AA4AA), Blend::Over);
     r.fillRound({px - 6 * z, py - 6 * z, 12 * z, 12 * z}, 6 * z, th_.tealDeep, Blend::Over, true);
     // labels and the number
-    const TextStyle ls = c.ts(TextStyle::Caption);
-    r.text(ls, w.caption.empty() ? std::string("GAIN REDUCTION  dB") : w.caption, d.x + 20 * z, d.bottom() - 18 * z, th_.label, Align::Left, TextFx::Shadowed);
+    r.text(ls, caption, d.x + 20 * z, d.bottom() - 18 * z, th_.label, Align::Left, TextFx::Shadowed);
     char b[32];
     std::snprintf(b, sizeof b, "%.1f", static_cast<double>(target));
-    const TextStyle big = c.ts(TextStyle::Panel);
-    r.text(big, b, d.right() - 24 * z, d.y + 52 * z, th_.teal, Align::Right, TextFx::NeonCrisp);
+    r.text(big, b, d.right() - 24 * z, bigBaseline, th_.teal, Align::Right, TextFx::NeonCrisp);
 }
 
 void FaceView::draw(Renderer& r, const PanelHost& host, const FaceFeed& feed, const FaceState& st, float ox, float oy, float zoom,

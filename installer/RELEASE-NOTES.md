@@ -1,3 +1,10 @@
+# HEM-Elite-Rack 0.15.2
+
+**HITMAN faceplate, part 2** (the sound is unchanged):
+- The two needle meters fit their boxes: the number has its own space at the top, the scale numbers
+  no longer run together, and the pivot no longer sits on the CHANNEL 1 / CHANNEL 2 names.
+- The dB numbers in the history panel stay readable over a loud input line.
+
 # HEM-Elite-Rack 0.15.1
 
 **HITMAN faceplate fixes** (the sound is unchanged):
