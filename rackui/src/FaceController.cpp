@@ -75,6 +75,7 @@ void FaceController::step(int param, int delta) {
 int FaceController::hit(float x, float y) const noexcept {
     for (int i = static_cast<int>(L_.widgets.size()) - 1; i >= 0; --i) {
         const Widget& w = L_.widgets[static_cast<std::size_t>(i)];
+        if (!widgetShown(w, params_, host_)) continue;
         if (w.kind == WKind::Knob || w.kind == WKind::Bypass) {
             const float rr = w.r.w * 0.5f + (w.kind == WKind::Knob ? 10.0f : 0.0f);
             if (dist2(x, y, w.r.cx(), w.r.cy()) <= rr * rr) return i;

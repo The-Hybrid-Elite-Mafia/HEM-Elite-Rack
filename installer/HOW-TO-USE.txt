@@ -550,8 +550,22 @@ BOTTOM FEEDER
   GAIN, BASS, MID, HI MID, HIGH. CAB TONE, ROOM, CAB OFF and the output limiter work as on HOT WIRE.
 
 THE RACKET
-  A drive pedal. TYPE: OVERDRIVE (warm), DISTORTION (harder), FUZZ (square and wild) or OCTAVE (fuzz
-  with an octave on top). DRIVE, TONE (dark to bright), LEVEL, MIX.
+  A pedalboard, one pedal at a time. Click a pedal at the top; its own knobs and switches come up
+  underneath. For a chain of pedals, put several RACKETs in a row. On the left: INPUT (STEREO, MONO, or
+  MONO > WIDE: summed to mono, then the stereo pedals spread it) and INPUT GAIN.
+  DRIVE: OVERDRIVE (warm), HARD CLIP (BODY scoops the mids), FUZZ (SUSTAIN = how hard), RASP (a
+    buzzy, peaky one), HEAVY (with LOW, HIGH and a MID you can move). LEVEL 50 = as loud as it gets
+    clipped, 100 = 12 dB more.
+  MOVEMENT: FLANGE, VIB / TREM (vibrato wobbles the pitch, tremolo the level), AUTO PAN, PHASE, OCT DOWN
+    (one and two octaves under the note: play one note at a time), WAH (AUTO follows your playing,
+    HAND sits where POSITION puts it), CHORUS, THICKEN (two slightly detuned copies), PITCH RIDE and
+    BASS RIDE (POSITION slides the pitch between LOW SHIFT and HIGH SHIFT; automate it in a DAW).
+    SYNC ON locks the speed or time to the song's tempo with NOTE.
+  SPACE: ECHO (FEEDBACK past about 8.7 keeps building; STEREO bounces the echoes side to side), FLIP
+    ECHO (REVERSE plays each piece backwards; PITCH moves the echoes), ROOM, SPRING.
+  BASICS: SQUEEZE (a compressor), SLAM (squeeze hard), GATE, CLEAN UP (a gate and a squeeze in one),
+    TONE STACK, GRAPHIC (six narrow bands from 125 Hz to 4 kHz), VOLUME (LOWEST and HIGHEST set the
+    pedal's travel; LIN or LOG says how it moves between them).
 
 THE SNITCH
   Tuner. Play one note: it shows the NOTE, how many CENTS off (minus = flat, plus = sharp) and the

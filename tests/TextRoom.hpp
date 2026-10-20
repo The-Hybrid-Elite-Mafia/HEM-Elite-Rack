@@ -79,12 +79,16 @@ inline int clashes(const hem::ui::FaceLayout& L, const char* name) {
     for (std::size_t a = 0; a < boxes.size(); ++a) {
         for (std::size_t b = a + 1; b < boxes.size(); ++b)
             if (hits(boxes[a].r, boxes[b].r)) {
+                if (boxes[a].owner >= 0 && boxes[b].owner >= 0 &&
+                    hem::ui::exclusive(L.widgets[static_cast<std::size_t>(boxes[a].owner)], L.widgets[static_cast<std::size_t>(boxes[b].owner)]))
+                    continue;   // never on the plate together
                 ++n;
                 std::printf("  %s: text %s runs into %s\n", name, boxes[a].what.c_str(), boxes[b].what.c_str());
             }
         for (std::size_t i = 0; i < L.widgets.size(); ++i) {
             const hem::ui::Widget& w = L.widgets[i];
             if (static_cast<int>(i) == boxes[a].owner) continue;
+            if (boxes[a].owner >= 0 && hem::ui::exclusive(L.widgets[static_cast<std::size_t>(boxes[a].owner)], w)) continue;
             // text drawn inside a graph is the graph's own business
             if (w.kind == WKind::Spectrum || w.kind == WKind::EqGraph || w.kind == WKind::GraphRange) continue;
             if (hits(boxes[a].r, w.r)) {

@@ -95,7 +95,7 @@ C++23 audio framework, as a library.
 | **TORCH** | Guitar amp: ten amp types, drive, bass / mid / treble, presence, master, input, output; two cabinet paths (eight cabinets, six mic placements, volume, pan, phase), dual or stereo |
 | **HOT WIRE** | Guitar head: five amps, clean / drive / lead, focus, gate and gate speed, gain, bass, middle, treble, volume, depth, presence; six cabinet pairs with cab tone, room, cab off; output limiter with readouts |
 | **BOTTOM FEEDER** | Bass rig: two amps; DI tone, level, blend and flip; a drive pedal (fat, tight, sharp) with tone, gain, mix; voice; gain, bass, mid, hi mid, high; cabinet tone, room, cab off; output limiter |
-| **THE RACKET** | Drive pedal: overdrive, distortion, fuzz or octave fuzz; drive, tone, level, mix |
+| **THE RACKET** | Pedalboard (its own plate), one pedal at a time: 26 pedals (drives, modulation, echoes, rooms, squeezes, gates, EQs, volume), each with its own controls; input mode and gain |
 | **THE SNITCH** | Tuner: chromatic, guitar and six other tunings or your own notes (twelve switches); reference A ±6 cents; note, cents and frequency |
 | **PROMOTION** | Pitch shifter: by transpose (semitones as intervals, cents) or by frequency (from / to Hz); sync, smooth, transient or punchy |
 | **WISEGUYS** | Voice harmonizer: six voices (on, pitch, formant, gain, pan, delay) and the direct voice (on, gain, delay); animate, link, mode, min / max pitch |

@@ -294,20 +294,227 @@ void testStakeout() {
     }
 }
 
+// THE RACKET: each pedal does its job (measured), the board's input modes, the pedal change, the latency.
 void testRacket() {
     using namespace racket;
-    auto fz = make("THE RACKET", {{Type, 2}, {Drive, 60}, {Tone, 100}});
-    auto oc = make("THE RACKET", {{Type, 3}, {Drive, 60}, {Tone, 100}});
-    const double f1 = componentDb(*fz, 220, 0.2f, 220), f2 = componentDb(*fz, 220, 0.2f, 440);
-    const double o1 = componentDb(*oc, 220, 0.2f, 220), o2 = componentDb(*oc, 220, 0.2f, 440);
-    std::printf("  THE RACKET 220 Hz: FUZZ octave above %.1f dB re the note, OCTAVE %.1f dB\n", f2 - f1, o2 - o1);
-    CHECK(o2 - o1 > f2 - f1 + 6.0);
-    auto od = make("THE RACKET", {{Type, 0}, {Drive, 0}});
-    auto od2 = make("THE RACKET", {{Type, 0}, {Drive, 100}});
-    const double a = componentDb(*od, 220, 0.1f, 660) - componentDb(*od, 220, 0.1f, 220);
-    const double b = componentDb(*od2, 220, 0.1f, 660) - componentDb(*od2, 220, 0.1f, 220);
-    std::printf("  THE RACKET overdrive 3rd harmonic: drive 0 %.1f dB, drive 100 %.1f dB\n", a, b);
-    CHECK(b > a + 10.0);
+    auto ped = [](int which, std::initializer_list<std::pair<int, float>> v = {}) {
+        auto e = findPlugin("THE RACKET")->create();
+        e->set(Which, static_cast<float>(which));
+        for (const auto& [i, x] : v) e->set(i, x);
+        e->prepare(kFs, 512);
+        return e;
+    };
+    const std::uint32_t lat = ped(PdOverdrive)->latency();
+    bool sameLatency = true;
+    for (int k = 0; k < kPedals; ++k) sameLatency = sameLatency && ped(k)->latency() == lat;
+    CHECK(sameLatency && lat == 23);
+    // every pedal: noise in, finite out, and the controls on the plate belong to that pedal
+    int bad = 0;
+    for (int k = 0; k < kPedals; ++k) {
+        auto e = ped(k);
+        Stereo s = noise(1.0, 0.5f, 3 + static_cast<unsigned>(k));
+        run(*e, s);
+        const PedalFace f = pedalFace(k);
+        bool own = f.knobCount <= kMaxKnobs && f.switchCount <= kMaxSwitches;
+        for (int i = 0; i < f.knobCount; ++i) own = own && pedalOf(f.knobs[i].param) == k;
+        for (int i = 0; i < f.switchCount; ++i) own = own && pedalOf(f.switches[i].param) == k;
+        // every parameter of the pedal is on its plate
+        int shown = f.knobCount + f.switchCount;
+        if (!finite(s) || !own || shown != kFirst[k + 1] - kFirst[k]) {
+            ++bad;
+            std::printf("  THE RACKET pedal %d: finite %d, own controls %d, %d of %d shown\n", k, finite(s), own, shown, kFirst[k + 1] - kFirst[k]);
+        }
+    }
+    CHECK(bad == 0);
+    {
+        auto h = ped(PdHeavy);
+        CHECK(h->paramActive(HvDrive) && !h->paramActive(FlDepth) && h->paramActive(InputGain));
+    }
+    // the drives
+    auto od0 = ped(PdOverdrive, {{OdDrive, 0}}), od1 = ped(PdOverdrive, {{OdDrive, 100}});
+    const double a = componentDb(*od0, 220, 0.1f, 660) - componentDb(*od0, 220, 0.1f, 220);
+    const double b = componentDb(*od1, 220, 0.1f, 660) - componentDb(*od1, 220, 0.1f, 220);
+    auto lv50 = ped(PdOverdrive), lv100 = ped(PdOverdrive, {{OdLevel, 100}});
+    const double up = componentDb(*lv100, 220, 0.1f, 220) - componentDb(*lv50, 220, 0.1f, 220);
+    auto dsDark = ped(PdHardClip, {{DsTone, 700}}), dsBright = ped(PdHardClip, {{DsTone, 10000}});
+    const double tone = componentDb(*dsBright, 220, 0.1f, 4180) - componentDb(*dsDark, 220, 0.1f, 4180);
+    auto fz = ped(PdFuzz);
+    const double even = componentDb(*fz, 220, 0.1f, 440) - componentDb(*fz, 220, 0.1f, 220);
+    std::printf("  THE RACKET drives: overdrive 3rd harmonic drive 0 %.1f / 100 %.1f dB; LEVEL 50->100 %+.2f dB; hard clip TONE 700 Hz -> 10 kHz "
+                "at 4.2 kHz %+.1f dB; fuzz 2nd harmonic %.1f dB\n", a, b, up, tone, even);
+    CHECK(b > a + 10.0 && std::fabs(up - 12.04) < 0.3 && tone > 20.0 && even > -30.0);
+    // VOLUME: the latency is exact, the scales
+    {
+        auto v = ped(PdVolume);
+        Stereo s(4800);
+        s.l[100] = s.r[100] = 0.5f;
+        run(*v, s);
+        CHECK(std::fabs(s.l[100 + lat] - 0.5f) < 1e-6f && std::fabs(s.r[100 + lat] - 0.5f) < 1e-6f);
+        auto lin0 = ped(PdVolume, {{VlVolume, 0}}), log50 = ped(PdVolume, {{VlVolume, 50}, {VlScale, 1}}), lin50 = ped(PdVolume, {{VlVolume, 50}});
+        const double d0 = componentDb(*lin0, 1000, 0.5f, 1000) - db(0.5), d1 = componentDb(*log50, 1000, 0.5f, 1000) - db(0.5),
+                     d2 = componentDb(*lin50, 1000, 0.5f, 1000) - db(0.5);
+        const double want2 = db(0.5 * (std::pow(10.0, -24.0 / 20.0) + 1.0));
+        std::printf("  THE RACKET VOLUME: LIN 0 %.2f dB (want -24), LOG 50 %.2f dB (want -12), LIN 50 %.2f dB (want %.2f)\n", d0, d1, d2, want2);
+        CHECK(std::fabs(d0 + 24.0) < 0.1 && std::fabs(d1 + 12.0) < 0.1 && std::fabs(d2 - want2) < 0.1);
+    }
+    // GRAPHIC and TONE STACK
+    {
+        auto g = ped(PdGraphic, {{Eq1k, 12}});
+        const double at1k = componentDb(*g, 1000, 0.1f, 1000) - db(0.1), at14 = componentDb(*g, 1400, 0.1f, 1400) - db(0.1);
+        auto flat = ped(PdGraphic);
+        const double rumble = componentDb(*flat, 20, 0.1f, 20, 3.0) - db(0.1);
+        auto st = ped(PdToneStack, {{TsLow, 18}, {TsLowCut, 16}, {TsHighCut, 4000}});
+        const double low = componentDb(*st, 60, 0.1f, 60) - db(0.1), high = componentDb(*st, 10000, 0.1f, 10000) - db(0.1);
+        std::printf("  THE RACKET GRAPHIC 1 kHz +12: at 1 kHz %+.2f, at 1.4 kHz %+.2f dB; rumble at 20 Hz %+.1f dB; TONE STACK low +18 at 60 Hz %+.1f, "
+                    "high cut 4 kHz at 10 kHz %+.1f dB\n", at1k, at14, rumble, low, high);
+        CHECK(std::fabs(at1k - 12.0) < 0.3 && at14 < 3.0 && rumble < -6.0 && low > 16.5 && high < -12.0);
+    }
+    // OCT DOWN: one and two octaves under a 220 Hz note
+    {
+        auto o1 = ped(PdOctDown, {{OcDirect, 0}, {OcOne, 100}, {OcTwo, 0}}), o2 = ped(PdOctDown, {{OcDirect, 0}, {OcOne, 0}, {OcTwo, 100}});
+        const double one = componentDb(*o1, 220, 0.3f, 110), oneAt220 = componentDb(*o1, 220, 0.3f, 220);
+        const double two = componentDb(*o2, 220, 0.3f, 55), twoAt110 = componentDb(*o2, 220, 0.3f, 110);
+        std::printf("  THE RACKET OCT DOWN on 220 Hz at -10 dBFS: one down 110 Hz %.1f dB (220 Hz %.1f); two down 55 Hz %.1f dB (110 Hz %.1f)\n",
+                    one, oneAt220, two, twoAt110);
+        CHECK(one > -25.0 && one > oneAt220 + 20.0 && two > -30.0 && two > twoAt110 + 10.0);
+    }
+    // PITCH RIDE and BASS RIDE: all wet, both ends at the same shift
+    {
+        auto pr = ped(PdPitchRide, {{PrMix, 100}, {PrLow, 12}, {PrHigh, 12}});
+        Stereo s = sine(220, 2.0, 0.3f);
+        run(*pr, s);
+        const double hz = crossingsHz(s.l, 48000, 48000);
+        auto br = ped(PdBassRide, {{BrMix, 100}, {BrLow, -12}, {BrHigh, -12}});
+        Stereo t = sine(110, 2.0, 0.3f);
+        run(*br, t);
+        const double hz2 = crossingsHz(t.l, 48000, 48000);
+        std::printf("  THE RACKET PITCH RIDE +12 on 220 Hz -> %.1f Hz; BASS RIDE -12 on 110 Hz -> %.1f Hz\n", hz, hz2);
+        CHECK(std::fabs(hz - 440.0) < 3.0 && std::fabs(hz2 - 55.0) < 1.0);
+    }
+    // ECHO: 100 ms, all wet, no feedback; STEREO 10: the first echo left, the next one would need feedback
+    {
+        auto e = ped(PdEcho, {{EcMix, 100}, {EcTime, 0.1f}, {EcFeedback, 0}});
+        Stereo s(24000);
+        s.l[0] = s.r[0] = 0.5f;
+        run(*e, s);
+        std::size_t at = 0;
+        for (std::size_t i = 0; i < s.size(); ++i)
+            if (std::fabs(s.l[i]) > std::fabs(s.l[at])) at = i;
+        const float right = std::fabs(s.r[at]);
+        double later = 0;
+        for (std::size_t i = at + 200; i < s.size(); ++i) later = std::max(later, static_cast<double>(std::fabs(s.l[i]) + std::fabs(s.r[i])));
+        auto f = ped(PdEcho, {{EcMix, 100}, {EcTime, 0.1f}, {EcFeedback, 8}, {EcStereo, 0}});
+        Stereo s2(48000);
+        s2.l[0] = s2.r[0] = 0.5f;
+        run(*f, s2);
+        const double second = std::fabs(s2.l[2 * 4800 + lat]), third = std::fabs(s2.l[3 * 4800 + lat]);
+        std::printf("  THE RACKET ECHO 100 ms: echo at %zu samples (want %u), left %.3f right %.3f, nothing after %.1e; feedback 8: 2nd %.3f 3rd %.3f\n",
+                    at, 4800 + lat, static_cast<double>(std::fabs(s.l[at])), static_cast<double>(right), later, second, third);
+        CHECK(at == 4800 + lat && right < 1e-6f && later < 1e-6 && second > 0.1 && third > 0.05 && third < second);
+    }
+    // FLIP ECHO REVERSE: a note that swells up comes back fading away
+    {
+        auto run1 = [&](float rev) {
+            auto e = ped(PdFlipEcho, {{FeMix, 100}, {FeTime, 0.25f}, {FeFeedback, 0}, {FeStereo, 0}, {FeReverse, rev}});
+            Stereo s(48000 * 2);
+            for (std::size_t i = 0; i < 12000; ++i) s.l[i] = s.r[i] = 0.5f * static_cast<float>(i) / 12000.0f * static_cast<float>(std::sin(2.0 * std::numbers::pi * 1000.0 * static_cast<double>(i) / kFs));
+            run(*e, s);
+            // how the level moves where the echo is loudest: the level 20 ms before the peak against 20 ms after
+            double best = 0;
+            std::size_t at = 0;
+            for (std::size_t i = 0; i + 480 < s.size(); i += 480) {
+                const double r = rms(s.l, i, 480);
+                if (r > best) { best = r; at = i; }
+            }
+            const double before = rms(s.l, at >= 960 ? at - 960 : 0, 480), after = rms(s.l, at + 960, 480);
+            return std::pair<double, double>{before, after};
+        };
+        const auto fw = run1(0.0f), bw = run1(1.0f);
+        std::printf("  THE RACKET FLIP ECHO on a swell: forward %.3f before / %.3f after the loudest point, reversed %.3f / %.3f\n",
+                    fw.first, fw.second, bw.first, bw.second);
+        CHECK(fw.first > fw.second && bw.second > bw.first);
+    }
+    // ROOM and SPRING: a tail; ROOM TIME stretches it
+    {
+        auto tailAt = [&](int which, std::initializer_list<std::pair<int, float>> v, double from) {
+            auto e = ped(which, v);
+            Stereo s(48000 * 3);
+            for (std::size_t i = 0; i < 480; ++i) s.l[i] = s.r[i] = 0.3f;
+            run(*e, s);
+            return db(rms(s.l, static_cast<std::size_t>(from * kFs), 4800));
+        };
+        const double shortRoom = tailAt(PdRoom, {{RmMix, 100}, {RmTime, 0.5f}}, 1.0), longRoom = tailAt(PdRoom, {{RmMix, 100}, {RmTime, 5.0f}}, 1.0);
+        const double spring = tailAt(PdSpring, {{SpMix, 100}}, 0.5);
+        std::printf("  THE RACKET ROOM at 1 s: TIME 0.5 s %.1f dB, 5 s %.1f dB; SPRING at 0.5 s %.1f dB\n", shortRoom, longRoom, spring);
+        CHECK(longRoom > shortRoom + 30.0 && longRoom > -60.0 && spring > -60.0);
+    }
+    // SQUEEZE: 24 dB apart in, closer out; GATE: shut under the threshold, open over it
+    {
+        auto lvl = [&](int which, std::initializer_list<std::pair<int, float>> v, float amp) {
+            auto e = ped(which, v);
+            return componentDb(*e, 1000, amp, 1000) - db(amp);
+        };
+        const double loud = lvl(PdSqueeze, {{SqAmount, 100}}, 0.5f) + db(0.5), quiet = lvl(PdSqueeze, {{SqAmount, 100}}, 0.03f) + db(0.03);
+        const double shut = lvl(PdGate, {{GtThreshold, -40}}, 0.001f), open = lvl(PdGate, {{GtThreshold, -40}}, 0.1f);
+        std::printf("  THE RACKET SQUEEZE 100: -6 and -30 dBFS in -> %.1f and %.1f dB out; GATE -40: -60 dBFS %+.1f dB, -20 dBFS %+.2f dB\n",
+                    loud, quiet, shut, open);
+        CHECK(loud - quiet < 14.0 && shut < -60.0 && std::fabs(open) < 0.3);
+    }
+    // WAH by hand: heel down favours 400 Hz, toe down 1.9 kHz
+    {
+        auto heel = ped(PdWah, {{WhMode, 1}, {WhPos, 0}}), toe = ped(PdWah, {{WhMode, 1}, {WhPos, 100}});
+        const double h1 = componentDb(*heel, 400, 0.1f, 400) - componentDb(*heel, 1900, 0.1f, 1900);
+        const double t1 = componentDb(*toe, 400, 0.1f, 400) - componentDb(*toe, 1900, 0.1f, 1900);
+        std::printf("  THE RACKET WAH 400 Hz against 1.9 kHz: heel %+.1f dB, toe %+.1f dB\n", h1, t1);
+        CHECK(h1 > 10.0 && t1 < -10.0);
+    }
+    // VIB / TREM full tremolo dips to silence; AUTO PAN full width swings to one side
+    {
+        auto tr = ped(PdVibTrem, {{VtTremolo, 100}, {VtRate, 4}});
+        Stereo s = sine(1000, 1.0, 0.3f);
+        run(*tr, s);
+        double lo = 1.0, hi = 0.0;
+        for (std::size_t i = 4800; i + 480 < s.size(); i += 480) { const double r = rms(s.l, i, 480); lo = std::min(lo, r); hi = std::max(hi, r); }
+        auto pn = ped(PdAutoPan, {{PnWidth, 100}, {PnRate, 1}});
+        Stereo t = sine(1000, 1.0, 0.3f);
+        run(*pn, t);
+        double side = 0;
+        for (std::size_t i = 0; i + 480 < t.size(); i += 480) side = std::max(side, db(rms(t.l, i, 480)) - db(rms(t.r, i, 480) + 1e-9));
+        std::printf("  THE RACKET tremolo 100: %.3f .. %.3f RMS; AUTO PAN 100: one side up to %.1f dB over the other\n", lo, hi, side);
+        CHECK(lo < 0.02 * hi && side > 30.0);
+    }
+    // the input modes: MONO makes both sides the same; the pedal change fades, never jumps
+    {
+        auto m = ped(PdChorus, {{Input, InMono}});
+        Stereo s = sine(500, 0.5, 0.3f);
+        for (float& x : s.r) x = 0.0f;
+        run(*m, s);
+        double diff = 0;
+        for (std::size_t i = 0; i < s.size(); ++i) diff = std::max(diff, static_cast<double>(std::fabs(s.l[i] - s.r[i])));
+        auto sw = ped(PdOverdrive, {{OdDrive, 100}, {OdLevel, 100}});
+        Stereo t = sine(220, 1.0, 0.3f);
+        float jump = 0.0f;
+        for (std::size_t i = 0; i < t.size(); i += 256) {
+            if (i == 24064) sw->set(Which, PdVolume);
+            sw->process(t.l.data() + i, t.r.data() + i, static_cast<std::uint32_t>(std::min<std::size_t>(256, t.size() - i)));
+        }
+        // the steps while it changes are no bigger than the overdrive's own, and it passes through silence
+        float before = 0.0f;
+        for (std::size_t i = 12000; i < 24064; ++i) before = std::max(before, std::fabs(t.l[i] - t.l[i - 1]));
+        for (std::size_t i = 24064; i < 24064 + 4800; ++i) jump = std::max(jump, std::fabs(t.l[i] - t.l[i - 1]));
+        double quietest = 1.0;
+        for (std::size_t i = 24064; i < 24064 + 960; i += 16) quietest = std::min(quietest, rms(t.l, i, 16));
+        const double after = db(rms(t.l, 36000, 9600)), want = db(0.3 / std::numbers::sqrt2);
+        std::printf("  THE RACKET MONO: sides differ by %.1e; OVERDRIVE -> VOLUME: biggest step %.3f (the overdrive's own %.3f), quietest %.4f, "
+                    "then %.2f dB (the input %.2f)\n", diff, static_cast<double>(jump), static_cast<double>(before), quietest, after, want);
+        CHECK(diff < 1e-6 && jump <= before && quietest < 0.01 && std::fabs(after - want) < 0.05);
+    }
+    // the same result whatever the host's block size
+    for (int which : {PdOverdrive, PdFlipEcho, PdEcho, PdOctDown, PdWah, PdThicken}) {
+        const double d = blockSizeDifference(*findPlugin("THE RACKET"), [&](hc::fx::Effect& e) { e.set(Which, static_cast<float>(which)); }, noise(1.0, 0.3f, 9));
+        if (d > 1e-5) std::printf("  THE RACKET pedal %d: block size changes the result by %.2e\n", which, d);
+        CHECK(d <= 1e-5);
+    }
 }
 
 void testSnitch() {

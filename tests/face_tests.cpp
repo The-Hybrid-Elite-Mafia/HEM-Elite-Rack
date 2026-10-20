@@ -72,6 +72,7 @@ void layoutRules(const rack::PluginInfo& info) {
         for (std::size_t j = i + 1; j < L.widgets.size(); ++j) {
             const Widget& o = L.widgets[j];
             if (o.kind == WKind::Spectrum || o.kind == WKind::EqGraph || o.kind == WKind::GraphRange) continue;
+            if (exclusive(w, o)) continue;   // never on the plate together
             if (overlaps(w.r, o.r)) { noOverlap = false; std::printf("  overlap: %s / %s\n", w.caption.c_str(), o.caption.c_str()); }
         }
     }
@@ -342,6 +343,7 @@ void everyControl(const rack::PluginInfo& info) {
         const int p = w.param;
         if (p < 0 || w.control >= 0) continue;   // ELITE EQ's band controls are covered above
         const auto& pi = fx->params()[static_cast<std::size_t>(p)];
+        if (w.showParam >= 0) fx->set(w.showParam, static_cast<float>(w.showValue));   // bring its page up first
         if (w.kind == WKind::Knob) {
             ++knobs;
             fx->set(p, pi.min);

@@ -148,7 +148,13 @@ struct Widget {
     bool        small = false;
     int         meter = -1;        // needle with a meter selector (param2): the input VU meter (output = meter + 1)
     int         pageStride = 0;    // > 0: the control edits param + page * pageStride (the plate's page tabs pick the page)
+    int         showParam = -1;    // >= 0: the control is there only while choice parameter showParam is showValue
+    int         showValue = 0;     // (THE RACKET: each pedal's controls share the same seats)
 };
+// Two controls that are never on the plate at the same time (they may share a place).
+[[nodiscard]] inline bool exclusive(const Widget& a, const Widget& b) noexcept {
+    return a.showParam >= 0 && a.showParam == b.showParam && a.showValue != b.showValue;
+}
 
 struct Recess { Rect r; float radius = 10; float depth = 8; bool round = false; bool glass = false; };
 
@@ -187,6 +193,9 @@ struct FaceState {
     int page = 0;               // the page the paged controls edit (PageTab)
 };
 inline constexpr std::array<float, 4> kGraphRanges{3.0f, 6.0f, 12.0f, 30.0f};
+
+// Whether a widget is on the plate now (its showParam, if any, holds its showValue).
+[[nodiscard]] bool widgetShown(const Widget& w, std::span<const hc::fx::ParamInfo> params, const PanelHost& host) noexcept;
 
 // Effective parameter of a widget for the current band selection.
 [[nodiscard]] int widgetParam(const Widget& w, const FaceState& st) noexcept;

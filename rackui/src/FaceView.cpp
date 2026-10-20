@@ -987,6 +987,7 @@ void FaceView::draw(Renderer& r, const PanelHost& host, const FaceFeed& feed, co
     header(c);
     for (std::size_t i = 0; i < L_.widgets.size(); ++i) {
         const Widget& w = L_.widgets[i];
+        if (!widgetShown(w, params_, host)) continue;
         const int wi = static_cast<int>(i);
         const bool hot = st.hover == wi;
         switch (w.kind) {

@@ -1,3 +1,11 @@
+# HEM-Elite-Rack 0.36.0
+
+- **THE RACKET** rebuilt (its own plate) — now the whole pedalboard, one pedal at a time: 26 pedals, each with every control its
+  original has. Drives: overdrive, hard clip, fuzz, rasp, heavy. Movement: flange, vib / trem, auto pan, phase, oct down, wah, chorus,
+  thicken, pitch ride, bass ride. Space: echo, flip echo (reverse), room, spring. Basics: squeeze, slam, gate, clean up, tone stack,
+  graphic, volume. Pick a pedal and only its controls show. Input stereo / mono / mono > wide and input gain. For a chain, stack
+  several RACKETs. Wave 4 is complete.
+
 # HEM-Elite-Rack 0.35.0
 
 - **STAKEOUT** (new, its own plate) — analyzer with its original's full control set: frequency bands (LF resolution 40 / 20 / 10 Hz,

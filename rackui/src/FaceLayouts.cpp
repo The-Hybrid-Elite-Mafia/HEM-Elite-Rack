@@ -18,6 +18,7 @@
 #include "hem/rack/Hideout.hpp"
 #include "hem/rack/Garage.hpp"
 #include "hem/rack/Analyzer.hpp"
+#include "hem/rack/Streets.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -1525,6 +1526,79 @@ FaceLayout auditFace(const rack::PluginInfo& info) {
 }
 
 // STAKEOUT: the bands on the left, the stereo position on the right, the meters and settings under them.
+// THE RACKET: the 26 pedals as buttons by kind across the top; under them the chosen pedal's own knobs (up to
+// six seats) and switches (up to three seats). Every pedal's controls are laid out, each shown only while its
+// pedal is picked, so they share the seats.
+FaceLayout stompFace(const rack::PluginInfo& info) {
+    using namespace rack::racket;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"ONE PEDAL", "AT A TIME"};
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 180, 1226, 640};
+    // the picker
+    struct Row { const char* label; int first, count; };
+    constexpr Row kRows[] = {{"DRIVE", PdOverdrive, 5}, {"MOVEMENT", PdFlange, 5}, {"", PdOctDown, 5}, {"SPACE", PdEcho, 4}, {"BASICS", PdSqueeze, 7}};
+    const float pitch = 1226.0f / 7.0f;
+    float y = 184.0f;
+    for (const Row& row : kRows) {
+        if (row.label[0] != '\0') L.sections.push_back({{410, y, pitch * static_cast<float>(row.count), 22}, row.label});
+        for (int k = 0; k < row.count; ++k)
+            L.widgets.push_back(choiceButton({410 + static_cast<float>(k) * pitch + 4, y + 24, pitch - 8, 34}, Which, row.first + k));
+        y += 64.0f;
+    }
+    L.grooves.push_back({410, 512, 1636, 512});
+    // the seats
+    const float kPitch = 1226.0f / static_cast<float>(kMaxKnobs), sPitch = 1226.0f / static_cast<float>(kMaxSwitches);
+    auto knobRect = [&](int s) { const float cx = 410 + (static_cast<float>(s) + 0.5f) * kPitch; return Rect{cx - 48, 566, 96, 96}; };
+    for (int s = 0; s < kMaxKnobs; ++s) L.recesses.push_back({knobRect(s).inset(-14), 48 + 14, 3, true, false});
+    for (int s = 0; s < kMaxSwitches; ++s) L.recesses.push_back({{410 + static_cast<float>(s) * sPitch + 16, 738, 378, 42}, 10, 4, false, false});
+    // each pedal's controls
+    const auto fx = info.create();
+    const auto params = fx->params();
+    for (int ped = 0; ped < kPedals; ++ped) {
+        const PedalFace pf = pedalFace(ped);
+        for (int k = 0; k < pf.knobCount && k < kMaxKnobs; ++k) {
+            Widget w = knob(knobRect(k), pf.knobs[k].param, pf.knobs[k].caption);
+            w.showParam = Which;
+            w.showValue = ped;
+            L.widgets.push_back(w);
+        }
+        for (int k = 0; k < pf.switchCount && k < kMaxSwitches; ++k) {
+            const float x0 = 410 + static_cast<float>(k) * sPitch;
+            const int prm = pf.switches[k].param;
+            Widget w;
+            if (params[static_cast<std::size_t>(prm)].taper == hc::fx::Taper::Toggle) {
+                w = toggle({x0 + 20, 742, 370, 34}, prm, pf.switches[k].caption);
+            } else {
+                w.kind = WKind::Stepper;
+                w.param = prm;
+                w.caption = pf.switches[k].caption;
+                w.r = {x0 + 150, 742, 240, 34};
+            }
+            w.showParam = Which;
+            w.showValue = ped;
+            L.widgets.push_back(w);
+        }
+    }
+    // the board: input and its gain
+    L.sections.push_back({{70, 384, 320, 22}, "THE BOARD"});
+    Widget in;
+    in.kind = WKind::Stepper;
+    in.param = Input;
+    in.caption = "INPUT";
+    in.r = {150, 420, 230, 34};
+    L.widgets.push_back(in);
+    L.recesses.push_back({in.r.inset(-4), 9, 4, false, false});
+    const std::size_t firstKnob = L.widgets.size();
+    L.widgets.push_back(knob({170, 516, 70, 70}, InputGain, "INPUT GAIN", "-18", "+18", true));
+    seatKnobs(L, firstKnob, 6);
+    for (const Widget& w : L.widgets)
+        if (w.kind == WKind::ChoiceButton) L.recesses.push_back({w.r.inset(-4), 10, 4, false, false});
+    bypassAt(L, {160, 660, 90, 90});
+    return L;
+}
+
 FaceLayout stakeoutFace(const rack::PluginInfo& info) {
     using namespace rack::stakeout;
     FaceLayout L;
@@ -1940,6 +2014,7 @@ FaceLayout faceLayout(const rack::PluginInfo& info) {
     case rack::Face::Pawn: return pawnFace(info);
     case rack::Face::Audit: return auditFace(info);
     case rack::Face::Stakeout: return stakeoutFace(info);
+    case rack::Face::Stomp: return stompFace(info);
     case rack::Face::Spec: if (info.plate) return specFace(info); break;
     case rack::Face::Restorer: break;
     }
@@ -1950,6 +2025,12 @@ int widgetParam(const Widget& w, const FaceState& st) noexcept {
     if (w.control >= 0) return rack::eq::bandParam(std::clamp(st.selectedBand, 0, rack::eq::kBands - 1), w.control);
     if (w.pageStride > 0 && w.param >= 0) return w.param + std::max(st.page, 0) * w.pageStride;
     return w.param;
+}
+
+bool widgetShown(const Widget& w, std::span<const hc::fx::ParamInfo> params, const PanelHost& host) noexcept {
+    if (w.showParam < 0 || w.showParam >= static_cast<int>(params.size())) return true;
+    const float v = hc::fx::toPlain(params[static_cast<std::size_t>(w.showParam)], host.normalized(w.showParam));
+    return static_cast<int>(std::lround(v)) == w.showValue;
 }
 
 Rect plotArea(const Rect& r) noexcept { return {r.x + 70, r.y + 20, r.w - 90, r.h - 62}; }

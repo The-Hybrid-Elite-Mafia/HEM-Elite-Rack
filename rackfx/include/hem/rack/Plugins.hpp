@@ -28,7 +28,8 @@ enum class Face : std::uint8_t { EliteEq, Restorer, BusGlue, Tape, TubeEq, Limit
                                 Notches,     // COLD CASE's notch / sweep / loop / wet plate
                                 Pawn,        // PAWN SHOP's four modules and master
                                 Audit,       // THE AUDITOR's readouts and settings
-                                Stakeout };  // STAKEOUT's bands, stereo position and meters
+                                Stakeout,    // STAKEOUT's bands, stereo position and meters
+                                Stomp };     // THE RACKET's pedal picker and the chosen pedal's controls
 
 // Where a plug-in sits in the rack's picker.
 enum class Group : std::uint8_t { Eq, Dynamics, Color, Space, Movement, Tools, kCount };

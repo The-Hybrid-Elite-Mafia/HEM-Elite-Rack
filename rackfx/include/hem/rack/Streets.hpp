@@ -8,8 +8,29 @@
 //                (dynamic, condenser or ribbon, on or off axis), VOLUME 0..10 (0 = off) and PAN; B has a PHASE
 //                flip; ROUTING DUAL (both paths hear the amp) or STEREO (left through A, right through B).
 //                4x oversampled; latency 23.
-//  THE RACKET    drive pedal: TYPE OVERDRIVE / DISTORTION / FUZZ / OCTAVE (an octave up on top of
-//                the fuzz), DRIVE, TONE, LEVEL, MIX. 4x oversampled; latency 23.
+//  THE RACKET    the pedalboard, one pedal at a time: PEDAL picks one of 26 (stack several RACKETs for a chain),
+//                and the plate shows that pedal's own controls. INPUT STEREO / MONO / MONO > WIDE (summed to mono
+//                in, stereo pedals spread it out) and INPUT GAIN ±18 dB are the board's. The pedals:
+//                DRIVE    OVERDRIVE (drive, level, tone), HARD CLIP (drive, level, body = the mid scoop, tone
+//                         700 Hz..10 kHz), FUZZ (sustain, level, tone), RASP (drive, tone = a resonant low-pass,
+//                         level; a resonant high-pass sits under it), HEAVY (drive, level, low ±: a bell at 120 Hz,
+//                         high: a shelf -30..0, mid freq 250..1500 Hz and mid gain -36..+12)
+//                MOVEMENT FLANGE (depth, rate or sync note, delay 1.5..10 ms, feedback, stereo), VIB / TREM (wave,
+//                         rate or sync note, vibrato, tremolo), AUTO PAN (wave, rate or note, width), PHASE (depth,
+//                         rate or note, stereo), OCT DOWN (direct, one and two octaves down, each with its own pan),
+//                         WAH (sensitivity, speed, range, AUTO or HAND with its position), CHORUS (depth, rate),
+//                         THICKEN (mix, detune 1..25 cents, delay 12..100 ms, feedback, stereo), PITCH RIDE and
+//                         BASS RIDE (mix, low and high shift ±12 semitones, and where between them it sits)
+//                SPACE    ECHO (mix, time 0.01..2 s or sync note, feedback 0..10 (past 8.7 it builds), high cut,
+//                         stereo = how far the echoes bounce side to side), FLIP ECHO (mix, time 0.01..1 s or note,
+//                         pitch ±1200 cents, feedback, stereo, REVERSE), ROOM (mix, pre-delay 11..160 ms, time
+//                         0.2..10 s, tone = how fast the highs die), SPRING (mix, time, pre-delay 20..170 ms)
+//                BASICS   SQUEEZE (amount, attack, release), SLAM (squeeze, attack, output), GATE (threshold,
+//                         attack, release, hold), CLEAN UP (gate threshold, squeeze), TONE STACK (low / mid / high
+//                         ±18 at 310 Hz / 1 kHz / 4 kHz, low cut 16..310 Hz, high cut 4..18 kHz), GRAPHIC (125 Hz ..
+//                         4 kHz ±12, narrow bands, a fixed rumble filter at 40 Hz), VOLUME (the pedal, LIN or LOG,
+//                         its lowest and highest level).
+//                Switching pedals fades out and in (10 ms). 4x oversampled drives; latency 23 for every pedal.
 //  THE SNITCH    tuner: MODE CHROMATIC (any note) / GUITAR / DROP D / OPEN G / OPEN D / OPEN E / DADGAD /
 //                HALF DOWN / MY NOTES (only the notes switched on below); REFERENCE A ±6 cents around 440 Hz;
 //                the twelve note switches C .. B (used by MY NOTES; pick one for a single note). It tunes to the
@@ -63,7 +84,57 @@ inline constexpr int kCabs = 9;   // NONE + eight
 } // namespace torch
 
 namespace racket {
-enum P : int { Type, Drive, Tone, Level, Mix, kCount };
+enum Pedal : int { PdOverdrive, PdHardClip, PdFuzz, PdRasp, PdHeavy,
+                   PdFlange, PdVibTrem, PdAutoPan, PdPhase, PdOctDown, PdWah, PdChorus, PdThicken, PdPitchRide, PdBassRide,
+                   PdEcho, PdFlipEcho, PdRoom, PdSpring,
+                   PdSqueeze, PdSlam, PdGate, PdCleanUp, PdToneStack, PdGraphic, PdVolume, kPedals };
+enum P : int {
+    Which, Input, InputGain,
+    OdDrive, OdLevel, OdTone,
+    DsDrive, DsLevel, DsBody, DsTone,
+    FzSustain, FzLevel, FzTone,
+    RpDrive, RpTone, RpLevel,
+    HvDrive, HvLevel, HvLow, HvHigh, HvMidFreq, HvMidGain,
+    FlDepth, FlSync, FlNote, FlRate, FlDelay, FlFeedback, FlStereo,
+    VtWave, VtSync, VtNote, VtRate, VtVibrato, VtTremolo,
+    PnWave, PnSync, PnNote, PnRate, PnWidth,
+    PhDepth, PhSync, PhNote, PhRate, PhStereo,
+    OcDirect, OcOne, OcOnePan, OcTwo, OcTwoPan,
+    WhSens, WhSpeed, WhRange, WhMode, WhPos,
+    ChDepth, ChRate,
+    ThMix, ThDetune, ThDelay, ThFeedback, ThStereo,
+    PrMix, PrLow, PrHigh, PrPos,
+    BrMix, BrLow, BrHigh, BrPos,
+    EcMix, EcSync, EcNote, EcTime, EcFeedback, EcHighCut, EcStereo,
+    FeMix, FeSync, FeNote, FeTime, FePitch, FeFeedback, FeStereo, FeReverse,
+    RmMix, RmPre, RmTime, RmTone,
+    SpMix, SpTime, SpPre,
+    SqAmount, SqAttack, SqRelease,
+    SlSqueeze, SlAttack, SlOutput,
+    GtThreshold, GtAttack, GtRelease, GtHold,
+    CuGate, CuSqueeze,
+    TsLow, TsMid, TsHigh, TsLowCut, TsHighCut,
+    Eq125, Eq250, Eq500, Eq1k, Eq2k, Eq4k,
+    VlVolume, VlScale, VlMin, VlMax,
+    kCount };
+enum InputMode : int { InStereo, InMono, InMonoWide };
+// each pedal's first parameter (the next pedal's first is where it ends)
+inline constexpr int kFirst[kPedals + 1] = {OdDrive, DsDrive, FzSustain, RpDrive, HvDrive, FlDepth, VtWave, PnWave, PhDepth, OcDirect,
+                                            WhSens, ChDepth, ThMix, PrMix, BrMix, EcMix, FeMix, RmMix, SpMix, SqAmount, SlSqueeze,
+                                            GtThreshold, CuGate, TsLow, Eq125, VlVolume, kCount};
+// the pedal a parameter belongs to (-1: the board's own)
+[[nodiscard]] constexpr int pedalOf(int param) noexcept {
+    if (param < kFirst[0]) return -1;
+    for (int k = 0; k < kPedals; ++k)
+        if (param < kFirst[k + 1]) return k;
+    return -1;
+}
+// What the plate shows for a pedal: its knobs (up to six) and its switches (up to three: an ON / OFF
+// parameter is a switch, a choice a stepper), each with its caption.
+struct PedalCtl { int param; const char* caption; };
+struct PedalFace { const PedalCtl* knobs; int knobCount; const PedalCtl* switches; int switchCount; };
+inline constexpr int kMaxKnobs = 6, kMaxSwitches = 3;
+[[nodiscard]] PedalFace pedalFace(int pedal) noexcept;
 } // namespace racket
 
 namespace snitch {

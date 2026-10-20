@@ -15,7 +15,7 @@ extern const PlateSpec kHeavyHitter, kReelMoney, kHothead, kHotWire, kBottomFeed
 // the hideout (hideout/HideoutPlates.cpp)
 extern const PlateSpec kFixer, kDeadDrop, kBackAlley, kDriveBy, kHustle, kSwerve, kBigHouse, kSpeakeasy, kMouthpiece, kSlinger, kStreetTeam, kStrapped, kSafeHouse;
 // the streets (streets/StreetsPlates.cpp)
-extern const PlateSpec kTorch, kRacket, kSnitch, kPromotion, kWiseguys, kMadeMan, kDetective, kWitness, kLiveWire;
+extern const PlateSpec kTorch, kSnitch, kPromotion, kWiseguys, kMadeMan, kDetective, kWitness, kLiveWire;
 // the maximizers (maxim/MaximPlates.cpp)
 extern const PlateSpec kBigShot, kLastWord, kHighStakes, kFastMoney, kTopDog, kQuickCash, kSweetSixteen;
 } // namespace hem::rack::plates

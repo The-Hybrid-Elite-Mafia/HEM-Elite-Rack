@@ -42,11 +42,6 @@ constexpr PlateKnob row2[] = {{DiTone, "DI TONE", "0", "10", K::Small}, {DiLevel
                               {DriveMix, "DRIVE MIX", "0", "10", K::Small}, {CabTone, "CAB TONE", "DARK", "BRIGHT", K::Small}, {Room, "ROOM", "OFF", "100", K::Small}};
 } // namespace bf
 
-namespace rk {
-using namespace racket;
-constexpr PlateChoice choices[] = {{Type, "TYPE"}};
-constexpr PlateKnob row1[] = {{Drive, "DRIVE", "0", "100", K::Big}, {Tone, "TONE", "DARK", "BRIGHT"}, {Level, "LEVEL"}, {Mix, "MIX", "DRY", "WET"}};
-} // namespace rk
 
 namespace sn {
 using namespace snitch;
@@ -125,8 +120,6 @@ const PlateSpec kHotWire{.note1 = "THE HEAD", .note2 = "AND THE BOX", .screen = 
 const PlateSpec kBottomFeeder{.note1 = "THE LOW END", .note2 = "AMP AND DI", .screen = Screen::Readouts, .readouts = bf::readouts, .toggles = bf::toggles,
                               .row1 = bf::row1, .row2 = bf::row2, .steppers = bf::steppers,
                               .demo = [](hc::fx::Effect& e) { e.set(bottomfeeder::DriveType, 1); e.set(bottomfeeder::DriveMix, 4); }};
-const PlateSpec kRacket{.note1 = "MAKE SOME NOISE", .note2 = "STEP ON IT", .screen = Screen::None, .choices = rk::choices, .row1 = rk::row1,
-                        .demo = [](hc::fx::Effect& e) { using namespace racket; e.set(Type, 2); e.set(Drive, 70); }};
 const PlateSpec kSnitch{.note1 = "TELLS YOU", .note2 = "WHEN YOU'RE OFF", .screen = Screen::Readouts, .readouts = sn::readouts,
                         .row1 = sn::row1, .steppers = sn::steppers, .bands = &sn::notes,
                         .demo = [](hc::fx::Effect& e) { e.set(snitch::Mode, snitch::MyNotes); }};
