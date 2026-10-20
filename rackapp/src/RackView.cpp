@@ -144,8 +144,7 @@ void RackView::button(Renderer& r, Rect b, std::string_view text, bool lit, bool
     const TextStyle s = fit(r, TextStyle::Label, text, b.w - pad);
     const std::string shown = clip(r, s, std::string(text), b.w - pad);
     text = shown;
-    if (lit && !dim) {
-        r.glow(b.inset(4), 9, 12.0f, kTh.teal.withAlpha(0.35f), true);
+    if (lit && !dim) {   // a solid lit button: no glow or bloom around it (Steven: no haze)
         r.fillRound(b.inset(2), 9, kTh.teal.withAlpha(0.92f), Blend::Over, false);
         r.fillRound({b.x + 8, b.y + 5, b.w - 16, b.h * 0.34f}, 7, {1, 1, 1, 0.14f}, Blend::Add);
         r.text(s, text, b.cx(), mid(r, b, s), kInk, Align::Center, TextFx::Plain);
@@ -180,8 +179,8 @@ void RackView::drawBack(Renderer& r, const RackViewState& s, const Hit& hv) cons
     {
         const bool hot = hv.action == Action::Play;
         const Rect p = kPlay;
-        if (s.playing) r.glow(p.inset(14), p.w * 0.4f, 18.0f, kTh.teal.withAlpha(0.45f), true);
-        r.fillRound(p.inset(2), p.w * 0.5f - 2, s.playing ? kTh.teal.withAlpha(0.95f) : kGlass, Blend::Over, s.playing);
+        // solid teal while playing: no glow and not emissive, so no haze around it
+        r.fillRound(p.inset(2), p.w * 0.5f - 2, s.playing ? kTh.teal.withAlpha(0.95f) : kGlass, Blend::Over, false);
         r.arc(p.cx(), p.cy(), p.w * 0.47f, 2.5f, -kPi, kPi, kTh.teal.withAlpha(hot ? 0.9f : 0.35f), hot);
         const float ic = p.w * 0.42f;
         r.sprite(s.playing ? Sprite::IconPause : Sprite::IconPlay, {p.cx() - ic * 0.5f, p.cy() - ic * 0.5f, ic, ic},
@@ -254,9 +253,9 @@ void RackView::drawBack(Renderer& r, const RackViewState& s, const Hit& hv) cons
         const Rect row = slotRow(i);
         const bool sel = i == s.selected;
         const bool hotRow = hv.index == i && (hv.action == Action::SlotSelect || hv.action == Action::AddOpen);
-        if (sel) r.glow(row.inset(3), 10, 12.0f, kTh.teal.withAlpha(0.3f), true);
+        // the selected slot: darker teal fill and a solid teal edge, no halo
         r.fillRound(row, 10, sel ? rgb8(0x0F2427) : rgb8(0x0D1113), Blend::Over);
-        r.fillRound({row.x, row.y + 10, 3, row.h - 20}, 1.5f, sel ? kTh.teal : kEdge, Blend::Over, sel);
+        r.fillRound({row.x, row.y + 10, 3, row.h - 20}, 1.5f, sel ? kTh.teal : kEdge, Blend::Over, false);
         r.text(TextStyle::Label, std::to_string(i + 1), row.x + 22, row.y + 54, kTh.dim, Align::Center, TextFx::Shadowed);
         if (!sv.used) {
             r.text(TextStyle::Caption, hotRow ? "+ ADD A PLUG-IN HERE" : "EMPTY", row.x + 46, row.y + 52, hotRow ? kTh.teal : kTh.dim, Align::Left,
@@ -331,8 +330,7 @@ void RackView::drawFront(Renderer& r, const RackViewState& s, const Hit& hv) con
         if (item.group != s.pickerTab) continue;
         const Rect it = pickerItem(k++);
         const bool hot = hv.action == Action::AddPlugin && hv.index == item.plugin;
-        if (hot) r.glow(it.inset(4), 12, 14.0f, kTh.teal.withAlpha(0.35f), true);
-        r.fillRound(it, 12, hot ? rgb8(0x0F2427) : rgb8(0x0D1113), Blend::Over);
+        r.fillRound(it, 12, hot ? rgb8(0x0F2427) : rgb8(0x0D1113), Blend::Over);   // no halo on hover
         const TextStyle ns = fit(r, TextStyle::Panel, item.name, it.w - 40);
         r.text(ns, item.name, it.x + 20, it.y + 54, hot ? kTh.teal : kTh.silver, Align::Left, hot ? TextFx::Neon : TextFx::Shadowed);
         const TextStyle bs = TextStyle::Caption;

@@ -211,8 +211,7 @@ void FaceView::button(const Ctx& c, Rect b, std::string_view text, bool lit, boo
     Renderer& r = c.r;
     const float z = c.z;
     const TextStyle bs = c.fit(TextStyle::Label, text, b.w - 16 * z);
-    if (lit && !dim) {
-        r.glow(b.inset(4 * z), 9 * z, 12.0f * z, colour.withAlpha(0.38f), true);
+    if (lit && !dim) {   // a solid lit button: no glow or bloom around it (Steven: no haze)
         r.fillRound(b.inset(2 * z), 9 * z, colour.withAlpha(0.92f), Blend::Over, false);
         r.fillRound({b.x + 8 * z, b.y + 5 * z, b.w - 16 * z, b.h * 0.34f}, 7 * z, {1, 1, 1, 0.14f}, Blend::Add);
         r.text(bs, text, b.cx(), c.mid(b, bs), kInk, Align::Center, TextFx::Plain);
@@ -270,9 +269,8 @@ void FaceView::bypass(const Ctx& c, const Widget& w, int wi) const {
     const float z = c.z;
     const Rect b = c.T(w.r);
     const bool on = !c.host.bypassed(), hot = c.st.hover == wi;
-    if (on) {
-        r.glow(b.inset(b.w * 0.1f), b.w * 0.4f, 18.0f * z, th_.teal.withAlpha(0.45f), true);
-        r.fillRound(b.inset(3 * z), b.w * 0.5f - 3 * z, th_.teal.withAlpha(0.95f), Blend::Over, true);
+    if (on) {   // solid teal: no glow and not emissive, so the bloom leaves no haze around it
+        r.fillRound(b.inset(3 * z), b.w * 0.5f - 3 * z, th_.teal.withAlpha(0.95f), Blend::Over, false);
         r.fillRound({b.x + b.w * 0.22f, b.y + b.h * 0.12f, b.w * 0.56f, b.h * 0.3f}, b.h * 0.15f, {1, 1, 1, 0.18f}, Blend::Add);
     } else {
         r.fillRound(b.inset(3 * z), b.w * 0.5f - 3 * z, kGlass, Blend::Over);
@@ -846,8 +844,8 @@ void FaceView::draw(Renderer& r, const PanelHost& host, const FaceFeed& feed, co
             const Rect b = c.T(w.r);
             button(c, b, std::to_string(w.choice + 1), on, hot, false, col);
             if (st.selectedBand == w.choice) {
-                r.glow(b.inset(2 * zoom), 8 * zoom, 8.0f * zoom, th_.silver.withAlpha(0.35f), true);
-                r.fillRound({b.x + 6 * zoom, b.bottom() - 4 * zoom, b.w - 12 * zoom, 3 * zoom}, 1.5f * zoom, th_.silver, Blend::Over, true);
+                // the selected band: a solid silver bar under it, no halo
+                r.fillRound({b.x + 6 * zoom, b.bottom() - 4 * zoom, b.w - 12 * zoom, 3 * zoom}, 1.5f * zoom, th_.silver, Blend::Over, false);
             }
             break;
         }

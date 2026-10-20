@@ -1,3 +1,11 @@
+# HEM-Elite-Rack 0.15.3
+
+**Solid buttons, no haze** (the sound is unchanged):
+- A lit button is now plain solid teal, with no glow around it: ON / BYPASS, every ON / OFF switch
+  and choice button on the faceplates (L/R, RATIO, SATURATION...), SURGEON's band buttons, and in
+  the rack app PLAY, the chain's ON buttons, A / B and MATCH LOUDNESS.
+- The selected chain slot and a highlighted plug-in in the ADD list have no glow around them either.
+
 # HEM-Elite-Rack 0.15.2
 
 **HITMAN faceplate, part 2** (the sound is unchanged):
