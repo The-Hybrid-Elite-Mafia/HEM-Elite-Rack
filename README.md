@@ -123,7 +123,7 @@ C++23 audio framework, as a library.
 | **UNDERGROUND** | More low end: a new sub an octave down, or harmonics small speakers can hear |
 | **SPOTLIGHT** | Vocal chain: high-pass, body, one-knob compressor, one-knob de-esser, presence, air |
 
-One hundred and fifteen plug-ins, under our own names and in our own words. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
+One hundred and fourteen plug-ins, under our own names and in our own words. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 
 ## Install
 Download `HEM-Elite-Rack-Setup-x.y.z.exe` from **Releases** and run it. Needs Windows 10 / 11
