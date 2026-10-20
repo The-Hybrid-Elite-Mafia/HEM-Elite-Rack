@@ -69,6 +69,15 @@
 //                SHELF / BELL / HI SHELF / LOW-PASS), a gate (THRESHOLD -96 = off ..0, FLOOR -96..0, ATTACK, RELEASE) and
 //                a compressor (THRESHOLD -52..0, RATIO 0.5:1 (expands) .. 40:1, ATTACK 0.1–1000 ms, RELEASE 1–10000 ms),
 //                OUTPUT -24..+12 dB. Meters: ENERGY (after the EQ), COMP and GATE gain change, OUTPUT. Zero latency.
+//  BIG HOUSE     reverb with twelve kinds of space: HALL A / HALL B / ROOM / CHAMBER / SANCTUARY / PLATE A / PLATE B /
+//                BACKWARDS (the tail swells up, then stops) / GATED (it holds, then shuts) / SHAPED (DECAY bends it) /
+//                ECHO ROOM (echoes into the room) / RINGING (a tuned ring in the tail). VARIATION 0–6 (the left and right
+//                early reflections differ more), PRE-DELAY -160..160 ms (minus: the dry waits instead), TIME 0.1–20 s,
+//                SIZE 1–100 %, DIFFUSION 1–100 % (how much of the early reflections feeds the tail), DECAY 0.04–3.5 (lower
+//                cuts the tail short before TIME: a shaped tail; 3.5 = natural), EARLY and REVERB levels -40 (off)..0 dB,
+//                MIX 0–100 %, the tail's damping (LOW HZ 16–1600 with its RATIO 0.1–2, HIGH HZ 1–21 kHz with its RATIO),
+//                the tail's EQ (low and high shelves, -24..+12 dB; -24 = a cut), GAIN -24..0 dB. Peaks L / R with RESET.
+//                Zero latency (a minus PRE-DELAY makes the whole sound that much late).
 //  THE INFORMANT vocoder: the MODULATOR (L+R, LEFT or RIGHT of the input: the words) shapes the CARRIER (its own
 //                SYNTH, or the input's LEFT, RIGHT or STEREO). The synth: 48 keys (C2–B5, eight voices: more held keys
 //                than voices are ignored), LATCH (HOLD: a key sounds while held; LATCH: a click latches it),
@@ -168,6 +177,10 @@ enum BandP : int { On, Type, Freq, BandGain, Q };   // band b's control k: b * k
 enum P : int { Input = kBands * kStride, Output, CompThreshold, Ratio, CompAttack, CompRelease, GateThreshold, Floor, GateAttack, GateRelease, kCount };
 constexpr int band(int b, int k) noexcept { return b * kStride + k; }
 } // namespace streetteam
+namespace bighouse {
+enum P : int { Type, Variation, PreDelay, Time, Size, Diffusion, Decay, EarlyLevel, ReverbLevel, Mix, LowDampHz, LowRatio, HighDampHz,
+               HighRatio, EqLowHz, EqLowGain, EqHighHz, EqHighGain, Gain, Reset, kCount };
+} // namespace bighouse
 namespace informant {
 inline constexpr int kEqBands = 5, kEqStride = 4, kKeys = 48, kLowKey = 36;   // keys: MIDI 36 (C2) .. 83 (B5)
 inline constexpr int kPaths = 4, CarrierPath = 0, ModPath = 1, NoisePath = 2, MorphPath = 3;
@@ -199,6 +212,7 @@ enum P : int { Sync, Bpm, Time, Note, Tap, Dual, TimeR, NoteR, Feedback, PingPon
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeMouthpiece();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeSlinger();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeStreetTeam();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeBigHouse();
 struct CurveInfo;
 namespace streetteam { extern const CurveInfo kCurve; }
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeSixShooter();

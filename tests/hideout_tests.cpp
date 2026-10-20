@@ -51,7 +51,7 @@ double peakIn(const std::vector<float>& x, std::size_t from, std::size_t to) {
 }
 
 void allRules() {
-    for (const char* name : {"MOUTHPIECE", "SLINGER", "STREET TEAM", "COLD CASE", "SWERVE", "THE FIXER", "SIX SHOOTER", "DEAD DROP", "BACK ALLEY", "DRIVE-BY", "BODY DOUBLE", "HUSTLE", "THE INFORMANT", "STRAPPED", "SAFE HOUSE"}) {
+    for (const char* name : {"BIG HOUSE", "MOUTHPIECE", "SLINGER", "STREET TEAM", "COLD CASE", "SWERVE", "THE FIXER", "SIX SHOOTER", "DEAD DROP", "BACK ALLEY", "DRIVE-BY", "BODY DOUBLE", "HUSTLE", "THE INFORMANT", "STRAPPED", "SAFE HOUSE"}) {
         const PluginInfo* info = findPlugin(name);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
@@ -639,6 +639,93 @@ void testVoiceDynamics() {
     }
 }
 
+// energy (dB) of x over [from, from + len)
+double energyDb(const std::vector<float>& x, std::size_t from, std::size_t len) { return db(rms(x, from, len)); }
+
+void testBigHouse() {
+    using namespace bighouse;
+    auto tailAt = [](std::initializer_list<std::pair<int, float>> v, double fromS, double lenS) {
+        auto e = findPlugin("BIG HOUSE")->create();
+        for (const auto& [i, x] : std::initializer_list<std::pair<int, float>>{{Mix, 100}, {EarlyLevel, -40}}) e->set(i, x);
+        for (const auto& [i, x] : v) e->set(i, x);
+        e->prepare(kFs, 512);
+        Stereo s = impulse(static_cast<std::size_t>(5.0 * kFs));
+        run(*e, s);
+        return energyDb(s.l, static_cast<std::size_t>(fromS * kFs) + 100, static_cast<std::size_t>(lenS * kFs));
+    };
+    {   // TIME: the tail falls about 60 dB over TIME
+        const double a = tailAt({{Time, 1.0f}}, 0.2, 0.1), b = tailAt({{Time, 1.0f}}, 1.2, 0.1);
+        std::printf("  BIG HOUSE time 1 s: %.1f dB down from 0.2 s to 1.2 s\n", a - b);
+        CHECK(a - b > 45.0 && a - b < 75.0);
+        const double c = tailAt({{Time, 4.0f}}, 1.2, 0.1);
+        CHECK(c > b + 20.0);
+    }
+    {   // HIGH RATIO 0.2: the highs die much sooner than the lows
+        auto e = findPlugin("BIG HOUSE")->create();
+        e->set(Mix, 100); e->set(EarlyLevel, -40); e->set(Time, 3.0f); e->set(HighRatio, 0.2f); e->set(HighDampHz, 3000);
+        e->prepare(kFs, 512);
+        Stereo s = noise(0.2, 0.3f);
+        Stereo t(static_cast<std::size_t>(2.0 * kFs));
+        for (std::size_t i = 0; i < s.size(); ++i) { t.l[i] = s.l[i]; t.r[i] = s.r[i]; }
+        run(*e, t);
+        const std::size_t at = static_cast<std::size_t>(1.0 * kFs);
+        const double lo = bandLevelDb(t.l, 100, 400, at, 24000), hi = bandLevelDb(t.l, 6000, 12000, at, 24000);
+        std::printf("  BIG HOUSE high ratio 0.2, 0.8 s after the noise: lows %.1f dB, highs %.1f dB\n", lo, hi);
+        CHECK(lo - hi > 20.0);
+    }
+    {   // PRE-DELAY 100 ms: nothing wet for the first 100 ms; minus 100 ms: the dry is the one that waits
+        auto e = make("BIG HOUSE", {{PreDelay, 100}, {Mix, 100}});
+        Stereo s = impulse(12000);
+        run(*e, s);
+        std::printf("  BIG HOUSE pre-delay 100 ms: before %.2e, after %.2e\n", peakIn(s.l, 0, 4800 + 90), peakIn(s.l, 4800 + 100, 12000));
+        CHECK(peakIn(s.l, 0, 4800 + 90) < 1e-6 && peakIn(s.l, 4800 + 100, 12000) > 1e-3);
+        auto d = make("BIG HOUSE", {{PreDelay, -100}, {Mix, 0}});
+        Stereo t = impulse(12000);
+        run(*d, t);
+        std::printf("  BIG HOUSE pre-delay -100 ms, dry only: the click at %.1f ms\n", (peakAt(t.l, 0, 12000) - 100) / 48.0);
+        CHECK(peakAt(t.l, 0, 12000) == 4900);
+    }
+    {   // EARLY and REVERB levels at -40 = off: silence; MIX 0 = the dry untouched
+        auto e = make("BIG HOUSE", {{EarlyLevel, -40}, {ReverbLevel, -40}, {Mix, 100}});
+        Stereo s = noise(0.3, 0.3f);
+        run(*e, s);
+        CHECK(peakIn(s.l, 0, s.size()) < 1e-6);
+        auto dry = make("BIG HOUSE", {{Mix, 0}});
+        Stereo a = noise(0.3, 0.3f), ref = a;
+        run(*dry, a);
+        double d = 0;
+        for (std::size_t i = 0; i < a.size(); ++i) d = std::max(d, static_cast<double>(std::fabs(a.l[i] - ref.l[i])));
+        std::printf("  BIG HOUSE mix 0: largest change %.2e\n", d);
+        CHECK(d < 1e-6);
+    }
+    {   // GATED holds, then shuts: 0.6 s after a hit (TIME 1 s: hold 0.25 s) nothing is left; a natural hall still rings
+        const double gated = tailAt({{Type, 8}, {Time, 1.0f}}, 0.6, 0.1), hall = tailAt({{Type, 0}, {Time, 1.0f}}, 0.6, 0.1);
+        std::printf("  BIG HOUSE 0.6 s after a click: gated %.1f dB, hall %.1f dB\n", gated, hall);
+        CHECK(gated < hall - 40.0);
+        // BACKWARDS swells: later louder than earlier (TIME 4 s: it builds for 2 s)
+        const double early = tailAt({{Type, 7}, {Time, 4.0f}}, 0.2, 0.1), late = tailAt({{Type, 7}, {Time, 4.0f}}, 1.6, 0.1);
+        std::printf("  BIG HOUSE backwards: 0.2 s %.1f dB, 1.6 s %.1f dB\n", early, late);
+        CHECK(late > early + 20.0);
+        // DECAY 0.1 cuts a 4 s tail short
+        const double natural = tailAt({{Time, 4.0f}}, 0.8, 0.1), cut = tailAt({{Time, 4.0f}, {Decay, 0.1f}}, 0.8, 0.1);
+        std::printf("  BIG HOUSE decay 0.1 on a 4 s tail, at 0.8 s: %.1f dB vs %.1f dB\n", cut, natural);
+        CHECK(cut < natural - 25.0);
+    }
+    {   // EQ LOW -24 = a cut: the tail loses its lows
+        auto lows = [](float gain) {
+            auto e = findPlugin("BIG HOUSE")->create();
+            e->set(Mix, 100); e->set(EarlyLevel, -40); e->set(EqLowHz, 400); e->set(EqLowGain, gain);
+            e->prepare(kFs, 512);
+            Stereo t = noise(1.0, 0.3f);
+            run(*e, t);
+            return bandLevelDb(t.l, 50, 150, 24000, 24000);
+        };
+        const double flat = lows(0.0f), cut = lows(-24.0f);
+        std::printf("  BIG HOUSE EQ low cut at 400 Hz: the tail's 50-150 Hz %.1f dB vs %.1f dB\n", cut, flat);
+        CHECK(cut < flat - 12.0);
+    }
+}
+
 void testInformant() {
     using namespace informant;
     // a talking-like modulator: noise in short bursts; the morph only (no noise path)
@@ -869,6 +956,7 @@ void testHideout() {
     testSwerve();
     testColdCase();
     testVoiceDynamics();
+    testBigHouse();
     testSixShooter();
     testBackAlley();
     testDriveBy();

@@ -69,6 +69,7 @@ add_library(hem_rackfx STATIC
     src/hideout/Swerve.cpp
     src/hideout/ColdCase.cpp
     src/hideout/VoxKit.cpp
+    src/hideout/BigHouse.cpp
     src/hideout/Strapped.cpp
     src/hideout/SafeHouse.cpp
     src/hideout/HideoutPlates.cpp

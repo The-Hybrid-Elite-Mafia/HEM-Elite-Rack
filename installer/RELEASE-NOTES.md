@@ -1,5 +1,7 @@
 # HEM-Elite-Rack 0.30.0
 
+- **BIG HOUSE** (new) — reverb with twelve kinds of space and every control: variation, pre-delay either way, time, size,
+  diffusion, decay shape, early and reverb levels, low and high damping with ratios, tail EQ, mix, gain.
 - **MOUTHPIECE** (new) — vocal leveler in one move: gate, press, ceiling, with total / output / input readouts.
 - **SLINGER** (new) — guitar compressor: threshold, attack, gain into a limiter, with input / attenuation / output / limiter readouts.
 - **STREET TEAM** (new) — channel strip: input, four-band EQ, gate with floor, compressor / expander, output.

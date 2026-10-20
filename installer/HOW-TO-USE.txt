@@ -416,6 +416,14 @@ STREET TEAM
   (OFF all the way down; FLOOR = how far it closes; G ATTACK / G RELEASE) and the compressor (COMP
   threshold, RATIO - under 1 it expands the loud parts instead -, C ATTACK, C RELEASE), and OUTPUT.
 
+BIG HOUSE
+  Twelve kinds of space: TYPE (halls, a room, a chamber, a sanctuary, two plates, BACKWARDS that swells
+  up to each hit, GATED that holds then shuts, SHAPED, ECHO ROOM, RINGING). TIME = how long the tail lasts,
+  SIZE, DIFFUSION (more = the early reflections feed a smoother tail), DECAY under 3.5 cuts the tail short
+  (gated / shaped sounds), PRE-DELAY (minus: the dry waits instead), EARLY and REVERB levels (all the way
+  down = off), MIX. LOW / HIGH HZ with their X: the lows or highs last longer (over 1) or shorter (under 1).
+  EQ LO / EQ HI shape the tail (all the way down = a cut). VARIATION changes the early reflections a bit.
+
 THE INFORMANT
   Talk or sing into it and its own synth "speaks" your words. Play the synth on the 48 KEYS (up to
   eight at once): HOLD = a key sounds while you hold it (drag across for a glide), LATCH = a click

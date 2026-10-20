@@ -107,6 +107,19 @@ constexpr PlateKnob row1[] = {{Input, "INPUT", "OFF", "0"}, {GateThreshold, "GAT
                               {CompRelease, "C RELEASE"}, {Output, "OUTPUT"}};
 } // namespace st2
 
+// ---- BIG HOUSE
+namespace bh {
+using namespace bighouse;
+constexpr PlateReadout readouts[] = {{0, "PEAK L", "dBFS", "+"}, {1, "PEAK R", "dBFS", "+"}};
+constexpr PlateToggle toggles[] = {{Reset, "RESET PEAKS", true}};
+constexpr PlateChoice steppers[] = {{Type, "TYPE"}, {Variation, "VARIATION"}};
+constexpr PlateKnob row1[] = {{PreDelay, "PRE-DELAY", "-160", "160"}, {Time, "TIME", "0.1", "20", K::Big}, {Size, "SIZE"}, {Diffusion, "DIFFUSION"},
+                              {Decay, "DECAY"}, {EarlyLevel, "EARLY", "OFF", "0"}, {ReverbLevel, "REVERB", "OFF", "0"}, {Mix, "MIX", "DRY", "WET", K::Big}};
+constexpr PlateKnob row2[] = {{LowDampHz, "LOW HZ", "", "", K::Small}, {LowRatio, "LOW X", "", "", K::Small}, {HighDampHz, "HIGH HZ", "", "", K::Small},
+                              {HighRatio, "HIGH X", "", "", K::Small}, {EqLowHz, "EQ LO HZ", "", "", K::Small}, {EqLowGain, "EQ LO", "CUT", "+12", K::Small},
+                              {EqHighHz, "EQ HI HZ", "", "", K::Small}, {EqHighGain, "EQ HI", "CUT", "+12", K::Small}, {Gain, "GAIN", "", "", K::Small}};
+} // namespace bh
+
 // ---- STRAPPED
 namespace st {
 using namespace strapped;
@@ -169,6 +182,9 @@ const PlateSpec kStreetTeam{.note1 = "THE WHOLE CHANNEL", .note2 = "ONE PLATE", 
                                 e.set(band(2, On), 1); e.set(band(2, BandGain), 4); e.set(band(2, Q), 2);
                                 e.set(CompThreshold, -20); e.set(Ratio, 3);
                             }};
+const PlateSpec kBigHouse{.note1 = "TWELVE KINDS", .note2 = "OF SPACE", .screen = Screen::Readouts, .readouts = bh::readouts, .toggles = bh::toggles,
+                          .row1 = bh::row1, .row2 = bh::row2, .steppers = bh::steppers,
+                          .demo = [](hc::fx::Effect& e) { e.set(bighouse::Time, 3.2f); e.set(bighouse::Mix, 40); }};
 const PlateSpec kStrapped{.note1 = "THE GUITAR", .note2 = "READY FOR THE MIX", .screen = Screen::None, .toggles = st::toggles,
                           .row1 = st::row1, .steppers = st::steppers, .bands = &st::bands, .reportsReduction = true,
                           .demo = [](hc::fx::Effect& e) {
