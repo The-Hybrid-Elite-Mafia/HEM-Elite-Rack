@@ -10,7 +10,7 @@ using namespace knockout;
 
 const char* const kModeN[] = {"WIDE", "4-BAND"};
 const char* const kAttShapeN[] = {"SHARP", "PUNCHY", "ROUND"};
-const char* const kSusShapeN[] = {"STRAIGHT", "CURVED", "SOFT"};
+const char* const kSusShapeN[] = {"EVEN", "CURVED", "SOFT"};
 const char* const kGuardN[] = {"OFF", "CLIP", "LIMIT"};
 const ParamInfo kParams[kCount] = {
     {"mode", "Mode", "", 0, 1, 0, Taper::Choice, kModeN},

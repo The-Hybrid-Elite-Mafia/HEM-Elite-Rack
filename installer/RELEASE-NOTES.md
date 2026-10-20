@@ -1,3 +1,13 @@
+# HEM-Elite-Rack 0.16.1
+
+**Tidier new plates** (the sound is unchanged):
+- Button words never spill out of their buttons: plates with many switches put at most two button
+  groups per row, and a few names got shorter (SWITCHBLADE's filter: OFF / LO CUT / HI CUT / BAND /
+  NOTCH; KNOCKOUT's sustain shape: EVEN / CURVED / SOFT).
+- TERRITORY's band knobs are a little smaller so the rows breathe.
+- Small number boxes show the unit under the number, and no screen ever shows "-0.0".
+- The history screens' labels match what they draw.
+
 # HEM-Elite-Rack 0.16.0
 
 **Fourteen new dynamics plug-ins** (in the rack and as VST3), our own designs:

@@ -10,6 +10,7 @@
 #include "hem/ui/Face.hpp"
 
 #include <algorithm>
+#include <span>
 #include <cstdio>
 #include <string>
 #include <vector>
@@ -90,6 +91,43 @@ inline int clashes(const hem::ui::FaceLayout& L, const char* name) {
                 ++n;
                 std::printf("  %s: text %s runs into control '%s'\n", name, boxes[a].what.c_str(), w.caption.c_str());
             }
+        }
+    }
+    return n;
+}
+
+// Width of a line at the plate's smallest text size, letter by letter (measured from the screenshots:
+// wide capitals ~12.5, digits ~8.5, I / space / punctuation ~5, lower case ~8).
+inline float captionWidth(const std::string& t) {
+    float w = 0;
+    for (char ch : t) {
+        if (ch == 'M' || ch == 'W') w += 15.0f;
+        else if (ch == 'L' || ch == 'T' || ch == 'F' || ch == 'E') w += 10.5f;
+        else if (ch == 'I' || ch == ' ' || ch == '.' || ch == ',' || ch == ':' || ch == '/' || ch == '-' || ch == '|') w += 5.0f;
+        else if (ch >= '0' && ch <= '9') w += 8.5f;
+        else if (ch >= 'a' && ch <= 'z') w += 8.0f;
+        else w += 12.5f;
+    }
+    return w;
+}
+
+// Every button's words fit inside it, even at the smallest text size the plate shrinks to
+// (choice buttons: the choice's name; switches: the caption + "  OFF").
+inline int crampedButtons(const hem::ui::FaceLayout& L, std::span<const hc::fx::ParamInfo> ps, const char* name) {
+    using hem::ui::WKind;
+    int n = 0;
+    for (const hem::ui::Widget& w : L.widgets) {
+        std::string t;
+        if (w.kind == WKind::ChoiceButton && w.param >= 0 && w.param < static_cast<int>(ps.size()) && ps[static_cast<std::size_t>(w.param)].choices)
+            t = ps[static_cast<std::size_t>(w.param)].choices[w.choice];
+        else if (w.kind == WKind::Toggle && w.hi != "PRESS")
+            t = w.caption + "  OFF";
+        else
+            continue;
+        const float need = captionWidth(t);
+        if (need > w.r.w - 16.0f) {
+            ++n;
+            std::printf("  %s: the words '%s' don't fit their %.0f-wide button\n", name, t.c_str(), static_cast<double>(w.r.w));
         }
     }
     return n;

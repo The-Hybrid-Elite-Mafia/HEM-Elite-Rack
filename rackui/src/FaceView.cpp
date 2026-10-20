@@ -620,17 +620,20 @@ void FaceView::readout(const Ctx& c, const Widget& w) const {
     Renderer& r = c.r;
     const float z = c.z;
     const Rect b = c.T(w.r);
-    const float v = c.feed.meterDb(w.choice);
+    float v = c.feed.meterDb(w.choice);
+    if (std::fabs(v) < 0.05f) v = 0.0f;   // no "-0.0"
     const TextStyle cs = c.ts(TextStyle::Caption);
+    const bool small = w.r.h < 110.0f;   // a short window: name and unit on one line, a smaller number
     r.text(cs, w.caption, b.x + 18 * z, b.y + 30 * z, th_.label, Align::Left, TextFx::Shadowed);
-    r.text(cs, w.lo, b.x + 18 * z, b.y + 60 * z, th_.teal, Align::Left, TextFx::Shadowed);   // the unit, under the name
+    if (small) r.text(cs, w.lo, b.x + 18 * z, b.bottom() - 16 * z, th_.teal, Align::Left, TextFx::Shadowed);
+    else r.text(cs, w.lo, b.x + 18 * z, b.y + 60 * z, th_.teal, Align::Left, TextFx::Shadowed);   // the unit, under the name
     char t[24];
     const char* f = w.hi == "+2" ? "%+.2f" : w.hi == "+" ? "%+.1f" : "%.1f";
     if (v > -99.0f) std::snprintf(t, sizeof t, f, static_cast<double>(v));
     else std::snprintf(t, sizeof t, "--");
     const bool over = w.hi == "CEIL" && v > plain(c.host, rack::limiter::Ceiling) + 0.05f;   // true peak above the ceiling
-    const TextStyle big = c.fit(TextStyle::Display, t, b.w * 0.55f);   // the left side keeps the name and unit
-    r.text(big, t, b.right() - 18 * z, b.bottom() - 18 * z, over ? th_.red : th_.teal, Align::Right, TextFx::Shadowed);
+    const TextStyle big = c.fit(small ? TextStyle::Panel : TextStyle::Display, t, b.w * (small ? 0.5f : 0.55f));   // the left side keeps the name and unit
+    r.text(big, t, b.right() - 18 * z, b.bottom() - (small ? 14 : 18) * z, over ? th_.red : th_.teal, Align::Right, TextFx::Shadowed);
 }
 
 // HITMAN: the last few seconds, scrolling right to left — gain reduction of both channels hanging
@@ -775,7 +778,7 @@ void FaceView::grMeter(const Ctx& c, const Widget& w) const {
     // labels and the number
     r.text(ls, caption, d.x + 20 * z, d.bottom() - 18 * z, th_.label, Align::Left, TextFx::Shadowed);
     char b[32];
-    std::snprintf(b, sizeof b, "%.1f", static_cast<double>(target));
+    std::snprintf(b, sizeof b, "%.1f", static_cast<double>(std::fabs(target) < 0.05f ? 0.0f : target));
     r.text(big, b, d.right() - 24 * z, bigBaseline, th_.teal, Align::Right, TextFx::Shadowed);
 }
 

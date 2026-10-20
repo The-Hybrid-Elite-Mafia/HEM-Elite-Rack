@@ -73,6 +73,7 @@ void layoutRules(const rack::PluginInfo& info) {
     CHECK(noOverlap);
     // ...and no caption, value, note or section name runs into a control or into other text.
     CHECK(textroom::clashes(L, info.name) == 0);
+    CHECK(textroom::crampedButtons(L, fx->params(), info.name) == 0);
     // Every parameter can be reached from the faceplate.
     std::set<int> reach;
     for (const Widget& w : L.widgets) {

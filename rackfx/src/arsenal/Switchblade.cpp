@@ -8,7 +8,7 @@ namespace {
 using namespace arsenal;
 using namespace switchblade;
 
-const char* const kTypeN[] = {"OFF", "HIGH-PASS", "LOW-PASS", "BAND-PASS", "BAND-CUT"};
+const char* const kTypeN[] = {"OFF", "LO CUT", "HI CUT", "BAND", "NOTCH"};
 const char* const kUseN[] = {"KEY", "BAND"};
 const ParamInfo kParams[kCount] = {
     {"threshold", "Threshold", "dB", -60.0f, 0.0f, -18.0f},

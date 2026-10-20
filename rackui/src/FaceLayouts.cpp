@@ -836,9 +836,10 @@ FaceLayout territoryFace(const rack::PluginInfo& info) {
     // the band columns
     for (int b = 0; b < kBands; ++b) {
         const float cx = 410 + (static_cast<float>(b) + 0.5f) * col;
-        L.widgets.push_back(knob({cx - d * 0.5f, 424, d, d}, thr(b), "THRESHOLD", "", "", true));
-        L.widgets.push_back(knob({cx - d * 0.5f, 548, d, d}, range(b), "RANGE", "", "", true));
-        L.widgets.push_back(knob({cx - d * 0.5f, 672, d, d}, gain(b), "GAIN", "", "", true));
+        constexpr float bd = 54.0f;   // the band knobs: three rows with room for their names and values
+        L.widgets.push_back(knob({cx - bd * 0.5f, 440, bd, bd}, thr(b), "THRESHOLD", "", "", true));
+        L.widgets.push_back(knob({cx - bd * 0.5f, 566, bd, bd}, range(b), "RANGE", "", "", true));
+        L.widgets.push_back(knob({cx - bd * 0.5f, 692, bd, bd}, gain(b), "GAIN", "", "", true));
         if (b > 0) L.grooves.push_back({410 + static_cast<float>(b) * col, 404, 410 + static_cast<float>(b) * col, 808});
     }
     seatKnobs(L, first, 8);
@@ -969,22 +970,28 @@ FaceLayout specFace(const rack::PluginInfo& info) {
     } else {
         L.display = {410, 182, 1226, 600};
         float top = 182;
-        if (!S.choices.empty()) {   // the button groups side by side across the top
+        int groupRows = 0;
+        if (!S.choices.empty()) {   // the button groups across the top, at most two side by side
             auto fx = info.create();
             const auto ps = fx->params();
-            const float n = static_cast<float>(S.choices.size()), gw = (1226.0f - 30.0f * (n - 1)) / n;
+            const int perRow = S.choices.size() > 2 ? 2 : static_cast<int>(S.choices.size());
+            const float gw = (1226.0f - 30.0f * static_cast<float>(perRow - 1)) / static_cast<float>(perRow);
             for (std::size_t i = 0; i < S.choices.size(); ++i) {
                 const int count = static_cast<int>(ps[static_cast<std::size_t>(S.choices[i].param)].max) + 1;
-                buttonGroup(L, S.choices[i].caption, 410 + static_cast<float>(i) * (gw + 30.0f), gw, 236, S.choices[i].param, count);
+                const int row = static_cast<int>(i) / perRow, colI = static_cast<int>(i) % perRow;
+                buttonGroup(L, S.choices[i].caption, 410 + static_cast<float>(colI) * (gw + 30.0f), gw, 236 + static_cast<float>(row) * 94, S.choices[i].param, count);
+                groupRows = row + 1;
             }
             top = 300;
         }
         if (twoRows) {
-            specRow(L, S.row1, top == 182 ? 260.0f : 340.0f);
-            L.grooves.push_back({410, 540, 1636, 540});
-            specRow(L, S.row2, 600);
+            const float r1 = groupRows == 0 ? 260.0f : groupRows == 1 ? 340.0f : 440.0f;
+            specRow(L, S.row1, r1, groupRows == 2 ? 110.0f : 128.0f);
+            const float g = groupRows == 2 ? 610.0f : 540.0f;
+            L.grooves.push_back({410, g, 1636, g});
+            specRow(L, S.row2, groupRows == 2 ? 660.0f : 600.0f, groupRows == 2 ? 76.0f : 128.0f);
         } else {
-            specRow(L, S.row1, top == 182 ? 420.0f : 470.0f);
+            specRow(L, S.row1, top == 182 ? 420.0f : (groupRows == 2 ? 500.0f : 470.0f));
         }
     }
     // the left column: choice lists, then switches (and the switches that found no room on top)
@@ -993,11 +1000,11 @@ FaceLayout specFace(const rack::PluginInfo& info) {
         auto fx = info.create();
         const int count = static_cast<int>(fx->params()[static_cast<std::size_t>(c.param)].max) + 1;
         for (int i = 0; i < count; ++i) L.widgets.push_back(choiceButton({70, y + static_cast<float>(i) * 46, 270, 40}, c.param, i, i == 0 ? c.caption : ""));
-        y += static_cast<float>(count) * 46 + 34;
+        y += static_cast<float>(count) * 46 + 44;
     }
     std::vector<rack::PlateToggle> lt(S.leftToggles.begin(), S.leftToggles.end());
     if (!screen) lt.insert(lt.end(), S.toggles.begin(), S.toggles.end());
-    if (!S.left.empty()) y -= 20;
+    if (!S.left.empty()) y -= 30;
     for (const rack::PlateChoice& c : S.steppers) {
         Widget st;
         st.kind = WKind::Stepper;
