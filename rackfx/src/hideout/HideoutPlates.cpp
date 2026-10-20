@@ -70,6 +70,19 @@ constexpr PlateKnob row1[] = {{Rate, "RATE"}, {Factor, "MULTIPLIER", "x0.25", "x
 constexpr PlateKnob row2[] = {{RotCenter, "SWING CENTER", "R", "L"}, {RotRange, "SWING RANGE"}, {P::Gain, "GAIN"}, {Mix, "MIX"}};
 } // namespace hu
 
+// ---- SWERVE
+namespace sw {
+using namespace swerve;
+constexpr PlateReadout readouts[] = {{0, "PEAK L", "dBFS", "+"}, {1, "PEAK R", "dBFS", "+"}};
+constexpr PlateChoice choices[] = {{Sync, "SYNC"}};
+constexpr PlateToggle toggles[] = {{Tie, "TIE"}, {Hold, "HOLD"}, {Tape, "TAPE"}, {Reset, "RESET PEAKS", true}};
+constexpr PlateKnob row1[] = {{Delay, "DELAY", "0", "20"}, {Depth, "DEPTH", "0", "100"}, {Rate, "RATE", "0", "20"}, {StereoOffset, "STEREO", "0", "180"},
+                              {Feedback, "FEEDBACK", "0", "100"}, {Mix, "MIX", "DRY", "WET", K::Big}};
+constexpr PlateKnob row2[] = {{FilterFreq, "FILTER FREQ", "20", "20K"}, {Gain, "GAIN", "-12", "+12"}};
+constexpr PlateToggle leftToggles[] = {{LoopFlip, "LOOP FLIP"}, {WetFlip, "WET FLIP"}};
+constexpr PlateChoice steppers[] = {{Wave, "WAVE"}, {FilterType, "FILTER"}};
+} // namespace sw
+
 // ---- STRAPPED
 namespace st {
 using namespace strapped;
@@ -114,6 +127,10 @@ const PlateSpec kDriveBy{.note1 = "HERE IT COMES", .note2 = "THERE IT GOES", .sc
 const PlateSpec kHustle{.note1 = "LEVEL, PITCH, PLACE", .note2 = "ONE MOTION", .screen = Screen::None, .choices = hu::choices, .toggles = hu::toggles,
                         .row1 = hu::row1, .row2 = hu::row2, .steppers = hu::steppers,
                         .demo = [](hc::fx::Effect& e) { using namespace hustle; e.set(Rate, 2); e.set(FmDepth, 20); }};
+const PlateSpec kSwerve{.note1 = "THE JET SWOOSH", .note2 = "BENT IN TIME", .screen = Screen::Readouts, .readouts = sw::readouts,
+                        .choices = sw::choices, .toggles = sw::toggles, .row1 = sw::row1, .row2 = sw::row2, .leftToggles = sw::leftToggles,
+                        .steppers = sw::steppers,
+                        .demo = [](hc::fx::Effect& e) { using namespace swerve; e.set(Feedback, 70); e.set(StereoOffset, 90); e.set(Rate, 0.5f); }};
 const PlateSpec kStrapped{.note1 = "THE GUITAR", .note2 = "READY FOR THE MIX", .screen = Screen::None, .toggles = st::toggles,
                           .row1 = st::row1, .steppers = st::steppers, .bands = &st::bands, .reportsReduction = true,
                           .demo = [](hc::fx::Effect& e) {

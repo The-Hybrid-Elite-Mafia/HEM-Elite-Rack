@@ -40,6 +40,13 @@
 //                (x0.25–x100), WAVE (SQUARE, TRIANGLE, SAW UP, SAW DOWN, SINE). LEVEL (DEPTH, ON, PHASE 0 / 90 /
 //                180 / 270°), PITCH (DEPTH, ON, PHASE), SWING (where the picture sits: CENTER ±180, how far it
 //                sweeps: RANGE 1–360, ON). GAIN ±12, MIX. Latency 10.5 ms (the pitch move needs room either way).
+//  SWERVE        flanger: DELAY 0–20 ms (the middle of the sweep), DEPTH 0–100 % (how far it swings around it), RATE
+//                0–20 Hz (SYNC FREE) or sweeps per beat (SYNC HOST), WAVE SINE / TRIANGLE, TIE (RATE and DEPTH move
+//                together: the pitch wobble stays the same), HOLD (the sweep stops where it is), STEREO 0–180° (the
+//                right side's sweep that far behind the left), FEEDBACK 0–100 % with LOOP FLIP, MIX 0–100 % with WET
+//                FLIP, FILTER (OFF, LOW-PASS or HIGH-PASS; FREQ 20 Hz–20 kHz) in the wet path and the loop, TAPE (the dry
+//                waits as long as DELAY, so the sweep goes through zero: the whole sound is late by DELAY), GAIN ±12 dB.
+//                Peaks L / R with RESET. Zero latency.
 //  THE INFORMANT vocoder: the MODULATOR (L+R, LEFT or RIGHT of the input: the words) shapes the CARRIER (its own
 //                SYNTH, or the input's LEFT, RIGHT or STEREO). The synth: 48 keys (C2–B5, eight voices: more held keys
 //                than voices are ignored), LATCH (HOLD: a key sounds while held; LATCH: a click latches it),
@@ -118,6 +125,10 @@ namespace hustle {
 enum P : int { Sync, Rate, Factor, Wave, AmDepth, AmOn, AmPhase, FmDepth, FmOn, FmPhase, RotCenter, RotOn, RotRange, Gain, Mix, kCount };
 } // namespace hustle
 
+namespace swerve {
+enum P : int { Delay, Depth, Rate, Sync, Wave, Tie, Hold, StereoOffset, Feedback, LoopFlip, Mix, WetFlip, FilterType, FilterFreq, Tape,
+               Gain, Reset, kCount };
+} // namespace swerve
 namespace informant {
 inline constexpr int kEqBands = 5, kEqStride = 4, kKeys = 48, kLowKey = 36;   // keys: MIDI 36 (C2) .. 83 (B5)
 inline constexpr int kPaths = 4, CarrierPath = 0, ModPath = 1, NoisePath = 2, MorphPath = 3;
@@ -144,6 +155,7 @@ enum P : int { Sync, Bpm, Time, Note, Tap, Dual, TimeR, NoteR, Feedback, PingPon
 
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeFixer();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeDeadDrop();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeSwerve();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeSixShooter();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeBackAlley();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeDriveBy();

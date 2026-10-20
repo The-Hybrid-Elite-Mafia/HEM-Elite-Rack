@@ -51,7 +51,7 @@ double peakIn(const std::vector<float>& x, std::size_t from, std::size_t to) {
 }
 
 void allRules() {
-    for (const char* name : {"THE FIXER", "SIX SHOOTER", "DEAD DROP", "BACK ALLEY", "DRIVE-BY", "BODY DOUBLE", "HUSTLE", "THE INFORMANT", "STRAPPED", "SAFE HOUSE"}) {
+    for (const char* name : {"SWERVE", "THE FIXER", "SIX SHOOTER", "DEAD DROP", "BACK ALLEY", "DRIVE-BY", "BODY DOUBLE", "HUSTLE", "THE INFORMANT", "STRAPPED", "SAFE HOUSE"}) {
         const PluginInfo* info = findPlugin(name);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
@@ -369,6 +369,108 @@ void testHustle() {
     }
 }
 
+void testSwerve() {
+    using namespace swerve;
+    {   // DEPTH 0, MIX 100: a click comes out DELAY later
+        auto e = make("SWERVE", {{Depth, 0}, {Mix, 100}, {Feedback, 0}, {Delay, 2.2f}});
+        Stereo s = impulse(4800);
+        run(*e, s);
+        const std::size_t a = peakAt(s.l, 0, 4800);
+        std::printf("  SWERVE delay 2.2 ms: the click at %.2f ms\n", (a - 100) / 48.0);
+        CHECK(a >= 205 && a <= 206);
+    }
+    {   // MIX 50 at 1 ms, no sweep: a notch at 500 Hz, a peak at 1 kHz; WET FLIP swaps them
+        auto e = make("SWERVE", {{Depth, 0}, {Mix, 50}, {Feedback, 0}, {Delay, 1.0f}});
+        const double n500 = toneGain(*e, 500, 0.3f), p1k = toneGain(*e, 1000, 0.3f);
+        auto f = make("SWERVE", {{Depth, 0}, {Mix, 50}, {Feedback, 0}, {Delay, 1.0f}, {WetFlip, 1}});
+        const double f500 = toneGain(*f, 500, 0.3f), f1k = toneGain(*f, 1000, 0.3f);
+        std::printf("  SWERVE 1 ms comb: 500 Hz %.1f dB, 1 kHz %+.1f dB; flipped: 500 Hz %+.1f dB, 1 kHz %.1f dB\n", n500, p1k, f500, f1k);
+        CHECK(n500 < -30.0 && std::fabs(p1k) < 0.5 && std::fabs(f500) < 0.5 && f1k < -30.0);
+    }
+    {   // FEEDBACK deepens the peaks
+        auto e = make("SWERVE", {{Depth, 0}, {Mix, 50}, {Feedback, 80}, {Delay, 1.0f}});
+        const double p1k = toneGain(*e, 1000, 0.1f);
+        std::printf("  SWERVE feedback 80: 1 kHz peak %+.1f dB\n", p1k);
+        CHECK(p1k > 4.0);
+    }
+    {   // TAPE: the dry waits too, so with no sweep nothing cancels
+        auto e = make("SWERVE", {{Depth, 0}, {Mix, 50}, {Feedback, 0}, {Delay, 1.0f}, {Tape, 1}});
+        const double g = toneGain(*e, 500, 0.3f);
+        std::printf("  SWERVE tape, no sweep: 500 Hz %+.2f dB\n", g);
+        CHECK(std::fabs(g) < 0.2);
+    }
+    {   // HOLD stops the sweep where it is (at the start: the middle) = no sweep at all
+        auto held = make("SWERVE", {{Rate, 5}, {Hold, 1}, {Feedback, 30}});
+        auto still = make("SWERVE", {{Rate, 5}, {Depth, 0}, {Feedback, 30}});
+        Stereo a = noise(0.5, 0.2f), b = a;
+        run(*held, a);
+        run(*still, b);
+        double d = 0;
+        for (std::size_t i = 0; i < a.size(); ++i) d = std::max(d, static_cast<double>(std::fabs(a.l[i] - b.l[i])));
+        std::printf("  SWERVE hold vs no sweep: largest difference %.2e\n", d);
+        CHECK(d < 1e-5);
+    }
+    {   // STEREO 0 keeps the sides the same on a mono input, 180 pulls them apart
+        auto e0 = make("SWERVE", {{Rate, 2}, {StereoOffset, 0}}), e1 = make("SWERVE", {{Rate, 2}, {StereoOffset, 180}});
+        Stereo a = noise(0.5, 0.2f);
+        for (std::size_t i = 0; i < a.size(); ++i) a.r[i] = a.l[i];
+        Stereo b = a;
+        run(*e0, a);
+        run(*e1, b);
+        double d0 = 0, d1 = 0;
+        for (std::size_t i = 0; i < a.size(); ++i) {
+            d0 = std::max(d0, static_cast<double>(std::fabs(a.l[i] - a.r[i])));
+            d1 = std::max(d1, static_cast<double>(std::fabs(b.l[i] - b.r[i])));
+        }
+        std::printf("  SWERVE stereo 0: left/right difference %.1e; stereo 180: %.3f\n", d0, d1);
+        CHECK(d0 < 1e-6 && d1 > 0.05);
+    }
+    {   // TIE: with RATE doubled after TIE went on, the depth heard halves - the same as DEPTH 50 at that rate
+        auto tied = make("SWERVE", {{Depth, 100}, {Rate, 1}, {Tie, 1}, {Hold, 1}});
+        auto plain = make("SWERVE", {{Depth, 50}, {Rate, 2}, {Hold, 1}});
+        Stereo z(24000), z2(24000);   // settle the smoothing while held
+        run(*tied, z);
+        run(*plain, z2);
+        tied->set(Rate, 2);
+        tied->set(Hold, 0);
+        plain->set(Hold, 0);
+        Stereo a = noise(0.5, 0.2f), b = a;
+        run(*tied, a);
+        run(*plain, b);
+        double d = 0;
+        for (std::size_t i = 14400; i < a.size(); ++i) d = std::max(d, static_cast<double>(std::fabs(a.l[i] - b.l[i])));
+        std::printf("  SWERVE tie: rate x2 = depth 50 heard (once the move settles); largest difference %.2e\n", d);
+        CHECK(d < 0.01);
+        auto full = make("SWERVE", {{Depth, 100}, {Rate, 2}, {Hold, 1}});   // without TIE the same moves keep depth 100: clearly different
+        Stereo z3(24000);
+        run(*full, z3);
+        full->set(Hold, 0);
+        Stereo c = noise(0.5, 0.2f);
+        run(*full, c);
+        double dd = 0;
+        for (std::size_t i = 14400; i < c.size(); ++i) dd = std::max(dd, static_cast<double>(std::fabs(c.l[i] - b.l[i])));
+        std::printf("  SWERVE without tie (depth 100 at rate 2) vs depth 50: largest difference %.3f\n", dd);
+        CHECK(dd > 0.05);
+    }
+    {   // SYNC HOST: RATE 1 = one sweep a beat; at 120 BPM that is 2 Hz, the same as RATE 2 free
+        auto host = make("SWERVE", {{Sync, 1}, {Rate, 1}});
+        auto free = make("SWERVE", {{Sync, 0}, {Rate, 2}});
+        Stereo a = noise(0.5, 0.2f), b = a;
+        run(*host, a);
+        run(*free, b);
+        double d = 0;
+        for (std::size_t i = 0; i < a.size(); ++i) d = std::max(d, static_cast<double>(std::fabs(a.l[i] - b.l[i])));
+        std::printf("  SWERVE sync host 1 per beat at 120 BPM = 2 Hz free: largest difference %.2e\n", d);
+        CHECK(d < 1e-5);
+    }
+    {   // FILTER LOW-PASS 500 Hz takes the wet copy out of the highs: no comb up there
+        auto e = make("SWERVE", {{Depth, 0}, {Mix, 50}, {Feedback, 0}, {Delay, 1.0f}, {FilterType, 1}, {FilterFreq, 500}});
+        const double hi = toneGain(*e, 8500, 0.3f);   // a notch frequency without the filter
+        std::printf("  SWERVE filter low-pass 500 Hz: 8.5 kHz %+.1f dB (only the dry half)\n", hi);
+        CHECK(std::fabs(hi + 6.0) < 1.0);
+    }
+}
+
 void testInformant() {
     using namespace informant;
     // a talking-like modulator: noise in short bursts; the morph only (no noise path)
@@ -596,6 +698,7 @@ void testHideout() {
     allRules();
     testFixer();
     testDeadDrop();
+    testSwerve();
     testSixShooter();
     testBackAlley();
     testDriveBy();

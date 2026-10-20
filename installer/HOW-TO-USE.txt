@@ -382,6 +382,15 @@ HUSTLE
   RATE x MULTIPLIER is the speed; SYNC HOST locks it to one cycle a beat of the song. WAVE changes the
   shape. GAIN and MIX at the end.
 
+SWERVE
+  The jet-plane swoosh. DELAY = where the sweep sits (0.1-0.5 ms phaser-like, 0.5-3 ms flanger, more =
+  chorus-like), DEPTH = how far it swings, RATE = how fast (SYNC HOST: sweeps per beat). WAVE SINE is
+  smooth, TRIANGLE turns hard at the ends. TIE keeps the pitch wobble the same when you change RATE or
+  DEPTH. HOLD stops the sweep where it is. STEREO sets the right side's sweep behind the left (180 = they
+  move opposite). FEEDBACK makes it ring (LOOP FLIP for the hollow version), MIX 50 = the deepest swoosh
+  (WET FLIP for the other set of notches). FILTER LOW-PASS or HIGH-PASS on the swept sound. TAPE lets the
+  sweep pass through zero like two tape machines (the whole sound is then late by DELAY). GAIN at the end.
+
 THE INFORMANT
   Talk or sing into it and its own synth "speaks" your words. Play the synth on the 48 KEYS (up to
   eight at once): HOLD = a key sounds while you hold it (drag across for a glide), LATCH = a click

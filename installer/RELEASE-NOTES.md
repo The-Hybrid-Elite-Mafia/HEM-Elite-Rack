@@ -1,5 +1,8 @@
 # HEM-Elite-Rack 0.30.0
 
+- **SWERVE** (new) — flanger with every control: delay, depth, rate (or sweeps per beat), sine / triangle, tie, hold,
+  stereo, feedback with loop flip, mix with wet flip, filter, tape through-zero, gain, peaks. (Its filter is an ordinary one, with
+  a little phase shift, where the original's has none.)
 - **THE INFORMANT** — rebuilt with every control: a 48-key keyboard on its plate (eight voices, HOLD or LATCH), ten
   synth sounds, TUNE, SPREAD; carrier and modulator sources; noise with its filter; SQUEEZE, FORMANT, LAG, HOLD;
   a five-band EQ on the vocoded sound; a mixer with CARRIER, MODULATOR, NOISE and VOCODED levels, SOLO and MUTE.

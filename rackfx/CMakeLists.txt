@@ -66,6 +66,7 @@ add_library(hem_rackfx STATIC
     src/hideout/BodyDouble.cpp
     src/hideout/Hustle.cpp
     src/hideout/Informant.cpp
+    src/hideout/Swerve.cpp
     src/hideout/Strapped.cpp
     src/hideout/SafeHouse.cpp
     src/hideout/HideoutPlates.cpp
