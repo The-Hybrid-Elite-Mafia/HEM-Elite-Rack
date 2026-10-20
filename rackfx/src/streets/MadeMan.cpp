@@ -14,7 +14,7 @@ namespace {
 using namespace streets;
 
 const char* const kKeyN[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
-const char* const kScaleN[] = {"CHROMATIC", "MAJOR", "MINOR"};
+const char* const kScaleN[] = {"ALL NOTES", "MAJOR", "MINOR"};
 const ParamInfo kParams[kCount] = {
     {"key", "Key", "", 0, 11, 0, Taper::Choice, kKeyN},
     {"scale", "Scale", "", 0, 2, 0, Taper::Choice, kScaleN},

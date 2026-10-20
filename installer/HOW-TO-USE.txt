@@ -52,7 +52,9 @@ LOCKDOWN (put it last in the chain)
 WIDE LOAD
   WIDTH 100 % = as it was, 0 % = mono, up to 200 %. MONO BASS keeps the low end in the centre
   (punchier, safe on club systems and phones). CORRELATION: +1 = mono, 0 = wide,
-  below 0 = parts cancel in mono (be careful).
+  below 0 = parts cancel in mono (be careful). SHUFFLE widens the lows and low mids (under 600 Hz)
+  for a bigger bottom; ROTATION turns the whole picture left or right; ASYMMETRY slides the middle
+  over without moving the edges (fixes a lopsided mix).
 
 SPARK
   FREQUENCY = above where new harmonics are added; nothing below it changes. TUBE is warmer,
@@ -243,7 +245,7 @@ WISEGUYS
   third, 7 = fifth, 12 = octave, minus = below), with its LEVEL and PAN. DRY is the original.
 
 MADE MAN
-  Pitch correction for one voice. Set KEY and SCALE (CHROMATIC = every note allowed). SPEED all the way
+  Pitch correction for one voice. Set KEY and SCALE (ALL NOTES = every note allowed). SPEED all the way
   down = hard, robotic snap; up = gentle and natural. AMOUNT sets how far it pulls. SUNG shows the note,
   PULL how far it moved it.
 

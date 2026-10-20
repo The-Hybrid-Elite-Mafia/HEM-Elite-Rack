@@ -66,7 +66,7 @@ using namespace livewire;
 constexpr PlateChoice choices[] = {{Mode, "MODE"}};
 constexpr PlateKnob row1[] = {{Freq, "FREQ"}, {Level, "LEVEL", "-60", "0", K::Big}, {SweepTime, "SWEEP TIME"}};
 constexpr PlateChoice steppers[] = {{Wave, "WAVE"}, {Channels, "SIDES"}};
-constexpr PlateToggle leftT[] = {{On, "TONE ON"}};
+constexpr PlateToggle leftT[] = {{On, "TONE"}};
 } // namespace lw
 
 } // namespace

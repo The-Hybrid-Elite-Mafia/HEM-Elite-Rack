@@ -14,7 +14,7 @@ C++23 audio framework, as a library.
 | **ARCHIVE** | Two-track tape machine: input drive, 15 / 30 IPS, head bump, wow & flutter, hiss, auto trim, VU meters |
 | **VELVET** | Passive tube program EQ: low boost / atten (the low-end trick), high boost with bandwidth, high atten, tube drive |
 | **LOCKDOWN** | True-peak mastering limiter: input push, ceiling, look-ahead, auto release, stereo link, LUFS and true-peak readouts |
-| **WIDE LOAD** | Mono to 200 % width, MONO BASS (80–250 Hz), balance; correlation and width readouts |
+| **WIDE LOAD** | Mono to 200 % width, MONO BASS (80–250 Hz), shuffle (wider lows), rotation, asymmetry, balance; correlation and width readouts |
 | **SPARK** | Adds fresh harmonics above a frequency: TUBE (even) or TAPE (odd), drive, mix |
 | **THE ACCOUNTANT** | EBU R128 / BS.1770: momentary, short-term, integrated LUFS, loudness range, true peak, correlation, distance to a target |
 | **ENFORCER** | Clean modern compressor: ratio 1–20, knee, attack, release or AUTO, auto makeup, sidechain HPF, mix; tail STEADY / LINGER; character CLEAN / WARM |

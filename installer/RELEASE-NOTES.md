@@ -1,3 +1,12 @@
+# HEM-Elite-Rack 0.20.0
+
+**WIDE LOAD gets three new knobs**: SHUFFLE (wider lows and low mids), ROTATION (turn the whole
+stereo picture left or right) and ASYMMETRY (slide the middle over without moving the edges). At
+their defaults it sounds exactly as before, and saved sessions open as they were.
+
+Small fixes: WISEGUYS' voices and PROMOTION's SHIFT move in whole semitones (FINE still does cents),
+so harmonies always land in tune; MADE MAN's first scale reads ALL NOTES; LIVE WIRE's switch reads TONE.
+
 # HEM-Elite-Rack 0.19.0
 
 **Nine new plug-ins: guitar, pitch, meters and test tones** (in the rack and as VST3), our own designs:

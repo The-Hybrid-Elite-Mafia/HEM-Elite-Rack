@@ -14,7 +14,7 @@
 //                for sustained parts) or TIGHT (shorter, for rhythm), MIX, OUTPUT.
 //  WISEGUYS      harmonizer: three extra voices, each its INTERVAL (semitones), LEVEL and PAN, plus
 //                the DRY level and OUTPUT.
-//  MADE MAN      pitch correction for a single voice: KEY and SCALE (CHROMATIC / MAJOR / MINOR), SPEED
+//  MADE MAN      pitch correction for a single voice: KEY and SCALE (ALL NOTES / MAJOR / MINOR), SPEED
 //                (how fast a note is pulled in: 0 = hard), AMOUNT, MIX. Meters: 0 the sung note, 1 how
 //                far it was pulled (cents).
 //  THE DETECTIVE listens and names the song's KEY (and how sure it is). LISTEN 10 s / 30 s / WHOLE SONG,

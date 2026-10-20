@@ -6,6 +6,7 @@
 
 #include "hem/rack/Plugins.hpp"
 #include "hem/rack/ToneShop.hpp"
+#include "hem/rack/Tools.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -386,6 +387,38 @@ void testCutthroat() {
     CHECK(d < 1e-5);
 }
 
+// WIDE LOAD's later additions: SHUFFLE, ROTATION, ASYMMETRY (defaults leave the sound as it was)
+void testWideLoadAdditions() {
+    using namespace width;
+    {
+        auto e = make("WIDE LOAD");
+        Stereo s = noise(0.5, 0.3f), ref = s;
+        run(*e, s);
+        double diff = 0;
+        for (std::size_t i = 0; i < s.size(); ++i) diff = std::max({diff, static_cast<double>(std::fabs(s.l[i] - ref.l[i])), static_cast<double>(std::fabs(s.r[i] - ref.r[i]))});
+        std::printf("  WIDE LOAD at its defaults: largest change %.2e\n", diff);
+        CHECK(diff < 1e-5);
+    }
+    {
+        auto e = make("WIDE LOAD", {{Rotation, 45}});
+        const double l = toneGain(*e, 1000, 0.3f), r = toneGain(*e, 1000, 0.3f, true);
+        std::printf("  WIDE LOAD rotation +45 on a centred tone: left %.1f dB, right %+.1f dB\n", l, r);
+        CHECK(l < -40.0 && std::fabs(r - 3.0) < 0.2);
+    }
+    {
+        auto e = make("WIDE LOAD", {{Shuffle, 100}});
+        const double lo = toneGain(*e, 100, 0.3f, false, 1.5, true), hi = toneGain(*e, 8000, 0.3f, false, 1.5, true);
+        std::printf("  WIDE LOAD shuffle 100 on the sides: 100 Hz %+.1f dB, 8 kHz %+.1f dB\n", lo, hi);
+        CHECK(lo > 5.0 && std::fabs(hi) < 0.3);
+    }
+    {
+        auto e = make("WIDE LOAD", {{Asymmetry, 100}});
+        const double l = toneGain(*e, 1000, 0.3f), r = toneGain(*e, 1000, 0.3f, true);
+        std::printf("  WIDE LOAD asymmetry +100 on a centred tone: left %+.1f dB, right %+.1f dB\n", l, r);
+        CHECK(l > r + 6.0);
+    }
+}
+
 } // namespace
 
 void testToneShop() {
@@ -400,6 +433,7 @@ void testToneShop() {
     testMiddleman();
     testDoubleCross();
     testCutthroat();
+    testWideLoadAdditions();
 }
 
 } // namespace hem::test

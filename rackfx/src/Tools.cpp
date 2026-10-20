@@ -32,6 +32,9 @@ const ParamInfo kParams[kCount] = {
     {"monobass", "Mono Bass", "", 0, 4, 0, Taper::Choice, kMonoN},
     {"balance", "Balance", "%", -100.0f, 100.0f, 0.0f},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
+    {"rotation", "Rotation", "deg", -45.0f, 45.0f, 0.0f},
+    {"asymmetry", "Asymmetry", "%", -100.0f, 100.0f, 0.0f},
+    {"shuffle", "Shuffle", "%", 0.0f, 100.0f, 0.0f},
 };
 const hc::fx::MeterInfo kMeters[] = {{"CORRELATION", "corr", -1.0f, 1.0f, true}, {"WIDTH", "dB", -40.0f, 6.0f}};
 class Impl final : public hc::fx::Effect {
@@ -42,6 +45,10 @@ public:
     void prepare(double fs, std::uint32_t) override { fs_ = fs; reset(); }
     void reset() noexcept override {
         for (auto& b : hp_) b.clear();
+        shuf_.clear();
+        shuffle_ = -1.0f;
+        rot_.prepare(fs_, 30, p(Rotation));
+        asym_.prepare(fs_, 30, p(Asymmetry) * 0.01f);
         mono_ = -1;
         monoMix_ = p(MonoBass) >= 0.5f ? 1.0f : 0.0f;
         w_.prepare(fs_, 30, p(Width) * 0.01f);
@@ -59,6 +66,10 @@ public:
             hp_[1].c = c;
         }
         if (mono > 0) mono_ = mono;
+        if (p(Shuffle) != shuffle_) {   // SHUFFLE: the sides' lows and low mids up, as much as 6 dB
+            shuffle_ = p(Shuffle);
+            shuf_.c = C::make(T::LowShelf, fs_, 600.0, 0.7071, 6.0 * shuffle_ * 0.01);
+        }
         const float step = static_cast<float>(1.0 / (fs_ * 0.02));
         const double mk = 1.0 - std::exp(-static_cast<double>(1) / (fs_ * 0.3));
         for (std::uint32_t i = 0; i < n; ++i) {
@@ -68,8 +79,15 @@ public:
             float s = 0.5f * (L[i] - R[i]);
             const float shp = hp_[1].tick(hp_[0].tick(s));   // the sides without their low end
             s += monoMix_ * (shp - s);
-            s *= w;
+            s = shuf_.tick(s) * w;
+            s += 0.5f * asym_.next(p(Asymmetry) * 0.01f) * m;   // ASYMMETRY: some of the middle leans to one side
             float l = (m + s) * o, r = (m - s) * o;
+            const float th = rot_.next(p(Rotation)) * static_cast<float>(std::numbers::pi / 180.0);
+            if (th != 0.0f) {   // ROTATION: the whole picture turns (plus = toward the right)
+                const float c = std::cos(th), sn = std::sin(th), l0 = l;
+                l = l0 * c - r * sn;
+                r = r * c + l0 * sn;
+            }
             if (b > 0.0f) l *= 1.0f - b; else r *= 1.0f + b;   // balance: turn the other side down
             L[i] = l;
             R[i] = r;
@@ -86,7 +104,9 @@ public:
     }
 private:
     double fs_ = 48000;
-    hc::fx::Biquad hp_[2];
+    hc::fx::Biquad hp_[2], shuf_;
+    float shuffle_ = -1.0f;
+    hc::fx::Smoothed rot_, asym_;
     int mono_ = -1;
     float monoMix_ = 0;
     hc::fx::Smoothed w_, bal_, out_;

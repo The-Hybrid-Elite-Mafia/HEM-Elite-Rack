@@ -35,7 +35,7 @@ public:
     void reset() noexcept override {
         for (auto& v : voice_) v.clear();
         for (int k = 0; k < kVoices; ++k) {
-            semis_[k].prepare(fs_, 40, p(Interval1 + 3 * k));
+            semis_[k].prepare(fs_, 40, std::round(p(Interval1 + 3 * k)));
             level_[k].prepare(fs_, 30, p(Level1 + 3 * k) * 0.01f);
             pan_[k].prepare(fs_, 30, p(Pan1 + 3 * k) * 0.01f);
         }
@@ -48,7 +48,7 @@ public:
             const float x = 0.5f * (L[i] + R[i]);
             float wl = 0.0f, wr = 0.0f;
             for (int k = 0; k < kVoices; ++k) {
-                const float st = semis_[k].next(p(Interval1 + 3 * k));
+                const float st = semis_[k].next(std::round(p(Interval1 + 3 * k)));   // whole semitones: harmonies stay in tune
                 const float y = voice_[k].tick(x, std::exp2(st / 12.0f)) * level_[k].next(p(Level1 + 3 * k) * 0.01f);
                 const float a = (pan_[k].next(p(Pan1 + 3 * k) * 0.01f) + 1.0f) * 0.25f * static_cast<float>(std::numbers::pi);
                 wl += y * std::cos(a) * 1.4142f;

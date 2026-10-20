@@ -64,7 +64,7 @@ public:
     }
 
 private:
-    float target() const noexcept { return p(Shift) * 100.0f + p(Fine); }
+    float target() const noexcept { return std::round(p(Shift)) * 100.0f + p(Fine); }   // SHIFT in whole semitones, FINE for the rest
 
     double fs_ = 48000.0;
     PitchShift smooth_[2], tight_[2];

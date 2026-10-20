@@ -432,8 +432,9 @@ FaceLayout widthFace(const rack::PluginInfo& info) {
     L.sections.push_back({{410, 330, 700, 30}, "CORRELATION: +1 MONO, 0 WIDE, BELOW 0 CANCELS"});
     L.sections.push_back({{410, 380, 700, 30}, "MONO BASS: THE LOW END STAYS IN THE CENTRE"});
     L.grooves.push_back({410, 524, 1636, 524});
-    knobRow(L, {{Width, "WIDTH", 128, "MONO", "200%", false}, {Balance, "BALANCE", 100, "L", "R", false},
-                {Output, "OUTPUT", 86, "", "", true}}, 568);
+    knobRow(L, {{Width, "WIDTH", 128, "MONO", "200%", false}, {Shuffle, "SHUFFLE", 90, "", "", false}, {Rotation, "ROTATION", 90, "L", "R", false},
+                {Asymmetry, "ASYMMETRY", 90, "L", "R", false}, {Balance, "BALANCE", 90, "L", "R", false},
+                {Output, "OUTPUT", 80, "", "", true}}, 568);
     buttonSeats(L);
     bypassAt(L, {160, 640, 90, 90});
     return L;
