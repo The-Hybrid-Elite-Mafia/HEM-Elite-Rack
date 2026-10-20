@@ -32,7 +32,7 @@ namespace mm {
 using namespace multimax;
 constexpr PlateKnob bandKnobs[] = {{Gain, "GAIN"}, {Priority, "PRIORITY"}, {BandRelease, "RELEASE"}};
 constexpr PlateToggle bandToggles[] = {{BandLink, "LINK"}, {Solo, "SOLO"}};
-constexpr PlateKnob borders[] = {{X1, "SPLIT 1"}, {X2, "SPLIT 2"}, {X3, "SPLIT 3"}, {X4, "SPLIT 4"}};
+constexpr PlateKnob borders[] = {{X1, "SPLIT"}, {X2, "SPLIT"}, {X3, "SPLIT"}, {X4, "SPLIT"}};
 constexpr PlateBands bands{.count = kBands, .first = Band0, .stride = kPerBand, .knobs = bandKnobs, .toggles = bandToggles,
                            .borders = borders, .meter = 0};
 constexpr PlateKnob row1[] = {{Threshold, "THRESHOLD"}, {Ceiling, "CEILING"}, {Release, "RELEASE"}, {Separation, "SEPARATION"}};
@@ -47,6 +47,7 @@ void demo(hc::fx::Effect& e) {
 // ---- TOP DOG / QUICK CASH
 namespace ud {
 using namespace ultramax;
+constexpr PlateReadout readouts[] = {{5, "INPUT PEAK", "dBFS"}, {6, "OUTPUT PEAK", "dBFS"}};
 constexpr PlateKnob row1[] = {{Threshold, "THRESHOLD", "-30", "0", K::Big}, {Ceiling, "CEILING", "-30", "0", K::Big}, {Release, "RELEASE"}};
 constexpr PlateToggle toggles[] = {{Link, "LINK"}};
 constexpr PlateChoice steppers[] = {{Profile, "PROFILE"}, {Quantize, "QUANTIZE"}, {Dither, "DITHER"}, {Shaping, "SHAPING"}};
@@ -82,10 +83,10 @@ const PlateSpec kHighStakes{.note1 = "FIVE BANDS", .note2 = "ALL IN", .toggles =
                             .bands = &mm::bands, .reportsReduction = true, .demo = &mm::demo};
 const PlateSpec kFastMoney{.note1 = "FIVE BANDS", .note2 = "NO WAITING", .toggles = mm::toggles, .row1 = mm::row1, .steppers = mm::steppers,
                            .bands = &mm::bands, .reportsReduction = true, .demo = &mm::demo};
-const PlateSpec kTopDog{.note1 = "PICK A PROFILE", .note2 = "TAKE THE TOP", .screen = Screen::Needle, .toggles = ud::toggles, .row1 = ud::row1,
+const PlateSpec kTopDog{.note1 = "PICK A PROFILE", .note2 = "TAKE THE TOP", .screen = Screen::Needle, .readouts = ud::readouts, .toggles = ud::toggles, .row1 = ud::row1,
                         .steppers = ud::steppers, .reportsReduction = true,
                         .demo = [](hc::fx::Effect& e) { e.set(ultramax::Threshold, -8); }};
-const PlateSpec kQuickCash{.note1 = "PICK A PROFILE", .note2 = "NO WAITING", .screen = Screen::Needle, .toggles = ud::toggles, .row1 = ud::row1,
+const PlateSpec kQuickCash{.note1 = "PICK A PROFILE", .note2 = "NO WAITING", .screen = Screen::Needle, .readouts = ud::readouts, .toggles = ud::toggles, .row1 = ud::row1,
                            .steppers = ud::steppers, .reportsReduction = true,
                            .demo = [](hc::fx::Effect& e) { e.set(ultramax::Threshold, -8); }};
 const PlateSpec kSweetSixteen{.note1 = "SIXTEEN BANDS", .note2 = "SIX TO STEER", .toggles = s16::toggles, .row1 = s16::row1, .steppers = s16::steppers,

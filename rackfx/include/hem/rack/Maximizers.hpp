@@ -23,7 +23,8 @@
 //                four CROSSOVERS, SEPARATION (0: every band gives the same; 100: each band by its own
 //                energy), per band GAIN (before the limiter), PRIORITY (gives up less, the others
 //                more), LINK (GAIN also raises PRIORITY by as much), RELEASE (0.1..5000 ms), SOLO; IDR.
-//                Latency 2559 + 72 + 32 samples. Meters: 0..4 the bands' reduction (dB).
+//                Latency 2559 + 72 + 32 samples. Meters: 0..4 the bands' reduction (dB), 5 / 6 input /
+//                output peak (dBFS).
 //  FAST MONEY    HIGH STAKES with a low-latency (minimum phase) band split; band RELEASE 0.1..2500 ms.
 //  TOP DOG       the five-band limiter driven by a PROFILE (nine of ours: each sets the bands, gains,
 //                priorities, releases, release type and separation); THRESHOLD, CEILING, LINK,

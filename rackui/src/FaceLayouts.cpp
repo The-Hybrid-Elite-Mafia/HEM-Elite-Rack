@@ -917,29 +917,29 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
     int slot = 0;
     for (const rack::PlateKnob& k : S.row1) {
         const float x = 410.0f + (static_cast<float>(slot++) + 0.5f) * pitch * colW;
-        L.widgets.push_back(knob({x - d * 0.5f, 288, d, d}, k.param, k.caption, k.lo, k.hi, true));
+        L.widgets.push_back(knob({x - d * 0.5f, 278, d, d}, k.param, k.caption, k.lo, k.hi, true));
     }
     for (const rack::PlateToggle& t : S.toggles) {
         const float x = 410.0f + (static_cast<float>(slot++) + 0.5f) * pitch * colW;
-        L.widgets.push_back(toggle({x - 56, 296, 112, 44}, t.param, t.caption));
+        L.widgets.push_back(toggle({x - 56, 286, 112, 44}, t.param, t.caption));
     }
     for (std::size_t i = 0; i < B.borders.size() && static_cast<int>(i) + 1 < n; ++i) {
         const float x = 410.0f + static_cast<float>(i + 1) * colW;
         const rack::PlateKnob& k = B.borders[i];
-        L.widgets.push_back(knob({x - d * 0.5f, 288, d, d}, k.param, k.caption, k.lo, k.hi, true));
+        L.widgets.push_back(knob({x - d * 0.5f, 278, d, d}, k.param, k.caption, k.lo, k.hi, true));
     }
-    L.grooves.push_back({410, 386, 1636, 386});
+    L.grooves.push_back({410, 374, 1636, 374});
     // the band columns
     const bool pairs = B.knobs.size() > 3;
-    constexpr float bd = 54.0f, rowH = 110.0f;
+    constexpr float bd = 54.0f, rowH = 118.0f;
     for (int b = 0; b < n; ++b) {
         const float c = cx(static_cast<float>(b));
         const int base = B.first + b * B.stride;
-        float y = 420;
+        float y = 404;
         for (std::size_t i = 0; i < B.knobs.size(); ++i) {
             const rack::PlateKnob& k = B.knobs[i];
             float x = c;
-            if (pairs) x = c + (i % 2 == 0 ? -colW * 0.25f : colW * 0.25f);
+            if (pairs) x = c + (i % 2 == 0 ? -colW * 0.23f : colW * 0.23f);
             L.widgets.push_back(knob({x - bd * 0.5f, y, bd, bd}, base + k.param, k.caption, k.lo, k.hi, true));
             if (!pairs || i % 2 == 1 || i + 1 == B.knobs.size()) y += rowH;
         }
@@ -947,7 +947,8 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
             Widget w;
             w.kind = WKind::Stepper;
             w.param = base + st.param;
-            w.r = {c - 85, y, 170, 40};
+            const float sw = std::min(colW - 12.0f, 200.0f);
+            w.r = {c - sw * 0.5f, y, sw, 40};
             L.widgets.push_back(w);
             L.recesses.push_back({w.r.inset(-4), 9, 4, false, false});
             y += 52;
@@ -962,7 +963,7 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
                                 : Rect{c - colW * 0.5f + 6, y + 4 + static_cast<float>(t) * 52, tw, 44};
             L.widgets.push_back(toggle(r, base + tg.param, tg.caption));
         }
-        if (b > 0) L.grooves.push_back({410 + static_cast<float>(b) * colW, 396, 410 + static_cast<float>(b) * colW, 808});
+        if (b > 0) L.grooves.push_back({410 + static_cast<float>(b) * colW, 384, 410 + static_cast<float>(b) * colW, 808});
     }
     seatKnobs(L, first, 8);
 }

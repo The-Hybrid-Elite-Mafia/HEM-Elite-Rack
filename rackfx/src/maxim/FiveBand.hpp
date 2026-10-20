@@ -54,6 +54,9 @@ public:
         ceil_.prepare(fs_, 30, gainOfDb(ceilingDb(s)));
         for (int b = 0; b < kB; ++b) band_[b].prepare(fs_, 30, gainOfDb(s.gainDb[b]));
         for (float& v : bandDb_) v = 0.0f;
+        inHold_.clear();
+        outHold_.clear();
+        inDb_ = outDb_ = -100.0f;
     }
 
     // returns the most the whole signal wanted to come down in this block (dB)
@@ -72,8 +75,9 @@ public:
             set.adapt[b] = adaptivity(s.behave, b, kB);
             anySolo = anySolo || s.solo[b];
         }
-        float most = 0.0f;
+        float most = 0.0f, inPk = 0.0f, outPk = 0.0f;
         for (std::uint32_t i = 0; i < n; ++i) {
+            inPk = std::max({inPk, std::fabs(L[i]), std::fabs(R[i])});
             float bl[kB], br[kB];
             if constexpr (kLinear) split_.tick(L[i], R[i], bl, br);
             else {
@@ -96,11 +100,16 @@ public:
             yr = std::clamp(yr, -set.ceiling, set.ceiling);
             L[i] = idr_.tick(0, yl);
             R[i] = idr_.tick(1, yr);
+            outPk = std::max({outPk, std::fabs(L[i]), std::fabs(R[i])});
         }
         for (int b = 0; b < kB; ++b) bandDb_[b] = shared_.takeBandDb(b);
+        inDb_ = inHold_.push(dbOf(inPk), n, fs_);
+        outDb_ = outHold_.push(dbOf(outPk), n, fs_);
         return most;
     }
     [[nodiscard]] float bandDb(int b) const noexcept { return bandDb_[b]; }
+    [[nodiscard]] float inPeakDb() const noexcept { return inDb_; }
+    [[nodiscard]] float outPeakDb() const noexcept { return outDb_; }
 
 private:
     // crossovers kept rising, at least 5 % apart (LinearSplit does the same)
@@ -137,6 +146,8 @@ private:
     int since_ = 0;
     hc::fx::Smoothed drive_, ceil_, band_[kB];
     float bandDb_[kB]{};
+    PeakHold inHold_, outHold_;
+    float inDb_ = -100.0f, outDb_ = -100.0f;
 };
 
 } // namespace hem::rack::maxim

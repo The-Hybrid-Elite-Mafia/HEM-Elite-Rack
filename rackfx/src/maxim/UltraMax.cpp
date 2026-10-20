@@ -51,7 +51,8 @@ const ParamInfo kParams[kCount] = {
     {"shaping", "Shaping", "", 0, 3, 1, Taper::Choice, kShapeN},
 };
 const hc::fx::MeterInfo kMeters[] = {{"BAND 1", "dB", -30.0f, 0.0f}, {"BAND 2", "dB", -30.0f, 0.0f}, {"BAND 3", "dB", -30.0f, 0.0f},
-                                     {"BAND 4", "dB", -30.0f, 0.0f}, {"BAND 5", "dB", -30.0f, 0.0f}};
+                                     {"BAND 4", "dB", -30.0f, 0.0f}, {"BAND 5", "dB", -30.0f, 0.0f},
+                                     {"INPUT PEAK", "dBFS", -60.0f, 3.0f}, {"OUTPUT PEAK", "dBFS", -60.0f, 3.0f}};
 
 template <bool kLinear>
 class Impl final : public hc::fx::Effect {
@@ -69,10 +70,14 @@ public:
         eng_.reset(settings());
         publishReduction(0.0f);
         for (int b = 0; b < 5; ++b) publishMeter(b, 0.0f);
+        publishMeter(5, -100.0f);
+        publishMeter(6, -100.0f);
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
         publishReduction(eng_.process(settings(), L, R, n));
         for (int b = 0; b < 5; ++b) publishMeter(b, eng_.bandDb(b));
+        publishMeter(5, eng_.inPeakDb());
+        publishMeter(6, eng_.outPeakDb());
     }
 
 private:

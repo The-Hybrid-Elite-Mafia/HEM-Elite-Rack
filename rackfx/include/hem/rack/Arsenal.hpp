@@ -44,7 +44,6 @@
 //               BOOST / MAX CUT, ignoring anything under SENSITIVITY (it holds still in the gaps),
 //               SPEED SLOW / FAST, OUTPUT. Meters: 0 ride (dB), 1 level (dB). Zero latency.
 //  BIG SHOT     (and the other maximizers): see Maximizers.hpp.
-//               Meters: 0 loudness (LUFS, 3 s), 1 output peak (dBFS).
 //  SILENCER     de-esser: DETECT CLASSIC (a filter at FREQUENCY, HIGH-PASS or BAND-PASS) or SMART
 //               (how much of the sound sits above FREQUENCY, so loud and quiet esses are caught the
 //               same; WIDTH = how strict), THRESHOLD, RANGE (most it takes off), SPLIT (only the
