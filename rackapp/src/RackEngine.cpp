@@ -37,7 +37,9 @@ RackProcessor::RackProcessor() {
     for (auto& o : on_) o.store(true, std::memory_order_relaxed);
     dryL_.assign(kMaxChainDelay, 0.0f);
     dryR_.assign(kMaxChainDelay, 0.0f);
-    for (auto* v : {&inL_, &inR_, &tmpL_, &tmpR_, &bL_, &bR_, &kL_, &kR_, &tmpMonoL_, &tmpMonoR_}) v->assign(kChunk, 0.0f);
+    for (auto* v : {&inL_, &inR_, &tmpL_, &tmpR_, &bL_, &bR_, &kL_, &kR_, &tmpMonoL_, &tmpMonoR_, &liveL_, &liveR_}) v->assign(kChunk, 0.0f);
+    recWetRing_ = std::make_unique<hc::core::SpscRing<Frame, kRecRing>>();
+    recDryRing_ = std::make_unique<hc::core::SpscRing<Frame, kRecRing>>();
     wetMeter_.prepare(kRate);
     dryMeter_.prepare(kRate);
     outMeter_.prepare(kRate);
@@ -147,6 +149,29 @@ void RackProcessor::applyCommands() noexcept {
     }
 }
 
+void RackProcessor::startRecording() noexcept {
+    if (rec_.load(std::memory_order_relaxed)) return;
+    Frame f;
+    while (recWetRing_->tryPop(f)) {}   // what an earlier take left (the audio thread is not writing now)
+    while (recDryRing_->tryPop(f)) {}
+    recOverflow_.store(0, std::memory_order_relaxed);
+    rec_.store(true, std::memory_order_release);
+}
+
+std::size_t RackProcessor::takeRecorded(float* wet, float* dry, std::size_t maxFrames) noexcept {
+    std::size_t n = 0;
+    Frame a, b;
+    while (n < maxFrames && recWetRing_->tryPop(a)) {
+        if (!recDryRing_->tryPop(b)) b = Frame{};   // pushed in pairs: never empty here
+        wet[2 * n] = a.l;
+        wet[2 * n + 1] = a.r;
+        dry[2 * n] = b.l;
+        dry[2 * n + 1] = b.r;
+        ++n;
+    }
+    return n;
+}
+
 void RackProcessor::midi(std::uint8_t status, std::uint8_t d1, std::uint8_t d2) noexcept {
     while (midiLock_.test_and_set(std::memory_order_acquire)) {}
     (void)midi_.tryPush(Midi{status, d1, d2});   // full: the message is dropped
@@ -199,8 +224,23 @@ void RackProcessor::readSong(float* l, float* r, std::uint32_t n) noexcept {
 
 void RackProcessor::renderChunk(float* l, float* r, std::uint32_t n) noexcept {
     readSong(inL_.data(), inR_.data(), n);
-    std::memcpy(l, inL_.data(), n * sizeof(float));
-    std::memcpy(r, inR_.data(), n * sizeof(float));
+    // LIVE INPUT: the chain gets the sound card's input; the song stays out of it
+    const int first = inFirst_.load(std::memory_order_relaxed);
+    const bool live = first >= 0 && hwIn_ && static_cast<std::uint32_t>(first) < hwInCount_;
+    if (live) {
+        const float* a = hwIn_[first] + hwInOffset_;
+        const float* b = inStereo_.load(std::memory_order_relaxed) && static_cast<std::uint32_t>(first) + 1 < hwInCount_ ? hwIn_[first + 1] + hwInOffset_ : a;
+        float pk = 0.0f;
+        for (std::uint32_t i = 0; i < n; ++i) {
+            liveL_[i] = l[i] = a[i];
+            liveR_[i] = r[i] = b[i];
+            pk = std::max({pk, std::fabs(a[i]), std::fabs(b[i])});
+        }
+        if (pk > inPeak_.load(std::memory_order_relaxed)) inPeak_.store(pk, std::memory_order_relaxed);
+    } else {
+        std::memcpy(l, inL_.data(), n * sizeof(float));
+        std::memcpy(r, inR_.data(), n * sizeof(float));
+    }
 
     // The chain.
     std::uint32_t total = 0;
@@ -231,6 +271,30 @@ void RackProcessor::renderChunk(float* l, float* r, std::uint32_t n) noexcept {
         }
     }
     latency_.store(total, std::memory_order_relaxed);
+
+    if (live) {
+        // the takes: out of the chain, and what went in
+        if (rec_.load(std::memory_order_acquire)) {
+            for (std::uint32_t i = 0; i < n; ++i) {
+                if (!recWetRing_->tryPush(Frame{l[i], r[i]})) { recOverflow_.fetch_add(1, std::memory_order_relaxed); break; }
+                if (!recDryRing_->tryPush(Frame{liveL_[i], liveR_[i]})) { recOverflow_.fetch_add(1, std::memory_order_relaxed); break; }
+            }
+        }
+        // what you hear: the processed input (MONITOR) over the song, as it is
+        const bool mon = monitor_.load(std::memory_order_relaxed);
+        float pk0 = 0.0f, pk1 = 0.0f;
+        for (std::uint32_t i = 0; i < n; ++i) {
+            l[i] = (mon ? l[i] : 0.0f) + inL_[i];
+            r[i] = (mon ? r[i] : 0.0f) + inR_[i];
+            pk0 = std::max(pk0, std::fabs(l[i]));
+            pk1 = std::max(pk1, std::fabs(r[i]));
+        }
+        outMeter_.add(l, r, n, kL_.data(), kR_.data());
+        if (pk0 > peak_[0].load(std::memory_order_relaxed)) peak_[0].store(pk0, std::memory_order_relaxed);
+        if (pk1 > peak_[1].load(std::memory_order_relaxed)) peak_[1].store(pk1, std::memory_order_relaxed);
+        outLufs_.store(static_cast<float>(outMeter_.lufs()), std::memory_order_relaxed);
+        return;
+    }
 
     // B: the untouched song, delayed by the chain's latency so it lines up with A.
     for (std::uint32_t i = 0; i < n; ++i) {
@@ -290,8 +354,11 @@ void RackProcessor::process(const hc::engine::ProcessContext& ctx) noexcept {
     float* r = ctx.numOutputs > 1 ? ctx.outputs[1] : nullptr;
     applyCommands();
     applyMidi();
+    hwIn_ = ctx.inputs;
+    hwInCount_ = ctx.inputs ? ctx.numInputs : 0;
     for (std::uint32_t done = 0; done < ctx.frames;) {
         const std::uint32_t n = std::min(kChunk, ctx.frames - done);
+        hwInOffset_ = done;
         if (r) {
             renderChunk(l + done, r + done, n);
         } else {   // a mono output: both sides summed
@@ -300,6 +367,23 @@ void RackProcessor::process(const hc::engine::ProcessContext& ctx) noexcept {
         }
         done += n;
     }
+    hwIn_ = nullptr;
+    hwInCount_ = 0;
+}
+
+void RackProcessor::renderWithInputs(const float* const* inputs, std::uint32_t numInputs, float* left, float* right, std::uint32_t frames) noexcept {
+    applyCommands();
+    applyMidi();
+    hwIn_ = inputs;
+    hwInCount_ = inputs ? numInputs : 0;
+    for (std::uint32_t done = 0; done < frames;) {
+        const std::uint32_t n = std::min(kChunk, frames - done);
+        hwInOffset_ = done;
+        renderChunk(left + done, right + done, n);
+        done += n;
+    }
+    hwIn_ = nullptr;
+    hwInCount_ = 0;
 }
 
 } // namespace hem::app

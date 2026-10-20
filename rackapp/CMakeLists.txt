@@ -2,7 +2,7 @@
 #  HEMEliteRack.exe — the standalone rack (GUI subsystem).
 #  hem_rackapp_core — its audio side (chain, A/B, transport, export render), shared with the tests.
 # =============================================================================
-add_library(hem_rackapp_core STATIC src/RackEngine.cpp src/Chain.cpp)
+add_library(hem_rackapp_core STATIC src/RackEngine.cpp src/Chain.cpp src/TakeWriter.cpp)
 target_include_directories(hem_rackapp_core PUBLIC src)
 target_link_libraries(hem_rackapp_core PUBLIC hem::rackfx hc::engine)
 

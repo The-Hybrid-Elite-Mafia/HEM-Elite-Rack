@@ -9,6 +9,7 @@
 #include "RackEngine.hpp"
 #include "RackHost.hpp"
 #include "RackView.hpp"
+#include "TakeWriter.hpp"
 
 #include "hem/rack/ColorFx.hpp"
 #include "hem/rack/MoreDynamics.hpp"
@@ -34,6 +35,8 @@
 #include <atomic>
 #include <chrono>
 #include <cmath>
+#include <cstdlib>
+#include <string_view>
 #include <cstdio>
 #include <filesystem>
 #include <map>
@@ -71,6 +74,13 @@ fs::path musicDir() {
     PWSTR p = nullptr;
     fs::path out;
     if (SUCCEEDED(::SHGetKnownFolderPath(FOLDERID_Music, 0, nullptr, &p))) { out = p; ::CoTaskMemFree(p); }
+    return out;
+}
+
+fs::path documentsDir() {
+    PWSTR p = nullptr;
+    fs::path out;
+    if (SUCCEEDED(::SHGetKnownFolderPath(FOLDERID_Documents, 0, nullptr, &p))) { out = p; ::CoTaskMemFree(p); }
     return out;
 }
 
@@ -309,7 +319,15 @@ struct App {
         noticeAt = std::chrono::steady_clock::now();
     }
 
+    // live input and the takes
+    int inputOption = 0;   // 0 = off; then inputChoices()
+    TakeWriter takeWet, takeDry;
+    std::vector<float> recWet, recDry;
+    std::string takeName;
+    fs::path takeFolder;
+
     ~App() {
+        if (takeWet.isOpen()) stopRecord();
         if (loader.joinable()) loader.join();
         if (exporter.joinable()) exporter.join();
     }
@@ -489,12 +507,110 @@ struct App {
     void openDevice(int index) {
         deviceIndex = std::clamp(index, 0, static_cast<int>(devices.size()) - 1);
         const Device& d = devices[static_cast<std::size_t>(deviceIndex)];
+        if (takeWet.isOpen()) stopRecord();
+        inputOption = 0;
+        rack().setInput(-1, true);
         if (host.open(d)) {
             say("Playing through " + host.deviceName() + "  (" + host.format() + ")");
             settings.set("app", "device", d.key());
         } else {
             say(host.problem(), true);
         }
+    }
+
+    // ---- live input ----
+    // OFF, then per pair of inputs: the pair (stereo), the first alone, the second alone
+    std::vector<std::pair<int, bool>> inputChoices() const {
+        std::vector<std::pair<int, bool>> c{{-1, true}};
+        const int n = host.inputs();
+        for (int ch = 0; ch < n; ch += 2) {
+            if (ch + 1 < n) c.emplace_back(ch, true);
+            c.emplace_back(ch, false);
+            if (ch + 1 < n) c.emplace_back(ch + 1, false);
+        }
+        return c;
+    }
+    std::string inputLabel() {
+        const int first = rack().inputFirst();
+        if (first < 0) return "INPUT: OFF";
+        return rack().inputStereo() ? "INPUT: IN " + std::to_string(first + 1) + "+" + std::to_string(first + 2)
+                                                             : "INPUT: IN " + std::to_string(first + 1);
+    }
+    void cycleInput() {
+        if (takeWet.isOpen()) { say("Stop the recording first", true); return; }
+        if (host.inputs() == 0) {
+            say("LIVE INPUT needs an ASIO sound card with inputs - choose it with the OUTPUT button", true);
+            return;
+        }
+        const auto c = inputChoices();
+        inputOption = (inputOption + 1) % static_cast<int>(c.size());
+        rack().setInput(c[static_cast<std::size_t>(inputOption)].first, c[static_cast<std::size_t>(inputOption)].second);
+        if (c[static_cast<std::size_t>(inputOption)].first >= 0)
+            say(inputLabel() + "  -  the chain now works on your input; the song plays alongside, as it is");
+        else
+            say("LIVE INPUT off - the song goes through the chain again");
+    }
+    void startRecord() {
+        if (rack().inputFirst() < 0) { say("Turn on LIVE INPUT first (the INPUT button)", true); return; }
+        takeFolder = documentsDir() / "HEM-Elite-Rack Takes";
+        std::error_code ec;
+        fs::create_directories(takeFolder, ec);
+        int number = std::atoi(settings.get("app", "takeNumber").c_str()) + 1;
+        std::string name;
+        char b[64];
+        for (;; ++number) {   // never over an earlier take
+            std::snprintf(b, sizeof b, "Take %03d", number);
+            name = b;
+            if (!songName.empty()) {
+                const double from = static_cast<double>(rack().playhead()) / kRate;
+                std::snprintf(b, sizeof b, " (from %dm%02ds)", static_cast<int>(from / 60.0), static_cast<int>(std::fmod(from, 60.0)));
+                std::string song = songName;
+                for (char& ch : song)
+                    if (std::string_view("\\/:*?\"<>|").find(ch) != std::string_view::npos) ch = '-';
+                name += " - " + song.substr(0, 60) + b;
+            }
+            if (!fs::exists(takeFolder / fromUtf8(name + ".wav"))) break;
+        }
+        // the round trip through the sound card, and the chain's delay for the processed take, are left out of
+        // the front, so the takes line up with the song from where recording started
+        const auto roundTrip = static_cast<std::uint64_t>(std::lround((host.inputLatencyMs() + host.outputLatencyMs()) * kRate / 1000.0));
+        if (!takeWet.open(takeFolder / fromUtf8(name + ".wav"), static_cast<std::uint32_t>(kRate), roundTrip + rack().latency()) ||
+            !takeDry.open(takeFolder / fromUtf8(name + " (dry).wav"), static_cast<std::uint32_t>(kRate), roundTrip)) {
+            (void)takeWet.finish();
+            (void)takeDry.finish();
+            say("Could not create the take files in " + toUtf8(takeFolder.wstring()), true);
+            return;
+        }
+        takeName = name;
+        settings.set("app", "takeNumber", std::to_string(number));
+        recWet.assign(2 * 8192, 0.0f);
+        recDry.assign(2 * 8192, 0.0f);
+        if (rack().song() && !rack().wantsPlay()) {
+            if (rack().playhead() >= rack().songFrames()) rack().seek(0);
+            rack().play();
+        }
+        rack().startRecording();
+        say("RECORDING " + takeName);
+    }
+    void drainTakes() {
+        for (;;) {
+            const std::size_t n = rack().takeRecorded(recWet.data(), recDry.data(), 8192);
+            if (n == 0) break;
+            (void)takeWet.write(recWet.data(), n);
+            (void)takeDry.write(recDry.data(), n);
+        }
+    }
+    void stopRecord() {
+        rack().stopRecording();
+        drainTakes();
+        const std::uint64_t frames = takeWet.finish();
+        (void)takeDry.finish();
+        char b[64];
+        std::snprintf(b, sizeof b, "%d:%02d", static_cast<int>(frames / 48000 / 60), static_cast<int>(frames / 48000 % 60));
+        std::string msg = "Saved " + takeName + " (" + b + ", with the chain and dry) in Documents\\HEM-Elite-Rack Takes";
+        if (rack().recordOverflow() > 0) msg += " - some of it was lost (the computer fell behind writing)";
+        say(msg, rack().recordOverflow() > 0);
+        saveSettings();
     }
 
     void saveSettings() {
@@ -713,7 +829,16 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
                         a.rack().play();
                     }
                     break;
-                case Action::Stop: a.rack().stop(); break;
+                case Action::Stop:
+                    if (a.takeWet.isOpen()) a.stopRecord();
+                    a.rack().stop();
+                    break;
+                case Action::Input: a.cycleInput(); break;
+                case Action::Monitor: a.rack().setMonitor(!a.rack().monitor()); break;
+                case Action::Record:
+                    if (a.takeWet.isOpen()) a.stopRecord();
+                    else a.startRecord();
+                    break;
                 case Action::Seek:
                     if (a.rack().songFrames() > 0) {
                         a.rack().seek(static_cast<std::uint64_t>(hh.value * static_cast<double>(a.rack().songFrames() - 1)));
@@ -829,6 +954,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
         const auto now = std::chrono::steady_clock::now();
         const float dt = std::min(0.1f, std::chrono::duration<float>(now - lastFrame).count());
         lastFrame = now;
+        if (a.takeWet.isOpen()) a.drainTakes();   // the takes go to disk as they come in
         if (now - lastMidiScan > std::chrono::seconds(3)) {   // a keyboard plugged in or out
             lastMidiScan = now;
             if (midiIn.refresh()) a.say("MIDI: " + std::to_string(midiIn.opened()) + (midiIn.opened() == 1 ? " keyboard" : " keyboards") + " ready");
@@ -878,6 +1004,18 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
         vs.pickerTabs = pickerTabs;
         vs.pickerTab = a.pickerTab;
         vs.device = a.host.running() ? a.host.deviceName() : std::string("none - click to choose");
+        vs.input = a.inputLabel();
+        vs.inputOn = a.rack().inputFirst() >= 0;
+        vs.monitor = a.rack().monitor();
+        vs.recording = a.takeWet.isOpen();
+        vs.recSeconds = static_cast<double>(a.takeWet.frames()) / kRate;
+        {
+            const float ip = a.rack().inputPeak();
+            const float idb = ip > 1e-6f ? 20.0f * std::log10(ip) : -120.0f;
+            static float shown = -120.0f;
+            shown = idb > shown ? idb : std::max(idb, shown - 1.2f);   // falls back about 70 dB a second
+            vs.inputDb = shown;
+        }
         const bool fresh = !a.notice.empty() && now - a.noticeAt < std::chrono::seconds(a.noticeAlert ? 15 : 8);
         vs.status = fresh ? a.notice : a.host.running() ? "Playing through " + a.host.deviceName() + "  (" + a.host.format() + ")" : a.host.problem();
         vs.alert = fresh ? a.noticeAlert : !a.host.running();

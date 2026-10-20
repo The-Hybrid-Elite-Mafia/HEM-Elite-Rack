@@ -3,7 +3,7 @@ HEM-ELITE-RACK — HOW TO USE
 1. Start HEM-Elite-Rack (desktop shortcut).
 2. OPEN SONG (top) — or drag a WAV / MP3 / FLAC onto the window.
    Songs at other sample rates are converted to 48 kHz when they load.
-3. + ADD PLUG-IN (left) — pick any plug-in (tabs: EQ, DYNAMICS, COLOR, SPACE, MOVEMENT, TOOLS). Up to 8 plug-ins, top to bottom.
+3. + ADD PLUG-IN (left) — pick any plug-in (tabs: EQ, DYNAMICS, COLOR, SPACE, MOVEMENT, TOOLS, KEYS). Up to 8 plug-ins, top to bottom.
    Each slot: ON / OFF, UP / DOWN (order), DEL (remove). Click a slot to show its faceplate.
 4. PLAY (or the SPACE bar). Click the song strip to jump; LEFT / RIGHT arrows jump 5 s.
 5. A PROCESSED / B ORIGINAL (or the A and B keys) — compare with and without the chain.
@@ -11,6 +11,18 @@ HEM-ELITE-RACK — HOW TO USE
    sound, not the volume.
 6. EXPORT WAV — the whole song through the chain, 24-bit / 48 kHz. The status line then
    shows the file's integrated loudness (LUFS) and peak.
+7. LIVE INPUT (a mic, a guitar) — needs an ASIO sound card with inputs (choose it with OUTPUT).
+   INPUT steps through OFF, IN 1+2 (a stereo pair), IN 1, IN 2 (one input on both sides), and so on.
+   With an input on, the chain works on your input instead of the song, and the song plays
+   alongside, untouched, so you can sing or play over it. MONITOR: hear yourself through the chain
+   (turn it off if your interface already lets you hear yourself). The bar under them shows your
+   input level: keep it out of the red.
+   RECORD starts the song (if it isn't playing) and records; STOP REC (or STOP) ends the take. Each take
+   is saved twice in Documents\HEM-Elite-Rack Takes: "Take 001 ... .wav" (through the chain) and
+   "Take 001 ... (dry).wav" (your input as it came in), 24-bit / 48 kHz, named with where in the song it
+   started and lined up with the song from that point (the sound card's delay is taken out).
+8. MIDI KEYBOARDS — any MIDI keyboard plugged into the PC is picked up within a few seconds and plays
+   the instruments in the chain (GRAND LARCENY); its sustain pedal works.
 
 SURGEON
   Double-click the graph to add a band where you clicked. Drag a dot: frequency and gain.

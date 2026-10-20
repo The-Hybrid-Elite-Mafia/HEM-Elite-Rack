@@ -45,6 +45,8 @@ public:
     [[nodiscard]] const std::string& problem() const noexcept { return problem_; }
     [[nodiscard]] float cpuAvg() const noexcept { return cpu_; }
     [[nodiscard]] double outputLatencyMs() const noexcept { return outMs_; }
+    [[nodiscard]] double inputLatencyMs() const noexcept { return inMs_; }
+    [[nodiscard]] int inputs() const noexcept { return running_ ? inputs_ : 0; }   // the sound card's inputs (ASIO only)
 
 private:
     hc::engine::Engine engine_;
@@ -59,7 +61,8 @@ private:
     bool running_ = false;
     std::string deviceName_, format_, problem_;
     float cpu_ = 0.0f;
-    double outMs_ = 0.0;
+    double outMs_ = 0.0, inMs_ = 0.0;
+    int inputs_ = 0;
 };
 
 [[nodiscard]] std::string toUtf8(const std::wstring& w);

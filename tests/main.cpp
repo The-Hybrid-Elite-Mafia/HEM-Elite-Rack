@@ -43,6 +43,7 @@ int main(int argc, char** argv) {
     testFaces();
     testChain();
     testRackSession();
+    testLiveRack();
     std::printf("\nhem_rack_tests: %d checks, %d failed\n", gChecks, gFails);
     return gFails ? 1 : 0;
 }

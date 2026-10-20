@@ -17,6 +17,10 @@
 //                     audio thread lets go of comes back through another ring and is freed here.
 //    audio thread   : process() only. No allocation, no locks, no waiting.
 //  Plug-in parameters are atomics: faceplates turn knobs on the live plug-in directly.
+//  LIVE INPUT (an ASIO interface's inputs): the chain then works on the input (a mic, a guitar), not on the song;
+//  the song plays alongside, dry, to play or sing over. MONITOR off = you don't hear the processed input (when
+//  the interface monitors it directly). RECORD keeps two takes: what came out of the chain and what went in;
+//  the audio thread hands their frames over through rings, the message thread writes them.
 //  MIDI (keyboards): any thread hands a message to midi(); the audio thread passes notes to every plug-in
 //  in the chain that plays notes (an instrument), and the sustain pedal to its pedal parameter.
 // =============================================================================
@@ -88,6 +92,24 @@ public:
     void setLoop(bool on) noexcept { loop_.store(on, std::memory_order_relaxed); }
     void setOriginal(bool b) noexcept { original_.store(b, std::memory_order_relaxed); }   // true = B (untouched song)
     void setMatch(bool on) noexcept { match_.store(on, std::memory_order_relaxed); }
+    // Live input: the first input channel (-1 = off: the song goes through the chain), stereo (that channel and
+    // the next) or mono (that one on both sides).
+    void setInput(int first, bool stereo) noexcept { inStereo_.store(stereo, std::memory_order_relaxed); inFirst_.store(first, std::memory_order_relaxed); }
+    [[nodiscard]] int inputFirst() const noexcept { return inFirst_.load(std::memory_order_relaxed); }
+    [[nodiscard]] bool inputStereo() const noexcept { return inStereo_.load(std::memory_order_relaxed); }
+    void setMonitor(bool on) noexcept { monitor_.store(on, std::memory_order_relaxed); }
+    [[nodiscard]] bool monitor() const noexcept { return monitor_.load(std::memory_order_relaxed); }
+    [[nodiscard]] float inputPeak() const noexcept { return inPeak_.exchange(0.0f, std::memory_order_relaxed); }
+    // Recording (message thread): the takes' frames from the next block on, until stopRecording().
+    void startRecording() noexcept;
+    void stopRecording() noexcept { rec_.store(false, std::memory_order_release); }
+    [[nodiscard]] bool recording() const noexcept { return rec_.load(std::memory_order_relaxed); }
+    // Up to maxFrames of each take (interleaved L / R) that have come in; returns how many (the same for both).
+    std::size_t takeRecorded(float* wet, float* dry, std::size_t maxFrames) noexcept;
+    [[nodiscard]] std::uint64_t recordOverflow() const noexcept { return recOverflow_.load(std::memory_order_relaxed); }
+    // Runs the chain on a block with live input channels (tests; what the audio thread does with a sound card's inputs).
+    void renderWithInputs(const float* const* inputs, std::uint32_t numInputs, float* left, float* right, std::uint32_t frames) noexcept;
+
     // One MIDI message (status, data 1, data 2), from any thread (several MIDI inputs at once are fine).
     void midi(std::uint8_t status, std::uint8_t d1, std::uint8_t d2) noexcept;
     [[nodiscard]] bool wantsPlay() const noexcept { return play_.load(std::memory_order_relaxed); }
@@ -137,6 +159,16 @@ private:
     hc::core::SpscRing<Midi, 1024> midi_;
     std::atomic_flag midiLock_ = ATOMIC_FLAG_INIT;   // between the MIDI inputs only (the audio thread never takes it)
     void renderChunk(float* l, float* r, std::uint32_t n) noexcept;
+    // the sound card's inputs for the block being rendered (offset: where this chunk starts in them)
+    const float* const* hwIn_ = nullptr;
+    std::uint32_t hwInCount_ = 0, hwInOffset_ = 0;
+    struct Frame { float l = 0.0f, r = 0.0f; };
+    static constexpr std::size_t kRecRing = std::size_t{1} << 20;   // about 21 s at 48 kHz
+    std::unique_ptr<hc::core::SpscRing<Frame, kRecRing>> recWetRing_, recDryRing_;
+    std::atomic<int> inFirst_{-1};
+    std::atomic<bool> inStereo_{true}, monitor_{true}, rec_{false};
+    mutable std::atomic<float> inPeak_{0.0f};
+    std::atomic<std::uint64_t> recOverflow_{0};
     void readSong(float* l, float* r, std::uint32_t n) noexcept;
 
     hc::core::SpscRing<Command, 256> commands_;
@@ -159,6 +191,7 @@ private:
     float matchGain_ = 1.0f;
     std::vector<float> dryL_, dryR_;             // chain-latency delay for B
     std::uint32_t dryPos_ = 0;
+    std::vector<float> liveL_, liveR_;
     std::vector<float> inL_, inR_, tmpL_, tmpR_, bL_, bR_, kL_, kR_, tmpMonoL_, tmpMonoR_;
     KMeter wetMeter_, dryMeter_, outMeter_;
     std::uint32_t meterTick_ = 0;

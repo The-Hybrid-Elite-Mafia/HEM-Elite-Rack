@@ -5,10 +5,14 @@
 
 #include "Chain.hpp"
 #include "RackEngine.hpp"
+#include "TakeWriter.hpp"
 
 #include "hem/rack/EliteEq.hpp"
 #include "hem/rack/Plugins.hpp"
 #include "hem/rack/Restorer.hpp"
+#include "hem/rack/Streets.hpp"
+#include "hem/rack/Holdouts.hpp"
+#include "hybrid/media/AudioFile.hpp"
 
 #include <cmath>
 #include <memory>
@@ -206,6 +210,95 @@ void testChain() {
         CHECK(rack.usedSlots() == 1);
         CHECK(rack.latency() == 23);
     }
+}
+
+// LIVE INPUT, the takes, the take file, and MIDI to an instrument in the chain.
+void testLiveRack() {
+    std::printf("[live input, takes, MIDI]\n");
+    using namespace rack::racket;
+    RackProcessor rack;
+    auto song = testSong(1.0);
+    (void)rack.submitSong(song);
+    // slot 1: THE RACKET's VOLUME pedal at its lowest (-24 dB, LIN), 23 samples late
+    auto vol = makePlugin("THE RACKET");
+    vol->set(Which, PdVolume);
+    vol->set(VlVolume, 0);
+    vol->reset();
+    (void)rack.setSlot(0, std::move(vol));
+    const std::size_t N = 24000;
+    std::vector<float> in1(N), in2(N, 0.0f);
+    for (std::size_t i = 0; i < N; ++i) in1[i] = 0.4f * static_cast<float>(std::sin(2 * std::numbers::pi * 700.0 * static_cast<double>(i) / kRate));
+    const float* ins[2] = {in1.data(), in2.data()};
+    rack.setInput(0, false);   // input 1, on both sides
+    rack.play();
+    Stereo out(N);
+    rack.startRecording();
+    for (std::size_t i = 0; i < N; i += 480) {
+        const float* blk[2] = {ins[0] + i, ins[1] + i};
+        rack.renderWithInputs(blk, 2, out.l.data() + i, out.r.data() + i, 480);
+    }
+    rack.stopRecording();
+    // what you hear: the song as it is, plus the input through the chain
+    const float g = std::pow(10.0f, -24.0f / 20.0f);
+    double err = 0;
+    for (std::size_t i = 4800; i < N; ++i) {
+        const float want = song->left[i] + g * in1[i - 23];
+        err = std::max(err, std::fabs(static_cast<double>(out.l[i] - want)));
+    }
+    // the takes
+    std::vector<float> wet(2 * N), dry(2 * N);
+    const std::size_t got = rack.takeRecorded(wet.data(), dry.data(), N);
+    double wetErr = 0, dryErr = 0;
+    for (std::size_t i = 100; i < got; ++i) {
+        wetErr = std::max(wetErr, std::fabs(static_cast<double>(wet[2 * i + 1] - g * in1[i - 23])));
+        dryErr = std::max(dryErr, std::fabs(static_cast<double>(dry[2 * i] - in1[i])));
+    }
+    // MONITOR off: the song alone
+    rack.setMonitor(false);
+    Stereo quiet(4800);
+    std::vector<float> zeros(4800, 0.0f);
+    {
+        const float* blk[2] = {in1.data(), zeros.data()};
+        rack.renderWithInputs(blk, 2, quiet.l.data(), quiet.r.data(), 4800);
+    }
+    const std::uint64_t pos = rack.playhead() - 4800;
+    double monErr = 0;
+    for (std::size_t i = 0; i < 4800; ++i) monErr = std::max(monErr, std::fabs(static_cast<double>(quiet.l[i] - song->left[pos + i])));
+    std::printf("  live input through the chain over the song: worst %.1e; takes %zu frames (wet %.1e, dry %.1e off); MONITOR off: %.1e\n", err, got,
+                wetErr, dryErr, monErr);
+    CHECK(err < 1e-6 && got == N && wetErr < 1e-6 && dryErr < 1e-7 && monErr < 1e-7);
+    // the take file: 24-bit, the first 100 frames left out
+    const std::filesystem::path file = std::filesystem::temp_directory_path() / "hem_take_test.wav";
+    {
+        TakeWriter w;
+        CHECK(w.open(file, 48000, 100));
+        CHECK(w.write(wet.data(), 7000) && w.write(wet.data() + 2 * 7000, got - 7000));
+        CHECK(w.finish() == got - 100);
+    }
+    const auto dec = hc::media::decodeFile(file);
+    double fileErr = 1;
+    if (dec) {
+        fileErr = 0;
+        for (std::size_t i = 0; i < dec->frames(); ++i) fileErr = std::max(fileErr, std::fabs(static_cast<double>(dec->left[i] - wet[2 * (i + 100)])));
+    }
+    std::printf("  take file: %s, %llu frames (want %zu), worst %.1e\n", dec ? dec->format.c_str() : dec.error().c_str(),
+                static_cast<unsigned long long>(dec ? dec->frames() : 0), got - 100, fileErr);
+    CHECK(dec && dec->frames() == got - 100 && dec->sampleRate == 48000 && fileErr < 2.0 / 8388607.0);
+    std::filesystem::remove(file);
+    // MIDI: a note to the piano in slot 2, the pedal to its PEDAL
+    rack.setInput(-1, true);
+    rack.pause();
+    (void)rack.setSlot(1, makePlugin("GRAND LARCENY"));
+    Stereo pre(480);
+    rack.render(pre.l.data(), pre.r.data(), 480);   // the slot change lands
+    rack.midi(0x90, 69, 100);
+    rack.midi(0xB0, 64, 127);
+    Stereo note(24000);
+    for (std::size_t i = 0; i < note.size(); i += 480) rack.render(note.l.data() + i, note.r.data() + i, 480);
+    const double a440 = db(toneAmp(note.l, 440.0, 4800, 19200));
+    const float pedal = rack.effect(1)->get(rack::grandlarceny::Pedal);
+    std::printf("  MIDI note A4 to GRAND LARCENY in the chain: %.1f dB at 440 Hz; pedal controller 64 -> PEDAL %.0f\n", a440, pedal);
+    CHECK(a440 > -60.0 && pedal == 1.0f);
 }
 
 void testRackSession() {

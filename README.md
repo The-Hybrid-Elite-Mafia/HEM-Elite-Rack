@@ -1,7 +1,8 @@
 # HEM-Elite-Rack
 
 Hybrid Elite Mafia's plug-in rack for Windows: load a song, stack HEM plug-ins, hear them live,
-compare A / B at matched loudness and export a WAV. The same plug-ins ship as VST3.
+compare A / B at matched loudness and export a WAV. Or put a mic or a guitar through the chain over the
+song and record takes, and play the piano from a MIDI keyboard. The same plug-ins ship as VST3.
 
 Built on **The Hybrid Core** (`external/HybridCore`, a git submodule), Hybrid Elite Mafia's own
 C++23 audio framework, as a library.

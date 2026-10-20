@@ -44,6 +44,7 @@ void testSpectrum();
 void testFaces();
 void testChain();
 void testRackSession();
+void testLiveRack();
 
 void setExePath(const char* argv0);
 [[nodiscard]] std::filesystem::path exeDir();

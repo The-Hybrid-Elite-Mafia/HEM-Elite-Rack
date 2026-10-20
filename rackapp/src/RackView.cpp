@@ -34,7 +34,8 @@ constexpr Rect kTop{0, 0, RackView::kW, 86};
 constexpr Rect kOpen{980, 18, 220, 52}, kExport{1214, 18, 220, 52}, kDevice{1448, 18, 516, 52};
 constexpr Rect kTransport{16, 96, 1968, 150};
 constexpr Rect kPlay{36, 116, 110, 110}, kStop{160, 128, 86, 86};
-constexpr Rect kSongLine{268, 108, 912, 34}, kOverview{268, 150, 912, 76};
+constexpr Rect kSongLine{268, 108, 640, 34}, kOverview{268, 150, 640, 76};
+constexpr Rect kInput{924, 108, 256, 34}, kMonitor{924, 150, 124, 34}, kRec{1056, 150, 124, 34}, kInMeter{924, 192, 256, 34};
 constexpr Rect kA{1196, 116, 204, 52}, kB{1196, 174, 204, 52};
 constexpr Rect kMatch{1410, 116, 236, 52}, kLoop{1410, 174, 236, 52};
 constexpr Rect kMeter{1656, 112, 312, 118};
@@ -131,6 +132,9 @@ Hit RackView::hit(float x, float y, const RackViewState& s) const noexcept {
         if (ex * ex + ey * ey <= kStop.w * kStop.w * 0.25f) return {Action::Stop};
     }
     if (kOverview.contains(x, y)) return {Action::Seek, -1, std::clamp((x - kOverview.x) / kOverview.w, 0.0f, 1.0f)};
+    if (kInput.contains(x, y)) return {Action::Input};
+    if (kMonitor.contains(x, y)) return {Action::Monitor};
+    if (kRec.contains(x, y)) return {Action::Record};
     if (kA.contains(x, y)) return {Action::PlayA};
     if (kB.contains(x, y)) return {Action::PlayB};
     if (kMatch.contains(x, y)) return {Action::Match};
@@ -227,6 +231,25 @@ void RackView::drawBack(Renderer& r, const RackViewState& s, const Hit& hv) cons
             r.fillRound({px - 1.5f, o.y + 2, 3, o.h - 4}, 1.5f, kTh.silver, Blend::Over, false);
         }
         if (hv.action == Action::Seek && !s.songName.empty()) r.fillRound({o.x + o.w * hv.value - 1, o.y + 2, 2, o.h - 4}, 1, kTh.teal.withAlpha(0.6f), Blend::Over, false);
+    }
+    // live input: the source, MONITOR, RECORD, and the input's level (or the take's length)
+    button(r, kInput, s.input, s.inputOn, hv.action == Action::Input);
+    button(r, kMonitor, "MONITOR", s.monitor, hv.action == Action::Monitor, !s.inputOn);
+    button(r, kRec, s.recording ? "STOP REC" : "RECORD", s.recording, hv.action == Action::Record, !s.inputOn);
+    {
+        const Rect m = kInMeter;
+        r.fillRound(m, 6, kGlass, Blend::Over);
+        const float f = std::clamp((s.inputDb + 48.0f) / 48.0f, 0.0f, 1.0f);
+        if (s.inputOn && f > 0.002f) {
+            const float hot = std::clamp((s.inputDb + 3.0f) / 3.0f, 0.0f, 1.0f);
+            const Rgba c{kTh.teal.r + (1.0f - kTh.teal.r) * hot, kTh.teal.g * (1.0f - 0.6f * hot), kTh.teal.b * (1.0f - 0.6f * hot), 1.0f};
+            r.fillRound({m.x + 3, m.y + 3, (m.w - 6) * f, m.h - 6}, 4, c.withAlpha(0.55f), Blend::Over, false);
+        }
+        char b[64];
+        if (s.recording) std::snprintf(b, sizeof b, "REC %s", clock(s.recSeconds).c_str());
+        else if (s.inputOn) std::snprintf(b, sizeof b, s.inputDb > -100.0f ? "IN %.1f dBFS" : "IN  --", static_cast<double>(s.inputDb));
+        else std::snprintf(b, sizeof b, "LIVE INPUT OFF");
+        r.text(TextStyle::Caption, b, m.cx(), mid(r, m, TextStyle::Caption), s.inputOn ? kTh.silver : kTh.dim, Align::Center, TextFx::Shadowed);
     }
     button(r, kA, "A  PROCESSED", !s.original, hv.action == Action::PlayA);
     button(r, kB, "B  ORIGINAL", s.original, hv.action == Action::PlayB);

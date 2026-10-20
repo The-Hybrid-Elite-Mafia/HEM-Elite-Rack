@@ -1,3 +1,10 @@
+# HEM-Elite-Rack 0.39.0
+
+- **LIVE INPUT** — the rack takes a mic or a guitar from an ASIO interface's inputs (a stereo pair or one input) through the chain,
+  with the song playing alongside untouched; MONITOR on / off; an input level meter.
+- **RECORD** — takes saved as 24-bit WAV in Documents\HEM-Elite-Rack Takes, twice: through the chain and dry. Named with where in the
+  song they start and lined up with the song (the sound card's round trip and the chain's delay taken out).
+
 # HEM-Elite-Rack 0.38.0
 
 - **GRAND LARCENY** (new, its own plate) — electric grand piano with its original's full control set: velocity curve, formant,

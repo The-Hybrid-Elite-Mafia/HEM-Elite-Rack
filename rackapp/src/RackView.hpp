@@ -1,8 +1,8 @@
 #pragma once
 // =============================================================================
 //  RackView — the HEM-Elite-Rack window around the faceplate: top bar (OPEN SONG, EXPORT WAV,
-//  audio device), transport (play / stop, song overview you can click to jump, A / B, MATCH
-//  LOUDNESS, LOOP, output meter), the chain (8 slots: select, ON, move, remove, + ADD) and the
+//  audio device), transport (play / stop, song overview you can click to jump, LIVE INPUT with MONITOR,
+//  RECORD and its meter, A / B, MATCH LOUDNESS, LOOP, output meter), the chain (8 slots: select, ON, move, remove, + ADD) and the
 //  plug-in picker. The selected plug-in's faceplate is drawn by hem::ui::FaceView in faceArea().
 //  Design units: kW × kH, letterboxed into the window. Draws through the Renderer only and
 //  reads a plain view state, so it never touches audio objects.
@@ -38,6 +38,11 @@ struct RackViewState {
     float peakDb[2] = {-120.0f, -120.0f};
     float outLufs = -144.0f, matchDb = 0.0f;
     float latencyMs = 0.0f, cpuPct = 0.0f;
+    // live input
+    std::string input = "INPUT: OFF";       // what INPUT is set to
+    bool  inputOn = false, monitor = true, recording = false;
+    float inputDb = -120.0f;                 // its peak
+    double recSeconds = 0.0;
     // chain
     std::array<SlotView, 8> slots{};
     int  selected = -1;
@@ -53,7 +58,7 @@ struct RackViewState {
 };
 
 enum class Action : std::uint8_t {
-    None, OpenSong, Export, Device, Play, Stop, Seek, PlayA, PlayB, Match, Loop,
+    None, OpenSong, Export, Device, Play, Stop, Seek, PlayA, PlayB, Match, Loop, Input, Monitor, Record,
     SlotSelect, SlotOn, SlotUp, SlotDown, SlotRemove, AddOpen, AddPlugin, PickerClose, PickerTab, Face,
 };
 struct Hit {

@@ -66,6 +66,7 @@ void RackHost::close() noexcept {
     if (offline_) { offline_->close(); offline_.reset(); }
     engine_.collectGarbage();
     running_ = false;
+    inputs_ = 0;
 }
 
 bool RackHost::open(const Device& d) {
@@ -84,7 +85,7 @@ bool RackHost::open(const Device& d) {
         asio_ = std::make_unique<hc::io::AsioDuplex>();
         hc::io::AsioDuplex::Options opt;
         opt.driverName = d.id;
-        opt.maxInputs  = 0;   // the rack plays songs: outputs only
+        opt.maxInputs  = 16;  // for LIVE INPUT (a mic, a guitar)
         opt.maxOutputs = 2;   // the first two outputs of the interface
         auto r = asio_->open(opt, engine_);
         if (!r) {
@@ -164,6 +165,8 @@ bool RackHost::open(const Device& d) {
         offline_->start();
     }
     outMs_ = cfg.outputLatencyMs;
+    inMs_ = cfg.inputLatencyMs;
+    inputs_ = static_cast<int>(cfg.numInputs);
     if (d.asio)
         std::snprintf(buf, sizeof buf, "ASIO - %u Hz - %u frames = %.1f ms, the driver reports %.1f ms out", cfg.sampleRate, cfg.blockFrames,
                       1000.0 * cfg.blockFrames / std::max(1u, cfg.sampleRate), cfg.outputLatencyMs);
