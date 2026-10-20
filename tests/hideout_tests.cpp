@@ -238,34 +238,81 @@ double crossingsHz(const std::vector<float>& x, std::size_t from, std::size_t le
 
 void testDriveBy() {
     using namespace driveby;
+    // a 2 s pass, CLOSE 70 % (about 3 m): coming in it is higher, going away lower; PITCH 0 = no bend
     {
-        auto e = make("DRIVE-BY", {{Mode, 0}, {Position, 100}, {Air, 0}});
-        const double l = toneGain(*e, 1000, 0.3f), r = toneGain(*e, 1000, 0.3f, true);
-        std::printf("  DRIVE-BY parked on the right: left %.1f dB, right %.1f dB\n", l, r);
-        CHECK(r > l + 10.0);
-    }
-    {
-        // one pass every bar at 120 BPM (2 s), 50 m/s: coming in it is higher, going away lower
-        auto e = make("DRIVE-BY", {{Mode, 1}, {Rate, 7}, {SyncSource, 1}, {Bpm, 120}, {Speed, 50}, {Distance, 5}, {Air, 0}});
+        auto e = make("DRIVE-BY", {{TrackTime, 2}, {Trigger, 1}, {Air, 0}, {ReverbOn, 0}});
         Stereo s = sine(1000, 2.0, 0.3f);
         run(*e, s);
         Stereo m(s.size());
         for (std::size_t i = 0; i < s.size(); ++i) m.l[i] = s.l[i] + s.r[i];
         const double in = crossingsHz(m.l, 14400, 9600), out = crossingsHz(m.l, 72000, 9600);
-        std::printf("  DRIVE-BY at 50 m/s: approaching %.0f Hz, leaving %.0f Hz (a 1 kHz tone)\n", in, out);
-        CHECK(in > 1100 && in < 1200 && out > 830 && out < 920);
+        auto f = make("DRIVE-BY", {{TrackTime, 2}, {Trigger, 1}, {Air, 0}, {ReverbOn, 0}, {PitchOn, 0}});
+        Stereo t = sine(1000, 2.0, 0.3f);
+        run(*f, t);
+        Stereo mt(t.size());
+        for (std::size_t i = 0; i < t.size(); ++i) mt.l[i] = t.l[i] + t.r[i];
+        const double flat = crossingsHz(mt.l, 14400, 9600);
+        std::printf("  DRIVE-BY 120 m in 2 s: approaching %.0f Hz, leaving %.0f Hz (a 1 kHz tone); PITCH off: %.0f Hz\n", in, out, flat);
+        CHECK(in > 1100 && in < 1250 && out > 820 && out < 920 && std::fabs(flat - 1000) < 5);
     }
+    // PAN: at the start it is on the left, at the end on the right
+    {
+        auto e = make("DRIVE-BY", {{TrackTime, 2}, {Trigger, 1}, {Air, 0}, {ReverbOn, 0}});
+        Stereo s = sine(1000, 2.0, 0.3f);
+        run(*e, s);
+        const double lStart = rms(s.l, 2400, 4800), rStart = rms(s.r, 2400, 4800), lEnd = rms(s.l, 86400, 4800), rEnd = rms(s.r, 86400, 4800);
+        std::printf("  DRIVE-BY pan: start L/R %.1f / %.1f dB, end %.1f / %.1f dB\n", db(lStart), db(rStart), db(lEnd), db(rEnd));
+        CHECK(lStart > rStart * 3.0 && rEnd > lEnd * 3.0);
+    }
+    // ONE-SHOT, ENERGY: nothing until the sound starts; silence stays silent
+    {
+        auto e = make("DRIVE-BY", {{Mode, 1}});
+        Stereo z(48000);
+        run(*e, z);
+        CHECK(peak(z) < 1e-9 && e->meter(0) < 0.01f);
+    }
+    const double d = blockSizeDifference(*findPlugin("DRIVE-BY"), [](hc::fx::Effect& x) { x.set(TrackTime, 1.5f); x.set(Trigger, 1); }, noise(1.0, 0.3f));
+    std::printf("  DRIVE-BY block size 512 vs 1: %.2e\n", d);
+    CHECK(d < 1e-5);
 }
 
 void testBodyDouble() {
     using namespace bodydouble;
-    auto e = make("BODY DOUBLE", {{Detune, 30}, {Spread, 100}, {VoiceLevel, 0}, {LowCut, 20}, {Dry, -24}});
-    Stereo s = sine(1000, 2.0, 0.3f);
-    run(*e, s);
-    const double upL = bandLevelDb(s.l, 1008, 1030, 48000, 48000), downL = bandLevelDb(s.l, 970, 992, 48000, 48000);
-    const double upR = bandLevelDb(s.r, 1008, 1030, 48000, 48000), downR = bandLevelDb(s.r, 970, 992, 48000, 48000);
-    std::printf("  BODY DOUBLE detune 30 c, spread 100: left sharp %.1f / flat %.1f dB, right sharp %.1f / flat %.1f dB\n", upL, downL, upR, downR);
-    CHECK(upL > downL + 10.0 && downR > upR + 10.0);
+    // voice 1 sharp on the left, voice 2 flat on the right (the others off, the direct off)
+    {
+        auto e = make("BODY DOUBLE", {{DirectOn, 0}, {voice(2, On), 0}, {voice(3, On), 0}, {voice(0, Detune), 30}, {voice(1, Detune), -30},
+                                      {voice(0, Gain), 0}, {voice(1, Gain), 0}});
+        Stereo s = sine(1000, 2.0, 0.3f);
+        run(*e, s);
+        const double hi = 1000.0 * std::exp2(30.0 / 1200.0), lo = 1000.0 * std::exp2(-30.0 / 1200.0);
+        const double upL = db(toneAmp(s.l, hi, 48000, 48000)), downL = db(toneAmp(s.l, lo, 48000, 48000));
+        const double upR = db(toneAmp(s.r, hi, 48000, 48000)), downR = db(toneAmp(s.r, lo, 48000, 48000));
+        std::printf("  BODY DOUBLE voice 1 +30 c left, voice 2 -30 c right: left sharp %.1f / flat %.1f dB, right sharp %.1f / flat %.1f dB\n", upL, downL,
+                    upR, downR);
+        CHECK(upL > downL + 10.0 && downR > upR + 10.0);
+    }
+    // OCTAVE: a voice an octave down
+    {
+        auto e = make("BODY DOUBLE", {{DirectOn, 0}, {voice(1, On), 0}, {voice(2, On), 0}, {voice(3, On), 0}, {voice(0, Detune), 0},
+                                      {voice(0, Octave), 1}, {voice(0, Pan), 0}, {voice(0, Gain), 0}});
+        Stereo s = sine(800, 2.0, 0.3f);
+        run(*e, s);
+        const double down = db(toneAmp(s.l, 400, 48000, 48000)), orig = db(toneAmp(s.l, 800, 48000, 48000));
+        std::printf("  BODY DOUBLE OCTAVE on an 800 Hz tone: 400 Hz %.1f dB, 800 Hz %.1f dB\n", down, orig);
+        CHECK(down > orig + 15.0);
+    }
+    // the voices only: no delay, no detune -> the direct and the voice add up (ALIGN DIRECT lines them up)
+    {
+        auto e = make("BODY DOUBLE", {{voice(1, On), 0}, {voice(2, On), 0}, {voice(3, On), 0}, {voice(0, Detune), 0}, {voice(0, Delay), 0},
+                                      {voice(0, Pan), 0}, {voice(0, Gain), 0}, {AlignDirect, 1}, {Range, 1}});
+        const double g = toneGain(*e, 200, 0.2f, false, 2.0);
+        std::printf("  BODY DOUBLE one voice at 0 ms / 0 cents with ALIGN DIRECT: %+.1f dB (two in step: +6)\n", g);
+        CHECK(g > 4.5 && g < 6.5);
+    }
+    const double d = blockSizeDifference(*findPlugin("BODY DOUBLE"), [](hc::fx::Effect& x) { x.set(voice(0, ModDepth), 30); x.set(voice(1, Feedback), 20); },
+                                         noise(1.0, 0.3f));
+    std::printf("  BODY DOUBLE block size 512 vs 1: %.2e\n", d);
+    CHECK(d < 1e-5);
 }
 
 void testHustle() {

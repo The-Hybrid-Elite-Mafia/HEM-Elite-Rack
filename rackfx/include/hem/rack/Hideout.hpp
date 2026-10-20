@@ -20,13 +20,22 @@
 //                (30 Hz–1.5 kHz) and LO-PASS (1.5–21 kHz); MONO (10 = the stereo as it was, 0 = mono), MIX. The
 //                wear (a narrower band, saturation, a slow wobble) is part of its sound and has no knob, as on
 //                the original. Zero latency.
-//  DRIVE-BY      a sound passing by: the pitch bends as it comes and goes, it gets louder
-//                and quieter and swings across. MANUAL (POSITION knob) or AUTO (passes on the beat).
-//                SPEED (how fast: how far the pitch bends), DISTANCE (how close it passes), AIR (far =
-//                darker), MIX, OUTPUT.
-//  BODY DOUBLE   doubler: 2 or 4 voices, each a little late and a little out of tune, spread
-//                left / right. DELAY, DETUNE (cents), SPREAD, VOICES level, LOW CUT on the voices,
-//                DRY level, OUTPUT.
+//  DRIVE-BY      a sound passing by on a track: TRACK TIME (0.5–30 s for the whole pass), CENTER TIME (when it
+//                is closest, as a share of the track: early = it comes in fast and leaves slowly), START and END
+//                (where along the line it begins and ends), CLOSE (how near the line passes), DIRECTION, MODE
+//                (CONTINUOUS passes again and again, ONE-SHOT once per trigger), TRIGGER (ENERGY: the sound
+//                starting starts the pass; MANUAL: the FIRE button). How real it is: GAIN, PAN, PITCH and AIR
+//                0–200 % (0 = none, 100 = as in life, 200 = twice that), each with its ON; REVERB (level, which
+//                rises as it moves away), REVERB TIME, BRIGHTNESS, with its ON. Zero latency (the pitch bend comes
+//                from the distance, as in life).
+//  BODY DOUBLE   doubler with four voices. Each VOICE: ON, GAIN (0..-48 dB), PAN (±45°), DELAY (0–100 ms), DETUNE
+//                (±100 cents), FEEDBACK (0–100 %, back into that voice through the feedback HI-PASS), OCTAVE (an octave
+//                down), MOD DEPTH (±200 cents) and MOD RATE (0.1–400 Hz). DIRECT (on, GAIN, PAN), ALIGN DIRECT (the
+//                direct waits as long as the voices' own delay, so 0 ms means together), RANGE (20 or 80 Hz: the
+//                lowest note detuned cleanly; 20 Hz waits longer), MOD RESET (all the voices' wobbles start
+//                together), ROUTING (SUM: each voice hears both sides; SPLIT: voices 1 and 3 hear the left, 2 and 4
+//                the right), the voices' EQ (LOW SHELF and HIGH SHELF, each on, GAIN +12..-88 dB, FREQ), OUTPUT
+//                (0..-24 dB), the held peaks with RESET. Zero latency.
 //  HUSTLE        modulator: one LFO (RATE in Hz or a NOTE of the tempo, WAVE) drives TREMOLO
 //                (level), VIBRATO (pitch) and PAN (left-right swing, OFFSET = where in the cycle it
 //                swings); MIX, OUTPUT.
@@ -76,11 +85,16 @@ enum P : int { EchoOn, Sync, Bpm, Time, Note, Feedback, PingPong, EchoLevel, Rev
 } // namespace backalley
 
 namespace driveby {
-enum P : int { Mode, Position, Rate, SyncSource, Bpm, Speed, Distance, Air, Mix, Output, kCount };
+enum P : int { TrackTime, CenterTime, Start, End, Close, Direction, Mode, Trigger, Fire, Gain, GainOn, Pan, PanOn, Pitch, PitchOn, Air, AirOn,
+               Reverb, ReverbOn, ReverbTime, Brightness, kCount };
 } // namespace driveby
 
 namespace bodydouble {
-enum P : int { Voices, Delay, Detune, Spread, VoiceLevel, LowCut, Dry, Output, kCount };
+inline constexpr int kVoices = 4, kStride = 9;
+enum VoiceP : int { On, Gain, Pan, Delay, Detune, Feedback, Octave, ModDepth, ModRate };   // voice v's control k: v * kStride + k
+enum P : int { DirectOn = kVoices * kStride, DirectGain, DirectPan, AlignDirect, FbHighPass, Range, ModReset, Routing,
+               LowOn, LowGain, LowFreq, HighOn, HighGain, HighFreq, Output, Reset, kCount };
+constexpr int voice(int v, int k) noexcept { return v * kStride + k; }
 } // namespace bodydouble
 
 namespace hustle {

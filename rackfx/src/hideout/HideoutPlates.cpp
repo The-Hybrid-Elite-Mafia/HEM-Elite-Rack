@@ -47,20 +47,17 @@ constexpr PlateKnob row2[] = {{HighPass, "HI-PASS"}, {LowPass, "LO-PASS"}, {Mono
 // ---- DRIVE-BY
 namespace db {
 using namespace driveby;
-constexpr PlateChoice choices[] = {{Mode, "MODE"}, {Rate, "PASS EVERY"}};
-constexpr PlateKnob row1[] = {{Position, "POSITION", "LEFT", "RIGHT", K::Big}, {Speed, "SPEED"}, {Distance, "DISTANCE"}, {Air, "AIR"}};
-constexpr PlateKnob row2[] = {{Bpm, "BPM", "", "", K::Small}, {Mix, "MIX", "", "", K::Small}, {Output, "OUTPUT", "", "", K::Small}};
-constexpr PlateChoice left[] = {{SyncSource, "TEMPO FROM"}};
+constexpr PlateKnob bandKnobs[] = {{0, "AMOUNT"}};
+constexpr PlateToggle bandToggles[] = {{1, "ON"}};
+constexpr const char* columnNames[] = {"GAIN", "PAN", "PITCH", "AIR DAMP", "REVERB"};
+constexpr PlateBands bands{.count = 5, .first = Gain, .stride = 2, .knobs = bandKnobs, .toggles = bandToggles, .columnNames = columnNames};
+constexpr PlateKnob row1[] = {{TrackTime, "TRACK TIME"}, {CenterTime, "CENTER"}, {Start, "START", "L", "R"}, {End, "END", "L", "R"},
+                              {Close, "CLOSE", "FAR", "NEAR"}, {ReverbTime, "REV TIME"}, {Brightness, "BRIGHT", "0", "1"}};
+constexpr PlateToggle toggles[] = {{Fire, "FIRE", true}};
+constexpr PlateChoice steppers[] = {{Direction, "WAY"}, {Mode, "MODE"}, {Trigger, "TRIGGER"}};
 } // namespace db
 
-// ---- BODY DOUBLE
-namespace bd {
-using namespace bodydouble;
-constexpr PlateChoice choices[] = {{Voices, "VOICES"}};
-constexpr PlateKnob row1[] = {{Delay, "DELAY"}, {Detune, "DETUNE"}, {Spread, "SPREAD", "0", "100", K::Big}};
-constexpr PlateKnob row2[] = {{VoiceLevel, "VOICE LEVEL", "", "", K::Small}, {LowCut, "LOW CUT", "", "", K::Small}, {Dry, "DRY", "", "", K::Small},
-                              {Output, "OUTPUT", "", "", K::Small}};
-} // namespace bd
+
 
 // ---- HUSTLE
 namespace hu {
@@ -112,12 +109,10 @@ const PlateSpec kDeadDrop{.note1 = "THE DROP COMES BACK", .note2 = "CLEAN OR DIR
 const PlateSpec kBackAlley{.note1 = "WORN ECHO", .note2 = "SPRING OR PLATE", .screen = Screen::None, .choices = ba::choices, .toggles = ba::toggles,
                            .row1 = ba::row1, .row2 = ba::row2,
                            .demo = [](hc::fx::Effect& e) { using namespace backalley; e.set(PingPong, 1); e.set(LowPass, 6000); }};
-const PlateSpec kDriveBy{.note1 = "HERE IT COMES", .note2 = "THERE IT GOES", .screen = Screen::None, .choices = db::choices,
-                         .row1 = db::row1, .row2 = db::row2, .left = db::left,
-                         .demo = [](hc::fx::Effect& e) { using namespace driveby; e.set(Mode, 0); e.set(Position, -35); }};
-const PlateSpec kBodyDouble{.note1 = "TWO OF YOU", .note2 = "OR FOUR", .screen = Screen::None, .choices = bd::choices,
-                            .row1 = bd::row1, .row2 = bd::row2,
-                            .demo = [](hc::fx::Effect& e) { using namespace bodydouble; e.set(Voices, 1); e.set(Detune, 12); }};
+const PlateSpec kDriveBy{.note1 = "HERE IT COMES", .note2 = "THERE IT GOES", .screen = Screen::None, .toggles = db::toggles, .row1 = db::row1,
+                         .steppers = db::steppers, .bands = &db::bands,
+                         .demo = [](hc::fx::Effect& e) { using namespace driveby; e.set(Close, 85); e.set(Pitch, 150); }};
+
 const PlateSpec kHustle{.note1 = "LEVEL, PITCH, PAN", .note2 = "ONE MOTION", .screen = Screen::None, .choices = hu::choices,
                         .row1 = hu::row1, .row2 = hu::row2, .left = hu::left,
                         .demo = [](hc::fx::Effect& e) { using namespace hustle; e.set(Tremolo, 60); e.set(Pan, 50); e.set(Vibrato, 20); }};

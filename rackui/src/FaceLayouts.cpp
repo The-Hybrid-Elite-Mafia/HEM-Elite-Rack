@@ -1180,6 +1180,77 @@ FaceLayout tapsFace(const rack::PluginInfo& info) {
     return L;
 }
 
+// ---- BODY DOUBLE: a column per voice on top; the direct, the shared settings and the voices' EQ under them.
+FaceLayout voicesFace(const rack::PluginInfo& info) {
+    using namespace rack::bodydouble;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"TWO OF YOU", "OR FOUR"};
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 180, 1226, 300};
+    auto stepper = [&](Rect r, int param, const char* caption = "") {
+        Widget st;
+        st.kind = WKind::Stepper;
+        st.param = param;
+        st.caption = caption;
+        st.r = r;
+        L.widgets.push_back(st);
+        L.recesses.push_back({st.r.inset(-4), 9, 4, false, false});
+    };
+    struct K { int p; const char* cap; };
+    auto knobs = [&](float x0, float w, float y, float d, std::initializer_list<K> ks) {
+        const std::size_t first = L.widgets.size();
+        const float pitch = w / static_cast<float>(ks.size());
+        int k = 0;
+        for (const K& kk : ks) {
+            const float cx = x0 + (static_cast<float>(k++) + 0.5f) * pitch;
+            L.widgets.push_back(knob({cx - d * 0.5f, y, d, d}, kk.p, kk.cap, "", "", true));
+        }
+        seatKnobs(L, first, 4);
+    };
+    static const char* const kVoiceN[kVoices] = {"VOICE 1", "VOICE 2", "VOICE 3", "VOICE 4"};
+    const float cw = 1226.0f / kVoices;
+    for (int v = 0; v < kVoices; ++v) {
+        const float x0 = 410 + static_cast<float>(v) * cw;
+        L.sections.push_back({{x0 + 4, 180, 110, 28}, kVoiceN[v]});
+        L.widgets.push_back(toggle({x0 + 112, 180, 76, 30}, voice(v, On), ""));
+        L.widgets.push_back(toggle({x0 + 194, 180, cw - 200, 30}, voice(v, Octave), "OCT"));
+        knobs(x0, cw, 240, 34, {{voice(v, Gain), "GAIN"}, {voice(v, Pan), "PAN"}, {voice(v, Delay), "DELAY"}, {voice(v, Detune), "DETUNE"}});
+        knobs(x0, cw, 336, 34, {{voice(v, Feedback), "FEEDBACK"}, {voice(v, ModDepth), "MOD DEPTH"}, {voice(v, ModRate), "MOD RATE"}});
+        if (v > 0) L.grooves.push_back({x0, 184, x0, 410});
+    }
+    L.grooves.push_back({410, 420, 1636, 420});
+    // the direct and the shared settings
+    L.sections.push_back({{410, 426, 400, 22}, "DIRECT"});
+    L.widgets.push_back(toggle({414, 456, 130, 32}, DirectOn, ""));
+    knobs(560, 250, 474, 32, {{DirectGain, "GAIN"}, {DirectPan, "PAN"}});
+    L.widgets.push_back(toggle({414, 500, 130, 32}, AlignDirect, "ALIGN"));
+    L.sections.push_back({{820, 426, 816, 22}, "ALL VOICES"});
+    stepper({920, 456, 150, 32}, Range, "RANGE");
+    stepper({920, 500, 150, 32}, Routing, "ROUTING");
+    L.widgets.push_back(toggle({1084, 456, 170, 32}, ModReset, "MOD RESET"));
+    L.widgets.back().hi = "PRESS";
+    knobs(1260, 376, 466, 32, {{FbHighPass, "FB HI-PASS"}, {Output, "OUTPUT"}});
+    L.grooves.push_back({814, 428, 814, 552});
+    L.grooves.push_back({410, 560, 1636, 560});
+    // the voices' EQ
+    L.sections.push_back({{410, 566, 600, 22}, "LOW SHELF"});
+    L.sections.push_back({{1036, 566, 600, 22}, "HIGH SHELF"});
+    L.widgets.push_back(toggle({420, 600, 110, 32}, LowOn, ""));
+    knobs(540, 470, 614, 34, {{LowGain, "GAIN"}, {LowFreq, "FREQ"}});
+    L.widgets.push_back(toggle({1046, 600, 110, 32}, HighOn, ""));
+    knobs(1166, 470, 614, 34, {{HighGain, "GAIN"}, {HighFreq, "FREQ"}});
+    L.grooves.push_back({1023, 568, 1023, 690});
+    // the left column: the peaks
+    readoutAt(L, {70, 404, 270, 64}, 0, "PEAK L", "dBFS", "+");
+    readoutAt(L, {70, 478, 270, 64}, 1, "PEAK R", "dBFS", "+");
+    L.widgets.push_back(toggle({70, 554, 270, 36}, Reset, "RESET PEAKS"));
+    L.widgets.back().hi = "PRESS";
+    buttonSeats(L);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
 // ---- plates laid out from a PlateSpec (Face::Spec) -------------------------------------------
 // The parts go where the plate's content leaves room: a screen (or none) on top, a column of
 // buttons and switches beside it, one or two rows of knobs under it, choice lists down the left.
@@ -1525,6 +1596,7 @@ FaceLayout faceLayout(const rack::PluginInfo& info) {
     case rack::Face::Channel: return channelFace(info);
     case rack::Face::Movers: return moversFace(info);
     case rack::Face::Taps: return tapsFace(info);
+    case rack::Face::Voices: return voicesFace(info);
     case rack::Face::Spec: if (info.plate) return specFace(info); break;
     case rack::Face::Restorer: break;
     }
