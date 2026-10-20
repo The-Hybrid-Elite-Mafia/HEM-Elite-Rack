@@ -3,19 +3,34 @@
 //  The HEM dynamics arsenal (our own designs, our own names). Each one publishes its gain
 //  reduction (dB, <= 0) where it has one, and its own meters where its plate shows them.
 //
-//  SWITCHBLADE  channel compressor + gate + a filter that either steers what the detector hears
-//               or limits the processing to one band. Compressor: THRESHOLD, RATIO, ATTACK,
-//               RELEASE (or AUTO: quick after a short hit, slower in long loud parts), MAKEUP.
-//               Gate: OPEN level, CLOSE (how far under OPEN it shuts: no chatter), RANGE (how far
-//               it closes), HOLD, RELEASE. Filter: HIGH-PASS / LOW-PASS / BAND-PASS / BAND-CUT,
-//               FREQ, Q, used as KEY (detector only) or BAND (only that band is processed).
-//               LOOKAHEAD (2 ms), LISTEN (hear the detector), OUTPUT. Latency 96 samples, always.
+//  SWITCHBLADE  the channel compander: a compressor / expander, a gate / expander and a filter, each
+//               module able to work on the whole sound (WIDE), hear only the filter (SIDECHAIN) or work
+//               only on the filter's band (SPLIT; the rest passes untouched: a dynamic EQ).
+//               Compressor: ON, LEVEL REF LOW (the classic: lower threshold = quieter, use MAKEUP) or
+//               PEAK (full-scale peaks stay where they are), MAKEUP -40..+40, THRESHOLD -100..0,
+//               RATIO 0.5..50 (under 1: upward expansion), CANCEL (the ratio turns negative, -5..-50:
+//               the louder it gets, the quieter it comes out), ATTACK 0.01..1000 ms, RELEASE 1..10000 ms,
+//               PDR 0..1000 ms (peaks shorter than this let go at PDR instead: program-dependent),
+//               EQ WIDE / SIDECHAIN / SPLIT. Gate: ON, MODE GATE (opens at OPEN, shuts under CLOSE,
+//               HOLD, down to FLOOR -80 (= off) .. +12 dB) or EXPANDER (below OPEN at SLOPE 2..10:1,
+//               no deeper than FLOOR; a FLOOR over 0 lifts quiet parts instead), ATTACK, RELEASE, EQ.
+//               LINK: the gate uses the compressor's attack, release and EQ mode. Filter: BAND / NOTCH /
+//               LO CUT / HI CUT, FREQ 16..21000 Hz, Q 0.1..0.6. LOOKAHEAD (7 ms), KEY STEREO / L>R (the
+//               left side's level works the right side; the left passes) / R>L, MONITOR AUDIO /
+//               SIDECHAIN (what the detector hears) / PASSIVE (the band left alone), INPUT LEFT / RIGHT
+//               0..-24, OUTPUT +18..-40. Latency 336 samples, always.
 //               Meters: 0 compressor gain change, 1 gate gain change, 2 input level.
-//  TERRITORY    4- or 5-band dynamics: per band THRESHOLD, RANGE (minus = turns down, plus =
-//               lifts up), GAIN; crossovers; ATTACK, RELEASE, AUTO release, KNEE, TAIL (QUICK or
-//               LINGER near the end of a release), PHASE NATURAL (zero latency) or LINEAR (the bands
-//               are split in the frequency domain: no phase shift, 2048 samples latency — hosts
-//               get the larger latency always), LISTEN a band, OUTPUT. Meters 0..4 = band gain change.
+//  TERRITORY    4-band dynamics: per band THRESHOLD, GAIN, RANGE (the most it moves: minus = down, plus =
+//               up; centred on the threshold), ATTACK, RELEASE, SOLO, BYPASS; MASTER THRESHOLD / GAIN /
+//               RANGE (added to every band) and ATTACK / RELEASE (x every band); three crossovers and their
+//               Q (0.10..0.75: how steep), RELEASE AUTO / MANUAL, BEHAVIOR OPTO / ELECTRO, KNEE 0 (soft)
+//               .. 100 (hard), OUTPUT. Zero latency. Meters 0..3 band moves (dB), 4 output peak (dBFS).
+//  STRAIGHT EDGE 5-band linear-phase dynamics: the same band and MASTER controls, four crossovers,
+//               MAKEUP MANUAL / AUTO (each band gets half its RANGE back), ADAPTIVE (-40 = off .. +12: a
+//               band only works when it stands out over the band under it), RELEASE, BEHAVIOR, KNEE,
+//               OUTPUT, TRIM (a push: the output comes down by the loudest peak since the last push, so
+//               that peak would land on 0 dBFS), DITHER (24-bit). Latency 2559 samples.
+//               Meters 0..4 band moves (dB), 5 output peak (dBFS).
 //  CONSIGLIERE  light-cell (opto) leveler: GAIN 0..100, PEAK REDUCTION 0..100, AUTO MAKEUP, COMPRESS /
 //               LIMIT, HI FREQ (how much harder the detector listens to the highs; 50 = +6 dB above
 //               1.5 kHz), ANALOG OFF / 50 / 60 HZ (the hardware's hum, riding under the music), MIX, TRIM,
@@ -82,23 +97,28 @@
 namespace hem::rack {
 
 namespace switchblade {
-enum P : int { Threshold, Ratio, Attack, Release, AutoRelease, Makeup,
-               GateOpen, GateClose, GateRange, GateHold, GateRelease,
-               FilterType, FilterUse, FilterFreq, FilterQ, Lookahead, Listen, Output, kCount };
-inline constexpr std::uint32_t kLookahead = 96;   // 2 ms at 48 kHz
+enum P : int { CompOn, LevelRef, Makeup, Threshold, Ratio, Cancel, Attack, Release, Pdr, CompEq,
+               GateOn, GateMode, Floor, ExpSlope, GateOpen, GateClose, GateAttack, GateRelease, GateHold, GateEq,
+               Link, FilterType, FilterFreq, FilterQ, Lookahead, Key, Monitor, InputL, InputR, Output, kCount };
+inline constexpr std::uint32_t kLookahead = 336;   // 7 ms at 48 kHz; the latency is the same with LOOKAHEAD off
 } // namespace switchblade
 
-namespace territory {
-inline constexpr int kBands = 5;
-enum P : int { X1, X2, X3, X4,
-               Thr1, Range1, Gain1, Thr2, Range2, Gain2, Thr3, Range3, Gain3, Thr4, Range4, Gain4, Thr5, Range5, Gain5,
-               Attack, Release, AutoRelease, Knee, Tail, Phase, Bands, Listen, Output, kCount };
-inline constexpr int thr(int b) noexcept { return Thr1 + 3 * b; }
-inline constexpr int range(int b) noexcept { return Range1 + 3 * b; }
-inline constexpr int gain(int b) noexcept { return Gain1 + 3 * b; }
-inline constexpr std::uint32_t kFftSize = 2048, kHop = 512;
-inline constexpr std::uint32_t kLatency = kFftSize;   // reported always (LINEAR needs it; NATURAL is delayed to match)
+namespace territory {   // 4 bands: per band THRESHOLD, GAIN, RANGE, ATTACK, RELEASE, SOLO, BYPASS; then MASTER
+inline constexpr int kBands = 4, kPerBand = 7;
+enum BandP : int { Threshold, Gain, Range, Attack, Release, Solo, Bypass };
+inline constexpr int band(int b, int k) noexcept { return b * kPerBand + k; }
+enum P : int { MThreshold = kBands * kPerBand, MGain, MRange, MAttack, MRelease, X1, X2, X3, Q, ReleaseMode, Behavior, Knee, Output,
+               kCount };
 } // namespace territory
+
+namespace straightedge {   // 5 bands, linear phase; the same band set, then MASTER
+inline constexpr int kBands = 5, kPerBand = 7;
+enum BandP : int { Threshold, Gain, Range, Attack, Release, Solo, Bypass };
+inline constexpr int band(int b, int k) noexcept { return b * kPerBand + k; }
+enum P : int { MThreshold = kBands * kPerBand, MGain, MRange, MAttack, MRelease, X1, X2, X3, X4, Makeup, Adaptive, ReleaseMode,
+               Behavior, Knee, Output, Trim, Dither, kCount };
+inline constexpr std::uint32_t kLatency = 2559;
+} // namespace straightedge
 
 namespace opto {   // CONSIGLIERE and STONE COLD
 enum P : int { Gain, PeakReduction, AutoMakeup, Mode, HiFreq, Analog, Mix, Trim, Meter, kCount };
@@ -180,6 +200,7 @@ inline constexpr float kRateBeats[] = {0.25f, 0.5f, 1.0f, 2.0f, 4.0f};   // 1/16
 
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeSwitchblade();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeTerritory();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeStraightEdge();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeConsigliere();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeStoneCold();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeHeavyweight();

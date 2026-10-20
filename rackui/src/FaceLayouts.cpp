@@ -809,55 +809,77 @@ FaceLayout hitmanFace(const rack::PluginInfo& info) {
 
 // ---- TERRITORY: a column per band (its gain change on top, THRESHOLD / RANGE / GAIN under it), the
 // global knobs and the crossovers taking turns across one row, the switches down the left
-FaceLayout territoryFace(const rack::PluginInfo& info) {
-    using namespace rack::territory;
+// SWITCHBLADE, the channel compander: the history of both gain changes and the filter on top, then the
+// compressor row and the gate row, each with its switches and steppers on the right; input, output and
+// look-ahead down the left.
+FaceLayout companderFace(const rack::PluginInfo& info) {
+    using namespace rack::switchblade;
     FaceLayout L;
     common(L, info);
-    L.leftNotes = {"FIVE TERRITORIES", "EACH ITS OWN RULES"};
+    L.leftNotes = {"COMPRESS, GATE", "AND STEER IT"};
     L.title = {60, 190, 330, 110};
-    L.display = {410, 182, 1226, 76};
-    const float col = 1226.0f / static_cast<float>(kBands);
-    const char* bandName[kBands] = {"BAND 1", "BAND 2", "BAND 3", "BAND 4", "BAND 5"};
-    for (int b = 0; b < kBands; ++b) readoutAt(L, {410 + static_cast<float>(b) * col + 8, 182, col - 16, 76}, b, bandName[b], "dB", "+");
-    const std::size_t first = L.widgets.size();
-    constexpr float d = 60.0f;
-    // the row: globals at the band centres, crossovers on the borders between the bands
-    const struct { int p; const char* cap; } globals[kBands] = {{Attack, "ATTACK"}, {Release, "RELEASE"}, {Knee, "KNEE"}, {Output, "OUTPUT"}, {-1, ""}};
-    for (int b = 0; b < kBands; ++b) {
-        if (globals[b].p < 0) continue;
-        const float cx = 410 + (static_cast<float>(b) + 0.5f) * col;
-        L.widgets.push_back(knob({cx - d * 0.5f, 296, d, d}, globals[b].p, globals[b].cap, "", "", true));
-    }
-    const char* splitName[4] = {"SPLIT 1", "SPLIT 2", "SPLIT 3", "SPLIT 4"};
-    for (int x = 0; x < 4; ++x) {
-        const float cx = 410 + static_cast<float>(x + 1) * col;
-        L.widgets.push_back(knob({cx - d * 0.5f, 296, d, d}, X1 + x, splitName[x], "", "", true));
-    }
-    L.grooves.push_back({410, 394, 1636, 394});
-    // the band columns
-    for (int b = 0; b < kBands; ++b) {
-        const float cx = 410 + (static_cast<float>(b) + 0.5f) * col;
-        constexpr float bd = 54.0f;   // the band knobs: three rows with room for their names and values
-        L.widgets.push_back(knob({cx - bd * 0.5f, 440, bd, bd}, thr(b), "THRESHOLD", "", "", true));
-        L.widgets.push_back(knob({cx - bd * 0.5f, 566, bd, bd}, range(b), "RANGE", "", "", true));
-        L.widgets.push_back(knob({cx - bd * 0.5f, 692, bd, bd}, gain(b), "GAIN", "", "", true));
-        if (b > 0) L.grooves.push_back({410 + static_cast<float>(b) * col, 404, 410 + static_cast<float>(b) * col, 808});
-    }
-    seatKnobs(L, first, 8);
-    // the left column: four steppers, AUTO release, the power
-    const struct { int p; const char* cap; } steps[4] = {{Phase, "PHASE"}, {Bands, "BANDS"}, {Tail, "TAIL"}, {Listen, "LISTEN"}};
-    for (int k = 0; k < 4; ++k) {
+    L.display = {410, 182, 620, 196};
+    Widget hist;
+    hist.kind = WKind::History;
+    hist.r = L.display;
+    hist.lo = "COMP";
+    hist.hi = "GATE";
+    L.widgets.push_back(hist);
+    L.recesses.push_back({hist.r, 14, 9, false, true});
+    auto stepper = [&](Rect r, int param, const char* caption) {
         Widget st;
         st.kind = WKind::Stepper;
-        st.param = steps[k].p;
-        st.caption = steps[k].cap;
-        st.r = {170, 424 + static_cast<float>(k) * 50, 170, 40};
+        st.param = param;
+        st.caption = caption;
+        st.r = r;
         L.widgets.push_back(st);
         L.recesses.push_back({st.r.inset(-4), 9, 4, false, false});
+    };
+    // the filter
+    buttonGroup(L, "FILTER", 1060, 576, 222, FilterType, 4);
+    std::size_t first = L.widgets.size();
+    L.widgets.push_back(knob({1090, 304, 60, 60}, FilterFreq, "FREQ", "", "", true));
+    L.widgets.push_back(knob({1210, 304, 60, 60}, FilterQ, "Q", "", "", true));
+    seatKnobs(L, first, 8);
+    stepper({1466, 290, 170, 40}, Monitor, "MONITOR");
+    stepper({1466, 340, 170, 40}, Key, "KEY");
+    L.grooves.push_back({410, 404, 1636, 404});
+    // the compressor row
+    first = L.widgets.size();
+    const struct { int p; const char* cap; } comp[6] = {{Threshold, "THRESHOLD"}, {Ratio, "RATIO"}, {Attack, "ATTACK"},
+                                                         {Release, "RELEASE"}, {Pdr, "PDR"}, {Makeup, "MAKEUP"}};
+    for (int k = 0; k < 6; ++k) {
+        const float cx = 410 + (static_cast<float>(k) + 0.5f) * (820.0f / 6.0f);
+        L.widgets.push_back(knob({cx - 35, 446, 70, 70}, comp[k].p, comp[k].cap, "", "", true));
     }
-    L.widgets.push_back(toggle({70, 628, 270, 44}, AutoRelease, "AUTO REL"));
+    seatKnobs(L, first, 8);
+    L.widgets.push_back(toggle({1260, 424, 176, 44}, CompOn, "COMP ON"));
+    L.widgets.push_back(toggle({1452, 424, 176, 44}, Cancel, "CANCEL"));
+    stepper({1466, 480, 170, 40}, LevelRef, "LEVEL REF");
+    stepper({1466, 530, 170, 40}, CompEq, "COMP EQ");
+    L.grooves.push_back({410, 586, 1636, 586});
+    // the gate row
+    first = L.widgets.size();
+    const struct { int p; const char* cap; } gate[7] = {{GateOpen, "GATE OPEN"}, {GateClose, "CLOSE"}, {Floor, "FLOOR"}, {ExpSlope, "SLOPE"},
+                                                         {GateAttack, "ATTACK"}, {GateRelease, "RELEASE"}, {GateHold, "HOLD"}};
+    for (int k = 0; k < 7; ++k) {
+        const float cx = 410 + (static_cast<float>(k) + 0.5f) * (820.0f / 7.0f);
+        L.widgets.push_back(knob({cx - 33, 632, 66, 66}, gate[k].p, gate[k].cap, "", "", true));
+    }
+    seatKnobs(L, first, 8);
+    L.widgets.push_back(toggle({1260, 612, 176, 44}, GateOn, "GATE ON"));
+    L.widgets.push_back(toggle({1452, 612, 176, 44}, Link, "LINK"));
+    stepper({1466, 668, 170, 40}, GateMode, "MODE");
+    stepper({1466, 718, 170, 40}, GateEq, "GATE EQ");
+    // the left column: input left / right, output, look-ahead, the power
+    first = L.widgets.size();
+    L.widgets.push_back(knob({95, 470, 70, 70}, InputL, "INPUT L", "", "", true));
+    L.widgets.push_back(knob({225, 470, 70, 70}, InputR, "INPUT R", "", "", true));
+    L.widgets.push_back(knob({95, 616, 70, 70}, Output, "OUTPUT", "", "", true));
+    seatKnobs(L, first, 8);
+    L.widgets.push_back(toggle({70, 740, 270, 44}, Lookahead, "LOOKAHEAD"));
     buttonSeats(L);
-    bypassAt(L, {160, 698, 90, 90});
+    bypassAt(L, {230, 606, 90, 90});
     return L;
 }
 
@@ -897,6 +919,20 @@ float specColumn(FaceLayout& L, std::span<const rack::PlateChoice> groups, std::
     return y;
 }
 
+// A switch's words at the plate's smallest text size (the same estimate the layout tests use).
+float switchWordsW(const char* caption) noexcept {
+    float w = 0;
+    for (const char* c = caption; *c; ++c) {
+        const char ch = *c;
+        if (ch == 'M' || ch == 'W') w += 15.0f;
+        else if (ch == 'L' || ch == 'T' || ch == 'F' || ch == 'E') w += 10.5f;
+        else if (ch == 'I' || ch == ' ' || ch == '.' || ch == ',' || ch == ':' || ch == '/' || ch == '-' || ch == '|') w += 5.0f;
+        else if (ch >= '0' && ch <= '9') w += 8.5f;
+        else w += 12.5f;
+    }
+    return w + 43.5f;   // "  OFF"
+}
+
 // The multiband plates: band readouts on top, the globals (row1, then the switches) at the band
 // centres with the borders' knobs (crossovers) between them, then a column of controls per band.
 void specBands(FaceLayout& L, const rack::PlateSpec& S) {
@@ -909,7 +945,7 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
     if (B.meter >= 0)
         for (int b = 0; b < n && b < 8; ++b)
             readoutAt(L, {410 + static_cast<float>(b) * colW + 8, 182, colW - 16, 68}, B.meter + b,
-                      B.lastIsMaster && b == n - 1 ? "MASTER" : kNames[b], "dB", "+");
+                      B.lastIsMaster && b == n - 1 ? "OUTPUT" : kNames[b], B.lastIsMaster && b == n - 1 ? "dBFS" : "dB", "+");
     // the top row
     const std::size_t first = L.widgets.size();
     constexpr float d = 60.0f;
@@ -922,7 +958,9 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
     }
     for (const rack::PlateToggle& t : S.toggles) {
         const float x = 410.0f + (static_cast<float>(slot++) + 0.5f) * pitch * colW;
-        L.widgets.push_back(toggle({x - 56, 286, 112, 44}, t.param, t.caption));
+        const float tw = std::max(112.0f, switchWordsW(t.caption) + 18.0f);
+        L.widgets.push_back(toggle({x - tw * 0.5f, 286, tw, 44}, t.param, t.caption));
+        if (t.press) L.widgets.back().hi = "PRESS";
     }
     for (std::size_t i = 0; i < B.borders.size() && static_cast<int>(i) + 1 < n; ++i) {
         const float x = 410.0f + static_cast<float>(i + 1) * colW;
@@ -932,7 +970,17 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
     L.grooves.push_back({410, 374, 1636, 374});
     // the band columns
     const bool pairs = B.knobs.size() > 3;
-    constexpr float bd = 54.0f, rowH = 118.0f;
+    // the column's height: rows of knobs, steppers, switches (stacked in narrow columns); if it doesn't
+    // fit above the footer, smaller knobs on tighter rows
+    bool sideToggles = !B.toggles.empty();
+    {   // side by side only when every switch's words fit at that width
+        const float tw = (colW - 12.0f - 8.0f * static_cast<float>(B.toggles.size() - 1)) / static_cast<float>(std::max<std::size_t>(B.toggles.size(), 1));
+        for (const rack::PlateToggle& t : B.toggles) sideToggles = sideToggles && switchWordsW(t.caption) + 16.0f <= tw;
+    }
+    const int knobRows = pairs ? static_cast<int>((B.knobs.size() + 1) / 2) : static_cast<int>(B.knobs.size());
+    const float togglesH = B.toggles.empty() ? 0.0f : sideToggles ? 52.0f : 52.0f * static_cast<float>(B.toggles.size());
+    const bool compact = 404.0f + static_cast<float>(knobRows) * 118.0f + 52.0f * static_cast<float>(B.steppers.size()) + togglesH > 822.0f;
+    const float bd = compact ? 46.0f : 54.0f, rowH = compact ? 104.0f : 118.0f;
     for (int b = 0; b < n; ++b) {
         const float c = cx(static_cast<float>(b));
         const int base = B.first + b * B.stride;
@@ -957,7 +1005,7 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
         }
         // the switches: side by side in wide columns, one above the other in narrow ones
         const int nt = master ? 0 : static_cast<int>(B.toggles.size());
-        const bool side = colW >= 230.0f;
+        const bool side = sideToggles;
         const float tw = side ? (colW - 12.0f - 8.0f * static_cast<float>(nt - 1)) / static_cast<float>(std::max(nt, 1)) : colW - 12.0f;
         for (int t = 0; t < nt; ++t) {
             const rack::PlateToggle& tg = B.toggles[static_cast<std::size_t>(t)];
@@ -965,7 +1013,7 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
                                 : Rect{c - colW * 0.5f + 6, y + 4 + static_cast<float>(t) * 52, tw, 44};
             L.widgets.push_back(toggle(r, base + tg.param, tg.caption));
         }
-        if (b > 0) L.grooves.push_back({410 + static_cast<float>(b) * colW, 384, 410 + static_cast<float>(b) * colW, 808});
+        if (b > 0) L.grooves.push_back({410 + static_cast<float>(b) * colW, 384, 410 + static_cast<float>(b) * colW, 820});
     }
     seatKnobs(L, first, 8);
 }
@@ -1103,6 +1151,7 @@ FaceLayout specFace(const rack::PluginInfo& info) {
     }
     for (const rack::PlateToggle& t : lt) {
         L.widgets.push_back(toggle({70, y, 270, 44}, t.param, t.caption));
+        if (t.press) L.widgets.back().hi = "PRESS";
         y += 54;
     }
     buttonSeats(L);
@@ -1136,7 +1185,7 @@ FaceLayout faceLayout(const rack::PluginInfo& info) {
     case rack::Face::Sub: return subFace(info);
     case rack::Face::VocalStrip: return vocalFace(info);
     case rack::Face::Hitman: return hitmanFace(info);
-    case rack::Face::Territory: return territoryFace(info);
+    case rack::Face::Compander: return companderFace(info);
     case rack::Face::Spec: if (info.plate) return specFace(info); break;
     case rack::Face::Restorer: break;
     }

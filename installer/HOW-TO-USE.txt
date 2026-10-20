@@ -77,17 +77,24 @@ HITMAN (dual FET peak compressor)
   The screen on the right shows the last few seconds: gain reduction of both channels and the input.
 
 SWITCHBLADE
-  A compressor and a gate on one plate. Compressor: THRESHOLD, RATIO, ATTACK, RELEASE (or AUTO REL),
-  MAKEUP. Gate: GATE OPEN = the level it opens at (all the way down = off), CLOSE BELOW = how far
-  under that it shuts (stops chatter), GATE RANGE = how far down it goes, HOLD, GATE REL.
-  FILTER: KEY = only what the detector hears (e.g. HIGH-PASS so the kick doesn't pump it);
-  BAND = only that band of the sound is processed. LISTEN plays what the detector hears.
+  A compressor and a gate on one plate, plus a filter. Compressor row: THRESHOLD, RATIO (under 1 lifts
+  the loud parts; CANCEL makes the loudest parts come out quieter), ATTACK, RELEASE, PDR (short peaks
+  let go at PDR instead: punchier), MAKEUP; LEVEL REF LOW is the classic, PEAK keeps full-scale peaks
+  where they were. Gate row: GATE OPEN, CLOSE (under OPEN: no chatter), FLOOR (how far down; -80 = all
+  the way), SLOPE (EXPANDER mode), ATTACK, RELEASE, HOLD; LINK gives the gate the compressor's times.
+  Each row's EQ: WIDE (the whole sound), SIDECHAIN (it only hears the FILTER), SPLIT (it only works on
+  the filter's band: a dynamic EQ). FILTER BAND / NOTCH / LO CUT / HI CUT, FREQ, Q. MONITOR SIDECHAIN
+  plays what the detector hears, PASSIVE the part left alone. KEY L > R: the left side's level works the
+  right side (the left passes). INPUT L / R and OUTPUT down the left.
 
-TERRITORY
-  Each band has THRESHOLD, RANGE and GAIN. RANGE minus = that band comes down when it's loud,
-  RANGE plus = it gets lifted when it's loud, 0 = no movement (GAIN still works as an EQ).
-  SPLIT 1-4 move the borders. PHASE LINEAR splits the bands with no phase shift (more latency).
-  LISTEN plays one band alone. The windows on top show each band's move right now.
+TERRITORY / STRAIGHT EDGE
+  Each band: THRESHOLD, GAIN, RANGE (minus = that band comes down when it's loud, plus = it gets lifted,
+  0 = no movement; GAIN still works as an EQ), ATTACK, RELEASE, SOLO, BYPASS. The MASTER column moves
+  every band at once. SPLIT knobs move the borders. KNEE 0 = soft and wide, 100 = hard. RELEASE AUTO
+  follows the music; OPTO lets go slowly at the end, ELECTRO quickly. TERRITORY: Q = how steep the steps
+  between bands are. STRAIGHT EDGE (no phase shift, 53 ms late): MAKEUP AUTO gives each band back half
+  its RANGE, ADAPTIVE lets a band work only when it stands out over the band under it, TRIM (one push)
+  brings the loudest peak since the last push to 0 dBFS, DITHER for 24-bit.
 
 THE HARDWARE-STYLE COMPRESSORS - most have a METER switch: IN and OUT show VU level on the needle
 (0 VU = -18 dBFS), GR shows how much it's turning down. ANALOG / MAINS 50 or 60 HZ adds the faint hum

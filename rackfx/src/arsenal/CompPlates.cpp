@@ -85,8 +85,32 @@ constexpr PlateKnob row2[] = {{Mix, "MIX", "", "", K::Small}, {Trim, "TRIM", "",
 constexpr PlateChoice steppers[] = {{ReleaseMode, "RELEASE"}, {Behavior, "BEHAVIOR"}, {Character, "CHARACTER"}};
 } // namespace om
 
+// ---- TERRITORY / STRAIGHT EDGE: band columns and the MASTER column, crossovers between the bands
+namespace mb {
+constexpr PlateKnob bandKnobs[] = {{territory::Threshold, "THRESHOLD"}, {territory::Gain, "GAIN"}, {territory::Range, "RANGE"},
+                                   {territory::Attack, "ATTACK"}, {territory::Release, "RELEASE"}};
+constexpr PlateToggle bandToggles[] = {{territory::Solo, "SOLO"}, {territory::Bypass, "BYPASS"}};
+constexpr PlateKnob borders4[] = {{territory::X1, "SPLIT"}, {territory::X2, "SPLIT"}, {territory::X3, "SPLIT"}};
+constexpr PlateBands bands4{.count = territory::kBands + 1, .first = 0, .stride = territory::kPerBand, .knobs = bandKnobs, .toggles = bandToggles,
+                            .borders = borders4, .meter = 0, .lastIsMaster = true};
+constexpr PlateKnob row4[] = {{territory::Q, "Q"}, {territory::Knee, "KNEE"}, {territory::Output, "OUTPUT"}};
+constexpr PlateChoice steppers4[] = {{territory::ReleaseMode, "RELEASE"}, {territory::Behavior, "BEHAVIOR"}};
+constexpr PlateKnob borders5[] = {{straightedge::X1, "SPLIT"}, {straightedge::X2, "SPLIT"}, {straightedge::X3, "SPLIT"}, {straightedge::X4, "SPLIT"}};
+constexpr PlateBands bands5{.count = straightedge::kBands + 1, .first = 0, .stride = straightedge::kPerBand, .knobs = bandKnobs,
+                            .toggles = bandToggles, .borders = borders5, .meter = 0, .lastIsMaster = true};
+constexpr PlateKnob row5[] = {{straightedge::Adaptive, "ADAPTIVE"}, {straightedge::Knee, "KNEE"}, {straightedge::Output, "OUTPUT"}};
+constexpr PlateToggle toggles5[] = {{straightedge::Trim, "TRIM", true}, {straightedge::Dither, "DITHER"}};
+constexpr PlateChoice steppers5[] = {{straightedge::Makeup, "MAKEUP"}, {straightedge::ReleaseMode, "RELEASE"}, {straightedge::Behavior, "BEHAVIOR"}};
+} // namespace mb
+
 } // namespace
 
+const PlateSpec kTerritory{.note1 = "FOUR TERRITORIES", .note2 = "EACH ITS OWN RULES", .row1 = mb::row4, .steppers = mb::steppers4, .bands = &mb::bands4,
+                           .reportsReduction = true,
+                           .demo = [](hc::fx::Effect& e) { e.set(territory::band(1, territory::Threshold), -40); e.set(territory::band(3, territory::Range), -12); }};
+const PlateSpec kStraightEdge{.note1 = "FIVE BANDS", .note2 = "NO PHASE SHIFT", .toggles = mb::toggles5, .row1 = mb::row5, .steppers = mb::steppers5,
+                              .bands = &mb::bands5, .reportsReduction = true,
+                              .demo = [](hc::fx::Effect& e) { e.set(straightedge::band(1, straightedge::Threshold), -40); e.set(straightedge::Adaptive, -12); }};
 const PlateSpec kConsigliere{.note1 = "TWO KNOBS", .note2 = "SMOOTH CONTROL", .screen = Screen::Needle, .choices = op::choices,
                              .toggles = op::toggles, .row1 = op::row2A, .reportsReduction = true, .meterSelect = opto::Meter, .vuMeter = 0,
                              .demo = [](hc::fx::Effect& e) { e.set(opto::PeakReduction, 55); e.set(opto::Gain, 15); }};

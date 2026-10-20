@@ -1,3 +1,15 @@
+# HEM-Elite-Rack 0.23.0
+
+**The last three compressors, rebuilt with every control:**
+- **SWITCHBLADE** — now the full channel compander: compressor / expander with LEVEL REF, ratio 0.5-50 or
+  CANCEL, PDR; gate or expander with FLOOR, SLOPE, HOLD; each one WIDE, SIDECHAIN or SPLIT through the
+  filter; LINK, LOOKAHEAD, KEY L > R / R > L, MONITOR, separate INPUT L / R. New plate.
+- **TERRITORY** — four bands, each with THRESHOLD, GAIN, RANGE, ATTACK, RELEASE, SOLO, BYPASS; a MASTER
+  column; crossovers with Q; AUTO / MANUAL release, OPTO / ELECTRO, KNEE. (Its old linear-phase mode is
+  now its own plug-in.)
+- **STRAIGHT EDGE** (new) — five linear-phase bands with the same controls, plus ADAPTIVE, AUTO MAKEUP,
+  one-push TRIM and DITHER.
+
 # HEM-Elite-Rack 0.22.0
 
 **The hardware-style compressors, rebuilt with every control** — one plug-in per original:

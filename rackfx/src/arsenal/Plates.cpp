@@ -7,18 +7,6 @@ namespace hem::rack::plates {
 namespace {
 using K = KnobSize;
 
-// ---- SWITCHBLADE: history of both gain changes, filter beside it, compressor row over gate + filter row
-namespace sw {
-using namespace switchblade;
-constexpr PlateChoice choices[] = {{FilterType, "FILTER"}, {FilterUse, "FILTER WORKS ON"}};
-constexpr PlateKnob row1[] = {{Threshold, "THRESHOLD", "-60", "0"}, {Ratio, "RATIO", "1", "30"}, {Attack, "ATTACK"},
-                              {Release, "RELEASE"}, {Makeup, "MAKEUP"}, {Output, "OUTPUT"}};
-constexpr PlateKnob row2[] = {{GateOpen, "GATE OPEN", "", "", K::Small}, {GateClose, "CLOSE BELOW", "", "", K::Small}, {GateRange, "GATE RANGE", "", "", K::Small},
-                              {GateHold, "HOLD", "", "", K::Small}, {GateRelease, "GATE REL", "", "", K::Small},
-                              {FilterFreq, "FILTER FREQ", "", "", K::Small}, {FilterQ, "FILTER Q", "", "", K::Small}};
-constexpr PlateToggle leftT[] = {{AutoRelease, "AUTO REL"}, {Lookahead, "LOOKAHEAD"}, {Listen, "LISTEN"}};
-} // namespace sw
-
 // ---- KNOCKOUT: no screen; the switches across the top, the hits and tails on one row, the bands and output under
 namespace ko {
 using namespace knockout;
@@ -74,13 +62,6 @@ constexpr PlateKnob row1[] = {{Amount, "AMOUNT", "0", "100", K::Big}, {Offset, "
 
 } // namespace
 
-const PlateSpec kSwitchblade{.note1 = "COMPRESS AND GATE", .note2 = "STEER WITH THE FILTER", .screen = Screen::History,
-                             .choices = sw::choices, .row1 = sw::row1, .row2 = sw::row2, .leftToggles = sw::leftT,
-                             .historyA = "COMP", .historyB = "GATE", .reportsReduction = true,
-                             .demo = [](hc::fx::Effect& e) {
-                                 using namespace switchblade;
-                                 e.set(Threshold, -26); e.set(Ratio, 4); e.set(GateOpen, -40); e.set(FilterType, 1); e.set(FilterFreq, 120);
-                             }};
 const PlateSpec kKnockout{.note1 = "SHAPE THE HITS", .note2 = "AND THE TAILS", .screen = Screen::None, .choices = ko::choices,
                           .row1 = ko::row1, .row2 = ko::row2,
                           .demo = [](hc::fx::Effect& e) { e.set(knockout::Attack, 60); e.set(knockout::Sustain, -40); e.set(knockout::Mode, 1); }};

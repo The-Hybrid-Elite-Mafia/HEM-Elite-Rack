@@ -19,8 +19,9 @@ C++23 audio framework, as a library.
 | **THE ACCOUNTANT** | EBU R128 / BS.1770: momentary, short-term, integrated LUFS, loudness range, true peak, correlation, distance to a target |
 | **ENFORCER** | Clean modern compressor: ratio 1–20, knee, attack, release or AUTO, auto makeup, sidechain HPF, mix; tail STEADY / LINGER; character CLEAN / WARM |
 | **HITMAN** | Dual FET peak compressor: L/R or M/S, attack / release 1–7, ratios 4 / 8 / 12 / 20 / ALL, lookahead, sidechain EQ, external sidechain (VST3), saturation (clip, warm, triode, tape), mix, gain-reduction history |
-| **SWITCHBLADE** | Channel compressor + gate (open / close levels, range, hold) + a filter that steers the detector or limits the work to one band; look-ahead, listen |
-| **TERRITORY** | 4- or 5-band dynamics: each band turned down or lifted up (range), threshold, gain; natural or linear phase |
+| **SWITCHBLADE** | Channel compander: compressor / expander (level ref, makeup, ratio 0.5-50 or cancel, attack, release, PDR) and gate / expander (open, close, floor, slope, hold), each wide, keyed or split by the filter; look-ahead, key L>R / R>L, monitor, input L / R |
+| **TERRITORY** | 4-band dynamics: threshold, gain, range, attack, release, solo, bypass per band; master offsets; crossovers and their Q; auto / manual release, opto / electro, knee |
+| **STRAIGHT EDGE** | 5-band linear-phase dynamics: the same band and master controls, adaptive, auto makeup, one-push trim, dither |
 | **CONSIGLIERE** | Light-cell leveler: gain, peak reduction, compress / limit, hi freq, auto makeup, analog hum, mix, trim, IN / GR / OUT meter |
 | **STONE COLD** | Solid-state light-cell leveler: quicker and firmer, the same controls on 0-10 dials |
 | **HEAVYWEIGHT** | Punch compressor: threshold, ratio, attack, punch, release in ms or on the beat, four analog flavours, limiter or clipper, mix, meter |
@@ -83,7 +84,7 @@ C++23 audio framework, as a library.
 | **UNDERGROUND** | More low end: a new sub an octave down, or harmonics small speakers can hear |
 | **SPOTLIGHT** | Vocal chain: high-pass, body, one-knob compressor, one-knob de-esser, presence, air |
 
-Seventy-four plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
+Seventy-five plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 
 ## Install
 Download `HEM-Elite-Rack-Setup-x.y.z.exe` from **Releases** and run it. Needs Windows 10 / 11

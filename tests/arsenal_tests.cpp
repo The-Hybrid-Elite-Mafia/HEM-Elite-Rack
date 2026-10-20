@@ -77,7 +77,7 @@ void hitAndTail(const Stereo& s, std::uint32_t lat, double& hitDb, double& tailD
 }
 
 void allRules() {
-    for (const char* name : {"SWITCHBLADE", "TERRITORY", "CONSIGLIERE", "STONE COLD", "HEAVYWEIGHT", "THE DON", "SLOW BURN", "LONE WOLF",
+    for (const char* name : {"SWITCHBLADE", "TERRITORY", "STRAIGHT EDGE", "CONSIGLIERE", "STONE COLD", "HEAVYWEIGHT", "THE DON", "SLOW BURN", "LONE WOLF",
                              "IRON FIST", "QUICK DRAW", "OLD MONEY", "KNOCKOUT", "FULL HOUSE", "WHEELMAN", "SILENCER", "BREATHLESS", "TOMMY GUN"}) {
         const PluginInfo* info = findPlugin(name);
         CHECK(info != nullptr);
@@ -87,76 +87,165 @@ void allRules() {
 
 void testSwitchblade() {
     using namespace switchblade;
+    const PluginInfo* info = findPlugin("SWITCHBLADE");
+    CHECK(make("SWITCHBLADE")->latency() == kLookahead);
     {   // 4:1 over -30 dBFS: a -6 dBFS tone comes out 18 dB lower (24 over -> 6 over)
         auto e = make("SWITCHBLADE", {{Threshold, -30}, {Ratio, 4}});
         const double out = toneOut(*e, 1000, 0.5f);
         std::printf("  SWITCHBLADE 4:1 at -30: a -6 dBFS tone comes out %.1f dB\n", out);
         CHECK(std::fabs(out + 18.0) < 1.5);
+        // LEVEL REF PEAK: a full-scale tone stays at full scale
+        auto pk = make("SWITCHBLADE", {{Threshold, -30}, {Ratio, 4}, {LevelRef, 1}});
+        const double full = toneOut(*pk, 1000, 0.99f);
+        std::printf("  SWITCHBLADE PEAK reference: a 0 dBFS tone comes out %.1f dB\n", full);
+        CHECK(std::fabs(full) < 1.5);
+        // CANCEL: past the threshold, louder in = quieter out
+        auto cn = make("SWITCHBLADE", {{Threshold, -30}, {Ratio, 5}, {Cancel, 1}});
+        const double a = toneOut(*cn, 1000, 0.3f) + db(0.3), b = toneOut(*cn, 1000, 0.6f) + db(0.6);
+        std::printf("  SWITCHBLADE CANCEL 5: -10 dBFS in -> %.1f dBFS out, -4 dBFS in -> %.1f dBFS out\n", a, b);
+        CHECK(b < a - 0.5);
+        // upward expansion under 1:1
+        auto up = make("SWITCHBLADE", {{Threshold, -30}, {Ratio, 0.5f}});
+        CHECK(toneOut(*up, 1000, 0.1f) > 6.0);
     }
-    {   // the gate: open at -40, range 40: a -60 dBFS tone drops ~40 dB; a -20 one passes
-        auto e = make("SWITCHBLADE", {{GateOpen, -40}, {GateRange, 40}});
+    {   // the gate: open at -40, floor -40: a -60 dBFS tone drops ~40 dB; a -20 one passes
+        auto e = make("SWITCHBLADE", {{CompOn, 0}, {GateOn, 1}, {GateOpen, -40}, {GateClose, -44}, {Floor, -40}});
         const double quiet = toneOut(*e, 1000, 0.001f, 2.0), loud = toneOut(*e, 1000, 0.1f, 2.0);
         std::printf("  SWITCHBLADE gate: -60 dBFS tone %.1f dB, -20 dBFS tone %.1f dB\n", quiet, loud);
         CHECK(quiet < -35.0 && std::fabs(loud) < 0.5);
+        // EXPANDER 2:1 under -40: a -50 dBFS tone comes out 10 dB lower
+        auto x = make("SWITCHBLADE", {{CompOn, 0}, {GateOn, 1}, {GateMode, 1}, {GateOpen, -40}, {ExpSlope, 2}});
+        const double ex = toneOut(*x, 1000, 0.00316f, 2.0);
+        std::printf("  SWITCHBLADE expander 2:1 under -40: a -50 dBFS tone %.1f dB\n", ex);
+        CHECK(std::fabs(ex + 10.0) < 2.0);
     }
-    {   // KEY high-pass at 1 kHz: a loud 60 Hz tone no longer triggers the compressor
-        auto off = make("SWITCHBLADE", {{Threshold, -30}, {Ratio, 8}});
-        auto key = make("SWITCHBLADE", {{Threshold, -30}, {Ratio, 8}, {FilterType, 1}, {FilterFreq, 1000}});
-        const double a = toneOut(*off, 60, 0.5f), b = toneOut(*key, 60, 0.5f);
-        std::printf("  SWITCHBLADE 60 Hz at -6 dBFS: plain %.1f dB, key high-passed %.1f dB\n", a, b);
-        CHECK(a < -12.0 && b > -3.0);
+    {   // SIDECHAIN: with a LO CUT at 1 kHz the compressor no longer hears a loud 60 Hz tone; WIDE does
+        auto wide = make("SWITCHBLADE", {{Threshold, -30}, {Ratio, 8}, {FilterType, 2}, {FilterFreq, 1000}, {CompEq, 0}});
+        auto keyed = make("SWITCHBLADE", {{Threshold, -30}, {Ratio, 8}, {FilterType, 2}, {FilterFreq, 1000}, {CompEq, 1}});
+        const double w = toneOut(*wide, 60, 0.5f, 2.0), k = toneOut(*keyed, 60, 0.5f, 2.0);
+        std::printf("  SWITCHBLADE loud 60 Hz: WIDE %.1f dB, SIDECHAIN through a 1 kHz lo cut %.1f dB\n", w, k);
+        CHECK(w < -10.0 && std::fabs(k) < 1.0);
+        // SPLIT: only the band moves (a dynamic EQ): BAND at 5 kHz
+        auto split = make("SWITCHBLADE", {{Threshold, -40}, {Ratio, 8}, {FilterType, 0}, {FilterFreq, 5000}, {FilterQ, 0.6f}, {CompEq, 2}});
+        const double lo = toneOut(*split, 300, 0.3f, 2.0), hi = toneOut(*split, 5000, 0.3f, 2.0);
+        std::printf("  SWITCHBLADE SPLIT on a 5 kHz band: 300 Hz %.1f dB, 5 kHz %.1f dB\n", lo, hi);
+        CHECK(std::fabs(lo) < 1.0 && hi < -8.0);
     }
-    {   // BAND mode, band-pass at 3 kHz: a 3 kHz tone is compressed, a 200 Hz tone beside it is not
-        auto e = make("SWITCHBLADE", {{Threshold, -40}, {Ratio, 10}, {FilterType, 3}, {FilterUse, 1}, {FilterFreq, 3000}, {FilterQ, 2}});
-        e->reset();
-        Stereo s = sine(3000, 1.5, 0.3f);
-        add(s, sine(200, 1.5, 0.3f));
-        run(*e, s);
-        const double hi = db(toneAmp(s.l, 3000, s.size() - 12000, 12000) / 0.3), lo = db(toneAmp(s.l, 200, s.size() - 12000, 12000) / 0.3);
-        std::printf("  SWITCHBLADE band mode at 3 kHz: 3 kHz %.1f dB, 200 Hz %.1f dB\n", hi, lo);
-        CHECK(hi < -8.0 && lo > -2.0);
+    {   // MONITOR SIDECHAIN + PASSIVE add up to the sound
+        Stereo in = noise(0.5, 0.3f, 4);
+        Stereo a = in, b = in;
+        auto sc = make("SWITCHBLADE", {{Monitor, 1}, {FilterType, 0}}), pa = make("SWITCHBLADE", {{Monitor, 2}, {FilterType, 0}});
+        run(*sc, a);
+        run(*pa, b);
+        double worst = 0;
+        for (std::size_t i = kLookahead; i < in.size(); ++i) worst = std::max(worst, static_cast<double>(std::fabs(a.l[i] + b.l[i] - in.l[i - kLookahead])));
+        CHECK(worst < 1e-5);
+        // KEY L > R: the left side's level works the right side; the left passes
+        auto key = make("SWITCHBLADE", {{Threshold, -30}, {Ratio, 8}, {Key, 1}});
+        Stereo s = sine(500, 2.0, 0.5f);
+        Stereo q = sine(300, 2.0, 0.05f);
+        for (std::size_t i = 0; i < s.size(); ++i) s.r[i] = q.l[i];
+        run(*key, s);
+        const double left = db(toneAmp(s.l, 500, s.size() - 12000, 12000) / 0.5), right = db(toneAmp(s.r, 300, s.size() - 12000, 12000) / 0.05);
+        std::printf("  SWITCHBLADE KEY L > R: left %.1f dB, quiet right %.1f dB\n", left, right);
+        CHECK(std::fabs(left) < 0.5 && right < -10.0);
+        auto in2 = make("SWITCHBLADE", {{CompOn, 0}, {InputL, -12}});
+        CHECK(std::fabs(toneOut(*in2, 1000, 0.1f) + 12.0) < 0.3);
     }
-    const PluginInfo* info = findPlugin("SWITCHBLADE");
-    const double d = blockSizeDifference(*info, [](hc::fx::Effect& x) { x.set(Threshold, -30); x.set(GateOpen, -30); x.set(FilterType, 2); x.set(Lookahead, 1); },
+    {   // PDR: after a short burst the release is PDR, not RELEASE
+        auto rec = [](float pdr) {
+            auto e = make("SWITCHBLADE", {{Threshold, -30}, {Ratio, 8}, {Release, 2000}, {Pdr, pdr}, {Attack, 0.1f}});
+            Stereo s = sine(1000, 0.05, 0.8f);
+            Stereo q = sine(1000, 1.0, 0.01f);
+            s.l.insert(s.l.end(), q.l.begin(), q.l.end());
+            s.r.insert(s.r.end(), q.r.begin(), q.r.end());
+            run(*e, s);
+            return db(toneAmp(s.l, 1000, 2400 + kLookahead + 14400, 9600) / 0.01);   // 300..500 ms after the burst
+        };
+        const double slow = rec(0), quick = rec(200);
+        std::printf("  SWITCHBLADE 300-500 ms after a 50 ms burst: release 2 s %.1f dB, PDR 200 ms %.1f dB\n", slow, quick);
+        CHECK(quick > slow + 6.0);
+    }
+    const double d = blockSizeDifference(*info, [](hc::fx::Effect& x) { x.set(Threshold, -30); x.set(GateOn, 1); x.set(GateOpen, -30); x.set(CompEq, 2); },
                                          noise(1.0, 0.5f, 3));
     CHECK(d < 1e-5);
 }
 
 void testTerritory() {
-    using namespace territory;
-    for (int phase = 0; phase < 2; ++phase) {   // neutral: flat (linear: the input, exactly, 2048 samples late)
-        auto e = make("TERRITORY", {{Phase, static_cast<float>(phase)}});
-        double worst = 0;
-        for (double hz : {40.0, 120.0, 700.0, 3000.0, 9000.0, 15000.0}) worst = std::max(worst, std::fabs(toneOut(*e, hz, 0.25f, 1.0)));
-        std::printf("  TERRITORY neutral, %s phase: flat within %.2f dB\n", phase ? "linear" : "natural", worst);
-        CHECK(worst < 0.25);
-        if (phase == 1) {
-            e->reset();
-            Stereo s = noise(1.0, 0.3f, 9), ref = s;
+    for (const char* name : {"TERRITORY", "STRAIGHT EDGE"}) {
+        const bool lin = std::string(name) == "STRAIGHT EDGE";
+        using namespace territory;   // the band layout and the master block are the same in both
+        const int mRange = lin ? straightedge::MRange : MRange, mGain = lin ? straightedge::MGain : MGain;
+        const std::uint32_t lat = lin ? straightedge::kLatency : 0;
+        // MASTER RANGE +6 cancels the bands' -6: nothing moves, the bands add back up to the sound
+        auto e = make(name, {{mRange, 6}});
+        if (lin) { e->set(straightedge::Dither, 0); e->reset(); }
+        CHECK(e->latency() == lat);
+        Stereo s = noise(1.0, 0.3f, 9), ref = s;
+        run(*e, s);
+        const double dd = maxDelayedDiff(s, ref, lat, lat);
+        std::printf("  %s neutral: output = input %u samples late, within %.1e\n", name, lat, dd);
+        CHECK(dd < 2e-5);
+        // band 2 RANGE -12 under a loud 300 Hz tone; the 3 kHz tone (band 3, RANGE 0) stays
+        auto two = make(name, {{mRange, 6}, {band(1, Range), -18}, {band(1, Threshold), -40}});
+        const double b2 = toneOut(*two, 300, 0.3f, 2.0), b3 = toneOut(*two, 3000, 0.3f, 2.0);
+        std::printf("  %s band 2 range -12: 300 Hz %.1f dB, 3 kHz %.1f dB\n", name, b2, b3);
+        CHECK(std::fabs(b2 + 12.0) < (lin ? 1.5 : 3.0) && std::fabs(b3) < 0.6);   // TERRITORY's shelves reach -12 by the band's middle more gently
+        // a plus RANGE lifts
+        auto up = make(name, {{mRange, 6}, {band(2, Range), 0}, {band(1, Range), 6}, {band(1, Threshold), -40}});
+        const double u = toneOut(*up, 300, 0.3f, 2.0);
+        std::printf("  %s band 2 range +12: 300 Hz %+.1f dB\n", name, u);
+        CHECK(std::fabs(u - 12.0) < (lin ? 1.5 : 3.0));
+        // SOLO band 2; BYPASS band 2
+        auto solo = make(name, {{mRange, 6}, {band(1, Solo), 1}});
+        const double s300 = toneOut(*solo, 300, 0.1f), s5k = toneOut(*solo, 5000, 0.1f);
+        std::printf("  %s solo band 2: 300 Hz %.1f dB, 5 kHz %.1f dB\n", name, s300, s5k);
+        CHECK(std::fabs(s300) < 1.0 && s5k < -20.0);
+        auto byp = make(name, {{band(1, Range), -24}, {band(1, Threshold), -60}, {band(1, Bypass), 1}});
+        CHECK(std::fabs(toneOut(*byp, 300, 0.3f, 2.0)) < 0.6);
+        // MASTER GAIN moves every band
+        auto mg = make(name, {{mRange, 6}, {mGain, 6}});
+        CHECK(std::fabs(toneOut(*mg, 300, 0.05f) - 6.0) < 0.5 && std::fabs(toneOut(*mg, 5000, 0.05f) - 6.0) < 0.5);
+        const double bd = blockSizeDifference(*findPlugin(name), [](hc::fx::Effect& x) { x.set(band(1, Threshold), -40); x.set(band(2, Range), 6); },
+                                              noise(1.0, 0.5f, 3));
+        CHECK(bd < 1e-5);
+    }
+    {   using namespace straightedge;
+        // AUTO MAKEUP: half the RANGE back (-6 range: +3 under the threshold)
+        auto mk = make("STRAIGHT EDGE", {{Makeup, 1}, {Dither, 0}});
+        const double m = toneOut(*mk, 1000, 0.001f, 1.5);
+        std::printf("  STRAIGHT EDGE auto makeup, quiet tone: %+.1f dB\n", m);
+        CHECK(std::fabs(m - 3.0) < 0.5);
+        // ADAPTIVE: a loud band under it keeps band 3 from working
+        auto adaptive = [](float a) {
+            auto e = make("STRAIGHT EDGE", {{band(2, Range), -12}, {band(2, Threshold), -40}, {Adaptive, a}, {Dither, 0}});
+            Stereo s = sine(300, 2.0, 0.5f);
+            add(s, sine(1500, 2.0, 0.1f));
             run(*e, s);
-            const double dd = maxDelayedDiff(s, ref, kLatency, kLatency + 4096);
-            std::printf("  TERRITORY linear phase, neutral: output = input %u samples late, within %.1e\n", kLatency, dd);
-            CHECK(dd < 2e-4);
-        }
+            return db(toneAmp(s.l, 1500, s.size() - 24000, 24000) / 0.1);
+        };
+        const double off = adaptive(-40), on = adaptive(0);
+        std::printf("  STRAIGHT EDGE 1.5 kHz under a loud 300 Hz: ADAPTIVE off %.1f dB, 0 dB %.1f dB\n", off, on);
+        CHECK(on > off + 3.0);
+        // TRIM: one push brings the loudest peak since the last push to 0 dBFS
+        auto t = make("STRAIGHT EDGE", {{MRange, 6}, {Dither, 0}});
+        Stereo a = noise(1.0, 0.25f, 2);
+        run(*t, a);
+        t->set(Trim, 1);
+        Stereo b = noise(1.0, 0.25f, 2);
+        run(*t, b);
+        std::printf("  STRAIGHT EDGE after TRIM: peak %.2f dBFS (was %.2f)\n", peakDb(b, 24000), peakDb(a, 0));
+        CHECK(std::fabs(peakDb(b, 24000)) < 1.0);
     }
-    for (int phase = 0; phase < 2; ++phase) {   // band 3 pulled down 12 dB at most: a loud 1.2 kHz tone drops, 60 Hz doesn't
-        auto e = make("TERRITORY", {{thr(2), -40}, {range(2), -12}, {Phase, static_cast<float>(phase)}});
-        const double mid = toneOut(*e, 1200, 0.5f, 2.0), low = toneOut(*e, 60, 0.5f, 2.0);
-        std::printf("  TERRITORY band 3 range -12, %s: 1.2 kHz %.1f dB, 60 Hz %.1f dB\n", phase ? "linear" : "natural", mid, low);
-        CHECK(mid < -8.5 && mid > -12.5 && std::fabs(low) < 1.0);   // the bands beside it keep their share
-    }
-    {   // RANGE + lifts a band above its threshold; GAIN is a plain level
-        auto up = make("TERRITORY", {{thr(1), -30}, {range(1), 6}});
-        auto g = make("TERRITORY", {{gain(4), -6}});
-        const double a = toneOut(*up, 400, 0.3f, 2.0), b = toneOut(*g, 14000, 0.1f);
-        std::printf("  TERRITORY band 2 range +6: 400 Hz %+.1f dB; band 5 gain -6: 14 kHz %+.1f dB\n", a, b);
-        CHECK(a > 4.0 && a < 6.5 && std::fabs(b + 6.0) < 0.6);
-    }
-    const PluginInfo* info = findPlugin("TERRITORY");
-    for (int phase = 0; phase < 2; ++phase) {
-        const double d = blockSizeDifference(*info, [phase](hc::fx::Effect& x) { x.set(Phase, static_cast<float>(phase)); x.set(range(0), -10); x.set(range(3), 6); },
-                                             noise(1.0, 0.5f, 4));
-        CHECK(d < 1e-4);
+    {   using namespace territory;
+        // Q: a steeper split (0.75) keeps a 300 Hz tone out of band 1's move more than a soft one (0.1)
+        auto q = [](float qq) {
+            auto e = make("TERRITORY", {{MRange, 6}, {band(0, Range), -18}, {band(0, Threshold), -60}, {Q, qq}});
+            return toneOut(*e, 300, 0.3f, 2.0);
+        };
+        const double soft = q(0.1f), steep = q(0.75f);
+        std::printf("  TERRITORY band 1 down 12 dB, a 300 Hz tone: Q 0.1 %.1f dB, Q 0.75 %.1f dB\n", soft, steep);
+        CHECK(steep > soft + 1.0);
     }
 }
 

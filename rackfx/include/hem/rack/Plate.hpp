@@ -43,6 +43,7 @@ struct PlateChoice {
 struct PlateToggle {
     int         param;
     const char* caption;
+    bool        press = false;   // a push button (any click does it), not ON / OFF
 };
 
 // A big-number window: one of the effect's meters.
