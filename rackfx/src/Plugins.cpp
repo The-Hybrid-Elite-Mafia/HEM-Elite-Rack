@@ -17,6 +17,7 @@
 #include "hem/rack/ToneShop.hpp"
 #include "hem/rack/Hideout.hpp"
 #include "hem/rack/Streets.hpp"
+#include "hem/rack/Comeback.hpp"
 #include "arsenal/Plates.hpp"
 
 #include <cstring>
@@ -44,6 +45,18 @@ const PluginInfo kPlugins[] = {
      "Classic passive tube EQ: low boost and atten, high boost, air",
      {0x661A429Fu, 0xE4AF4669u, 0xA64C8773u, 0xABF96B39u}, {0x81122522u, 0xEB354A97u, 0x8459C53Bu, 0xFEF050E8u},
      Face::TubeEq, Group::Eq, &makeTubeEq},
+    {"FOUNDRY", "CONSOLE CHANNEL EQUALIZER", "DRIVE WHAT MATTERS", "Fx|EQ",
+     "British console channel EQ: stepped low cut, lows, middle and highs, EQ in / out, flip, vintage colour, peak readouts",
+     {0xEC9EC13Cu, 0x5510450Bu, 0xBBC55190u, 0x8EC26DE3u}, {0x9F1768D3u, 0x833D4210u, 0x8AAC1AE2u, 0xC0FB90B3u},
+     Face::Spec, Group::Eq, &makeFoundry, nullptr, &plates::kFoundry},
+    {"BOARDROOM", "FOUR-BAND CONSOLE EQUALIZER", "COLOR WHAT MATTERS", "Fx|EQ",
+     "British console four-band EQ: stepped high- and low-pass, shelf or bell ends, wide or tight mids, vintage colour, peak readouts",
+     {0x9CAF2094u, 0x19C94666u, 0x84891576u, 0x5D6DCD8Fu}, {0xA1FA67E5u, 0x71DD4649u, 0xB1EB1036u, 0xB378AFE0u},
+     Face::Spec, Group::Eq, &makeBoardroom, nullptr, &plates::kBoardroom},
+    {"MIDTOWN", "TUBE MIDRANGE EQUALIZER", "FOCUS WHAT MATTERS", "Fx|EQ",
+     "Tube midrange EQ: low peak, dip and high peak at stepped frequencies, EQ in / out, hum, output",
+     {0xF6958F8Cu, 0x84DC4B49u, 0x948ED3FFu, 0x92B8921Bu}, {0x863B7A41u, 0xF0324AB8u, 0x9E6DB7CBu, 0xD06E810Cu},
+     Face::Spec, Group::Eq, &makeMidtown, &midtown::kCurve, &plates::kMidtown},
     {"LOCKDOWN", "MASTERING LIMITER", "FINISH WHAT MATTERS", "Fx|Dynamics",
      "True-peak mastering limiter: loud, clean, never over the ceiling",
      {0xFD6E565Fu, 0x14E04E14u, 0x9E86898Cu, 0x56C20F12u}, {0x04E63B1Eu, 0x87E94A5Cu, 0xAA51530Du, 0x42655297u},
@@ -374,7 +387,7 @@ const PluginInfo kPlugins[] = {
      {0xB59FACA5u, 0x32604948u, 0x994B814Au, 0xA3D8358Cu}, {0xD8112AA0u, 0xBA614A34u, 0x8D20E649u, 0xD99AAD71u},
      Face::Spec, Group::Space, &makeBigHouse, nullptr, &plates::kBigHouse},
     {"SPEAKEASY", "ROOM AND DISTANCE REVERB", "PLACE WHAT MATTERS", "Fx|Reverb",
-     "A real room: size, distance, dimension, balance, decay, pre-delay, density, shelves, damping, variations; direct, early and reverb levels",
+     "A real room: size, distance, room shape, balance, decay, pre-delay, density, shelves, damping, variations; direct, early and reverb levels",
      {0x66F2A7CAu, 0x82804983u, 0xAF47E3DBu, 0x0DAF2509u}, {0x38D2C619u, 0x238F40D3u, 0x83ABFA14u, 0xEE406F0Fu},
      Face::Spec, Group::Space, &makeSpeakeasy, nullptr, &plates::kSpeakeasy},
     {"THE INFORMANT", "VOCODER", "TALK WHAT MATTERS", "Fx|Modulation",

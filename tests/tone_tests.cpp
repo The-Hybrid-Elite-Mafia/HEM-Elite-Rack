@@ -6,6 +6,7 @@
 
 #include "hem/rack/Plugins.hpp"
 #include "hem/rack/ToneShop.hpp"
+#include "hem/rack/Comeback.hpp"
 #include "hem/rack/Tools.hpp"
 
 #include <algorithm>
@@ -48,7 +49,7 @@ double rmsDb(const std::vector<float>& x, std::size_t from, std::size_t len) { r
 
 void allRules() {
     for (const char* name : {"STRAIGHT SHOOTER", "BOTTOM LINE", "TEN TOES", "FOUR CORNERS", "SMOOTH TALKER", "INSIDE MAN", "LOW RIDER", "UNDERTOW", "DEEP POCKETS", "LOW PROFILE", "THE BOSS", "KINGPIN", "GOLD CHAIN", "IVORIES", "HIGH ROLLER", "THE MIDDLEMAN", "DOUBLE CROSS",
-                             "CUTTHROAT", "TUNNEL VISION", "THE SETUP"}) {
+                             "CUTTHROAT", "TUNNEL VISION", "THE SETUP", "FOUNDRY", "BOARDROOM", "MIDTOWN"}) {
         const PluginInfo* info = findPlugin(name);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
@@ -344,7 +345,9 @@ void testTheBoss() {
         auto e = make("THE BOSS", {{Analog, 0}});
         CHECK(e->latency() == kLatency);
         const double g = toneGain(*e, 1000, 0.01f), lo = toneGain(*e, 40, 0.01f), hi = toneGain(*e, 15000, 0.01f);
-        std::printf("  THE BOSS at rest, -40 dBFS: 40 Hz %+.2f, 1 kHz %+.2f, 15 kHz %+.2f dB\n", lo, g, hi);
+        const double top = toneGain(*e, 20000, 0.01f);
+        std::printf("  THE BOSS at rest, -40 dBFS: 40 Hz %+.2f, 1 kHz %+.2f, 15 kHz %+.2f, 20 kHz %+.2f dB\n", lo, g, hi, top);
+        CHECK(std::fabs(top) < 0.2);   // the colour stage never dulls the top octave
         CHECK(std::fabs(g) < 0.1 && std::fabs(lo) < 0.2 && std::fabs(hi) < 0.2);
     }
     // the EQ
@@ -1067,6 +1070,95 @@ void testWideLoadAdditions() {
     }
 }
 
+void testConsoleEqs() {
+    {
+        using namespace foundry;
+        auto e = make("FOUNDRY");
+        CHECK(e->latency() == kComebackEqLatency);
+        const double g = toneGain(*e, 1000, 0.01f), lo = toneGain(*e, 40, 0.01f, false, 2.0), hi = toneGain(*e, 15000, 0.01f);
+        std::printf("  FOUNDRY at rest, -40 dBFS: 40 Hz %+.2f, 1 kHz %+.2f, 15 kHz %+.2f dB\n", lo, g, hi);
+        CHECK(std::fabs(g) < 0.1 && std::fabs(lo) < 0.1 && std::fabs(hi) < 0.1);
+        auto q = make("FOUNDRY", {{LowFreq, 2}, {LowGain, 12}, {MidFreq, 4}, {MidGain, 12}, {HighFreq, 2}, {HighGain, -12}});
+        const double l = toneGain(*q, 20, 0.01f, false, 2.0), m = toneGain(*q, 1600, 0.01f), h = toneGain(*q, 20000, 0.01f);
+        q->set(EqIn, 0);
+        const double off = toneGain(*q, 1600, 0.01f);
+        std::printf("  FOUNDRY LOWS +12 at 60 -> 20 Hz %+.1f; MIDDLE +12 at 1.6K %+.1f; HIGHS -12 at 12K -> 20 kHz %+.1f; EQ out %+.2f dB\n", l, m, h, off);
+        CHECK(l > 10.5 && l < 12.3 && std::fabs(m - 12.0) < 0.3 && h < -10.0 && h > -12.5 && std::fabs(off) < 0.1);
+        auto c = make("FOUNDRY", {{LowCut, 4}});
+        const double at = toneGain(*c, 80, 0.01f, false, 2.0), oct = toneGain(*c, 40, 0.01f, false, 2.0), keep = toneGain(*c, 1000, 0.01f);
+        std::printf("  FOUNDRY LOW CUT 80: 80 Hz %+.1f, 40 Hz %+.1f, 1 kHz %+.2f dB\n", at, oct, keep);
+        CHECK(std::fabs(at + 3.0) < 0.5 && oct < -14.0 && oct > -20.0 && std::fabs(keep) < 0.1);
+        // FLIP turns the sound upside down
+        auto a = make("FOUNDRY", {{Vintage, 0}}), b = make("FOUNDRY", {{Vintage, 0}, {Phase, 1}});
+        Stereo x = noise(0.3, 0.2f), y = x;
+        run(*a, x);
+        run(*b, y);
+        double worst = 0;
+        for (std::size_t i = 0; i < x.size(); ++i) worst = std::max(worst, static_cast<double>(std::fabs(x.l[i] + y.l[i])));
+        std::printf("  FOUNDRY FLIP: largest |a + flipped| %.1e\n", worst);
+        CHECK(worst < 1e-5);
+        // VINTAGE: a hot tone gets harmonics, off = none
+        auto v1 = make("FOUNDRY"), v0 = make("FOUNDRY", {{Vintage, 0}});
+        const double h1 = harmonicDb(*v1, 200, 2, 0.8f), h0 = harmonicDb(*v0, 200, 2, 0.8f);
+        std::printf("  FOUNDRY 2nd harmonic of a hot 200 Hz tone: vintage %.1f dB, off %.1f dB\n", h1, h0);
+        CHECK(h1 > -50.0 && h0 < -90.0);
+        // readouts: a -6 dBFS peak reads PEAK about -6, TO TOP about +5.9
+        auto r = make("FOUNDRY", {{Vintage, 0}});
+        Stereo t = sine(1000, 0.5, 0.5f);
+        run(*r, t);
+        std::printf("  FOUNDRY readouts on a 0.5 sine: PEAK %.2f dBFS, TO TOP %+.2f dB, CLIPS %.0f\n", r->meter(0), r->meter(1), r->meter(2));
+        CHECK(std::fabs(r->meter(0) + 6.02) < 0.1 && std::fabs(r->meter(1) - 5.92) < 0.1 && r->meter(2) == 0.0f);
+    }
+    {
+        using namespace boardroom;
+        auto e = make("BOARDROOM");
+        const double g = toneGain(*e, 1000, 0.01f), hi = toneGain(*e, 15000, 0.01f);
+        CHECK(std::fabs(g) < 0.1 && std::fabs(hi) < 0.1);
+        auto f = make("BOARDROOM", {{HighPass, 3}, {LowPass, 3}});
+        const double hp = toneGain(*f, 82, 0.01f, false, 2.0), lp = toneGain(*f, 8700, 0.01f), mid = toneGain(*f, 1000, 0.01f);
+        std::printf("  BOARDROOM HIGH-PASS 82 at 82 Hz %+.1f, LOW-PASS 8.7K at 8.7 kHz %+.1f, 1 kHz %+.2f dB\n", hp, lp, mid);
+        CHECK(std::fabs(hp + 3.0) < 0.5 && std::fabs(lp + 3.0) < 0.6 && std::fabs(mid) < 0.15);
+        auto w = make("BOARDROOM", {{LoMidFreq, 4}, {LoMidGain, 18}}), t = make("BOARDROOM", {{LoMidFreq, 4}, {LoMidGain, 18}, {LoMidTight, 1}});
+        const double wide = toneGain(*w, 390, 0.01f), tight = toneGain(*t, 390, 0.01f), wideOct = toneGain(*w, 780, 0.01f), tightOct = toneGain(*t, 780, 0.01f);
+        std::printf("  BOARDROOM LOW MIDS +18 at 390: wide %+.1f (an octave up %+.1f), tight %+.1f (an octave up %+.1f) dB\n", wide, wideOct, tight, tightOct);
+        CHECK(std::fabs(wide - 12.0) < 0.3 && std::fabs(tight - 18.0) < 0.3 && tightOct < wideOct);
+        auto sh = make("BOARDROOM", {{HighFreq, 3}, {HighGain, 10}}), bl = make("BOARDROOM", {{HighFreq, 3}, {HighGain, 10}, {HighBell, 1}});
+        const double sh20 = toneGain(*sh, 20000, 0.01f), bl20 = toneGain(*bl, 20000, 0.01f), bl10 = toneGain(*bl, 10000, 0.01f);
+        std::printf("  BOARDROOM HIGHS +10 at 10K: shelf at 20 kHz %+.1f; bell at 10 kHz %+.1f, at 20 kHz %+.1f dB\n", sh20, bl10, bl20);
+        CHECK(sh20 > 9.0 && std::fabs(bl10 - 10.0) < 0.3 && bl20 < sh20 - 3.0);
+        auto lo = make("BOARDROOM", {{LowFreq, 3}, {LowGain, -12}});
+        const double l = toneGain(*lo, 25, 0.01f, false, 2.0);
+        lo->set(LowFreq, 0);
+        const double lOff = toneGain(*lo, 25, 0.01f, false, 2.0);
+        std::printf("  BOARDROOM LOWS -12 at 100: 25 Hz %+.1f dB; LOWS AT OFF %+.2f dB\n", l, lOff);
+        CHECK(l < -10.0 && std::fabs(lOff) < 0.1);
+    }
+    {
+        using namespace midtown;
+        auto e = make("MIDTOWN");
+        CHECK(std::fabs(toneGain(*e, 1000, 0.01f)) < 0.1 && std::fabs(toneGain(*e, 100, 0.01f)) < 0.1);
+        auto q = make("MIDTOWN", {{LowFreq, 2}, {LowPeak, 10}});
+        const double lp = toneGain(*q, 500, 0.01f);
+        auto d = make("MIDTOWN", {{DipFreq, 7}, {Dip, 10}});
+        const double dp = toneGain(*d, 3000, 0.01f);
+        auto h = make("MIDTOWN", {{HighFreq, 2}, {HighPeak, 10}});
+        const double hp = toneGain(*h, 3000, 0.01f);
+        h->set(EqIn, 0);
+        const double off = toneGain(*h, 3000, 0.01f);
+        std::printf("  MIDTOWN LOW PEAK 10 at 500 %+.1f, DIP 10 at 3K %+.1f, HIGH PEAK 10 at 3K %+.1f, EQ out %+.2f dB\n", lp, dp, hp, off);
+        CHECK(std::fabs(lp - 10.0) < 0.3 && std::fabs(dp + 10.0) < 0.3 && std::fabs(hp - 8.0) < 0.3 && std::fabs(off) < 0.1);
+        // the plate's curve is what the audio does
+        auto all = make("MIDTOWN", {{LowPeak, 6}, {Dip, 4}, {DipFreq, 5}, {HighPeak, 7}, {HighFreq, 4}});
+        float v[kCount];
+        for (int i = 0; i < kCount; ++i) v[i] = all->get(i);
+        double worst = 0;
+        for (double hz : {150.0, 500.0, 1500.0, 5000.0, 12000.0})
+            worst = std::max(worst, std::fabs(toneGain(*all, hz, 0.01f) - kCurve.db(v, kFs, hz)));
+        std::printf("  MIDTOWN curve vs the sound: largest difference %.2f dB\n", worst);
+        CHECK(worst < 0.15);
+    }
+}
+
 } // namespace
 
 void testToneShop() {
@@ -1090,6 +1182,7 @@ void testToneShop() {
     testTunnelVision();
     testTheSetup();
     testWideLoadAdditions();
+    testConsoleEqs();
 }
 
 } // namespace hem::test

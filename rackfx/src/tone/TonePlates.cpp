@@ -2,6 +2,7 @@
 #include "../arsenal/Plates.hpp"
 
 #include "hem/rack/ToneShop.hpp"
+#include "hem/rack/Comeback.hpp"
 
 namespace hem::rack::plates {
 namespace {
@@ -168,8 +169,54 @@ constexpr PlateChoice choices[] = {{Resonance, "RESONANCE"}};
 constexpr PlateKnob row1[] = {{Filter, "FILTER", "0", "10", K::Big}};
 } // namespace tvn
 
+// ---- FOUNDRY / BOARDROOM: the peak readouts on top, the stepped rings and gains under them
+constexpr PlateReadout peakReadouts[] = {{0, "PEAK", "dBFS", "+"}, {1, "TO TOP", "dB", "+"}, {2, "CLIPS", "", "0"}};
+namespace fd {
+using namespace foundry;
+constexpr PlateToggle toggles[] = {{EqIn, "EQ"}, {Phase, "FLIP"}, {Vintage, "VINTAGE"}, {Clear, "CLEAR", true}};
+constexpr PlateKnob row1[] = {{LowCut, "LOW CUT", "OFF", "360"}, {LowFreq, "LOWS AT", "OFF", "220"}, {LowGain, "LOWS", "-18", "+18"},
+                              {MidFreq, "MIDDLE AT", "OFF", "7.2K"}, {MidGain, "MIDDLE", "-18", "+18"}, {HighFreq, "HIGHS AT", "OFF", "12K"},
+                              {HighGain, "HIGHS", "-18", "+18"}, {Output, "OUTPUT", "-18", "+18"}};
+} // namespace fd
+namespace bdr {
+using namespace boardroom;
+constexpr PlateToggle toggles[] = {{EqIn, "EQ"}, {Phase, "FLIP"}, {Vintage, "VINTAGE"}, {Clear, "CLEAR", true}};
+constexpr PlateToggle leftToggles[] = {{LowBell, "LOWS BELL"}, {LoMidTight, "LO MID TIGHT"}, {HiMidTight, "HI MID TIGHT"}, {HighBell, "HIGHS BELL"}};
+constexpr PlateKnob row1[] = {{HighPass, "HIGH-PASS", "OFF", "270"}, {LowPass, "LOW-PASS", "OFF", "3.9K"}, {LowFreq, "LOWS AT", "OFF", "330"},
+                              {LowGain, "LOWS", "-18", "+18"}, {LoMidFreq, "LOW MIDS AT", "OFF", "1.2K"}, {LoMidGain, "LOW MIDS", "-18", "+18"}};
+constexpr PlateKnob row2[] = {{HiMidFreq, "HIGH MIDS AT", "OFF", "8.2K"}, {HiMidGain, "HIGH MIDS", "-18", "+18"}, {HighFreq, "HIGHS AT", "3.3K", "15K"},
+                              {HighGain, "HIGHS", "-18", "+18"}, {Output, "OUTPUT", "-18", "+18"}};
+} // namespace bdr
+// ---- MIDTOWN: the curve on top, the three pairs of rings and amounts
+namespace mt {
+using namespace midtown;
+constexpr PlateToggle toggles[] = {{EqIn, "EQ"}};
+constexpr PlateChoice steppers[] = {{Hum, "HUM"}};
+constexpr PlateKnob row1[] = {{LowFreq, "LOW PEAK AT", "200", "1K"}, {LowPeak, "LOW PEAK", "0", "10"}, {DipFreq, "DIP AT", "200", "7K"},
+                              {Dip, "DIP", "0", "10"}, {HighFreq, "HIGH PEAK AT", "1.5K", "5K"}, {HighPeak, "HIGH PEAK", "0", "10"},
+                              {Output, "OUTPUT", "-18", "+18"}};
+} // namespace mt
+
 } // namespace
 
+const PlateSpec kFoundry{.note1 = "THE CONSOLE CHANNEL", .note2 = "IRON AND GLASS", .screen = Screen::Readouts, .readouts = peakReadouts,
+                         .toggles = fd::toggles, .row1 = fd::row1,
+                         .demo = [](hc::fx::Effect& e) {
+                             using namespace foundry;
+                             e.set(LowCut, 3); e.set(LowGain, 4); e.set(MidFreq, 5); e.set(MidGain, 3); e.set(HighGain, 2);
+                         }};
+const PlateSpec kBoardroom{.note1 = "FOUR BANDS", .note2 = "THE BIG DESK", .screen = Screen::Readouts, .readouts = peakReadouts,
+                           .toggles = bdr::toggles, .row1 = bdr::row1, .row2 = bdr::row2, .leftToggles = bdr::leftToggles,
+                           .demo = [](hc::fx::Effect& e) {
+                               using namespace boardroom;
+                               e.set(HighPass, 2); e.set(LowGain, 3); e.set(LoMidGain, -4); e.set(HiMidGain, 3); e.set(HiMidTight, 1);
+                           }};
+const PlateSpec kMidtown{.note1 = "THE MIDDLE", .note2 = "WHERE THE SONG LIVES", .screen = Screen::Curve, .toggles = mt::toggles,
+                         .row1 = mt::row1, .steppers = mt::steppers,
+                         .demo = [](hc::fx::Effect& e) {
+                             using namespace midtown;
+                             e.set(LowPeak, 4); e.set(Dip, 5); e.set(DipFreq, 2); e.set(HighPeak, 6); e.set(HighFreq, 3);
+                         }};
 const PlateSpec kStraightShooter{.note1 = "NO PHASE SHIFT", .note2 = "ONLY THE LEVELS MOVE", .screen = Screen::Curve, .toggles = le::SG::toggles,
                                  .row1 = le::SG::row1, .steppers = le::SG::steppers, .bands = &le::straightBands,
                                  .demo = [](hc::fx::Effect& e) {
