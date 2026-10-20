@@ -15,6 +15,7 @@
 #include "hem/rack/Specialty.hpp"
 #include "hem/rack/Arsenal.hpp"
 #include "hem/rack/ToneShop.hpp"
+#include "hem/rack/Hideout.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -1099,6 +1100,86 @@ FaceLayout moversFace(const rack::PluginInfo& info) {
     return L;
 }
 
+// ---- SIX SHOOTER: a column per tap on top; direct, tempo and the modulator under them; the feedback at
+// the bottom; the held peaks down the left.
+FaceLayout tapsFace(const rack::PluginInfo& info) {
+    using namespace rack::sixshooter;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"SIX TAPS", "EACH ITS OWN"};
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 180, 1226, 300};
+    auto stepper = [&](Rect r, int param, const char* caption = "") {
+        Widget st;
+        st.kind = WKind::Stepper;
+        st.param = param;
+        st.caption = caption;
+        st.r = r;
+        L.widgets.push_back(st);
+        L.recesses.push_back({st.r.inset(-4), 9, 4, false, false});
+    };
+    struct K { int p; const char* cap; };
+    auto knobs = [&](float x0, float w, float y, float d, std::initializer_list<K> ks) {
+        const std::size_t first = L.widgets.size();
+        const float pitch = w / static_cast<float>(ks.size());
+        int k = 0;
+        for (const K& kk : ks) {
+            const float cx = x0 + (static_cast<float>(k++) + 0.5f) * pitch;
+            L.widgets.push_back(knob({cx - d * 0.5f, y, d, d}, kk.p, kk.cap, "", "", true));
+        }
+        seatKnobs(L, first, 4);
+    };
+    // the taps
+    static const char* const kTapN[kTaps] = {"TAP 1", "TAP 2", "TAP 3", "TAP 4", "TAP 5", "TAP 6"};
+    const float cw = 1226.0f / kTaps;
+    for (int t = 0; t < kTaps; ++t) {
+        const float x0 = 410 + static_cast<float>(t) * cw;
+        L.sections.push_back({{x0 + 4, 180, cw * 0.5f - 8, 26}, kTapN[t]});
+        L.widgets.push_back(toggle({x0 + cw * 0.5f + 2, 180, cw * 0.5f - 10, 30}, tap(t, On), ""));
+        knobs(x0, cw, 236, 32, {{tap(t, Delay), "DELAY"}, {tap(t, Gain), "GAIN"}, {tap(t, Rotate), "ROTATE"}});
+        L.widgets.push_back(toggle({x0 + 6, 312, 88, 30}, tap(t, EqOn), "EQ"));
+        stepper({x0 + 100, 312, cw - 108, 30}, tap(t, EqType));
+        knobs(x0, cw, 376, 32, {{tap(t, EqFreq), "EQ FREQ"}, {tap(t, EqGain), "EQ GAIN"}});
+        if (t > 0) L.grooves.push_back({x0, 184, x0, 446});
+    }
+    L.grooves.push_back({410, 454, 1636, 454});
+    // direct, tempo, modulator
+    L.sections.push_back({{410, 460, 230, 22}, "DIRECT"});
+    L.sections.push_back({{648, 460, 420, 22}, "TEMPO"});
+    L.sections.push_back({{1076, 460, 560, 22}, "MODULATOR"});
+    L.widgets.push_back(toggle({414, 490, 80, 32}, DirectOn, ""));
+    knobs(494, 146, 512, 32, {{DirectGain, "GAIN"}, {DirectRotate, "ROTATE"}});
+    stepper({652, 490, 130, 32}, Sync);
+    knobs(782, 100, 512, 32, {{Bpm, "BPM"}});
+    stepper({886, 490, 120, 32}, Grid);
+    L.widgets.push_back(toggle({886, 530, 120, 32}, Snap, "SNAP"));
+    L.widgets.push_back(toggle({652, 530, 130, 32}, Tap, "TAP"));
+    L.widgets.back().hi = "PRESS";
+    L.widgets.push_back(toggle({1080, 490, 110, 32}, ModOn, ""));
+    stepper({1080, 530, 110, 32}, ModSync);
+    knobs(1196, 210, 512, 32, {{ModRate, "RATE"}, {ModDepth, "DEPTH"}});
+    stepper({1416, 510, 210, 32}, ModNote, "");
+    L.grooves.push_back({644, 462, 644, 584});
+    L.grooves.push_back({1072, 462, 1072, 584});
+    L.grooves.push_back({410, 592, 1636, 592});
+    // the feedback
+    L.sections.push_back({{410, 598, 1226, 22}, "FEEDBACK"});
+    L.widgets.push_back(toggle({414, 632, 90, 32}, FbOn, ""));
+    stepper({414, 676, 90, 32}, FbMode);
+    knobs(510, 450, 640, 32, {{FbGain, "GAIN"}, {FbDelay, "DELAY"}, {FbRotate, "ROTATE"}});
+    stepper({966, 654, 150, 32}, FbFilter);
+    knobs(1120, 300, 640, 32, {{FbFreq, "FREQ"}, {FbFilterGain, "GAIN"}});
+    knobs(1430, 206, 632, 44, {{Output, "OUTPUT"}});
+    // the left column: the peaks
+    readoutAt(L, {70, 404, 270, 64}, 0, "PEAK L", "dBFS", "+");
+    readoutAt(L, {70, 478, 270, 64}, 1, "PEAK R", "dBFS", "+");
+    L.widgets.push_back(toggle({70, 554, 270, 36}, Reset, "RESET PEAKS"));
+    L.widgets.back().hi = "PRESS";
+    buttonSeats(L);
+    bypassAt(L, {160, 640, 90, 90});
+    return L;
+}
+
 // ---- plates laid out from a PlateSpec (Face::Spec) -------------------------------------------
 // The parts go where the plate's content leaves room: a screen (or none) on top, a column of
 // buttons and switches beside it, one or two rows of knobs under it, choice lists down the left.
@@ -1443,6 +1524,7 @@ FaceLayout faceLayout(const rack::PluginInfo& info) {
     case rack::Face::Compander: return companderFace(info);
     case rack::Face::Channel: return channelFace(info);
     case rack::Face::Movers: return moversFace(info);
+    case rack::Face::Taps: return tapsFace(info);
     case rack::Face::Spec: if (info.plate) return specFace(info); break;
     case rack::Face::Restorer: break;
     }

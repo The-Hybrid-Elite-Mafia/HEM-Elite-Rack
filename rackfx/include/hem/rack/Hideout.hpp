@@ -2,13 +2,19 @@
 // =============================================================================
 //  The HEM hideout: space, modulation, voice and monitoring (our own designs, our own names).
 //
-//  THE FIXER     three dynamic cuts that only work when a range gets nasty: MUD, HARSH and FIZZ,
-//                each with FREQ, THRESHOLD and RANGE (the most it takes off); SPEED; LISTEN to one
-//                band; OUTPUT. Meters 0..2 = what each band takes off (dB). Zero latency.
-//  SIX SHOOTER   rhythmic multi-tap delay: SHOTS (1..6 repeats in a row), TIME between shots (ms,
-//                or a NOTE of the tempo), DECAY (each shot quieter), SPREAD (shots alternate left /
-//                right), SWING (every second shot late), FEEDBACK (the round starts again), TONE
-//                (darker repeats), MIX, OUTPUT.
+//  THE FIXER     three dynamic cuts that only work when a range gets nasty: MUD (centre 200 Hz–1 kHz),
+//                HARSH (1.2–3 kHz) and FIZZ (3.5–12 kHz). Each: AMOUNT 0–100 (0 = nothing; up = it starts
+//                on quieter sound and may take more off, at most 18 dB), FREQ 0–100 (where in its range),
+//                LISTEN (hear just that band, as processed) and BYPASS. INPUT and OUTPUT ±18. Meters 0..2 =
+//                what each band takes off (dB). Zero latency.
+//  SIX SHOOTER   six-tap delay. Each TAP: ON, DELAY (1 ms–6 s), GAIN (0..-24 dB), ROTATE (±45°: where it sits),
+//                EQ (on, TYPE wide bell / narrow bell / high shelf / low shelf / high-pass / low-pass, FREQ
+//                100 Hz–20 kHz, GAIN ±18). DIRECT (on, GAIN, ROTATE). TEMPO: SYNC HOST or MANUAL (BPM 40–1200,
+//                or TAP the tempo in), GRID (FREE, 1/4, 1/4 T, 1/8, 1/8 T, 1/16) and SNAP (taps land on the
+//                grid). MODULATOR (on, RATE 0–20 Hz or per beat, DEPTH 0–500 ms of delay swing). FEEDBACK (on,
+//                MODE: every tap back to the input, or its own DELAY; GAIN %, 50 = -6 dB; ROTATE; FILTER low-pass,
+//                low shelf or low decay, its FREQ and GAIN). OUTPUT ±12, held peaks with RESET. Setting the
+//                taps by tapping a rhythm is not possible here. Zero latency.
 //  BACK ALLEY    lo-fi space: a SPRING or PLATE style reverb and a worn tape-style echo, both
 //                through GRIT (narrow band, saturation); REVERB, DECAY, ECHO, TIME, FEEDBACK,
 //                WOBBLE (wow and flutter on the echo), NARROW (the whole stereo image), MIX, OUTPUT.
@@ -39,12 +45,20 @@
 namespace hem::rack {
 
 namespace fixer {
-inline constexpr int kBands = 3;
-enum P : int { Freq1, Thr1, Range1, Freq2, Thr2, Range2, Freq3, Thr3, Range3, Speed, Listen, Output, kCount };
+inline constexpr int kBands = 3, kStride = 4;
+enum BandP : int { Amount, Freq, Listen, Bypass };   // band b's control k: b * kStride + k
+enum P : int { Input = kBands * kStride, Output, kCount };
+constexpr int band(int b, int k) noexcept { return b * kStride + k; }
+inline constexpr float kLowHz[kBands] = {200.0f, 1200.0f, 3500.0f}, kHighHz[kBands] = {1000.0f, 3000.0f, 12000.0f};
 } // namespace fixer
 
 namespace sixshooter {
-enum P : int { Shots, Note, Time, SyncSource, Bpm, Decay, Spread, Swing, Feedback, Tone, Mix, Output, kCount };
+inline constexpr int kTaps = 6, kStride = 8;
+enum TapP : int { On, Delay, Gain, Rotate, EqOn, EqType, EqFreq, EqGain };   // tap t's control k: t * kStride + k
+enum P : int { DirectOn = kTaps * kStride, DirectGain, DirectRotate, Sync, Bpm, Grid, Snap, Tap,
+               ModOn, ModSync, ModRate, ModNote, ModDepth,
+               FbOn, FbMode, FbGain, FbDelay, FbRotate, FbFilter, FbFreq, FbFilterGain, Output, Reset, kCount };
+constexpr int tap(int t, int k) noexcept { return t * kStride + k; }
 } // namespace sixshooter
 
 namespace backalley {

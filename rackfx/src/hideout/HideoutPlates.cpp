@@ -10,23 +10,16 @@ using K = KnobSize;
 // ---- THE FIXER: what each band takes off, read out; where and when over how much
 namespace fx3 {
 using namespace fixer;
-constexpr PlateReadout readouts[] = {{0, "MUD", "dB", "+"}, {1, "HARSH", "dB", "+"}, {2, "FIZZ", "dB", "+"}};
-constexpr PlateKnob row1[] = {{Freq1, "MUD FREQ"}, {Thr1, "MUD THRESH"}, {Freq2, "HARSH FREQ"}, {Thr2, "HARSH THRESH"},
-                              {Freq3, "FIZZ FREQ"}, {Thr3, "FIZZ THRESH"}};
-constexpr PlateKnob row2[] = {{Range1, "MUD RANGE", "", "", K::Small}, {Range2, "HARSH RANGE", "", "", K::Small},
-                              {Range3, "FIZZ RANGE", "", "", K::Small}, {Output, "OUTPUT", "", "", K::Small}};
-constexpr PlateChoice steppers[] = {{Speed, "SPEED"}, {Listen, "LISTEN"}};
+constexpr PlateKnob bandKnobs[] = {{Amount, "AMOUNT"}, {Freq, "FREQ"}};
+constexpr PlateToggle bandToggles[] = {{Listen, "LISTEN"}, {Bypass, "BYPASS"}};
+constexpr const char* columnNames[] = {"MUD", "HARSH", "FIZZ"};
+constexpr PlateBands bands{.count = kBands, .first = 0, .stride = kStride, .knobs = bandKnobs, .toggles = bandToggles, .meter = 0,
+                           .columnNames = columnNames};
+constexpr PlateKnob row1[] = {{Input, "INPUT"}, {Output, "OUTPUT"}};
 } // namespace fx3
 
 // ---- SIX SHOOTER
-namespace six {
-using namespace sixshooter;
-constexpr PlateChoice choices[] = {{Shots, "SHOTS"}, {Note, "NOTE"}};
-constexpr PlateKnob row1[] = {{Time, "TIME"}, {Decay, "DECAY"}, {Spread, "SPREAD"}, {Swing, "SWING"}, {Feedback, "FEEDBACK"}};
-constexpr PlateKnob row2[] = {{Tone, "TONE", "", "", K::Small}, {Bpm, "BPM", "", "", K::Small}, {Mix, "MIX", "", "", K::Small},
-                              {Output, "OUTPUT", "", "", K::Small}};
-constexpr PlateChoice left[] = {{SyncSource, "TEMPO FROM"}};
-} // namespace six
+
 
 // ---- BACK ALLEY
 namespace ba {
@@ -91,12 +84,13 @@ constexpr PlateKnob row1[] = {{Angle, "ANGLE"}, {Crossfeed, "CROSSFEED", "0", "1
 
 } // namespace
 
-const PlateSpec kFixer{.note1 = "FIXES WHAT'S NASTY", .note2 = "ONLY WHEN IT IS", .screen = Screen::Readouts, .readouts = fx3::readouts,
-                       .row1 = fx3::row1, .row2 = fx3::row2, .steppers = fx3::steppers, .reportsReduction = true,
-                       .demo = [](hc::fx::Effect& e) { using namespace fixer; e.set(Thr1, -40); e.set(Thr2, -42); e.set(Thr3, -45); }};
-const PlateSpec kSixShooter{.note1 = "SIX SHOTS", .note2 = "RIGHT ON THE BEAT", .screen = Screen::None, .choices = six::choices,
-                            .row1 = six::row1, .row2 = six::row2, .left = six::left,
-                            .demo = [](hc::fx::Effect& e) { using namespace sixshooter; e.set(Shots, 5); e.set(Swing, 20); e.set(Feedback, 30); }};
+const PlateSpec kFixer{.note1 = "FIXES WHAT'S NASTY", .note2 = "ONLY WHEN IT IS", .screen = Screen::None, .row1 = fx3::row1, .bands = &fx3::bands,
+                       .reportsReduction = true,
+                       .demo = [](hc::fx::Effect& e) {
+                           using namespace fixer;
+                           e.set(band(0, Amount), 60); e.set(band(1, Amount), 70); e.set(band(2, Amount), 75);
+                       }};
+
 const PlateSpec kBackAlley{.note1 = "WORN OUT ROOM", .note2 = "WORN OUT TAPE", .screen = Screen::None, .choices = ba::choices,
                            .row1 = ba::row1, .row2 = ba::row2,
                            .demo = [](hc::fx::Effect& e) { using namespace backalley; e.set(Grit, 60); e.set(Wobble, 50); }};

@@ -60,43 +60,81 @@ void allRules() {
 
 void testFixer() {
     using namespace fixer;
-    auto e = make("THE FIXER", {{Thr1, 0}, {Thr2, -30}, {Thr3, 0}, {Range2, 8}, {Freq2, 3000}});
+    // HARSH AMOUNT 60: threshold -40 dBFS, at most 10.8 dB off
+    auto e = make("THE FIXER", {{band(1, Amount), 60}, {band(1, Freq), 100}});
     const double loud = toneGain(*e, 3000, 0.5f);
     const float m = e->meter(1);
     const double quiet = toneGain(*e, 3000, 0.003f), other = toneGain(*e, 300, 0.5f);
-    std::printf("  THE FIXER harsh band (3 kHz, threshold -30, range 8): loud %+.1f dB (meter %.1f), quiet %+.1f, a loud 300 Hz %+.1f dB\n",
-                loud, m, quiet, other);
-    CHECK(loud < -6.5 && loud > -8.5 && std::fabs(quiet) < 0.2 && std::fabs(other) < 1.0 && m < -6.0f);
-    auto l = make("THE FIXER", {{Listen, 2}, {Freq2, 3000}});
+    std::printf("  THE FIXER harsh band (3 kHz, AMOUNT 60): loud %+.1f dB (meter %.1f), quiet %+.1f, a loud 300 Hz %+.1f dB\n", loud, m, quiet, other);
+    CHECK(loud < -9.0 && loud > -11.5 && std::fabs(quiet) < 0.2 && std::fabs(other) < 1.0 && m < -8.0f);
+    // AMOUNT 0 and BYPASS do nothing
+    auto z = make("THE FIXER", {{band(1, Amount), 60}, {band(1, Freq), 100}, {band(1, Bypass), 1}});
+    const double byp = toneGain(*z, 3000, 0.5f);
+    auto l = make("THE FIXER", {{band(1, Listen), 1}, {band(1, Freq), 100}});
     const double in = toneGain(*l, 3000, 0.003f), out = toneGain(*l, 300, 0.003f);
-    std::printf("  THE FIXER LISTEN HARSH: 3 kHz %+.1f dB, 300 Hz %+.1f dB\n", in, out);
-    CHECK(std::fabs(in) < 0.5 && out < -15.0);
-    const double d = blockSizeDifference(*findPlugin("THE FIXER"), [](hc::fx::Effect& x) { x.set(Thr2, -40); x.set(Thr1, -40); }, noise(0.6, 0.5f));
+    std::printf("  THE FIXER BYPASS: %+.2f dB; LISTEN HARSH: 3 kHz %+.1f dB, 300 Hz %+.1f dB\n", byp, in, out);
+    CHECK(std::fabs(byp) < 0.05 && std::fabs(in) < 0.5 && out < -15.0);
+    const double d = blockSizeDifference(*findPlugin("THE FIXER"), [](hc::fx::Effect& x) { x.set(band(0, Amount), 70); x.set(band(1, Amount), 70); },
+                                         noise(0.6, 0.5f));
     std::printf("  THE FIXER block size 512 vs 1: %.2e\n", d);
     CHECK(d < 1e-5);
 }
 
 void testSixShooter() {
     using namespace sixshooter;
+    auto off = [](hc::fx::Effect& e) { for (int t = 0; t < kTaps; ++t) e.set(tap(t, On), 0); };
+    // one tap: it lands at its time, at its gain, turned by ROTATE (+45 = right only)
     {
-        auto e = make("SIX SHOOTER", {{Shots, 2}, {Note, 0}, {Time, 100}, {Decay, 0}, {Spread, 0}, {Mix, 100}, {Tone, 20000}});
-        Stereo s = impulse(30000);
+        auto e = make("SIX SHOOTER", {{DirectOn, 0}});
+        off(*e);
+        e->set(tap(2, On), 1); e->set(tap(2, Delay), 200); e->set(tap(2, Gain), -6); e->set(tap(2, Rotate), 45);
+        e->reset();
+        Stereo s = impulse(20000);
+        s.r = s.l;
         run(*e, s);
-        const std::size_t a = peakAt(s.l, 2000, 7000), b = peakAt(s.l, 7000, 12000), c = peakAt(s.l, 12000, 17000);
-        const double pa = std::fabs(s.l[a]), pb = std::fabs(s.l[b]), pc = std::fabs(s.l[c]), after = peakIn(s.l, 17000, 30000);
-        std::printf("  SIX SHOOTER 3 shots, 100 ms: at %.1f / %.1f / %.1f ms, levels %.2f %.2f %.2f, after the third %.3f\n",
-                    (a - 100) / 48.0, (b - 100) / 48.0, (c - 100) / 48.0, pa, pb, pc, after);
-        CHECK(a == 4900 && b == 9700 && c == 14500 && std::fabs(pa - pb) < 0.05 && std::fabs(pb - pc) < 0.05 && after < 0.01);
+        const std::size_t at = peakAt(s.r, 1000, 20000) - 100;
+        const double lev = db(std::fabs(s.r[at + 100])), left = peakIn(s.l, 1000, 20000);
+        std::printf("  SIX SHOOTER tap 3 at 200 ms, -6 dB, rotate +45: at %.1f ms, %+.1f dB on the right (+3 from both sides), left %.1e\n", at / 48.0, lev, left);
+        CHECK(at == 9600 && std::fabs(lev - (-6.0 + 3.01)) < 0.1 && left < 1e-6);
     }
+    // SNAP to 1/8 at 120 BPM (MANUAL): 260 ms lands on 250
     {
-        auto e = make("SIX SHOOTER", {{Shots, 1}, {Note, 0}, {Time, 100}, {Swing, 50}, {Spread, 100}, {Mix, 100}, {Tone, 20000}});
+        auto e = make("SIX SHOOTER", {{DirectOn, 0}, {Sync, 1}, {Bpm, 120}, {Grid, 3}, {Snap, 1}});
+        off(*e);
+        e->set(tap(0, On), 1); e->set(tap(0, Delay), 260);
+        e->reset();
         Stereo s = impulse(20000);
         run(*e, s);
-        const std::size_t b = peakAt(s.r, 7000, 16000);
-        const double firstR = peakIn(s.r, 2000, 7000), firstL = peakIn(s.l, 2000, 7000);
-        std::printf("  SIX SHOOTER swing 50 %%: second shot at %.1f ms; spread 100: first shot left %.2f, right %.3f\n", (b - 100) / 48.0, firstL, firstR);
-        CHECK(b > 12050 && b < 12150 && firstR < 0.01 && firstL > 0.9);
+        const std::size_t at = peakAt(s.l, 1000, 20000) - 100;
+        std::printf("  SIX SHOOTER SNAP 1/8 at 120 BPM: 260 ms lands at %.1f ms\n", at / 48.0);
+        CHECK(at == 12000);
     }
+    // FEEDBACK NORMAL 50 %: each round 6 dB down (the shelf at 0 dB: no filtering)
+    {
+        auto e = make("SIX SHOOTER", {{DirectOn, 0}, {FbOn, 1}, {FbGain, 50}, {FbFilter, 1}, {FbFilterGain, 0}});
+        off(*e);
+        e->set(tap(0, On), 1); e->set(tap(0, Delay), 100); e->set(tap(0, Gain), 0);
+        e->reset();
+        Stereo s = impulse(24000);
+        run(*e, s);
+        const double first = peakIn(s.l, 4000, 6000), second = peakIn(s.l, 8800, 10800);
+        std::printf("  SIX SHOOTER FEEDBACK 50 %%: second round %.1f dB under the first\n", db(first / second));
+        CHECK(std::fabs(db(first / second) - 6.0) < 1.0);
+    }
+    // the tap EQ: a high-pass at 2 kHz on tap 1 takes the lows out of it
+    {
+        auto e = make("SIX SHOOTER", {{DirectOn, 0}});
+        off(*e);
+        e->set(tap(0, On), 1); e->set(tap(0, Delay), 10); e->set(tap(0, Gain), 0); e->set(tap(0, Rotate), 0);
+        e->set(tap(0, EqOn), 1); e->set(tap(0, EqType), 4); e->set(tap(0, EqFreq), 2000);
+        const double lo = toneGain(*e, 200, 0.2f), hi = toneGain(*e, 8000, 0.2f);
+        std::printf("  SIX SHOOTER tap EQ high-pass 2 kHz: 200 Hz %.1f dB, 8 kHz %+.1f dB\n", lo, hi);
+        CHECK(lo < -30.0 && std::fabs(hi) < 0.5);
+    }
+    const double d = blockSizeDifference(*findPlugin("SIX SHOOTER"), [](hc::fx::Effect& x) { x.set(ModOn, 1); x.set(FbOn, 1); x.set(tap(1, EqOn), 1); },
+                                         noise(1.0, 0.3f));
+    std::printf("  SIX SHOOTER block size 512 vs 1: %.2e\n", d);
+    CHECK(d < 1e-5);
 }
 
 void testBackAlley() {

@@ -157,6 +157,9 @@ int main(int argc, char** argv) {
         } else if (info.face == hem::rack::Face::Channel) {
             using namespace hem::rack::insideman;
             fx->set(GateOn, 1); fx->set(CompOn, 1); fx->set(CompThreshold, -24); fx->set(B1Gain, 3); fx->set(B3Gain, 2.5f);
+        } else if (info.face == hem::rack::Face::Taps) {
+            using namespace hem::rack::sixshooter;
+            fx->set(tap(1, EqOn), 1); fx->set(tap(1, EqType), 5); fx->set(FbOn, 1); fx->set(ModOn, 1);
         } else if (info.face == hem::rack::Face::Movers) {
             using namespace hem::rack::thesetup;
             fx->set(Freq, 1200); fx->set(Res, 45); fx->set(depth(Seq, ToFreq), 60);
