@@ -1,0 +1,74 @@
+#pragma once
+// =============================================================================
+//  PlateSpec — what goes on a faceplate, as plain data, for the plug-ins whose plate is
+//  laid out from a description instead of a hand-placed layout (Face::Spec).
+//
+//  It lives with the plug-ins (no UI types) so a plug-in's controls and its plate are described
+//  in one place; hem::ui builds the actual layout from it (FaceLayouts.cpp, specFace), placing
+//  each part by what the plate holds: a screen (or none), a column beside the screen, one or
+//  two rows of knobs, and the left column under the plug-in's name.
+// =============================================================================
+#include "hybrid/fx/Fx.hpp"
+
+#include <cstdint>
+#include <span>
+
+namespace hem::rack {
+
+enum class Screen : std::uint8_t {
+    None,       // no window: the knobs get the room
+    Needle,     // gain-reduction needle (reductionDb)
+    Spectrum,   // before / after spectrum (the effect is a SpectrumSource)
+    History,    // scrolling history of meters 0 and 1 (gain change, dB) and 2 (input level)
+    Readouts,   // big-number windows (PlateSpec::readouts), in a row
+};
+
+enum class KnobSize : std::uint8_t { Small, Normal, Big };
+
+struct PlateKnob {
+    int         param;
+    const char* caption;
+    const char* lo = "";     // scale end labels (left / right of the arc)
+    const char* hi = "";
+    KnobSize    size = KnobSize::Normal;
+};
+
+// One choice parameter shown as a row (or column) of buttons, one per choice.
+struct PlateChoice {
+    int         param;
+    const char* caption;
+};
+
+struct PlateToggle {
+    int         param;
+    const char* caption;
+};
+
+// A big-number window: one of the effect's meters.
+// fmt: "" = 0.0, "+" = signed, "+2" = signed with 2 decimals.
+struct PlateReadout {
+    int         meter;
+    const char* caption;
+    const char* unit;
+    const char* fmt = "";
+};
+
+struct PlateSpec {
+    const char* note1 = "";             // the two lines under the plug-in's name
+    const char* note2 = "";
+    Screen      screen = Screen::None;
+    std::span<const PlateReadout> readouts{};   // Readouts screen (up to 4); with Needle: up to 2 beside it
+    std::span<const PlateChoice>  choices{};    // button groups: beside the screen, or across the top
+    std::span<const PlateToggle>  toggles{};    // ON / OFF switches, in pairs, after the button groups
+    std::span<const PlateKnob>    row1{};       // the main row of knobs
+    std::span<const PlateKnob>    row2{};       // an optional second row
+    std::span<const PlateChoice>  left{};       // choice lists down the left column, under the name
+    std::span<const PlateToggle>  leftToggles{};
+    std::span<const PlateChoice>  steppers{};    // compact ◀ value ▶ choices, down the left column
+    const char* historyA = "";                  // History screen: names of meters 0 and 1 ("" = GR 1 / GR 2)
+    const char* historyB = "";
+    bool        reportsReduction = false;       // publishes gain reduction (hosts get a GR meter)
+    void (*demo)(hc::fx::Effect&) = nullptr;    // settings for the CI screenshot (something to see)
+};
+
+} // namespace hem::rack

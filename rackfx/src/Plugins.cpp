@@ -13,6 +13,8 @@
 #include "hem/rack/Space.hpp"
 #include "hem/rack/Movement.hpp"
 #include "hem/rack/Specialty.hpp"
+#include "hem/rack/Arsenal.hpp"
+#include "arsenal/Plates.hpp"
 
 #include <cstring>
 
@@ -111,6 +113,63 @@ const PluginInfo kPlugins[] = {
      "Vocal chain on one plate: high-pass, body, compress, de-ess, presence, air",
      {0x5402C843u, 0x92874D3Au, 0xA6C4FC1Au, 0x5A305B03u}, {0x9460E821u, 0x92FA46E0u, 0x8C435F35u, 0x8287A4EDu},
      Face::VocalStrip, Group::Tools, &makeVocalStrip},
+    // ---- the dynamics arsenal
+    {"SWITCHBLADE", "CHANNEL DYNAMICS", "CUT WHAT MATTERS", "Fx|Dynamics",
+     "Compressor and gate in one, with a filter that steers them or works on one band",
+     {0xA2AFE143u, 0xF92038FEu, 0x84AB6549u, 0x6F87C249u}, {0x686C254Eu, 0xAABA5403u, 0xFB6DFBCDu, 0x2B158D02u},
+     Face::Spec, Group::Dynamics, &makeSwitchblade, nullptr, &plates::kSwitchblade},
+    {"TERRITORY", "MULTIBAND DYNAMICS", "RULE WHAT MATTERS", "Fx|Dynamics",
+     "Four or five bands, each turned down or lifted up on its own; natural or linear phase",
+     {0x1ADB3E58u, 0x8A23C51Eu, 0xC2FC9866u, 0x028959C7u}, {0xB008CCE0u, 0xCA3BB4A9u, 0x88A04B62u, 0xDB00F461u},
+     Face::Territory, Group::Dynamics, &makeTerritory},
+    {"CONSIGLIERE", "PROGRAM LEVELER", "CALM WHAT MATTERS", "Fx|Dynamics",
+     "Two-knob leveler: smooth light-cell or firmer solid-state, compress or limit",
+     {0x7A1A5583u, 0x8BCC61DFu, 0x97172ED3u, 0xEA376FECu}, {0x82A5F3C9u, 0x9E591404u, 0x7A564F50u, 0x34C7A1E3u},
+     Face::Spec, Group::Dynamics, &makeConsigliere, nullptr, &plates::kConsigliere},
+    {"HEAVYWEIGHT", "PUNCH COMPRESSOR", "HIT WHAT MATTERS", "Fx|Dynamics",
+     "Holds the body, lets the hits through, adds analog weight; release on the beat",
+     {0xD06EAE2Fu, 0x76208618u, 0xA120550Eu, 0xFC20F560u}, {0x930C184Eu, 0xDBFCFE4Eu, 0xAB988AEDu, 0x63CD64DEu},
+     Face::Spec, Group::Dynamics, &makeHeavyweight, nullptr, &plates::kHeavyweight},
+    {"THE DON", "BROADCAST BUS COMPRESSOR", "RUN WHAT MATTERS", "Fx|Dynamics",
+     "Old-school bus compressor that listens to its own output and breathes with the mix",
+     {0x6DC2200Fu, 0x0A7B5431u, 0xD796D721u, 0xBE40AAC7u}, {0xD9BC1507u, 0xA8280283u, 0xF95DE33Cu, 0xE85EB99Cu},
+     Face::Spec, Group::Dynamics, &makeTheDon, nullptr, &plates::kTheDon},
+    {"SLOW BURN", "TUBE LIMITER", "WARM WHAT MATTERS", "Fx|Dynamics",
+     "Variable-mu tube limiting: six time settings, linked, dual or mid / side",
+     {0xAB4F6116u, 0x4863F4C0u, 0x4F90AFA3u, 0x5F566660u}, {0xAB5188C5u, 0x24D8D9CCu, 0x794F011Bu, 0x63276F98u},
+     Face::Spec, Group::Dynamics, &makeSlowBurn, nullptr, &plates::kSlowBurn},
+    {"IRON FIST", "CONSOLE CHANNEL COMPRESSOR", "GRIP WHAT MATTERS", "Fx|Dynamics",
+     "Drive it in like a console channel: compressor, limiter, de-ess and output iron",
+     {0xDD7E714Eu, 0x9EFC6925u, 0xEE24DB5Eu, 0x580FFD36u}, {0x3C6074F9u, 0x419ABE22u, 0x277931F2u, 0x75CA1619u},
+     Face::Spec, Group::Dynamics, &makeIronFist, nullptr, &plates::kIronFist},
+    {"KNOCKOUT", "TRANSIENT DESIGNER", "SNAP WHAT MATTERS", "Fx|Dynamics",
+     "More or less attack and sustain, on the whole sound or in four bands",
+     {0xF8AF5AC3u, 0xFECEF841u, 0xAAD93754u, 0xE8F1DBB0u}, {0xAEA03172u, 0x18552D48u, 0x9FEBF2CBu, 0x578BFF38u},
+     Face::Spec, Group::Dynamics, &makeKnockout, nullptr, &plates::kKnockout},
+    {"FULL HOUSE", "LOUDNESS LEVELER", "FILL WHAT MATTERS", "Fx|Dynamics",
+     "Lifts the quiet parts, rides the average, holds the loud parts, gates the noise",
+     {0x9910D819u, 0xDFC77DEFu, 0x1D3A5808u, 0xDB4DBDF9u}, {0x5871970Fu, 0x49D41475u, 0xB6EF7271u, 0x9427D4A7u},
+     Face::Spec, Group::Dynamics, &makeFullHouse, nullptr, &plates::kFullHouse},
+    {"WHEELMAN", "AUTO LEVEL RIDER", "RIDE WHAT MATTERS", "Fx|Dynamics",
+     "Rides a vocal or a bass to a steady level, the way you'd ride the fader",
+     {0xDE589DA5u, 0xF1B5F848u, 0x46FF2D5Du, 0x732800F7u}, {0x2858B369u, 0x1830C26Cu, 0xD9E605ACu, 0x8A895AD2u},
+     Face::Spec, Group::Dynamics, &makeWheelman, nullptr, &plates::kWheelman},
+    {"BIG SHOT", "LOUDNESS MAXIMIZER", "PUSH WHAT MATTERS", "Fx|Dynamics",
+     "Maximizer: one band, or the limiting shared across 5 or 16 bands; dither built in",
+     {0xDDC1BE6Eu, 0xB1994C0Fu, 0x13D29BF1u, 0x9C5F265Du}, {0x5EF03878u, 0x22156A12u, 0x733FBA70u, 0x9984EA90u},
+     Face::Spec, Group::Dynamics, &makeBigShot, nullptr, &plates::kBigShot},
+    {"SILENCER", "DE-ESSER", "QUIET WHAT MATTERS", "Fx|Dynamics",
+     "Takes the bite off esses: classic filter or smart detection, split or wide",
+     {0x98682FA8u, 0x57ABADF0u, 0xD02C2107u, 0x1E614A11u}, {0x3379EB16u, 0x35FF9D53u, 0xA7890626u, 0x6DCD032Cu},
+     Face::Spec, Group::Dynamics, &makeSilencer, nullptr, &plates::kSilencer},
+    {"BREATHLESS", "BREATH REMOVER", "CLEAR WHAT MATTERS", "Fx|Restoration",
+     "Finds the breaths between the words and turns them down, with smooth fades",
+     {0x3A2FCA20u, 0x9A141E38u, 0xE3BDB0CBu, 0x0F598244u}, {0xE88EE078u, 0x08694F12u, 0x17E97E5Bu, 0xAB95AC29u},
+     Face::Spec, Group::Tools, &makeBreathless, nullptr, &plates::kBreathless},
+    {"TOMMY GUN", "TEMPO PUMP", "PUMP WHAT MATTERS", "Fx|Dynamics",
+     "One knob: the track ducks on the beat and pumps back up, no sidechain needed",
+     {0xCDCF4E33u, 0x94F34F16u, 0xF950E8EBu, 0x2E312C24u}, {0xBF9A653Du, 0xDAF342ABu, 0x0A88515Fu, 0x49EC0F1Du},
+     Face::Spec, Group::Dynamics, &makeTommyGun, nullptr, &plates::kTommyGun},
 };
 } // namespace
 

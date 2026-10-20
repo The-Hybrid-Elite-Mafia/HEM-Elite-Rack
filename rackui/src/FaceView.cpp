@@ -705,9 +705,8 @@ void FaceView::history(const Ctx& c, const Widget& w) const {
         lx -= tw + 26 * z;
     };
     legend("INPUT", th_.silver);
-    legend("GR 2", th_.gold);
-    legend("GR 1", th_.red);
-    (void)w;
+    legend(w.hi.empty() ? "GR 2" : w.hi.c_str(), th_.gold);
+    legend(w.lo.empty() ? "GR 1" : w.lo.c_str(), th_.red);
 }
 
 // Compressors: a gain-reduction needle with a console-meter scale (0 on the right, -20 on the left).

@@ -153,6 +153,8 @@ int main(int argc, char** argv) {
             using namespace hem::rack::hitman;
             fx->set(Input1, 14); fx->set(Ratio, 1); fx->set(ScEq, 1); fx->set(ScHpf, 90); fx->set(ScBellFreq, 3000); fx->set(ScBellGain, 6);
             fx->set(Saturation, 2);
+        } else if (info.face == hem::rack::Face::Spec && info.plate && info.plate->demo) {
+            info.plate->demo(*fx);
         } else if (info.face == hem::rack::Face::Restorer) {
             fx->set(hem::rack::restorer::Reduction, 6.0f);
         }

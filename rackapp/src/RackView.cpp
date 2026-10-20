@@ -50,16 +50,26 @@ Rect slotUp(int i) { const Rect r = slotRow(i); return {r.x + 206, r.y + 48, 72,
 Rect slotDown(int i) { const Rect r = slotRow(i); return {r.x + 282, r.y + 48, 72, 34}; }
 
 Rect pickerPanel() { return RackView::faceArea().inset(60, 30); }
-// Category tabs across the top, then up to 15 cards (3 columns × 5 rows).
+// Category tabs across the top, then the cards: 3 columns while a tab holds up to 15, then more
+// and smaller cards (4 × 6, 5 × 7) so every plug-in in the tab fits on one page.
 Rect pickerTabRect(int i, int count) {
     const Rect p = pickerPanel();
     const float w = (p.w - 80 - 8.0f * static_cast<float>(count - 1)) / static_cast<float>(count);
     return {p.x + 40 + static_cast<float>(i) * (w + 8), p.y + 92, w, 48};
 }
-Rect pickerItem(int i) {
+int pickerColumns(int count) { return count <= 15 ? 3 : count <= 24 ? 4 : 5; }
+Rect pickerItem(int i, int count) {
     const Rect p = pickerPanel();
-    const float w = (p.w - 80 - 2 * 16) / 3.0f;
-    return {p.x + 40 + static_cast<float>(i % 3) * (w + 16), p.y + 160 + static_cast<float>(i / 3) * 140, w, 126};
+    const int cols = pickerColumns(count), rows = cols == 3 ? 5 : cols == 4 ? 6 : 7;
+    const float gap = cols == 3 ? 16.0f : 10.0f;
+    const float w = (p.w - 80 - gap * static_cast<float>(cols - 1)) / static_cast<float>(cols);
+    const float pitch = std::min(140.0f, (p.bottom() - 30 - (p.y + 160)) / static_cast<float>(rows));
+    return {p.x + 40 + static_cast<float>(i % cols) * (w + gap), p.y + 160 + static_cast<float>(i / cols) * pitch, w, pitch - gap};
+}
+int tabCount(const RackViewState& s) {
+    int n = 0;
+    for (const auto& it : s.pickerItems) n += it.group == s.pickerTab ? 1 : 0;
+    return n;
 }
 Rect pickerClose() { const Rect p = pickerPanel(); return {p.right() - 200, p.y + 30, 160, 50}; }
 
@@ -107,7 +117,7 @@ Hit RackView::hit(float x, float y, const RackViewState& s) const noexcept {
         int k = 0;
         for (const auto& it : s.pickerItems) {
             if (it.group != s.pickerTab) continue;
-            if (pickerItem(k++).contains(x, y)) return {Action::AddPlugin, it.plugin};
+            if (pickerItem(k++, tabCount(s)).contains(x, y)) return {Action::AddPlugin, it.plugin};
         }
         if (faceArea().contains(x, y)) return {Action::None};
     }
@@ -327,12 +337,17 @@ void RackView::drawFront(Renderer& r, const RackViewState& s, const Hit& hv) con
     int k = 0;
     for (const auto& item : s.pickerItems) {
         if (item.group != s.pickerTab) continue;
-        const Rect it = pickerItem(k++);
+        const Rect it = pickerItem(k++, tabCount(s));
         const bool hot = hv.action == Action::AddPlugin && hv.index == item.plugin;
         r.fillRound(it, 12, hot ? rgb8(0x0F2427) : rgb8(0x0D1113), Blend::Over);   // no halo on hover
-        const TextStyle ns = fit(r, TextStyle::Panel, item.name, it.w - 40);
-        r.text(ns, item.name, it.x + 20, it.y + 54, hot ? kTh.teal : kTh.silver, Align::Left, hot ? TextFx::Shadowed : TextFx::Shadowed);
+        const bool roomy = it.h >= 120.0f;   // big cards: name + two lines; smaller: name + one line
+        const TextStyle ns = fit(r, roomy ? TextStyle::Panel : TextStyle::Title, item.name, it.w - 40);
+        r.text(ns, item.name, it.x + 20, it.y + (roomy ? 54.0f : it.h * 0.46f), hot ? kTh.teal : kTh.silver, Align::Left, TextFx::Shadowed);
         const TextStyle bs = TextStyle::Caption;
+        if (!roomy) {
+            r.text(bs, clip(r, bs, item.blurb, it.w - 40), it.x + 20, it.y + it.h * 0.80f, kTh.label, Align::Left, TextFx::Shadowed);
+            continue;
+        }
         // the description on two lines
         std::string a = item.blurb, b;
         if (r.textWidth(bs, a) > it.w - 40) {

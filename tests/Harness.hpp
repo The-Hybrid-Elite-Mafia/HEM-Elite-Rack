@@ -35,6 +35,7 @@ void testSpace();
 void testMovement();
 void testSpecialty();
 void testHitman();
+void testArsenal();
 void testSpectrum();
 void testFaces();
 void testChain();

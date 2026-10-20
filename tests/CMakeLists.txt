@@ -5,6 +5,7 @@ add_executable(hem_rack_tests
     main.cpp
     AllocTracker.cpp
     rackfx_tests.cpp
+    arsenal_tests.cpp
     face_tests.cpp
     rackapp_tests.cpp)
 target_include_directories(hem_rack_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")

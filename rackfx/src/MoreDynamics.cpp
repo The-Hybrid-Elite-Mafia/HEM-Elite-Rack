@@ -52,6 +52,8 @@ struct Work {
 namespace vc {
 using namespace vca;
 const char* const kScN[] = {"OFF", "60 Hz", "90 Hz", "150 Hz", "250 Hz"};
+const char* const kTailN[] = {"STEADY", "LINGER"};
+const char* const kCharN[] = {"CLEAN", "WARM"};
 const ParamInfo kParams[kCount] = {
     {"threshold", "Threshold", "dB", -60.0f, 0.0f, -20.0f},
     {"ratio", "Ratio", ":1", 1.0f, 20.0f, 4.0f, Taper::Log},
@@ -64,6 +66,8 @@ const ParamInfo kParams[kCount] = {
     {"schpf", "Sidechain HPF", "", 0, 4, 0, Taper::Choice, kScN},
     {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
+    {"tail", "Tail", "", 0, 1, 0, Taper::Choice, kTailN},
+    {"character", "Character", "", 0, 1, 0, Taper::Choice, kCharN},
 };
 class Impl final : public hc::fx::Effect {
 public:
@@ -74,7 +78,13 @@ public:
         if (i == Makeup) return p(AutoMakeup) < 0.5f;
         return true;
     }
-    void prepare(double fs, std::uint32_t) override { fs_ = fs; work_.set(fs); reset(); }
+    void prepare(double fs, std::uint32_t) override {
+        fs_ = fs;
+        work_.set(fs);
+        warmLp_[0].c = warmLp_[1].c = C::make(T::LowPass, fs, 250.0, 0.7071);
+        warmDcK_ = static_cast<float>(1.0 - std::exp(-2.0 * std::numbers::pi * 10.0 / fs));
+        reset();
+    }
     void reset() noexcept override {
         sc_[0].clear();
         sc_[1].clear();
@@ -82,6 +92,11 @@ public:
         gr_ = 0.0f;
         env_ = 0.0f;
         work_.v = 0.0f;
+        warmLp_[0].clear();
+        warmLp_[1].clear();
+        warmDc_[0] = warmDc_[1] = 0.0f;
+        warmEnv_[0] = warmEnv_[1] = 0.0f;
+        warmMix_ = p(Character) >= 0.5f ? 1.0f : 0.0f;
         makeup_.prepare(fs_, 30, makeupDb());
         mix_.prepare(fs_, 30, p(Mix) * 0.01f);
         out_.prepare(fs_, 30, hc::fx::dbToGain(p(Output)));
@@ -97,7 +112,11 @@ public:
         const float att = coefFor(fs_, p(Attack));
         const bool autoRel = p(AutoRelease) >= 0.5f;
         const float relManual = coefFor(fs_, p(Release));
+        const bool linger = p(Tail) >= 0.5f;
+        const bool warm = p(Character) >= 0.5f;
         const float envRel = coefFor(fs_, 5.0);
+        const float warmStep = static_cast<float>(1.0 / (fs_ * 0.02));
+        const float warmEnvK = coefFor(fs_, 30.0);
         float most = 0.0f;
         for (std::uint32_t i = 0; i < n; ++i) {
             float dl = L[i], dr = R[i];
@@ -105,15 +124,39 @@ public:
             const float x = std::max(std::fabs(dl), std::fabs(dr));
             env_ = x > env_ ? x : x + envRel * (env_ - x);   // peak detector: holds the tops of the waves
             const float target = kneeGainDb(dbOf(env_), thr, ratio, knee);
-            // AUTO: lets go in 40 ms after a short hit, up to 640 ms after it has been working a while
-            const float rel = autoRel ? coefFor(fs_, 40.0 + 600.0 * work_.v) : relManual;
+            // AUTO: lets go in 40 ms after a short hit, up to 640 ms after it has been working a while.
+            // TAIL LINGER: eases out slowly as it gets near 0 dB (STEADY: the same speed all the way).
+            float rel = autoRel ? coefFor(fs_, 40.0 + 600.0 * work_.v) : relManual;
+            if (linger) {
+                const float depth = std::min(-gr_ / 6.0f, 1.0f);
+                const double base = autoRel ? 40.0 + 600.0 * work_.v : static_cast<double>(p(Release));
+                rel = coefFor(fs_, base * (1.0 + 2.0 * (1.0 - depth)));
+            }
             gr_ = follow(gr_, target, att, rel);
             work_.tick(gr_);
             most = std::min(most, gr_);
             const float g = hc::fx::dbToGain(gr_ + makeup_.next(makeupDb()));
             const float m = mix_.next(p(Mix) * 0.01f), o = out_.next(hc::fx::dbToGain(p(Output)));
-            L[i] = (L[i] + m * (L[i] * g - L[i])) * o;
-            R[i] = (R[i] + m * (R[i] * g - R[i])) * o;
+            float yl = L[i] * g, yr = R[i] * g;
+            // WARM: the low end gets a little 2nd harmonic, more the harder it works (DC taken out)
+            warmMix_ = warm ? std::min(1.0f, warmMix_ + warmStep) : std::max(0.0f, warmMix_ - warmStep);
+            if (warmMix_ > 0.0f) {
+                // the same share of 2nd harmonic at any level: up to -18 dB of the low end at 12 dB of reduction
+                const float k = warmMix_ * std::min(-gr_, 12.0f) / 12.0f * 0.25f;
+                const float ll = warmLp_[0].tick(yl), lr = warmLp_[1].tick(yr);
+                warmEnv_[0] = std::max(std::fabs(ll), warmEnv_[0] * warmEnvK);
+                warmEnv_[1] = std::max(std::fabs(lr), warmEnv_[1] * warmEnvK);
+                const float hl = k * ll * ll / (warmEnv_[0] + 1e-4f), hr = k * lr * lr / (warmEnv_[1] + 1e-4f);
+                warmDc_[0] += (hl - warmDc_[0]) * warmDcK_;
+                warmDc_[1] += (hr - warmDc_[1]) * warmDcK_;
+                yl += hl - warmDc_[0];
+                yr += hr - warmDc_[1];
+            } else {
+                (void)warmLp_[0].tick(yl);
+                (void)warmLp_[1].tick(yr);
+            }
+            L[i] = (L[i] + m * (yl - L[i])) * o;
+            R[i] = (R[i] + m * (yr - R[i])) * o;
         }
         if (gr_ > -1e-6f) gr_ = 0.0f;
         publishReduction(most);
@@ -126,6 +169,8 @@ private:
     int scIdx_ = -1;
     float gr_ = 0, env_ = 0;
     Work work_;
+    hc::fx::Biquad warmLp_[2];
+    float warmDc_[2] = {0, 0}, warmDcK_ = 0, warmMix_ = 0, warmEnv_[2] = {0, 0};
     hc::fx::Smoothed makeup_, mix_, out_;
 };
 } // namespace vc

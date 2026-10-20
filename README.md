@@ -17,8 +17,22 @@ C++23 audio framework, as a library.
 | **WIDE LOAD** | Mono to 200 % width, MONO BASS (80–250 Hz), balance; correlation and width readouts |
 | **SPARK** | Adds fresh harmonics above a frequency: TUBE (even) or TAPE (odd), drive, mix |
 | **THE ACCOUNTANT** | EBU R128 / BS.1770: momentary, short-term, integrated LUFS, loudness range, true peak, correlation, distance to a target |
-| **ENFORCER** | Clean modern compressor: ratio 1–20, knee, attack, release or AUTO, auto makeup, sidechain HPF, mix |
+| **ENFORCER** | Clean modern compressor: ratio 1–20, knee, attack, release or AUTO, auto makeup, sidechain HPF, mix; tail STEADY / LINGER; character CLEAN / WARM |
 | **HITMAN** | Dual FET peak compressor: L/R or M/S, attack / release 1–7, ratios 4 / 8 / 12 / 20 / ALL, lookahead, sidechain EQ, external sidechain (VST3), saturation (clip, warm, triode, tape), mix, gain-reduction history |
+| **SWITCHBLADE** | Channel compressor + gate (open / close levels, range, hold) + a filter that steers the detector or limits the work to one band; look-ahead, listen |
+| **TERRITORY** | 4- or 5-band dynamics: each band turned down or lifted up (range), threshold, gain; natural or linear phase |
+| **CONSIGLIERE** | Two-knob leveler: smooth light-cell or firmer solid-state, compress or limit, high emphasis, mix |
+| **HEAVYWEIGHT** | Punch compressor: holds the body and lets the hits through, analog stage, release on the beat, soft limit |
+| **THE DON** | Old-school broadcast bus compressor that listens to its own output; stepped ratio, attack, decay or AUTO; warmth |
+| **SLOW BURN** | Variable-mu tube limiter: six time settings, linked / dual / mid-side, tube drive |
+| **IRON FIST** | Console channel compressor you drive with INPUT; limiter, de-ess, output iron |
+| **KNOCKOUT** | Transient designer: attack and sustain up or down, wide or four bands, guard (clip / limit) |
+| **FULL HOUSE** | Loudness without squash: gate, lift the quiet parts, leveler, hold the loud parts |
+| **WHEELMAN** | Automatic level rider for a vocal or a bass: target, max boost / cut, holds still in the gaps |
+| **BIG SHOT** | Maximizer: one band or the limiting shared across 5 / 16 bands, priorities, styles, dither |
+| **SILENCER** | De-esser: classic filter or smart detection, split or wide, look-ahead, listen |
+| **BREATHLESS** | Breath remover: finds breaths between words, turns them down with smooth fades |
+| **TOMMY GUN** | One-knob tempo pump: ducks on the beat and pumps back up, no sidechain needed |
 | **FURNACE** | Tube stage: drive, bias (even harmonics), tone, mix — colour without a volume jump |
 | **CATHEDRAL** | Concert hall reverb: pre-delay, size, decay, damping, early reflections, modulation, width, low / high cut |
 | **CHROME** | Bright, dense plate reverb with diffusion control |
@@ -32,7 +46,7 @@ C++23 audio framework, as a library.
 | **UNDERGROUND** | More low end: a new sub an octave down, or harmonics small speakers can hear |
 | **SPOTLIGHT** | Vocal chain: high-pass, body, one-knob compressor, one-knob de-esser, presence, air |
 
-Twenty-three plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
+Thirty-seven plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 
 ## Install
 Download `HEM-Elite-Rack-Setup-x.y.z.exe` from **Releases** and run it. Needs Windows 10 / 11

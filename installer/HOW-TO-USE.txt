@@ -62,6 +62,7 @@ ENFORCER
   The all-rounder. THRESHOLD down until the needle moves, RATIO (2 - 4 gentle, 8+ hard), KNEE
   (higher = smoother), ATTACK (slower lets the punch through), RELEASE or AUTO REL,
   AUTO GAIN gives back about half of what it takes. SIDECHAIN HPF stops the bass pumping it.
+  TAIL LINGER eases the release out slowly at the end; CHARACTER WARM adds low-end weight as it works.
 
 HITMAN (dual FET peak compressor)
   Turn INPUT up to compress harder, OUTPUT to set the level (OUTPUT also drives SATURATION).
@@ -72,6 +73,73 @@ HITMAN (dual FET peak compressor)
   sidechain input in a DAW (the rack has no second input, so there it listens to itself).
   SATURATION: DRY, CLIP (nothing over 0 dBFS), WARM, TRIODE, TAPE. MIX for parallel smashing.
   The screen on the right shows the last few seconds: gain reduction of both channels and the input.
+
+SWITCHBLADE
+  A compressor and a gate on one plate. Compressor: THRESHOLD, RATIO, ATTACK, RELEASE (or AUTO REL),
+  MAKEUP. Gate: GATE OPEN = the level it opens at (all the way down = off), CLOSE BELOW = how far
+  under that it shuts (stops chatter), GATE RANGE = how far down it goes, HOLD, GATE REL.
+  FILTER: KEY = only what the detector hears (e.g. HIGH-PASS so the kick doesn't pump it);
+  BAND = only that band of the sound is processed. LISTEN plays what the detector hears.
+
+TERRITORY
+  Each band has THRESHOLD, RANGE and GAIN. RANGE minus = that band comes down when it's loud,
+  RANGE plus = it gets lifted when it's loud, 0 = no movement (GAIN still works as an EQ).
+  SPLIT 1-4 move the borders. PHASE LINEAR splits the bands with no phase shift (more latency).
+  LISTEN plays one band alone. The windows on top show each band's move right now.
+
+CONSIGLIERE
+  Two knobs: PEAK REDUCTION (how much) and GAIN (make the level back up). OPTO is smooth and slow,
+  SOLID is quicker and firmer. LIMIT for harder control, EMPHASIS so it reacts more to the highs.
+
+HEAVYWEIGHT
+  THRESHOLD, RATIO, ATTACK, RELEASE as usual (it makes up the level by itself). PUNCH lets the hits
+  through while the body is held. ANALOG adds weight and grit. RELEASE ON THE BEAT ties the release to
+  the song's tempo (TEMPO FROM HOST in a DAW; BPM knob in the rack). LIMIT keeps peaks under 0 dBFS.
+
+THE DON
+  The old broadcast bus sound: it listens to its own output, so it breathes. THRESHOLD down until
+  the needle moves, pick RATIO, ATTACK and DECAY (AUTO follows the music). WARMTH for the output stage.
+
+SLOW BURN
+  Tube limiting that gets firmer the harder you push. INPUT and THRESHOLD set how much, TIME 1-6
+  sets the speed (5 and 6 let go by themselves). LINK: LINKED, DUAL (each side on its own) or
+  MID / SIDE. TUBE for colour.
+
+IRON FIST
+  Like a console channel: turn INPUT up to compress harder, OUTPUT to set the level. RATIO, ATTACK,
+  RECOVERY (AUTO follows the music). LIMITER + LIMIT LEVEL catch the peaks, DE-ESS makes it react to
+  esses, IRON is the output transformer.
+
+KNOCKOUT
+  ATTACK + makes hits snap, - softens them. SUSTAIN + brings up the ring and room, - dries it.
+  SENSITIVITY and LENGTH for each, SHAPE for the feel. MODE 4-BAND lets you set how much each band
+  gets (LOW .. HIGH). GUARD CLIP / LIMIT keeps it under 0 dBFS.
+
+FULL HOUSE
+  GATE keeps quiet noise down. LOW THRESHOLD + MAX LIFT bring up the quiet parts. LEVELER rides the
+  average level (SOFT slower, LOUD faster). HIGH LEVEL holds the loud parts and makes the level back up.
+
+WHEELMAN
+  Pick VOCAL or BASS, set TARGET to the level you want. It rides up to MAX BOOST and down to MAX CUT,
+  and holds still for anything under SENSITIVITY (gaps, breaths). SPEED SLOW is smoother.
+
+BIG SHOT
+  THRESHOLD down = louder; CEILING = nothing comes out above it. BANDS 5 or 16 shares the limiting out
+  so the loudest part gives the most; LOW / MID / HIGH KEEPS = which part keeps its punch.
+  STYLE CLEAN / PUNCHY / WARM. DITHER 16 BIT when the file goes to 16 bit.
+
+SILENCER
+  THRESHOLD down until the esses get caught, RANGE = the most it takes off. DETECT SMART catches loud
+  and soft esses the same; CLASSIC listens with a filter at FREQUENCY. TAKES DOWN SPLIT = only the
+  highs, WIDE = the whole sound. LISTEN plays what it reacts to.
+
+BREATHLESS
+  LEVEL GATE: breaths are quieter than this. SENSITIVITY: how breath-like a sound must be.
+  REDUCTION: how far they go down. FADE OUT / IN for smooth edges. LISTEN BREATHS plays only what it takes out.
+
+TOMMY GUN
+  One knob: AMOUNT. RATE = how often it pumps (a note of the tempo), OFFSET shifts where in the beat
+  it dips. TEMPO FROM HOST in a DAW; BPM knob in the rack.
 
 FURNACE
   DRIVE for more tube colour (the level stays about the same), BIAS toward EVEN = warmer.

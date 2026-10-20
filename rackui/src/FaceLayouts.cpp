@@ -13,6 +13,7 @@
 #include "hem/rack/Space.hpp"
 #include "hem/rack/Movement.hpp"
 #include "hem/rack/Specialty.hpp"
+#include "hem/rack/Arsenal.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -552,7 +553,8 @@ FaceLayout vcaFace(const rack::PluginInfo& info) {
     buttonRow(L, "SIDECHAIN HPF", 236, ScHpf, 5);
     L.widgets.push_back(toggle({1150, 330, 238, 44}, AutoRelease, "AUTO REL"));
     L.widgets.push_back(toggle({1398, 330, 238, 44}, AutoMakeup, "AUTO GAIN"));
-    L.sections.push_back({{1150, 420, 486, 30}, "AUTO GAIN GIVES BACK HALF"});
+    buttonGroup(L, "TAIL", 1150, 238, 466, Tail, 2);
+    buttonGroup(L, "CHARACTER", 1398, 238, 466, Character, 2);
     knobRow(L, {{Threshold, "THRESHOLD", 120, "-60", "0", false}, {Ratio, "RATIO", 96, "1", "20", false}, {Knee, "KNEE", 86, "", "", true},
                 {Attack, "ATTACK", 96, "0.1", "100", false}, {Release, "RELEASE", 96, "10", "2k", false}, {Makeup, "MAKEUP", 86, "", "", true},
                 {Mix, "MIX", 86, "", "", true}, {Output, "OUTPUT", 86, "", "", true}}, 568);
@@ -804,6 +806,217 @@ FaceLayout hitmanFace(const rack::PluginInfo& info) {
     return L;
 }
 
+// ---- TERRITORY: a column per band (its gain change on top, THRESHOLD / RANGE / GAIN under it), the
+// global knobs and the crossovers taking turns across one row, the switches down the left
+FaceLayout territoryFace(const rack::PluginInfo& info) {
+    using namespace rack::territory;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"FIVE TERRITORIES", "EACH ITS OWN RULES"};
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 182, 1226, 76};
+    const float col = 1226.0f / static_cast<float>(kBands);
+    const char* bandName[kBands] = {"BAND 1", "BAND 2", "BAND 3", "BAND 4", "BAND 5"};
+    for (int b = 0; b < kBands; ++b) readoutAt(L, {410 + static_cast<float>(b) * col + 8, 182, col - 16, 76}, b, bandName[b], "dB", "+");
+    const std::size_t first = L.widgets.size();
+    constexpr float d = 60.0f;
+    // the row: globals at the band centres, crossovers on the borders between the bands
+    const struct { int p; const char* cap; } globals[kBands] = {{Attack, "ATTACK"}, {Release, "RELEASE"}, {Knee, "KNEE"}, {Output, "OUTPUT"}, {-1, ""}};
+    for (int b = 0; b < kBands; ++b) {
+        if (globals[b].p < 0) continue;
+        const float cx = 410 + (static_cast<float>(b) + 0.5f) * col;
+        L.widgets.push_back(knob({cx - d * 0.5f, 296, d, d}, globals[b].p, globals[b].cap, "", "", true));
+    }
+    const char* splitName[4] = {"SPLIT 1", "SPLIT 2", "SPLIT 3", "SPLIT 4"};
+    for (int x = 0; x < 4; ++x) {
+        const float cx = 410 + static_cast<float>(x + 1) * col;
+        L.widgets.push_back(knob({cx - d * 0.5f, 296, d, d}, X1 + x, splitName[x], "", "", true));
+    }
+    L.grooves.push_back({410, 394, 1636, 394});
+    // the band columns
+    for (int b = 0; b < kBands; ++b) {
+        const float cx = 410 + (static_cast<float>(b) + 0.5f) * col;
+        L.widgets.push_back(knob({cx - d * 0.5f, 424, d, d}, thr(b), "THRESHOLD", "", "", true));
+        L.widgets.push_back(knob({cx - d * 0.5f, 548, d, d}, range(b), "RANGE", "", "", true));
+        L.widgets.push_back(knob({cx - d * 0.5f, 672, d, d}, gain(b), "GAIN", "", "", true));
+        if (b > 0) L.grooves.push_back({410 + static_cast<float>(b) * col, 404, 410 + static_cast<float>(b) * col, 808});
+    }
+    seatKnobs(L, first, 8);
+    // the left column: four steppers, AUTO release, the power
+    const struct { int p; const char* cap; } steps[4] = {{Phase, "PHASE"}, {Bands, "BANDS"}, {Tail, "TAIL"}, {Listen, "LISTEN"}};
+    for (int k = 0; k < 4; ++k) {
+        Widget st;
+        st.kind = WKind::Stepper;
+        st.param = steps[k].p;
+        st.caption = steps[k].cap;
+        st.r = {170, 424 + static_cast<float>(k) * 50, 170, 40};
+        L.widgets.push_back(st);
+        L.recesses.push_back({st.r.inset(-4), 9, 4, false, false});
+    }
+    L.widgets.push_back(toggle({70, 628, 270, 44}, AutoRelease, "AUTO REL"));
+    buttonSeats(L);
+    bypassAt(L, {160, 698, 90, 90});
+    return L;
+}
+
+// ---- plates laid out from a PlateSpec (Face::Spec) -------------------------------------------
+// The parts go where the plate's content leaves room: a screen (or none) on top, a column of
+// buttons and switches beside it, one or two rows of knobs under it, choice lists down the left.
+float specKnobSize(rack::KnobSize s) noexcept { return s == rack::KnobSize::Big ? 128.0f : s == rack::KnobSize::Small ? 76.0f : 100.0f; }
+void specRow(FaceLayout& L, std::span<const rack::PlateKnob> ks, float topY, float maxSize = 128.0f) {
+    if (ks.empty()) return;
+    const float pitch = 1226.0f / static_cast<float>(ks.size());
+    const std::size_t first = L.widgets.size();
+    for (std::size_t i = 0; i < ks.size(); ++i) {
+        const rack::PlateKnob& k = ks[i];
+        const float d = std::min(specKnobSize(k.size), maxSize);
+        const float cx = 410 + (static_cast<float>(i) + 0.5f) * pitch, y = topY + (128.0f - d) * 0.5f;
+        L.widgets.push_back(knob({cx - d * 0.5f, y, d, d}, k.param, k.caption, k.lo, k.hi, d < 90.0f));
+    }
+    seatKnobs(L, first, 12);
+}
+// Button groups and switches stacked in a column (x, w) from y; returns where the column ends.
+float specColumn(FaceLayout& L, std::span<const rack::PlateChoice> groups, std::span<const rack::PlateToggle> toggles,
+                 const rack::PluginInfo& info, float x, float w, float y) {
+    auto fx = info.create();
+    const auto ps = fx->params();
+    for (const rack::PlateChoice& g : groups) {
+        const int count = static_cast<int>(ps[static_cast<std::size_t>(g.param)].max) + 1;
+        buttonGroup(L, g.caption, x, w, y + 40, g.param, count);
+        y += 96;
+    }
+    for (std::size_t i = 0; i < toggles.size(); i += 2) {
+        const bool pair = i + 1 < toggles.size();
+        const float tw = pair ? (w - 10) * 0.5f : w;
+        L.widgets.push_back(toggle({x, y, tw, 44}, toggles[i].param, toggles[i].caption));
+        if (pair) L.widgets.push_back(toggle({x + tw + 10, y, tw, 44}, toggles[i + 1].param, toggles[i + 1].caption));
+        y += 56;
+    }
+    return y;
+}
+
+FaceLayout specFace(const rack::PluginInfo& info) {
+    using rack::Screen;
+    const rack::PlateSpec& S = *info.plate;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {S.note1, S.note2};
+    L.title = {60, 190, 330, 110};
+    const bool screen = S.screen != Screen::None;
+    const bool twoRows = !S.row2.empty();
+    // what sits beside the screen
+    const bool needleReadouts = S.screen == Screen::Needle && !S.readouts.empty();
+    const bool column = screen && (!S.choices.empty() || !S.toggles.empty() || needleReadouts);
+    if (screen) {
+        const float sh = twoRows ? 250.0f : 330.0f;
+        const Rect scr{410, 182, column ? 700.0f : 1226.0f, sh};
+        L.display = scr;
+        switch (S.screen) {
+        case Screen::Needle: {
+            Widget gr;
+            gr.kind = WKind::GrMeter;
+            gr.r = scr;
+            L.widgets.push_back(gr);
+            L.recesses.push_back({scr, 14, 9, false, true});
+            break;
+        }
+        case Screen::Spectrum: {
+            Widget sp;
+            sp.kind = WKind::Spectrum;
+            sp.r = scr;
+            L.widgets.push_back(sp);
+            L.recesses.push_back({scr, 14, 9, false, true});
+            break;
+        }
+        case Screen::History: {
+            Widget h;
+            h.kind = WKind::History;
+            h.r = scr;
+            h.lo = S.historyA;
+            h.hi = S.historyB;
+            L.widgets.push_back(h);
+            L.recesses.push_back({scr, 14, 9, false, true});
+            break;
+        }
+        case Screen::Readouts: {
+            const int n = static_cast<int>(S.readouts.size());
+            const float gap = 16.0f, rw = (scr.w - gap * static_cast<float>(n - 1)) / static_cast<float>(n);
+            for (int i = 0; i < n; ++i) {
+                const rack::PlateReadout& ro = S.readouts[static_cast<std::size_t>(i)];
+                readoutAt(L, {scr.x + static_cast<float>(i) * (rw + gap), scr.y, rw, std::min(scr.h, 170.0f)}, ro.meter, ro.caption, ro.unit, ro.fmt);
+            }
+            break;
+        }
+        case Screen::None: break;
+        }
+        if (column) {
+            float y = 182;
+            if (needleReadouts)
+                for (const rack::PlateReadout& ro : S.readouts) {
+                    readoutAt(L, {1150, y, 486, 100}, ro.meter, ro.caption, ro.unit, ro.fmt);
+                    y += 112;
+                }
+            specColumn(L, S.choices, S.toggles, info, 1150, 486, y);
+        }
+        const float groove = scr.bottom() + 12;
+        L.grooves.push_back({410, groove, 1636, groove});
+        if (twoRows) {
+            specRow(L, S.row1, 470, 100);
+            specRow(L, S.row2, 660, 76);
+        } else {
+            specRow(L, S.row1, 568);
+        }
+    } else {
+        L.display = {410, 182, 1226, 600};
+        float top = 182;
+        if (!S.choices.empty()) {   // the button groups side by side across the top
+            auto fx = info.create();
+            const auto ps = fx->params();
+            const float n = static_cast<float>(S.choices.size()), gw = (1226.0f - 30.0f * (n - 1)) / n;
+            for (std::size_t i = 0; i < S.choices.size(); ++i) {
+                const int count = static_cast<int>(ps[static_cast<std::size_t>(S.choices[i].param)].max) + 1;
+                buttonGroup(L, S.choices[i].caption, 410 + static_cast<float>(i) * (gw + 30.0f), gw, 236, S.choices[i].param, count);
+            }
+            top = 300;
+        }
+        if (twoRows) {
+            specRow(L, S.row1, top == 182 ? 260.0f : 340.0f);
+            L.grooves.push_back({410, 540, 1636, 540});
+            specRow(L, S.row2, 600);
+        } else {
+            specRow(L, S.row1, top == 182 ? 420.0f : 470.0f);
+        }
+    }
+    // the left column: choice lists, then switches (and the switches that found no room on top)
+    float y = 448;
+    for (const rack::PlateChoice& c : S.left) {
+        auto fx = info.create();
+        const int count = static_cast<int>(fx->params()[static_cast<std::size_t>(c.param)].max) + 1;
+        for (int i = 0; i < count; ++i) L.widgets.push_back(choiceButton({70, y + static_cast<float>(i) * 46, 270, 40}, c.param, i, i == 0 ? c.caption : ""));
+        y += static_cast<float>(count) * 46 + 34;
+    }
+    std::vector<rack::PlateToggle> lt(S.leftToggles.begin(), S.leftToggles.end());
+    if (!screen) lt.insert(lt.end(), S.toggles.begin(), S.toggles.end());
+    if (!S.left.empty()) y -= 20;
+    for (const rack::PlateChoice& c : S.steppers) {
+        Widget st;
+        st.kind = WKind::Stepper;
+        st.param = c.param;
+        st.caption = c.caption;
+        st.r = {170, y, 170, 40};
+        L.widgets.push_back(st);
+        L.recesses.push_back({st.r.inset(-4), 9, 4, false, false});
+        y += 50;
+    }
+    for (const rack::PlateToggle& t : lt) {
+        L.widgets.push_back(toggle({70, y, 270, 44}, t.param, t.caption));
+        y += 54;
+    }
+    buttonSeats(L);
+    bypassAt(L, {160, std::clamp(y + 10, 640.0f, 698.0f), 90, 90});
+    return L;
+}
+
 } // namespace
 
 FaceLayout faceLayout(const rack::PluginInfo& info) {
@@ -830,6 +1043,8 @@ FaceLayout faceLayout(const rack::PluginInfo& info) {
     case rack::Face::Sub: return subFace(info);
     case rack::Face::VocalStrip: return vocalFace(info);
     case rack::Face::Hitman: return hitmanFace(info);
+    case rack::Face::Territory: return territoryFace(info);
+    case rack::Face::Spec: if (info.plate) return specFace(info); break;
     case rack::Face::Restorer: break;
     }
     return restorer(info);

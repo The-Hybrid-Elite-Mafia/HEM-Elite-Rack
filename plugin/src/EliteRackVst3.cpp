@@ -65,7 +65,9 @@ static_assert(kSent <= 100);
 float dbToNorm(float db, float lo, float hi) { return std::clamp((db - lo) / (hi - lo), 0.0f, 1.0f); }
 float normToDb(double n, float lo, float hi) { return lo + static_cast<float>(n) * (hi - lo); }
 constexpr float kSpecLo = -120.0f, kSpecHi = 0.0f;
-bool isCompressor(rack::Face f) {
+bool isCompressor(const rack::PluginInfo& info) {
+    const rack::Face f = info.face;
+    if (f == rack::Face::Spec) return info.plate && info.plate->reportsReduction;
     return f == rack::Face::BusGlue || f == rack::Face::Limiter || f == rack::Face::VcaComp || f == rack::Face::VocalStrip || f == rack::Face::Hitman;
 }
 
@@ -193,6 +195,9 @@ public:
                 else if (id < ps.size()) fx_->set(static_cast<int>(id), hc::fx::toPlain(ps[id], static_cast<float>(v)));
             }
         }
+        // the song's tempo, for the plug-ins that sync to it (when the host says it)
+        if (data.processContext && (data.processContext->state & Vst::ProcessContext::kTempoValid) && data.processContext->tempo > 0.0)
+            fx_->setTempo(data.processContext->tempo);
         if (data.numSamples <= 0 || data.numInputs < 1 || data.numOutputs < 1 || maxBlock_ == 0) return kResultOk;
         Vst::AudioBusBuffers& in = data.inputs[0];
         Vst::AudioBusBuffers& out = data.outputs[0];
@@ -275,7 +280,7 @@ private:
                 send(c, kNoiseBase + static_cast<Vst::ParamID>(i), dbToNorm(0.5f * (noise_->noiseFloorDb(2 * i) + noise_->noiseFloorDb(2 * i + 1)), kSpecLo, kSpecHi));
             send(c, kRemovedId, dbToNorm(noise_->removedDb(), -60.0f, 0.0f));
         }
-        if (isCompressor(info_->face)) send(c, kGrId, dbToNorm(fx_->reductionDb(), -30.0f, 0.0f));
+        if (isCompressor(*info_)) send(c, kGrId, dbToNorm(fx_->reductionDb(), -30.0f, 0.0f));
         const auto ms = fx_->meters();
         for (std::size_t m = 0; m < ms.size(); ++m)
             send(c, kMeterBase + static_cast<Vst::ParamID>(m), dbToNorm(fx_->meter(static_cast<int>(m)), ms[m].min, ms[m].max));
@@ -471,7 +476,7 @@ public:
             for (int b = 0; b < rack::eq::kBands; ++b) addHidden("Display Dynamic " + std::to_string(b + 1), kDynBase + static_cast<Vst::ParamID>(b), 0.5);
             addHidden("Display Auto Gain", kAutoGainId, 0.5);
         }
-        if (isCompressor(face)) addHidden("Display Gain Reduction", kGrId, 1.0);
+        if (isCompressor(*info_)) addHidden("Display Gain Reduction", kGrId, 1.0);
         const auto ms = fx_->meters();
         for (std::size_t m = 0; m < ms.size(); ++m)
             addHidden(std::string("Display Meter ") + ms[m].name, kMeterBase + static_cast<Vst::ParamID>(m), 0.0);

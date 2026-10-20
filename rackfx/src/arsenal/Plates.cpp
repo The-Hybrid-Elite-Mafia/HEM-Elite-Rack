@@ -1,0 +1,183 @@
+// What's on each arsenal plug-in's plate (Face::Spec), and the settings its CI screenshot uses.
+#include "Plates.hpp"
+
+#include "hem/rack/Arsenal.hpp"
+
+namespace hem::rack::plates {
+namespace {
+using K = KnobSize;
+
+// ---- SWITCHBLADE: history of both gain changes, filter beside it, compressor row over gate + filter row
+namespace sw {
+using namespace switchblade;
+constexpr PlateChoice choices[] = {{FilterType, "FILTER"}, {FilterUse, "FILTER WORKS ON"}};
+constexpr PlateKnob row1[] = {{Threshold, "THRESHOLD", "-60", "0"}, {Ratio, "RATIO", "1", "30"}, {Attack, "ATTACK"},
+                              {Release, "RELEASE"}, {Makeup, "MAKEUP"}, {Output, "OUTPUT"}};
+constexpr PlateKnob row2[] = {{GateOpen, "GATE OPEN", "", "", K::Small}, {GateClose, "CLOSE BELOW", "", "", K::Small}, {GateRange, "GATE RANGE", "", "", K::Small},
+                              {GateHold, "HOLD", "", "", K::Small}, {GateRelease, "GATE REL", "", "", K::Small},
+                              {FilterFreq, "FILTER FREQ", "", "", K::Small}, {FilterQ, "FILTER Q", "", "", K::Small}};
+constexpr PlateToggle leftT[] = {{AutoRelease, "AUTO REL"}, {Lookahead, "LOOKAHEAD"}, {Listen, "LISTEN"}};
+} // namespace sw
+
+// ---- CONSIGLIERE: the needle, model and mode beside it, two big knobs
+namespace cg {
+using namespace consigliere;
+constexpr PlateChoice choices[] = {{Model, "MODEL"}, {Mode, "MODE"}};
+constexpr PlateKnob row1[] = {{PeakReduction, "PEAK REDUCTION", "0", "100", K::Big}, {Gain, "GAIN", "0", "40", K::Big},
+                              {Emphasis, "EMPHASIS", "0", "100"}, {Mix, "MIX", "DRY", "WET"}};
+} // namespace cg
+
+// ---- HEAVYWEIGHT
+namespace hw {
+using namespace heavyweight;
+constexpr PlateChoice choices[] = {{Sync, "RELEASE ON THE BEAT"}, {SyncSource, "TEMPO FROM"}};
+constexpr PlateToggle toggles[] = {{Limit, "LIMIT"}};
+constexpr PlateKnob row1[] = {{Threshold, "THRESHOLD", "-48", "0"}, {Ratio, "RATIO", "1", "50"}, {Attack, "ATTACK"},
+                              {Release, "RELEASE"}, {Punch, "PUNCH", "0", "100"}};
+constexpr PlateKnob row2[] = {{Analog, "ANALOG", "", "", K::Small}, {Mix, "MIX", "", "", K::Small}, {Output, "OUTPUT", "", "", K::Small},
+                              {Bpm, "BPM", "", "", K::Small}};
+} // namespace hw
+
+// ---- THE DON
+namespace dn {
+using namespace thedon;
+constexpr PlateChoice choices[] = {{Ratio, "RATIO"}, {Attack, "ATTACK"}, {Decay, "DECAY"}};
+constexpr PlateKnob row1[] = {{Threshold, "THRESHOLD", "-40", "0", K::Big}, {Warmth, "WARMTH", "0", "100"}, {Mix, "MIX", "DRY", "WET"},
+                              {Output, "OUTPUT", "", "", K::Small}};
+} // namespace dn
+
+// ---- SLOW BURN
+namespace sb {
+using namespace slowburn;
+constexpr PlateChoice choices[] = {{Time, "TIME"}, {Link, "LINK"}};
+constexpr PlateKnob row1[] = {{Input, "INPUT", "-20", "+10"}, {Threshold, "THRESHOLD", "-40", "0", K::Big}, {Tube, "TUBE", "0", "100"},
+                              {Output, "OUTPUT", "", "", K::Small}, {Mix, "MIX", "", "", K::Small}};
+} // namespace sb
+
+// ---- IRON FIST
+namespace ir {
+using namespace ironfist;
+constexpr PlateChoice choices[] = {{Ratio, "RATIO"}, {Attack, "ATTACK"}, {Recovery, "RECOVERY"}};
+constexpr PlateToggle toggles[] = {{Limit, "LIMITER"}};
+constexpr PlateKnob row1[] = {{Input, "INPUT", "-10", "+30", K::Big}, {LimitLevel, "LIMIT LEVEL"}, {DeEss, "DE-ESS", "0", "100"},
+                              {Iron, "IRON", "0", "100"}, {Output, "OUTPUT", "", "", K::Small}};
+} // namespace ir
+
+// ---- KNOCKOUT: no screen; the switches across the top, the hits and tails on one row, the bands and output under
+namespace ko {
+using namespace knockout;
+constexpr PlateChoice choices[] = {{Mode, "MODE"}, {AttackShape, "ATTACK SHAPE"}, {SustainShape, "SUSTAIN SHAPE"}, {Guard, "GUARD"}};
+constexpr PlateKnob row1[] = {{Attack, "ATTACK", "-", "+"}, {AttackSens, "SENSITIVITY"}, {AttackTime, "LENGTH"},
+                              {Sustain, "SUSTAIN", "-", "+"}, {SustainSens, "SENSITIVITY"}, {SustainTime, "LENGTH"}};
+constexpr PlateKnob row2[] = {{Band1, "LOW", "", "", K::Small}, {Band2, "LOW MID", "", "", K::Small}, {Band3, "HIGH MID", "", "", K::Small},
+                              {Band4, "HIGH", "", "", K::Small}, {Mix, "MIX", "", "", K::Small}, {Output, "OUTPUT", "", "", K::Small}};
+} // namespace ko
+
+// ---- FULL HOUSE
+namespace fh {
+using namespace fullhouse;
+constexpr PlateReadout readouts[] = {{0, "LIFTED", "dB", "+"}, {1, "LEVELER", "dB", "+"}, {2, "HELD", "dB", "+"}};
+constexpr PlateChoice left[] = {{LevelSpeed, "LEVELER SPEED"}};
+constexpr PlateKnob row1[] = {{Gate, "GATE", "OFF", "-30"}, {LowThreshold, "LOW THRESHOLD"}, {LowLift, "MAX LIFT", "0", "24"},
+                              {Leveler, "LEVELER", "0", "100"}, {HighLevel, "HIGH LEVEL", "0", "100"}, {Output, "OUTPUT", "", "", K::Small}};
+} // namespace fh
+
+// ---- WHEELMAN
+namespace wm {
+using namespace wheelman;
+constexpr PlateReadout readouts[] = {{0, "RIDING", "dB", "+"}, {1, "LEVEL", "dB"}};
+constexpr PlateChoice left[] = {{Source, "SOURCE"}, {Speed, "SPEED"}};
+constexpr PlateKnob row1[] = {{Target, "TARGET", "-40", "0", K::Big}, {Sensitivity, "SENSITIVITY"}, {MaxBoost, "MAX BOOST", "0", "18"},
+                              {MaxCut, "MAX CUT", "0", "18"}, {Output, "OUTPUT", "", "", K::Small}};
+} // namespace wm
+
+// ---- BIG SHOT
+namespace bs {
+using namespace bigshot;
+constexpr PlateReadout readouts[] = {{0, "LOUDNESS (3 s)", "LUFS"}, {1, "PEAK", "dBFS"}};
+constexpr PlateChoice choices[] = {{Bands, "BANDS"}};
+constexpr PlateChoice steppers[] = {{Style, "STYLE"}, {Dither, "DITHER"}};
+constexpr PlateToggle leftT[] = {{AutoRelease, "AUTO REL"}};
+constexpr PlateKnob row1[] = {{Threshold, "THRESHOLD", "-24", "0", K::Big}, {Ceiling, "CEILING", "-3", "0"}, {Release, "RELEASE"},
+                              {PriorityLow, "LOW KEEPS", "", "", K::Small}, {PriorityMid, "MID KEEPS", "", "", K::Small},
+                              {PriorityHigh, "HIGH KEEPS", "", "", K::Small}};
+} // namespace bs
+
+// ---- SILENCER
+namespace si {
+using namespace silencer;
+constexpr PlateChoice choices[] = {{Detect, "DETECT"}, {Filter, "CLASSIC FILTER"}, {Split, "TAKES DOWN"}};
+constexpr PlateToggle toggles[] = {{Lookahead, "LOOKAHEAD"}, {Listen, "LISTEN"}};
+constexpr PlateKnob row1[] = {{Freq, "FREQUENCY", "2k", "16k", K::Big}, {Threshold, "THRESHOLD", "-60", "0", K::Big}, {Range, "RANGE", "0", "30"},
+                              {Width, "SMART WIDTH", "", "", K::Small}};
+} // namespace si
+
+// ---- BREATHLESS
+namespace br {
+using namespace breathless;
+constexpr PlateReadout readouts[] = {{0, "BREATH", "%"}, {1, "LEVEL", "dB"}, {2, "TAKEN OFF", "dB", "+"}};
+constexpr PlateChoice left[] = {{Listen, "LISTEN"}};
+constexpr PlateKnob row1[] = {{Sensitivity, "SENSITIVITY", "0", "100", K::Big}, {LevelGate, "LEVEL GATE"}, {Reduction, "REDUCTION", "0", "60", K::Big},
+                              {FadeOut, "FADE OUT", "", "", K::Small}, {FadeIn, "FADE IN", "", "", K::Small}};
+} // namespace br
+
+// ---- TOMMY GUN
+namespace tg {
+using namespace tommygun;
+constexpr PlateChoice choices[] = {{Rate, "RATE"}, {SyncSource, "TEMPO FROM"}};
+constexpr PlateKnob row1[] = {{Amount, "AMOUNT", "0", "100", K::Big}, {Offset, "OFFSET", "-180", "+180"}, {Bpm, "BPM", "60", "200"}};
+} // namespace tg
+
+} // namespace
+
+const PlateSpec kSwitchblade{.note1 = "COMPRESS AND GATE", .note2 = "STEER WITH THE FILTER", .screen = Screen::History,
+                             .choices = sw::choices, .row1 = sw::row1, .row2 = sw::row2, .leftToggles = sw::leftT,
+                             .historyA = "COMP", .historyB = "GATE", .reportsReduction = true,
+                             .demo = [](hc::fx::Effect& e) {
+                                 using namespace switchblade;
+                                 e.set(Threshold, -26); e.set(Ratio, 4); e.set(GateOpen, -40); e.set(FilterType, 1); e.set(FilterFreq, 120);
+                             }};
+const PlateSpec kConsigliere{.note1 = "TWO KNOBS", .note2 = "SMOOTH CONTROL", .screen = Screen::Needle, .choices = cg::choices,
+                             .row1 = cg::row1, .reportsReduction = true,
+                             .demo = [](hc::fx::Effect& e) { e.set(consigliere::PeakReduction, 55); e.set(consigliere::Gain, 6); }};
+const PlateSpec kHeavyweight{.note1 = "HITS STAY HARD", .note2 = "THE BODY GETS HELD", .screen = Screen::Needle, .choices = hw::choices,
+                             .toggles = hw::toggles, .row1 = hw::row1, .row2 = hw::row2, .reportsReduction = true,
+                             .demo = [](hc::fx::Effect& e) {
+                                 using namespace heavyweight;
+                                 e.set(Threshold, -26); e.set(Punch, 60); e.set(Analog, 40); e.set(Sync, 3);
+                             }};
+const PlateSpec kTheDon{.note1 = "OLD SCHOOL BUS", .note2 = "IT BREATHES", .screen = Screen::Needle, .choices = dn::choices,
+                        .row1 = dn::row1, .reportsReduction = true,
+                        .demo = [](hc::fx::Effect& e) { e.set(thedon::Threshold, -24); e.set(thedon::Ratio, 3); }};
+const PlateSpec kSlowBurn{.note1 = "TUBE LIMITING", .note2 = "SLOW AND SWEET", .screen = Screen::Needle, .choices = sb::choices,
+                          .row1 = sb::row1, .reportsReduction = true,
+                          .demo = [](hc::fx::Effect& e) { e.set(slowburn::Threshold, -24); e.set(slowburn::Time, 4); }};
+const PlateSpec kIronFist{.note1 = "DRIVE IT IN", .note2 = "CONSOLE STYLE", .screen = Screen::Needle, .choices = ir::choices,
+                          .toggles = ir::toggles, .row1 = ir::row1, .reportsReduction = true,
+                          .demo = [](hc::fx::Effect& e) { e.set(ironfist::Input, 14); e.set(ironfist::Limit, 1); e.set(ironfist::Iron, 50); }};
+const PlateSpec kKnockout{.note1 = "SHAPE THE HITS", .note2 = "AND THE TAILS", .screen = Screen::None, .choices = ko::choices,
+                          .row1 = ko::row1, .row2 = ko::row2,
+                          .demo = [](hc::fx::Effect& e) { e.set(knockout::Attack, 60); e.set(knockout::Sustain, -40); e.set(knockout::Mode, 1); }};
+const PlateSpec kFullHouse{.note1 = "LOUDER, NOT SMALLER", .note2 = "QUIET PARTS COME UP", .screen = Screen::Readouts, .readouts = fh::readouts,
+                           .row1 = fh::row1, .left = fh::left, .reportsReduction = true,
+                           .demo = [](hc::fx::Effect& e) {
+                               using namespace fullhouse;
+                               e.set(LowLift, 10); e.set(Leveler, 50); e.set(HighLevel, 60);
+                           }};
+const PlateSpec kWheelman{.note1 = "RIDES THE FADER", .note2 = "SO YOU DON'T HAVE TO", .screen = Screen::Readouts, .readouts = wm::readouts,
+                          .row1 = wm::row1, .left = wm::left,
+                          .demo = [](hc::fx::Effect& e) { e.set(wheelman::Target, -24); }};
+const PlateSpec kBigShot{.note1 = "LOUD AND PROUD", .note2 = "NEVER OVER THE TOP", .screen = Screen::Needle, .readouts = bs::readouts,
+                         .choices = bs::choices, .row1 = bs::row1, .leftToggles = bs::leftT, .steppers = bs::steppers, .reportsReduction = true,
+                         .demo = [](hc::fx::Effect& e) { e.set(bigshot::Threshold, -8); e.set(bigshot::Bands, 1); }};
+const PlateSpec kSilencer{.note1 = "SOFTER ESSES", .note2 = "SAME VOICE", .screen = Screen::Needle, .choices = si::choices,
+                          .toggles = si::toggles, .row1 = si::row1, .reportsReduction = true,
+                          .demo = [](hc::fx::Effect& e) { e.set(silencer::Threshold, -40); }};
+const PlateSpec kBreathless{.note1 = "BREATHS GO QUIET", .note2 = "WORDS STAY PUT", .screen = Screen::Readouts, .readouts = br::readouts,
+                            .row1 = br::row1, .left = br::left,
+                            .demo = [](hc::fx::Effect& e) { e.set(breathless::LevelGate, -20); }};
+const PlateSpec kTommyGun{.note1 = "ONE KNOB", .note2 = "THE ROOM PUMPS", .screen = Screen::Needle, .choices = tg::choices,
+                          .row1 = tg::row1, .reportsReduction = true,
+                          .demo = [](hc::fx::Effect& e) { e.set(tommygun::Amount, 70); }};
+
+} // namespace hem::rack::plates

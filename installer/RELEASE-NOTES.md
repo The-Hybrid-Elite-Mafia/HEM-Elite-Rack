@@ -1,3 +1,27 @@
+# HEM-Elite-Rack 0.16.0
+
+**Fourteen new dynamics plug-ins** (in the rack and as VST3), our own designs:
+- **SWITCHBLADE** — channel compressor + gate + steering filter
+- **TERRITORY** — 4- or 5-band dynamics, each band down or up; natural or linear phase
+- **CONSIGLIERE** — two-knob leveler, smooth light-cell or firmer solid-state
+- **HEAVYWEIGHT** — punch compressor with an analog stage and release on the beat
+- **THE DON** — old-school broadcast bus compressor that breathes with the music
+- **SLOW BURN** — variable-mu tube limiter
+- **IRON FIST** — console channel compressor you drive with INPUT, with limiter, de-ess and iron
+- **KNOCKOUT** — transient designer, wide or four bands
+- **FULL HOUSE** — gate, lift the quiet, leveler, hold the loud
+- **WHEELMAN** — automatic level rider for vocals and bass
+- **BIG SHOT** — loudness maximizer, one band or shared across 5 / 16 bands, with dither
+- **SILENCER** — de-esser, classic or smart detection
+- **BREATHLESS** — breath remover (Tools tab)
+- **TOMMY GUN** — one-knob tempo pump
+
+**ENFORCER** gets two new switches: TAIL (STEADY / LINGER) and CHARACTER (CLEAN / WARM). At their
+defaults it sounds exactly as before.
+
+The plug-in picker shows more, smaller cards when a tab holds more than 15. VST3 plug-ins now read
+the song's tempo from the host (for the ones that sync to it).
+
 # HEM-Elite-Rack 0.15.4
 
 **Lights without the haze** (the sound is unchanged): everything that lights up stays lit, in the

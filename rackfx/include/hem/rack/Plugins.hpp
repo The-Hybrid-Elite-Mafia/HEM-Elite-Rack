@@ -4,6 +4,7 @@
 //  tests iterate). Names and UIDs are permanent once released: hosts and saved sessions
 //  find a plug-in by them.
 // =============================================================================
+#include "hem/rack/Plate.hpp"
 #include "hybrid/fx/Fx.hpp"
 
 #include <array>
@@ -17,7 +18,8 @@ enum class Face : std::uint8_t { EliteEq, Restorer, BusGlue, Tape, TubeEq, Limit
                                 Width, Exciter, Meter,
                                 VcaComp, TubeSat, Hall, Plate, DigitalDelay,
                                 Chorus, Flanger, Phaser, Tremolo, Rotary, AutoFilter,
-                                Sub, VocalStrip, Hitman };
+                                Sub, VocalStrip, Hitman, Territory,
+                                Spec };   // Spec: laid out from PluginInfo::plate
 
 // Where a plug-in sits in the rack's picker.
 enum class Group : std::uint8_t { Eq, Dynamics, Color, Space, Movement, Tools, kCount };
@@ -43,6 +45,7 @@ struct PluginInfo {
     Group         group;
     std::unique_ptr<hc::fx::Effect> (*create)();
     const CurveInfo* curve = nullptr;
+    const PlateSpec* plate = nullptr;   // Face::Spec: what the plate holds
 };
 
 [[nodiscard]] std::span<const PluginInfo> plugins() noexcept;
