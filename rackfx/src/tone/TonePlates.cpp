@@ -223,6 +223,17 @@ constexpr PlateChoice steppers[] = {{Drum, "DRUM"}};
 constexpr PlateKnob row1[] = {{Sensitivity, "SENSITIVITY", "-18", "+18"}, {Thump, "THUMP", "-12", "+12", K::Big}, {Treble, "TREBLE", "-12", "+12", K::Big},
                               {Snap, "SNAP", "MIN", "MAX", K::Big}, {Output, "OUTPUT", "-18", "+18"}};
 } // namespace hh
+// ---- REEL MONEY: the VU on top, the machine's switches beside it, the levels and the echo under it
+namespace rm {
+using namespace reelmoney;
+constexpr PlateChoice choices[] = {{Meter, "METER"}, {Monitor, "MONITOR"}};
+constexpr PlateToggle toggles[] = {{Link, "LINK"}};
+constexpr PlateChoice steppers[] = {{Speed, "SPEED"}, {Bias, "BIAS"}, {EchoStyle, "ECHO STYLE"}};
+constexpr PlateKnob row1[] = {{IntoTape, "INTO TAPE", "-18", "+18", K::Big}, {TapeLevel, "TAPE LEVEL", "150", "1020"}, {Wobble, "WOBBLE", "0", "100"},
+                              {Hiss, "HISS", "OFF", "0"}, {OffTape, "OFF TAPE", "-18", "+18", K::Big}};
+constexpr PlateKnob row2[] = {{EchoTime, "ECHO TIME", "1", "500"}, {EchoLevel, "ECHO LEVEL", "OFF", "100"}, {EchoTone, "ECHO TONE", "200", "16K"},
+                              {VuZero, "VU ZERO", "-24", "-8"}};
+} // namespace rm
 
 } // namespace
 
@@ -247,6 +258,9 @@ const PlateSpec kShredder{.note1 = "FEWER BITS", .note2 = "FEWER SAMPLES", .scre
 const PlateSpec kHeavyHitter{.note1 = "PICK THE DRUM", .note2 = "MAKE IT HIT", .screen = Screen::Readouts, .readouts = hh::readouts,
                              .choices = hh::choices, .row1 = hh::row1, .steppers = hh::steppers,
                              .demo = [](hc::fx::Effect& e) { e.set(heavyhitter::Thump, 5); e.set(heavyhitter::Snap, 60); e.set(heavyhitter::Treble, 3); }};
+const PlateSpec kReelMoney{.note1 = "ROLL THE TAPE", .note2 = "TUBES AND IRON", .screen = Screen::Needle, .choices = rm::choices,
+                           .toggles = rm::toggles, .row1 = rm::row1, .row2 = rm::row2, .steppers = rm::steppers, .meterSelect = reelmoney::Meter,
+                           .vuMeter = 0, .demo = [](hc::fx::Effect& e) { e.set(reelmoney::IntoTape, 6); e.set(reelmoney::EchoLevel, 30); }};
 const PlateSpec kMidtown{.note1 = "THE MIDDLE", .note2 = "WHERE THE SONG LIVES", .screen = Screen::Curve, .toggles = mt::toggles,
                          .row1 = mt::row1, .steppers = mt::steppers,
                          .demo = [](hc::fx::Effect& e) {
