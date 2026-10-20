@@ -25,6 +25,7 @@
 //  in the chain that plays notes (an instrument), and the sustain pedal to its pedal parameter.
 // =============================================================================
 #include "hem/rack/Notes.hpp"
+#include "hem/rack/Clone.hpp"
 #include "hybrid/core/SpscRing.hpp"
 #include "hybrid/engine/AudioProcessor.hpp"
 #include "hybrid/fx/Dsp.hpp"
@@ -149,6 +150,7 @@ private:
     struct SlotRt {
         hc::fx::Effect*    fx = nullptr;
         rack::NoteSink*    notes = nullptr;        // the plug-in plays notes
+        rack::HardwareLoop* loop = nullptr;        // the plug-in uses the sound card's own channels (THE MOLD)
         float              mix = 1.0f;            // 1 = plug-in, 0 = its delayed input
         std::vector<float> dl, dr;                // bypass delay (kMaxSlotDelay)
         std::uint32_t      pos = 0;
@@ -162,6 +164,8 @@ private:
     // the sound card's inputs for the block being rendered (offset: where this chunk starts in them)
     const float* const* hwIn_ = nullptr;
     std::uint32_t hwInCount_ = 0, hwInOffset_ = 0;
+    float* const* hwOut_ = nullptr;
+    std::uint32_t hwOutCount_ = 0;
     struct Frame { float l = 0.0f, r = 0.0f; };
     static constexpr std::size_t kRecRing = std::size_t{1} << 20;   // about 21 s at 48 kHz
     std::unique_ptr<hc::core::SpscRing<Frame, kRecRing>> recWetRing_, recDryRing_;

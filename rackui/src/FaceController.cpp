@@ -253,7 +253,8 @@ void FaceController::mouseDown(float x, float y, bool doubleClick, bool fine) {
     case WKind::Readout:
     case WKind::History:
     case WKind::Rta:
-    case WKind::Polar: return;
+    case WKind::Polar:
+    case WKind::CloneCurve: return;
     }
 }
 

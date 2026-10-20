@@ -502,6 +502,20 @@ COIL
   how soon the peaks get rounded (quiet sounds stay the same level). PRE-DELAY waits before the
   springs. TREBLE and BASS shape the reverb only. MIX, OUTPUT; MONO puts the same reverb on both sides.
 
+THE MOLD and THE FORGER
+  Copy the sound of a hardware EQ (or any outboard box) and use it on every track.
+  Wire it up: an output of your interface (3 or higher) into the box's input, the box's output back into
+  an input of your interface. In the rack app: put THE MOLD in a slot, set SEND (the output that feeds
+  the box) and RETURN (the input it comes back on), and switch TRANSMIT on: it sends a quiet hiss-like
+  test signal through the box. RECEIVING lights when it hears its own signal come back; LOOP shows the
+  round trip. Lower HEADROOM's number if the clip lights come on (CLEAR CLIPS resets them).
+  Then put THE FORGER on any track (or in the rack): in CAPTURE it follows the box live, so turn the
+  box's knobs and hear the copy change. HOLD keeps the curve (it is saved with your session, so you can
+  switch the box off). ADD puts the box's new moves on top of what is held. GAIN sets the level, TRIM
+  shows how far under 0 dBFS the peaks are, CLEAR goes back to flat, SCALE zooms the curve.
+  In a DAW: put THE MOLD on a track whose output goes to the box and whose input comes back from it
+  (its own output is the test signal); only one MOLD is listened to at a time.
+
 GRAND LARCENY
   An electric grand piano. In the rack: put it in a slot and play a MIDI keyboard (any keyboard
   plugged into the PC is picked up within a few seconds; its sustain pedal works), or click the 61

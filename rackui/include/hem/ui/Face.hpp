@@ -13,6 +13,7 @@
 //  matching larger style, so it stays sharp at any size.
 // =============================================================================
 #include "hem/rack/Analyzer.hpp"
+#include "hem/rack/Clone.hpp"
 #include "hem/rack/BusGlue.hpp"
 #include "hem/rack/Tape.hpp"
 #include "hem/rack/TubeEq.hpp"
@@ -77,6 +78,9 @@ public:
     [[nodiscard]] virtual float rtaMax(int, int) const { return -120.0f; }
     [[nodiscard]] virtual float spdAngle(int) const { return 0.0f; }
     [[nodiscard]] virtual float spdLevel(int) const { return -120.0f; }
+    // THE FORGER's curve (rack::CloneSource): rack::clone::kPoints points, dB
+    [[nodiscard]] virtual bool  hasClone() const { return false; }
+    [[nodiscard]] virtual float cloneDb(int) const { return 0.0f; }
     [[nodiscard]] virtual double sampleRate() const { return 48000.0; }
 };
 
@@ -100,6 +104,8 @@ public:
     float rtaMax(int side, int b) const override;
     float spdAngle(int b) const override;
     float spdLevel(int b) const override;
+    bool  hasClone() const override { return clone_ != nullptr; }
+    float cloneDb(int i) const override { return clone_ ? clone_->cloneDb(i) : 0.0f; }
     double sampleRate() const override { return rate_; }
     void setSampleRate(double fs) noexcept { rate_ = fs; }
 
@@ -109,6 +115,7 @@ private:
     rack::NoiseProfileSource* noise_ = nullptr;
     rack::EliteEqView*        eq_ = nullptr;
     rack::AnalyzerSource*     analyzer_ = nullptr;
+    rack::CloneSource*        clone_ = nullptr;
     double rate_ = 48000.0;
 };
 
@@ -134,6 +141,7 @@ enum class WKind : std::uint8_t {
                    // param2 = the sustain switch (off: a key sounds while the mouse holds it; on: a click latches it)
     Rta,           // STAKEOUT: the frequency bands as bars (one set, or left and right), with the max line (display only)
     Polar,         // STAKEOUT: the stereo position of each band on a half circle (display only)
+    CloneCurve,    // THE FORGER: the captured curve, 25 Hz .. 20 kHz (display only; param = its ±16 / ±30 dB choice)
 };
 
 struct Widget {
@@ -271,6 +279,7 @@ private:
     void history(const Ctx& c, const Widget& w) const;
     void rta(const Ctx& c, const Widget& w) const;
     void polar(const Ctx& c, const Widget& w) const;
+    void cloneCurve(const Ctx& c, const Widget& w) const;
     void spectrumBehind(const Ctx& c, Rect plot, float alpha) const;
     void grid(const Ctx& c, Rect plot, float dbTop, float dbBottom, float dbStep, bool signedLabels) const;
     [[nodiscard]] float plain(const PanelHost& host, int param) const;

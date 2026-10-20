@@ -1935,7 +1935,7 @@ FaceLayout specFace(const rack::PluginInfo& info) {
     const bool screen = S.screen != Screen::None && !S.bands;
     const bool twoRows = !S.row2.empty();
     // what sits beside the screen
-    const bool needleReadouts = S.screen == Screen::Needle && !S.readouts.empty();
+    const bool needleReadouts = (S.screen == Screen::Needle || S.screen == Screen::Clone) && !S.readouts.empty();
     const bool column = screen && (!S.choices.empty() || !S.toggles.empty() || needleReadouts);
     if (S.bands) {
         specBands(L, S);
@@ -1959,6 +1959,15 @@ FaceLayout specFace(const rack::PluginInfo& info) {
             sp.kind = WKind::Spectrum;
             sp.r = scr;
             L.widgets.push_back(sp);
+            L.recesses.push_back({scr, 14, 9, false, true});
+            break;
+        }
+        case Screen::Clone: {
+            Widget cv;
+            cv.kind = WKind::CloneCurve;
+            cv.r = scr;
+            cv.param = S.cloneScale;
+            L.widgets.push_back(cv);
             L.recesses.push_back({scr, 14, 9, false, true});
             break;
         }

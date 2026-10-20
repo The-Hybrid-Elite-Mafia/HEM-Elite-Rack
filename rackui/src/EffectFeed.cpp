@@ -7,7 +7,8 @@ EffectFeed::EffectFeed(hc::fx::Effect& e) noexcept
       spectrum_(dynamic_cast<rack::SpectrumSource*>(&e)),
       noise_(dynamic_cast<rack::NoiseProfileSource*>(&e)),
       eq_(dynamic_cast<rack::EliteEqView*>(&e)),
-      analyzer_(dynamic_cast<rack::AnalyzerSource*>(&e)) {}
+      analyzer_(dynamic_cast<rack::AnalyzerSource*>(&e)),
+      clone_(dynamic_cast<rack::CloneSource*>(&e)) {}
 
 float EffectFeed::before(int b) const { return spectrum_ ? spectrum_->spectrumBefore().level(b) : rack::kSpectrumFloorDb; }
 float EffectFeed::after(int b) const { return spectrum_ ? spectrum_->spectrumAfter().level(b) : rack::kSpectrumFloorDb; }

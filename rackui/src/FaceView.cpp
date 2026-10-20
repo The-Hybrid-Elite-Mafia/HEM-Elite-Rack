@@ -733,6 +733,22 @@ void FaceView::rta(const Ctx& c, const Widget& w) const {
     if (dual) r.text(s, "RIGHT", p.x + 90 * z, p.y + 26 * z, th_.gold, Align::Left, TextFx::Shadowed);
 }
 
+// THE FORGER: the captured curve over a ±16 or ±30 dB grid.
+void FaceView::cloneCurve(const Ctx& c, const Widget& w) const {
+    Renderer& r = c.r;
+    const Rect plot = plotArea(w.r);
+    const Rect p = c.T(plot);
+    const float range = w.param >= 0 && plain(c.host, w.param) >= 0.5f ? 30.0f : 16.0f;
+    grid(c, plot, range, -range, range > 20.0f ? 10.0f : 4.0f, true);
+    if (!c.feed.hasClone()) return;
+    float xs[rack::clone::kPoints], ys[rack::clone::kPoints];
+    for (int i = 0; i < rack::clone::kPoints; ++i) {
+        xs[i] = c.X(freqToX(plot, static_cast<float>(rack::clone::pointHz(i))));
+        ys[i] = p.cy() - std::clamp(c.feed.cloneDb(i) / range, -1.0f, 1.0f) * p.h * 0.5f;
+    }
+    r.polyline(xs, ys, rack::clone::kPoints, 2.4f * c.z, th_.teal, Blend::Over, false);
+}
+
 // STAKEOUT: a half circle; straight up = the middle, the dashed lines at 45 degrees = hard left / right, red past
 // 60 degrees = out of phase. Each band is a dot: its angle where it sits, its distance how loud (rings 20 dB apart).
 void FaceView::polar(const Ctx& c, const Widget& w) const {
@@ -1027,6 +1043,7 @@ void FaceView::draw(Renderer& r, const PanelHost& host, const FaceFeed& feed, co
         case WKind::History: history(c, w); break;
         case WKind::Rta: rta(c, w); break;
         case WKind::Polar: polar(c, w); break;
+        case WKind::CloneCurve: cloneCurve(c, w); break;
         case WKind::Keyboard: keyboard(c, w); break;
         case WKind::GraphRange: {
             const std::string t = fmt("%.0f dB", kGraphRanges[static_cast<std::size_t>(w.choice)]);

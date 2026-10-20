@@ -9,11 +9,15 @@
 #include "hem/rack/Comeback.hpp"
 #include "hem/rack/Garage.hpp"
 #include "hem/rack/Tools.hpp"
+#include "hem/rack/Clone.hpp"
+#include "hybrid/fx/Dsp.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <initializer_list>
 #include <memory>
+#include <chrono>
+#include <thread>
 #include <utility>
 
 namespace hem::test {
@@ -55,7 +59,7 @@ double peakIn(const std::vector<float>& x, std::size_t from, std::size_t to) {
 
 void allRules() {
     for (const char* name : {"STRAIGHT SHOOTER", "BOTTOM LINE", "TEN TOES", "FOUR CORNERS", "SMOOTH TALKER", "INSIDE MAN", "LOW RIDER", "UNDERTOW", "DEEP POCKETS", "LOW PROFILE", "THE BOSS", "KINGPIN", "GOLD CHAIN", "IVORIES", "HIGH ROLLER", "THE MIDDLEMAN", "DOUBLE CROSS",
-                             "CUTTHROAT", "TUNNEL VISION", "THE SETUP", "FOUNDRY", "BOARDROOM", "MIDTOWN", "HEAVY HITTER", "REEL MONEY", "HOTHEAD"}) {
+                             "CUTTHROAT", "TUNNEL VISION", "THE SETUP", "FOUNDRY", "BOARDROOM", "MIDTOWN", "HEAVY HITTER", "REEL MONEY", "HOTHEAD", "THE MOLD", "THE FORGER"}) {
         const PluginInfo* info = findPlugin(name);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
@@ -1324,9 +1328,101 @@ void testHothead() {
 
 } // namespace
 
+// THE MOLD measures a "hardware" EQ in a loop (a bell +6 dB at 1 kHz and a low shelf -4 dB at 120 Hz, 300 samples
+// of extra delay), THE FORGER plays what it measured; HOLD keeps it, ADD stacks the box's moves on top, CLEAR flattens.
+void testClone() {
+    using namespace hem::rack;
+    auto mold = make("THE MOLD", {{mold::Transmit, 1}});
+    hc::fx::Biquad bell, shelf;
+    bell.c = hc::fx::BiquadCoefs::make(hc::fx::BiquadCoefs::Type::Bell, kFs, 1000.0, 1.0, 6.0);
+    shelf.c = hc::fx::BiquadCoefs::make(hc::fx::BiquadCoefs::Type::LowShelf, kFs, 120.0, 0.7071, -4.0);
+    hc::fx::DelayLine wire;
+    wire.prepare(400);
+    constexpr std::uint32_t kBlk = 256;
+    std::vector<float> back(kBlk, 0.0f), l(kBlk), r(kBlk);
+    // the loop: what the MOLD sends comes back through the box (in a DAW the return arrives on its left input)
+    auto loopFor = [&](double seconds) {
+        for (int b = 0; b < static_cast<int>(seconds * kFs / kBlk); ++b) {
+            for (std::uint32_t i = 0; i < kBlk; ++i) { l[i] = back[i]; r[i] = 0.0f; }
+            mold->process(l.data(), r.data(), kBlk);
+            for (std::uint32_t i = 0; i < kBlk; ++i) back[i] = shelf.tick(bell.tick(wire.process(l[i], 300)));
+        }
+    };
+    loopFor(2.0);
+    float curve[clone::kPoints];
+    const bool fresh = clone::latestCurve(curve, nullptr);
+    auto at = [&](double hz) {
+        int best = 0;
+        for (int i = 0; i < clone::kPoints; ++i)
+            if (std::fabs(std::log(clone::pointHz(i) / hz)) < std::fabs(std::log(clone::pointHz(best) / hz))) best = i;
+        return static_cast<double>(curve[best]);
+    };
+    const double want1k = hc::fx::BiquadCoefs::make(hc::fx::BiquadCoefs::Type::Bell, kFs, 1000.0, 1.0, 6.0).magnitudeDb(kFs, clone::pointHz(0) * 0 + 1000.0);
+    std::printf("  THE MOLD: receiving %.0f, loop %.2f ms (300 + one 256 block = %.2f ms); curve at 60 Hz %+.2f, 1 kHz %+.2f (box %+.2f), 5 kHz %+.2f dB\n",
+                static_cast<double>(mold->meter(mold::Receiving)), static_cast<double>(mold->meter(mold::LoopMs)), 556.0 / 48.0, at(60.0), at(1000.0),
+                want1k, at(5000.0));
+    CHECK(fresh && mold->meter(mold::Receiving) > 0.5f && std::fabs(mold->meter(mold::LoopMs) - 556.0f / 48.0f) < 0.05f);
+    CHECK(std::fabs(at(1000.0) - 6.0) < 0.6 && std::fabs(at(60.0) + 4.0) < 0.8 && std::fabs(at(5000.0)) < 0.6);
+    // THE FORGER in CAPTURE plays that curve (its background thread makes the FIR: give it time while the loop keeps running)
+    auto forger = make("THE FORGER", {{forger::Mode, forger::Capture}});
+    auto gainAt = [&](double hz) {
+        Stereo s = sine(hz, 0.6, 0.1f);
+        run(*forger, s, 256);
+        return db(toneAmp(s.l, hz, s.size() - 9600, 9600) / 0.1);
+    };
+    for (int k = 0; k < 20; ++k) {
+        loopFor(0.05);
+        Stereo s(2560);
+        run(*forger, s, 256);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    loopFor(0.2);
+    const double g1k = gainAt(1000.0), g60 = gainAt(60.0), g5k = gainAt(5000.0);
+    std::printf("  THE FORGER CAPTURE: 60 Hz %+.2f, 1 kHz %+.2f, 5 kHz %+.2f dB; receiving %.0f, latency %u\n", g60, g1k, g5k,
+                static_cast<double>(forger->meter(forger::Receiving)), forger->latency());
+    CHECK(std::fabs(g1k - 6.0) < 0.8 && std::fabs(g60 + 4.0) < 1.2 && std::fabs(g5k) < 0.8 && forger->latency() == 256);
+    // HOLD: the curve goes into its own parameters (saved with the session)
+    forger->set(forger::Mode, forger::Hold);
+    {
+        Stereo s(256);
+        run(*forger, s, 256);
+    }
+    int i1k = 0;
+    for (int i = 0; i < clone::kPoints; ++i)
+        if (std::fabs(std::log(clone::pointHz(i) / 1000.0)) < std::fabs(std::log(clone::pointHz(i1k) / 1000.0))) i1k = i;
+    const float held = forger->get(forger::Curve0 + i1k);
+    // ADD: the box's moves (still +6 at 1 kHz) on top of the held curve
+    forger->set(forger::Mode, forger::Add);
+    for (int k = 0; k < 15; ++k) {
+        loopFor(0.05);
+        Stereo s(2560);
+        run(*forger, s, 256);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    const double added = gainAt(1000.0);
+    // HOLD again (the sum is kept), then CLEAR: flat
+    forger->set(forger::Mode, forger::Hold);
+    {
+        Stereo s(256);
+        run(*forger, s, 256);
+    }
+    const float heldSum = forger->get(forger::Curve0 + i1k);
+    forger->set(forger::Clear, 1);
+    for (int k = 0; k < 10; ++k) {
+        Stereo s(2560);
+        run(*forger, s, 256);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    const double flat = gainAt(1000.0);
+    std::printf("  THE FORGER HOLD keeps %+.2f dB at 1 kHz; ADD: %+.2f dB; HOLD keeps %+.2f; CLEAR: %+.2f dB\n", static_cast<double>(held), added,
+                static_cast<double>(heldSum), flat);
+    CHECK(std::fabs(held - 6.0f) < 0.6f && std::fabs(added - 12.0) < 1.0 && std::fabs(heldSum - 12.0f) < 1.0f && std::fabs(flat) < 0.3);
+}
+
 void testToneShop() {
     std::printf("[the tone shop]\n");
     allRules();
+    testClone();
     testStraightShooter();
     testBottomLine();
     testTenToes();

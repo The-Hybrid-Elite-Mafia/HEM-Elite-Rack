@@ -96,7 +96,7 @@ void layoutRules(const rack::PluginInfo& info) {
     }
     int missing = 0;
     for (int p = 0; p < count; ++p)
-        if (!reach.count(p)) { ++missing; std::printf("  no control for %s\n", fx->params()[static_cast<std::size_t>(p)].id); }
+        if (!reach.count(p) && (info.firstStored < 0 || p < info.firstStored)) { ++missing; std::printf("  no control for %s\n", fx->params()[static_cast<std::size_t>(p)].id); }
     CHECK(missing == 0);
     CHECK(find(L, WKind::Bypass) >= 0);
     std::printf("  %s: %zu controls, every parameter reachable, no overlaps, text has room\n", info.name, L.widgets.size());

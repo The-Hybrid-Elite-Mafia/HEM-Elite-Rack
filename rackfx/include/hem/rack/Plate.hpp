@@ -22,6 +22,7 @@ enum class Screen : std::uint8_t {
     History,    // scrolling history of meters 0 and 1 (gain change, dB) and 2 (input level)
     Readouts,   // big-number windows (PlateSpec::readouts), in a row
     Curve,      // the EQ / filter curve (PluginInfo::curve) over the music's spectrum
+    Clone,      // a curve the plug-in measured (rack::CloneSource), with its readouts beside it
 };
 
 enum class KnobSize : std::uint8_t { Small, Normal, Big };
@@ -93,6 +94,7 @@ struct PlateSpec {
     bool        reportsReduction = false;       // publishes gain reduction (hosts get a GR meter)
     int         meterSelect = -1;               // Needle: a choice IN / GR / OUT says what the needle reads
     int         vuMeter = -1;                   // ... the input VU level is this meter, the output VU level the next
+    int         cloneScale = -1;                // Clone: a choice ±16 / ±30 dB for the display
     void (*demo)(hc::fx::Effect&) = nullptr;    // settings for the CI screenshot (something to see)
 };
 

@@ -20,6 +20,7 @@
 #include "hem/rack/Comeback.hpp"
 #include "hem/rack/Garage.hpp"
 #include "hem/rack/Holdouts.hpp"
+#include "hem/rack/Clone.hpp"
 #include "hem/rack/Analyzer.hpp"
 #include "arsenal/Plates.hpp"
 
@@ -425,6 +426,14 @@ const PluginInfo kPlugins[] = {
      "A real room: size, distance, room shape, balance, decay, pre-delay, density, shelves, damping, variations; direct, early and reverb levels",
      {0x66F2A7CAu, 0x82804983u, 0xAF47E3DBu, 0x0DAF2509u}, {0x38D2C619u, 0x238F40D3u, 0x83ABFA14u, 0xEE406F0Fu},
      Face::Spec, Group::Space, &makeSpeakeasy, nullptr, &plates::kSpeakeasy},
+    {"THE FORGER", "EQ CLONE", "COPY WHAT MATTERS", "Fx|EQ",
+     "Plays the curve THE MOLD measured on your hardware EQ: capture, hold, add; gain; the curve is saved with the session",
+     {0x25188298u, 0x0C120D0Eu, 0x161B2FFCu, 0xFE9FBFB4u}, {0x631344BBu, 0xA53A18BBu, 0x59846A52u, 0xDCFBC008u},
+     Face::Spec, Group::Eq, &makeForger, nullptr, &plates::kForger, forger::Curve0},
+    {"THE MOLD", "EQ CAPTURE", "MEASURE WHAT MATTERS", "Fx|Analyzer",
+     "Measures a hardware EQ in a loop through your interface, for THE FORGER: send out, return in, headroom, loop delay",
+     {0x92FA5ECBu, 0x2B1810F3u, 0xA4C69A57u, 0x14ACA976u}, {0xD00AC47Du, 0x6EB79EA7u, 0xDDC42279u, 0x98BD239Fu},
+     Face::Spec, Group::Tools, &makeMold, nullptr, &plates::kMold},
     {"GRAND LARCENY", "ELECTRIC GRAND PIANO", "PLAY WHAT MATTERS", "Instrument|Piano",
      "Electric grand piano: play it from MIDI or its 61 keys; velocity curve, formant, tune, mix, tone, tremolo, pan, phaser, chorus, reverb",
      {0x433C7C81u, 0x0248DE17u, 0x99BD5D36u, 0x18823185u}, {0x1BF68E89u, 0xF82D578Fu, 0xE9C665E8u, 0x27C3A097u},

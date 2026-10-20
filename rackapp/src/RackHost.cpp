@@ -86,7 +86,7 @@ bool RackHost::open(const Device& d) {
         hc::io::AsioDuplex::Options opt;
         opt.driverName = d.id;
         opt.maxInputs  = 16;  // for LIVE INPUT (a mic, a guitar)
-        opt.maxOutputs = 2;   // the first two outputs of the interface
+        opt.maxOutputs = 16;  // the first two play the rack; THE MOLD can send to the others
         auto r = asio_->open(opt, engine_);
         if (!r) {
             std::snprintf(buf, sizeof buf, "Could not open the ASIO driver (%s, error %ld) - is another app using it? Or pick another output",

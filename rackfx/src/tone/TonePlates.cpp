@@ -4,10 +4,31 @@
 #include "hem/rack/ToneShop.hpp"
 #include "hem/rack/Comeback.hpp"
 #include "hem/rack/Garage.hpp"
+#include "hem/rack/Clone.hpp"
 
 namespace hem::rack::plates {
 namespace {
 using K = KnobSize;
+
+// ---- THE MOLD: the loop's levels and what it found; where it sends and hears back
+namespace mld {
+using namespace mold;
+constexpr PlateReadout readouts[] = {{SendDb, "SEND", "dBFS", "+"}, {ReturnDb, "RETURN", "dBFS", "+"}, {ClipSend, "SEND CLIP", "", "0"},
+                                     {ClipReturn, "RETURN CLIP", "", "0"}, {LoopMs, "LOOP", "ms"}, {Receiving, "RECEIVING", "", "0"}};
+constexpr PlateChoice steppers[] = {{SendOut, "SEND"}, {ReturnIn, "RETURN"}};
+constexpr PlateToggle leftT[] = {{Transmit, "TRANSMIT"}, {ClearClips, "CLEAR CLIPS", true}};
+constexpr PlateKnob row1[] = {{Headroom, "HEADROOM", "0", "30", K::Big}};
+} // namespace mld
+
+// ---- THE FORGER: the cloned curve, the mode, the gain
+namespace fgr {
+using namespace forger;
+constexpr PlateReadout readouts[] = {{Trim, "TRIM", "dB"}, {Receiving, "RECEIVING", "", "0"}};
+constexpr PlateChoice left[] = {{Mode, "MODE"}};
+constexpr PlateChoice choices[] = {{Scale, "SCALE"}};
+constexpr PlateToggle leftT[] = {{Clear, "CLEAR", true}};
+constexpr PlateKnob row1[] = {{Gain, "GAIN", "-48", "+12", K::Big}};
+} // namespace fgr
 
 // ---- STRAIGHT SHOOTER / BOTTOM LINE: the curve on top, the bands under it, the globals at the bottom
 namespace le {
@@ -264,6 +285,10 @@ const PlateSpec kHeavyHitter{.note1 = "PICK THE DRUM", .note2 = "MAKE IT HIT", .
 const PlateSpec kReelMoney{.note1 = "ROLL THE TAPE", .note2 = "TUBES AND IRON", .screen = Screen::Needle, .choices = rm::choices,
                            .toggles = rm::toggles, .row1 = rm::row1, .row2 = rm::row2, .steppers = rm::steppers, .meterSelect = reelmoney::Meter,
                            .vuMeter = 0, .demo = [](hc::fx::Effect& e) { e.set(reelmoney::IntoTape, 6); e.set(reelmoney::EchoLevel, 30); }};
+const PlateSpec kMold{.note1 = "TAKES THE MOLD", .note2 = "OF THE REAL ONE", .screen = Screen::Readouts, .readouts = mld::readouts,
+                      .row1 = mld::row1, .leftToggles = mld::leftT, .steppers = mld::steppers};
+const PlateSpec kForger{.note1 = "THE COPY", .note2 = "PLAYS LIKE THE REAL ONE", .screen = Screen::Clone, .readouts = fgr::readouts,
+                        .choices = fgr::choices, .row1 = fgr::row1, .left = fgr::left, .leftToggles = fgr::leftT, .cloneScale = forger::Scale};
 const PlateSpec kHothead{.note1 = "ONE KNOB", .note2 = "TURN UP THE HEAT", .screen = Screen::None, .row1 = hd::row1,
                          .demo = [](hc::fx::Effect& e) { e.set(hothead::Drive, 6); }};
 const PlateSpec kMidtown{.note1 = "THE MIDDLE", .note2 = "WHERE THE SONG LIVES", .screen = Screen::Curve, .toggles = mt::toggles,

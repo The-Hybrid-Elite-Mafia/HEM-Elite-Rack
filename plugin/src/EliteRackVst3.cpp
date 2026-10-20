@@ -16,6 +16,7 @@
 #include "hem/rack/Analyzer.hpp"
 #include "hem/rack/Sidechain.hpp"
 #include "hem/rack/Notes.hpp"
+#include "hem/rack/Clone.hpp"
 #include "hem/rack/Restorer.hpp"
 #include "hem/rack/Spectrum.hpp"
 #include "hem/ui/Face.hpp"
@@ -68,6 +69,7 @@ constexpr Vst::ParamID kRtaBase    = 1600;   // + side * kRtaMaxBands + band: ST
 constexpr Vst::ParamID kRtaMaxBase = 1750;   // + side * kRtaMaxBands + band: STAKEOUT band maxima
 constexpr Vst::ParamID kSpdAngBase = 1900;   // + band: STAKEOUT stereo position (-90..90 degrees)
 constexpr Vst::ParamID kSpdLvlBase = 1980;   // + band: STAKEOUT stereo position level (-120..0 dB)
+constexpr Vst::ParamID kCloneBase  = 2100;   // + point: THE FORGER's curve (-30..+30 dB), rack::clone::kPoints
 static_assert(kRtaBase + 2 * rack::kRtaMaxBands <= kRtaMaxBase && kRtaMaxBase + 2 * rack::kRtaMaxBands <= kSpdAngBase &&
               kSpdAngBase + rack::kRtaMaxBands <= kSpdLvlBase);
 constexpr int kSent = rack::kSpectrumBins / 2;   // every other display bin; the editor interpolates
@@ -151,6 +153,7 @@ public:
         sc_ = dynamic_cast<rack::SidechainSink*>(fx_.get());
         analyzer_ = dynamic_cast<rack::AnalyzerSource*>(fx_.get());
         note_ = dynamic_cast<rack::NoteSink*>(fx_.get());
+        clone_ = dynamic_cast<rack::CloneSource*>(fx_.get());
     }
     static FUnknown* createInstance(void* ctx) { return static_cast<Vst::IAudioProcessor*>(new Processor(static_cast<const rack::PluginInfo*>(ctx))); }
 
@@ -328,6 +331,9 @@ private:
             for (int b = 0; b < rack::eq::kBands; ++b) send(c, kDynBase + static_cast<Vst::ParamID>(b), dbToNorm(eq_->dynamicGainDb(b), -30.0f, 30.0f));
             send(c, kAutoGainId, dbToNorm(eq_->autoGainDb(), -24.0f, 24.0f));
         }
+        if (clone_)
+            for (int i = 0; i < rack::clone::kPoints; ++i)
+                send(c, kCloneBase + static_cast<Vst::ParamID>(i), dbToNorm(clone_->cloneDb(i), -rack::clone::kCurveDb, rack::clone::kCurveDb));
         if (analyzer_) {
             for (int sd = 0; sd < 2; ++sd)
                 for (int b = 0; b < rack::kRtaMaxBands; ++b) {
@@ -350,6 +356,7 @@ private:
     rack::SidechainSink* sc_ = nullptr;
     rack::AnalyzerSource* analyzer_ = nullptr;
     rack::NoteSink* note_ = nullptr;
+    rack::CloneSource* clone_ = nullptr;
     hc::fx::DelayLine bypassDelay_[2];
     std::vector<float> dry_[2];
     double sampleRate_ = 48000.0;
@@ -361,10 +368,10 @@ private:
 // ---- controller ---------------------------------------------------------------------------
 class FxParameter final : public Vst::Parameter {
 public:
-    FxParameter(const hc::fx::ParamInfo& p, Vst::ParamID id)
+    FxParameter(const hc::fx::ParamInfo& p, Vst::ParamID id, bool stored = false)
         : Vst::Parameter(toU16(p.name).c_str(), id, unitFor(p), hc::fx::toNormalized(p, p.def),
                          (p.taper == hc::fx::Taper::Choice || p.taper == hc::fx::Taper::Toggle) ? static_cast<int32>(p.max - p.min) : 0,
-                         Vst::ParameterInfo::kCanAutomate | (p.taper == hc::fx::Taper::Choice ? Vst::ParameterInfo::kIsList : 0)),
+                         stored ? Vst::ParameterInfo::kIsHidden : (Vst::ParameterInfo::kCanAutomate | (p.taper == hc::fx::Taper::Choice ? Vst::ParameterInfo::kIsList : 0))),
           p_(p) {}
     void toString(Vst::ParamValue norm, Vst::String128 out) const SMTG_OVERRIDE {
         const std::string s = hc::fx::formatValue(p_, hc::fx::toPlain(p_, static_cast<float>(norm)));
@@ -438,7 +445,7 @@ class ControllerFeed final : public ui::FaceFeed {
 public:
     ControllerFeed(Vst::EditController& c, const rack::PluginInfo& info, const hc::fx::Effect& fx)
         : c_(c), fx_(fx), restorer_(info.face == rack::Face::Restorer), spectrum_(dynamic_cast<const rack::SpectrumSource*>(&fx) != nullptr),
-          analyzer_(dynamic_cast<const rack::AnalyzerSource*>(&fx) != nullptr) {}
+          analyzer_(dynamic_cast<const rack::AnalyzerSource*>(&fx) != nullptr), clone_(dynamic_cast<const rack::CloneSource*>(&fx) != nullptr) {}
     float meterDb(int m) const override {
         const auto ms = fx_.meters();
         if (m < 0 || m >= static_cast<int>(ms.size())) return -100.0f;
@@ -450,6 +457,11 @@ public:
     float after(int b) const override { return bin(kAfterBase, b); }
     bool hasNoiseFloor() const override { return restorer_; }
     bool hasAnalyzer() const override { return analyzer_; }
+    bool hasClone() const override { return clone_; }
+    float cloneDb(int i) const override {
+        if (i < 0 || i >= rack::clone::kPoints) return 0.0f;
+        return normToDb(c_.getParamNormalized(kCloneBase + static_cast<Vst::ParamID>(i)), -rack::clone::kCurveDb, rack::clone::kCurveDb);
+    }
     float rtaLevel(int side, int b) const override { return band(kRtaBase, side, b); }
     float rtaMax(int side, int b) const override { return band(kRtaMaxBase, side, b); }
     float spdAngle(int b) const override {
@@ -483,7 +495,7 @@ private:
     }
     Vst::EditController& c_;
     const hc::fx::Effect& fx_;
-    bool restorer_, spectrum_, analyzer_;
+    bool restorer_, spectrum_, analyzer_, clone_;
 };
 
 class FaceView final : public CPluginView {
@@ -537,7 +549,11 @@ public:
         if (r != kResultOk) return r;
         const auto ps = fx_->params();
         const int32 hidden = Vst::ParameterInfo::kIsReadOnly | Vst::ParameterInfo::kIsHidden;
-        for (std::size_t i = 0; i < ps.size(); ++i) parameters.addParameter(new FxParameter(ps[i], static_cast<Vst::ParamID>(i)));
+        for (std::size_t i = 0; i < ps.size(); ++i) {
+            // the plug-in's memory (THE FORGER's held curve): saved with the state, not a control for the host
+            const bool stored = info_->firstStored >= 0 && static_cast<int>(i) >= info_->firstStored;
+            parameters.addParameter(new FxParameter(ps[i], static_cast<Vst::ParamID>(i), stored));
+        }
         parameters.addParameter(STR16("Bypass"), nullptr, 1, 0, Vst::ParameterInfo::kCanAutomate | Vst::ParameterInfo::kIsBypass, kBypassId);
         parameters.addParameter(STR16("Display Rate"), nullptr, 0, 48000.0 / 384000.0, hidden, kRateId);
         auto addHidden = [&](const std::string& name, Vst::ParamID id, double def) {
@@ -571,6 +587,8 @@ public:
                 addHidden("Display Position Level " + std::to_string(b + 1), kSpdLvlBase + static_cast<Vst::ParamID>(b), 0.0);
             }
         }
+        if (dynamic_cast<rack::CloneSource*>(fx_.get()))
+            for (int i = 0; i < rack::clone::kPoints; ++i) addHidden("Display Curve " + std::to_string(i + 1), kCloneBase + static_cast<Vst::ParamID>(i), 0.5);
         const auto ms = fx_->meters();
         for (std::size_t m = 0; m < ms.size(); ++m)
             addHidden(std::string("Display Meter ") + ms[m].name, kMeterBase + static_cast<Vst::ParamID>(m), 0.0);

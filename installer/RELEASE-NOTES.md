@@ -1,3 +1,10 @@
+# HEM-Elite-Rack 0.40.0
+
+- **THE MOLD** and **THE FORGER** (new) — the EQ cloner, with their originals' full control sets. THE MOLD measures a hardware EQ in a
+  loop through your interface (send out, return in, headroom, transmit, clip lights, the loop's delay); THE FORGER plays that curve
+  on any track: capture (follows the box live), hold (saved with the session), add, gain, display scale, clear, trim readout.
+- The rack app now opens up to 16 outputs on an ASIO interface (the first two play the rack; THE MOLD can send to the others).
+
 # HEM-Elite-Rack 0.39.0
 
 - **LIVE INPUT** — the rack takes a mic or a guitar from an ASIO interface's inputs (a stereo pair or one input) through the chain,

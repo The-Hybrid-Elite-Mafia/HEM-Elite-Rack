@@ -60,6 +60,7 @@ struct PluginInfo {
     std::unique_ptr<hc::fx::Effect> (*create)();
     const CurveInfo* curve = nullptr;
     const PlateSpec* plate = nullptr;   // Face::Spec: what the plate holds
+    int           firstStored = -1;     // parameters from here on are the plug-in's memory (saved, not controls), -1 = none
 };
 
 [[nodiscard]] std::span<const PluginInfo> plugins() noexcept;

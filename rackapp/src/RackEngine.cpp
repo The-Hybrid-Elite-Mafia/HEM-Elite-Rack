@@ -136,6 +136,7 @@ void RackProcessor::applyCommands() noexcept {
             if (s.fx) (void)retired_.tryPush(Retired{nullptr, s.fx});
             s.fx = c.fx;
             s.notes = dynamic_cast<rack::NoteSink*>(c.fx);
+            s.loop = dynamic_cast<rack::HardwareLoop*>(c.fx);
             std::fill(s.dl.begin(), s.dl.end(), 0.0f);
             std::fill(s.dr.begin(), s.dr.end(), 0.0f);
             s.pos = 0;
@@ -251,6 +252,12 @@ void RackProcessor::renderChunk(float* l, float* r, std::uint32_t n) noexcept {
         total += lat;
         std::memcpy(tmpL_.data(), l, n * sizeof(float));
         std::memcpy(tmpR_.data(), r, n * sizeof(float));
+        if (s.loop) {   // THE MOLD: its send output and return input on the sound card (null: the card has no such channel)
+            const int ret = s.loop->returnInput(), snd = s.loop->sendOutput();
+            const float* rin = hwIn_ && ret >= 0 && static_cast<std::uint32_t>(ret) < hwInCount_ ? hwIn_[ret] + hwInOffset_ : nullptr;
+            float* sout = hwOut_ && snd >= 2 && static_cast<std::uint32_t>(snd) < hwOutCount_ ? hwOut_[snd] + hwInOffset_ : nullptr;
+            s.loop->hardware(rin, sout, n);
+        }
         s.fx->process(l, r, n);
         // the plug-in's input, delayed by its latency (what BYPASS plays)
         for (std::uint32_t i = 0; i < n; ++i) {
@@ -356,6 +363,9 @@ void RackProcessor::process(const hc::engine::ProcessContext& ctx) noexcept {
     applyMidi();
     hwIn_ = ctx.inputs;
     hwInCount_ = ctx.inputs ? ctx.numInputs : 0;
+    hwOut_ = ctx.outputs;
+    hwOutCount_ = ctx.numOutputs;
+    for (std::uint32_t ch = 2; ch < ctx.numOutputs; ++ch) std::memset(ctx.outputs[ch], 0, ctx.frames * sizeof(float));   // only THE MOLD sends there
     for (std::uint32_t done = 0; done < ctx.frames;) {
         const std::uint32_t n = std::min(kChunk, ctx.frames - done);
         hwInOffset_ = done;
@@ -369,6 +379,8 @@ void RackProcessor::process(const hc::engine::ProcessContext& ctx) noexcept {
     }
     hwIn_ = nullptr;
     hwInCount_ = 0;
+    hwOut_ = nullptr;
+    hwOutCount_ = 0;
 }
 
 void RackProcessor::renderWithInputs(const float* const* inputs, std::uint32_t numInputs, float* left, float* right, std::uint32_t frames) noexcept {
