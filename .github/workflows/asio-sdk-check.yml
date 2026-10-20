@@ -1,0 +1,21 @@
+# Reads Steinberg's ASIO SDK straight from Steinberg and prints its licence files, so the licence can be checked
+# before the public build uses it. Nothing from the SDK is committed or uploaded.
+name: asio-sdk-check
+on: workflow_dispatch
+jobs:
+  check:
+    runs-on: windows-latest
+    steps:
+      - name: Download, verify and print the licence
+        shell: pwsh
+        run: |
+          $url = 'https://download.steinberg.net/sdk_downloads/ASIO-SDK_2.3.4_2025-10-15.zip'
+          Invoke-WebRequest -Uri $url -OutFile sdk.zip
+          $h = (Get-FileHash sdk.zip -Algorithm SHA256).Hash.ToLower()
+          Write-Host "sha256 $h"
+          Expand-Archive sdk.zip -DestinationPath sdk
+          Get-ChildItem -Recurse sdk | ForEach-Object { $_.FullName.Substring((Resolve-Path sdk).Path.Length) }
+          Get-ChildItem -Recurse sdk -Include LICENSE*,README*,*.txt,*.md | ForEach-Object {
+            Write-Host "===== $($_.Name) ====="
+            Get-Content $_.FullName -Raw | Write-Host
+          }
