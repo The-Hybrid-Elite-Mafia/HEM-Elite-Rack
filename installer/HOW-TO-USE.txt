@@ -568,8 +568,13 @@ PROMOTION
   length of a whole file; a live rack can't, so that part isn't here.
 
 WISEGUYS
-  Three backing voices from one: each VOICE is an interval in semitones (3 = minor third, 4 = major
-  third, 7 = fifth, 12 = octave, minus = below), with its LEVEL and PAN. DRY is the original.
+  Six backing voices from one singer. Switch a VOICE on, set its PITCH in semitones (3 = minor third,
+  4 = major third, 7 = fifth, 12 = octave, minus = below; fractions = cents), FORMANT (moves the
+  voice's character: up = smaller, younger; down = bigger), GAIN, PAN and DELAY. DIRECT is the original
+  singer (ON, GAIN, DELAY). ANIMATE lets the voices drift apart in time so they don't land together.
+  LINK makes the formant follow the pitch (FREE = not at all, LINEAR = fully, INVERTED = the other way;
+  the others are in between). MODE and MIN / MAX PITCH tell it what kind of voice it is reading. It
+  works on one voice or one instrument line, not chords. It delays the sound by 85 ms (DAWs make up).
 
 MADE MAN
   Pitch correction for one voice. Set KEY and SCALE (ALL NOTES = every note allowed). SPEED all the way

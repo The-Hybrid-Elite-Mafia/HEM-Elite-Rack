@@ -67,8 +67,15 @@ constexpr PlateKnob row1[] = {{Semitones, "SEMITONES", "-12", "+12", K::Big}, {C
 
 namespace wg {
 using namespace wiseguys;
-constexpr PlateKnob row1[] = {{Interval1, "VOICE 1"}, {Level1, "LEVEL 1"}, {Pan1, "PAN 1"}, {Interval2, "VOICE 2"}, {Level2, "LEVEL 2"}, {Pan2, "PAN 2"}};
-constexpr PlateKnob row2[] = {{Interval3, "VOICE 3"}, {Level3, "LEVEL 3"}, {Pan3, "PAN 3"}, {Dry, "DRY"}, {Output, "OUTPUT"}};
+constexpr PlateKnob voiceKnobs[] = {{Pitch, "PITCH", "-12", "+12"}, {Formant, "FORMANT", "-12", "+12"}, {Gain, "GAIN", "-24", "0"},
+                                    {Pan, "PAN", "L", "R"}, {Delay, "DELAY", "0", "100"}};
+constexpr PlateToggle voiceToggles[] = {{On, "ON"}};
+constexpr const char* voiceNames[] = {"VOICE 1", "VOICE 2", "VOICE 3", "VOICE 4", "VOICE 5", "VOICE 6"};
+constexpr PlateBands voices{.count = kVoices, .first = 0, .stride = kStride, .knobs = voiceKnobs, .toggles = voiceToggles, .columnNames = voiceNames};
+constexpr PlateToggle toggles[] = {{DirectOn, "DIRECT"}};
+constexpr PlateChoice steppers[] = {{P::Link, "LINK"}, {P::Mode, "MODE"}};
+constexpr PlateKnob row1[] = {{DirectGain, "DIRECT GAIN", "-24", "0"}, {DirectDelay, "DIRECT DELAY", "0", "100"}, {Animate, "ANIMATE", "0", "100"},
+                              {MinPitch, "MIN PITCH", "30", "1K"}, {MaxPitch, "MAX PITCH", "100", "4K"}};
 } // namespace wg
 
 namespace mm2 {
@@ -121,8 +128,9 @@ const PlateSpec kSnitch{.note1 = "TELLS YOU", .note2 = "WHEN YOU'RE OFF", .scree
                         .demo = [](hc::fx::Effect& e) { e.set(snitch::Mode, snitch::MyNotes); }};
 const PlateSpec kPromotion{.note1 = "MOVE IT UP", .note2 = "OR DOWN", .screen = Screen::None, .choices = pr::choices, .row1 = pr::row1,
                            .demo = [](hc::fx::Effect& e) { e.set(promotion::Semitones, 17); }};
-const PlateSpec kWiseguys{.note1 = "BACKUP SINGERS", .note2 = "ON CALL", .screen = Screen::None, .row1 = wg::row1, .row2 = wg::row2,
-                          .demo = [](hc::fx::Effect& e) { using namespace wiseguys; e.set(Level3, 40); }};
+const PlateSpec kWiseguys{.note1 = "SIX VOICES", .note2 = "ON CALL", .screen = Screen::None, .toggles = wg::toggles, .row1 = wg::row1,
+                          .steppers = wg::steppers, .bands = &wg::voices,
+                          .demo = [](hc::fx::Effect& e) { using namespace wiseguys; e.set(voice(0, On), 1); e.set(voice(1, On), 1); }};
 const PlateSpec kMadeMan{.note1 = "EVERY NOTE", .note2 = "FALLS IN LINE", .screen = Screen::Readouts, .readouts = mm2::readouts,
                          .choices = mm2::choices, .row1 = mm2::row1, .steppers = mm2::steppers,
                          .demo = [](hc::fx::Effect& e) { using namespace mademan; e.set(Key, 9); e.set(Scale, 2); }};

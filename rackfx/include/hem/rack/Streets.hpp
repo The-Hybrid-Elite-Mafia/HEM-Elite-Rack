@@ -20,8 +20,13 @@
 //                there; the semitone steps are also named as intervals) or FREQUENCY (FROM Hz -> TO Hz: the ratio
 //                between them), up to an octave either way; MODE SYNC / SMOOTH / TRANSIENT / PUNCHY. The original's
 //                time stretching works on a whole file, not on a live stream, so it isn't here. Latency 1681 samples.
-//  WISEGUYS      harmonizer: three extra voices, each its INTERVAL (semitones), LEVEL and PAN, plus
-//                the DRY level and OUTPUT.
+//  WISEGUYS      voice harmonizer: six added voices, each ON, PITCH (-12..+12 semitones, cents allowed), FORMANT
+//                (-12..+12 semitones), GAIN (0..-24 dB), PAN (±45 degrees) and DELAY (0..100 ms); the DIRECT voice
+//                (the original) ON, GAIN and DELAY; ANIMATE 0..100 ms (each voice drifts that far in time, so they
+//                don't land together), LINK (FREE / VOICE / SONG / BRASS / WOODS / STRINGS / LINEAR / INVERTED: how
+//                far each voice's formant follows its pitch, our own amounts), MODE (how the pitch is read: DEFAULT,
+//                VOICE STEADY, VOICE JUMPY, OPERA, MUSIC STEADY, CLEAR TONES, BASS), MIN PITCH and MAX PITCH.
+//                PSOLA voices (formants kept unless moved); latency 4096 samples.
 //  MADE MAN      pitch correction for a single voice: KEY and SCALE (ALL NOTES / MAJOR / MINOR), SPEED
 //                (how fast a note is pulled in: 0 = hard), AMOUNT, MIX. Meters: 0 the sung note, 1 how
 //                far it was pulled (cents).
@@ -69,8 +74,11 @@ enum Modes : int { Sync, Smooth, Transient, Punchy, kModes };
 } // namespace promotion
 
 namespace wiseguys {
-inline constexpr int kVoices = 3;
-enum P : int { Interval1, Level1, Pan1, Interval2, Level2, Pan2, Interval3, Level3, Pan3, Dry, Output, kCount };
+inline constexpr int kVoices = 6, kStride = 6;
+enum V : int { On, Pitch, Formant, Gain, Pan, Delay };   // per voice: voice(v, ...) = v * kStride + ...
+enum P : int { DirectOn = kVoices * kStride, DirectGain, DirectDelay, Animate, Link, Mode, MinPitch, MaxPitch, kCount };
+constexpr int voice(int v, V k) noexcept { return v * kStride + k; }
+inline constexpr std::uint32_t kLatency = 4096;
 } // namespace wiseguys
 
 namespace mademan {

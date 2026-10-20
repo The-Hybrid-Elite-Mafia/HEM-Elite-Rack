@@ -98,7 +98,7 @@ C++23 audio framework, as a library.
 | **THE RACKET** | Drive pedal: overdrive, distortion, fuzz or octave fuzz; drive, tone, level, mix |
 | **THE SNITCH** | Tuner: chromatic, guitar and six other tunings or your own notes (twelve switches); reference A ±6 cents; note, cents and frequency |
 | **PROMOTION** | Pitch shifter: by transpose (semitones as intervals, cents) or by frequency (from / to Hz); sync, smooth, transient or punchy |
-| **WISEGUYS** | Harmonizer: three voices with their own interval, level and pan |
+| **WISEGUYS** | Voice harmonizer: six voices (on, pitch, formant, gain, pan, delay) and the direct voice (on, gain, delay); animate, link, mode, min / max pitch |
 | **MADE MAN** | Pitch correction for one voice: key, scale, speed, amount |
 | **THE DETECTIVE** | Key finder: the key, two alternatives and the song's tuning; detect / stop, your own key (root, scale), sharps or flats |
 | **THE AUDITOR** | Loudness meter (its own plate): EBU / LM1 / DIAL, six weightings, short time, short max / min with overs and unders, true peak max, target and trim, LU or LUFS, pre-filters; gain and a true-peak limiter |

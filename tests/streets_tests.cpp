@@ -308,10 +308,58 @@ void testPromotion() {
 
 void testWiseguys() {
     using namespace wiseguys;
-    auto e = make("WISEGUYS", {{Interval1, 7}, {Level1, 100}, {Pan1, 0}, {Level2, 0}, {Level3, 0}, {Dry, 0}});
-    const double fifth = componentDb(*e, 400, 0.3f, 400 * std::exp2(7.0 / 12.0)), orig = componentDb(*e, 400, 0.3f, 400);
-    std::printf("  WISEGUYS one voice a fifth up, no dry: 599 Hz %.1f dB, 400 Hz %.1f dB\n", fifth, orig);
-    CHECK(fifth > -16.0 && orig < fifth - 20.0);
+    {   // the direct voice alone: the input, kLatency late
+        auto e = make("WISEGUYS");
+        CHECK(e->latency() == kLatency);
+        Stereo s = noise(0.5, 0.3f), ref = s;
+        run(*e, s);
+        double d = 0;
+        for (std::size_t i = kLatency; i < s.size(); ++i) d = std::max(d, static_cast<double>(std::fabs(s.l[i] - ref.l[i - kLatency])));
+        std::printf("  WISEGUYS direct only: largest change %.1e\n", d);
+        CHECK(d < 1e-6);
+    }
+    {   // one voice a fifth up on a sung-like tone (harmonics), no direct: the fifth is there, the original isn't
+        auto e = make("WISEGUYS", {{voice(0, On), 1}, {voice(0, Pitch), 7}, {voice(0, Gain), 0}, {voice(0, Pan), 0}, {DirectOn, 0}});
+        Stereo s(96000);
+        for (std::size_t i = 0; i < s.size(); ++i) {
+            const double t = static_cast<double>(i) / kFs;
+            float v = 0.0f;
+            for (int h = 1; h <= 6; ++h) v += static_cast<float>(0.3 / h * std::sin(2.0 * 3.14159265358979 * 200.0 * h * t));
+            s.l[i] = s.r[i] = v;
+        }
+        run(*e, s);
+        const double up = db(toneAmp(s.l, 200.0 * std::exp2(7.0 / 12.0), 48000, 48000)), orig = db(toneAmp(s.l, 200.0, 48000, 48000));
+        std::printf("  WISEGUYS a fifth up on a 200 Hz voice-like tone: 299.7 Hz %.1f dB, 200 Hz %.1f dB\n", up, orig);
+        CHECK(up > -20.0 && orig < up - 20.0);
+        // FORMANT: the same voice with its formants moved up an octave puts more of its energy higher
+        auto f = make("WISEGUYS", {{voice(0, On), 1}, {voice(0, Pitch), 0}, {voice(0, Gain), 0}, {voice(0, Formant), 12}, {DirectOn, 0}});
+        Stereo t = s;
+        for (std::size_t i = 0; i < t.size(); ++i) {
+            const double tt = static_cast<double>(i) / kFs;
+            float v = 0.0f;
+            for (int h = 1; h <= 6; ++h) v += static_cast<float>(0.3 / h * std::sin(2.0 * 3.14159265358979 * 200.0 * h * tt));
+            t.l[i] = t.r[i] = v;
+        }
+        Stereo ref = t;
+        run(*f, t);
+        auto upper = [](const std::vector<float>& x) {   // harmonics 7..12 together (the source has only 1..6)
+            double e = 0;
+            for (int h = 7; h <= 12; ++h) { const double a = toneAmp(x, 200.0 * h, 48000, 48000); e += a * a; }
+            return 10.0 * std::log10(e + 1e-30);
+        };
+        const double hiRef = upper(ref.l), hiF = upper(t.l);
+        const double fRef = db(toneAmp(ref.l, 200.0, 48000, 48000)), fF = db(toneAmp(t.l, 200.0, 48000, 48000));
+        std::printf("  WISEGUYS formant +12 at unison: harmonics 7-12 %.1f dB (was %.1f), 200 Hz still %.1f dB (was %.1f)\n", hiF, hiRef, fF, fRef);
+        CHECK(hiF > -35.0 && hiRef < -100.0 && fF > fRef - 20.0);
+    }
+    {   // PAN hard left: nothing on the right
+        auto e = make("WISEGUYS", {{voice(0, On), 1}, {voice(0, Pan), -45}, {DirectOn, 0}});
+        Stereo s = sine(300, 1.0, 0.3f);
+        run(*e, s);
+        double r = 0;
+        for (float x : s.r) r = std::max(r, static_cast<double>(std::fabs(x)));
+        CHECK(r < 1e-6);
+    }
 }
 
 void testMadeMan() {
