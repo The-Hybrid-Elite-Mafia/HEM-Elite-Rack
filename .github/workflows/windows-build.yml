@@ -85,7 +85,7 @@ jobs:
         run: |
           tools\ci\run-and-report.ps1 -Title "installer: verify" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\verify-installer.ps1','-Installer',"$env:HEM_INSTALLER"
 
-      - name: Source code of this build (what the GPL asks for: the rack, The Hybrid Core, the ASIO and VST3 SDK parts)
+      - name: Source code of this build, as the GPL asks (the rack, The Hybrid Core, the ASIO and VST3 SDK parts)
         run: |
           tools\ci\run-and-report.ps1 -Title "source zip" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\make-source-zip.ps1'
 
