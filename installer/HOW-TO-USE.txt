@@ -507,7 +507,10 @@ THE RACKET
 
 THE SNITCH
   Tuner. Play one note: it shows the NOTE, how many CENTS off (minus = flat, plus = sharp) and the
-  PITCH in Hz. REFERENCE A is 440 unless your band tunes elsewhere. MUTE silences the track while you tune.
+  PITCH in Hz. MODE: CHROMATIC (any note), GUITAR (E A D G B E), DROP D, OPEN G, OPEN D, OPEN E,
+  DADGAD, HALF DOWN, or MY NOTES (only the notes you switch on below; switch on one for a single
+  note). It tunes to the nearest of those notes. REFERENCE A moves 440 up or down by up to 6 cents.
+  There is no mute (the original has none): bypass the rest of the chain while you tune.
 
 PROMOTION
   Moves the pitch: SHIFT in semitones (12 = an octave), FINE in cents. CHARACTER SMOOTH for held notes

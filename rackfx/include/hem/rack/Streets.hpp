@@ -7,9 +7,12 @@
 //                little of the room the cabinet sits in), MASTER. 4x oversampled; latency 23.
 //  THE RACKET    drive pedal: TYPE OVERDRIVE / DISTORTION / FUZZ / OCTAVE (an octave up on top of
 //                the fuzz), DRIVE, TONE, LEVEL, MIX. 4x oversampled; latency 23.
-//  THE SNITCH    tuner: tells you the NOTE, how many CENTS off and the frequency; REFERENCE pitch
-//                (A = 430..450 Hz), MUTE (silence while you tune). The sound passes untouched
-//                otherwise. Meters: 0 note (MIDI number, -1 = none), 1 cents, 2 Hz.
+//  THE SNITCH    tuner: MODE CHROMATIC (any note) / GUITAR / DROP D / OPEN G / OPEN D / OPEN E / DADGAD /
+//                HALF DOWN / MY NOTES (only the notes switched on below); REFERENCE A ±6 cents around 440 Hz;
+//                the twelve note switches C .. B (used by MY NOTES; pick one for a single note). It tunes to the
+//                switched-on note nearest the sound and shows that NOTE, how many CENTS off (±50) and the
+//                pitch. The sound passes untouched. Meters: 0 note (MIDI number, -1 = none), 1 cents, 2 Hz,
+//                3 how it stands: -1 flat (3 cents or more under), 0 in tune (within 6), +1 sharp.
 //  PROMOTION     pitch shifter: SHIFT (semitones), FINE (cents), CHARACTER SMOOTH (longer grains,
 //                for sustained parts) or TIGHT (shorter, for rhythm), MIX, OUTPUT.
 //  WISEGUYS      harmonizer: three extra voices, each its INTERVAL (semitones), LEVEL and PAN, plus
@@ -42,7 +45,8 @@ enum P : int { Type, Drive, Tone, Level, Mix, kCount };
 } // namespace racket
 
 namespace snitch {
-enum P : int { Reference, Mute, kCount };
+enum P : int { Mode, Reference, Note0, kCount = Note0 + 12 };
+enum Tuning : int { Chromatic, Guitar, DropD, OpenG, OpenD, OpenE, Dadgad, HalfDown, MyNotes, kTunings };
 } // namespace snitch
 
 namespace promotion {

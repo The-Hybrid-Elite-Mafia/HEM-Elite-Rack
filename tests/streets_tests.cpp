@@ -106,16 +106,25 @@ void testSnitch() {
     Stereo s2 = sine(440.0 * std::exp2(20.0 / 1200.0), 1.0, 0.3f);
     run(*e, s2);
     const float n2 = e->meter(0), c2 = e->meter(1);
-    auto r = make("THE SNITCH", {{Reference, 442}});
-    Stereo s3 = sine(442, 1.0, 0.3f);
+    auto r = make("THE SNITCH", {{Reference, 5}});
+    Stereo s3 = sine(440.0 * std::exp2(5.0 / 1200.0), 1.0, 0.3f);
     run(*r, s3);
-    std::printf("  THE SNITCH: 110 Hz -> note %.0f %+.1f c; A4 +20 c -> note %.0f %+.1f c; 442 Hz with A = 442 -> %+.1f c; sound changed by %.1e\n",
+    std::printf("  THE SNITCH: 110 Hz -> note %.0f %+.1f c; A4 +20 c -> note %.0f %+.1f c; A +5 c with REFERENCE +5 -> %+.1f c; sound changed by %.1e\n",
                 n1, c1, n2, c2, r->meter(1), diff);
     CHECK(n1 == 45.0f && std::fabs(c1) < 3.0f && n2 == 69.0f && std::fabs(c2 - 20.0f) < 3.0f && std::fabs(r->meter(1)) < 3.0f && diff == 0.0);
-    auto m = make("THE SNITCH", {{Mute, 1}});
-    Stereo s4 = sine(220, 0.5, 0.3f);
-    run(*m, s4);
-    CHECK(peak(s4) < 1e-6f);
+    // the modes: 405 Hz is G#4 -43 c in CHROMATIC, G4 (+50 c, held at the edge) in GUITAR, B4 with only B switched on
+    auto at = [&](std::initializer_list<std::pair<int, float>> v) {
+        auto e2 = make("THE SNITCH", v);
+        Stereo t = sine(405.0, 1.0, 0.3f);
+        run(*e2, t);
+        return std::pair<float, float>{e2->meter(0), e2->meter(1)};
+    };
+    const auto ch = at({{Mode, Chromatic}}), gt = at({{Mode, Guitar}});
+    std::initializer_list<std::pair<int, float>> onlyB = {{Mode, MyNotes}, {Note0 + 0, 0}, {Note0 + 1, 0}, {Note0 + 2, 0}, {Note0 + 3, 0}, {Note0 + 4, 0},
+                                                         {Note0 + 5, 0}, {Note0 + 6, 0}, {Note0 + 7, 0}, {Note0 + 8, 0}, {Note0 + 9, 0}, {Note0 + 10, 0}};
+    const auto mb = at(onlyB);
+    std::printf("  THE SNITCH 405 Hz: chromatic %.0f %+.1f c; guitar %.0f %+.1f c; only B %.0f %+.1f c\n", ch.first, ch.second, gt.first, gt.second, mb.first, mb.second);
+    CHECK(ch.first == 68.0f && std::fabs(ch.second + 43.0f) < 3.0f && gt.first == 67.0f && gt.second == 50.0f && mb.first == 71.0f && mb.second == -50.0f);
 }
 
 void testPromotion() {

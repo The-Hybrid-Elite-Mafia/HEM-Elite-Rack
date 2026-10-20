@@ -23,8 +23,11 @@ constexpr PlateKnob row1[] = {{Drive, "DRIVE", "0", "100", K::Big}, {Tone, "TONE
 namespace sn {
 using namespace snitch;
 constexpr PlateReadout readouts[] = {{0, "NOTE", "", "note"}, {1, "CENTS", "OFF", "+"}, {2, "PITCH", "Hz"}};
-constexpr PlateToggle toggles[] = {{Mute, "MUTE"}};
-constexpr PlateKnob row1[] = {{Reference, "REFERENCE A", "430", "450"}};
+constexpr PlateChoice steppers[] = {{Mode, "MODE"}};
+constexpr PlateKnob row1[] = {{Reference, "REFERENCE A", "-6", "+6"}};
+constexpr PlateToggle noteToggles[] = {{0, "ON"}};
+constexpr const char* noteNames[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+constexpr PlateBands notes{.count = 12, .first = Note0, .stride = 1, .toggles = noteToggles, .columnNames = noteNames};
 } // namespace sn
 
 namespace pr {
@@ -77,7 +80,8 @@ const PlateSpec kTorch{.note1 = "LIGHT IT UP", .note2 = "AMP AND CABINET", .scre
 const PlateSpec kRacket{.note1 = "MAKE SOME NOISE", .note2 = "STEP ON IT", .screen = Screen::None, .choices = rk::choices, .row1 = rk::row1,
                         .demo = [](hc::fx::Effect& e) { using namespace racket; e.set(Type, 2); e.set(Drive, 70); }};
 const PlateSpec kSnitch{.note1 = "TELLS YOU", .note2 = "WHEN YOU'RE OFF", .screen = Screen::Readouts, .readouts = sn::readouts,
-                        .toggles = sn::toggles, .row1 = sn::row1, .demo = nullptr};
+                        .row1 = sn::row1, .steppers = sn::steppers, .bands = &sn::notes,
+                        .demo = [](hc::fx::Effect& e) { e.set(snitch::Mode, snitch::MyNotes); }};
 const PlateSpec kPromotion{.note1 = "MOVE IT UP", .note2 = "OR DOWN", .screen = Screen::None, .choices = pr::choices, .row1 = pr::row1,
                            .demo = [](hc::fx::Effect& e) { e.set(promotion::Shift, 5); }};
 const PlateSpec kWiseguys{.note1 = "BACKUP SINGERS", .note2 = "ON CALL", .screen = Screen::None, .row1 = wg::row1, .row2 = wg::row2,

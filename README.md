@@ -93,7 +93,7 @@ C++23 audio framework, as a library.
 | **SAFE HOUSE** | Speakers in your headphones: room, speaker angle, head turn, head size, ear to ear, mute left / right (for listening; bypass before export) |
 | **TORCH** | Guitar / bass amp: clean, crunch, lead or bass; gate, gain, bass / mid / treble, presence, 1x12 / 4x12 / 8x10 cabinet, room |
 | **THE RACKET** | Drive pedal: overdrive, distortion, fuzz or octave fuzz; drive, tone, level, mix |
-| **THE SNITCH** | Tuner: note, cents and frequency; reference A 430–450 Hz; mute while tuning |
+| **THE SNITCH** | Tuner: chromatic, guitar and six other tunings or your own notes (twelve switches); reference A ±6 cents; note, cents and frequency |
 | **PROMOTION** | Pitch shifter: ±12 semitones and cents, smooth or tight |
 | **WISEGUYS** | Harmonizer: three voices with their own interval, level and pan |
 | **MADE MAN** | Pitch correction for one voice: key, scale, speed, amount |
