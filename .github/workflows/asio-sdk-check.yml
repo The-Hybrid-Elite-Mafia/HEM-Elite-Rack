@@ -1,21 +1,32 @@
-# Reads Steinberg's ASIO SDK straight from Steinberg and prints its licence files, so the licence can be checked
-# before the public build uses it. Nothing from the SDK is committed or uploaded.
+# Reads Steinberg's ASIO SDK straight from Steinberg and reports its licence files as annotations, so the licence
+# can be checked before the public build uses it. Nothing from the SDK is committed or uploaded.
 name: asio-sdk-check
 on: workflow_dispatch
 jobs:
   check:
     runs-on: windows-latest
     steps:
-      - name: Download, verify and print the licence
+      - name: Download, verify and report the licence
         shell: pwsh
         run: |
           $url = 'https://download.steinberg.net/sdk_downloads/ASIO-SDK_2.3.4_2025-10-15.zip'
           Invoke-WebRequest -Uri $url -OutFile sdk.zip
           $h = (Get-FileHash sdk.zip -Algorithm SHA256).Hash.ToLower()
-          Write-Host "sha256 $h"
           Expand-Archive sdk.zip -DestinationPath sdk
-          Get-ChildItem -Recurse sdk | ForEach-Object { $_.FullName.Substring((Resolve-Path sdk).Path.Length) }
-          Get-ChildItem -Recurse sdk -Include LICENSE*,README*,*.txt,*.md | ForEach-Object {
-            Write-Host "===== $($_.Name) ====="
-            Get-Content $_.FullName -Raw | Write-Host
+          $root = (Resolve-Path sdk).Path
+          $files = (Get-ChildItem -Recurse -File sdk | ForEach-Object { $_.FullName.Substring($root.Length) }) -join ' | '
+          function Note([string]$t, [string]$m) {
+            $m = $m -replace '%', '%25' -replace "`r", '' -replace "`n", '%0A'
+            Write-Host "::notice title=$t::$m"
+          }
+          Note 'sha256' $h
+          for ($i = 0; $i -lt $files.Length; $i += 3500) { Note "files $i" $files.Substring($i, [Math]::Min(3500, $files.Length - $i)) }
+          $n = 0
+          Get-ChildItem -Recurse -File sdk | Where-Object { $_.Name -match '^(LICEN|README|COPYING|NOTICE)' -or $_.Extension -in '.txt', '.md' } | ForEach-Object {
+            $t = Get-Content $_.FullName -Raw
+            $rel = $_.FullName.Substring($root.Length)
+            for ($i = 0; $i -lt [Math]::Min($t.Length, 7000); $i += 3500) {
+              if ($n -lt 40) { Note "$rel @$i of $($t.Length)" $t.Substring($i, [Math]::Min(3500, $t.Length - $i)) }
+              $n++
+            }
           }
