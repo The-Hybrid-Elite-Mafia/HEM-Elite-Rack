@@ -70,15 +70,6 @@ constexpr PlateKnob row1[] = {{Rate, "RATE"}, {Factor, "x FACTOR", "x0.25", "x10
 constexpr PlateKnob row2[] = {{RotCenter, "ROT CENTER", "R", "L"}, {RotRange, "ROT RANGE"}, {P::Gain, "GAIN"}, {Mix, "MIX"}};
 } // namespace hu
 
-// ---- THE INFORMANT
-namespace inf {
-using namespace informant;
-constexpr PlateChoice choices[] = {{Note, "NOTE"}, {Chord, "CHORD"}, {P::Wave, "CARRIER"}, {Bands, "BANDS"}};
-constexpr PlateKnob row1[] = {{React, "REACT"}, {Shift, "SHIFT", "-12", "+12"}, {Sibilance, "SIBILANCE"}};
-constexpr PlateKnob row2[] = {{Mix, "MIX", "", "", K::Small}, {Output, "OUTPUT", "", "", K::Small}};
-constexpr PlateChoice steppers[] = {{Octave, "OCTAVE"}};
-} // namespace inf
-
 // ---- STRAPPED
 namespace st {
 using namespace strapped;
@@ -123,9 +114,6 @@ const PlateSpec kDriveBy{.note1 = "HERE IT COMES", .note2 = "THERE IT GOES", .sc
 const PlateSpec kHustle{.note1 = "LEVEL, PITCH, PLACE", .note2 = "ONE MOTION", .screen = Screen::None, .choices = hu::choices, .toggles = hu::toggles,
                         .row1 = hu::row1, .row2 = hu::row2, .steppers = hu::steppers,
                         .demo = [](hc::fx::Effect& e) { using namespace hustle; e.set(Rate, 2); e.set(FmDepth, 20); }};
-const PlateSpec kInformant{.note1 = "THE WORDS TALK", .note2 = "THE SYNTH SINGS", .screen = Screen::None, .choices = inf::choices,
-                           .row1 = inf::row1, .row2 = inf::row2, .steppers = inf::steppers,
-                           .demo = [](hc::fx::Effect& e) { using namespace informant; e.set(Note, 9); e.set(Chord, 3); }};
 const PlateSpec kStrapped{.note1 = "THE GUITAR", .note2 = "READY FOR THE MIX", .screen = Screen::None, .toggles = st::toggles,
                           .row1 = st::row1, .steppers = st::steppers, .bands = &st::bands, .reportsReduction = true,
                           .demo = [](hc::fx::Effect& e) {

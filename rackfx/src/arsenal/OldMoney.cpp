@@ -2,7 +2,7 @@
 //
 // THRESHOLD, RATIO 0.5..50 (under 1 = the loud parts get louder: upward expansion), ATTACK, RELEASE
 // (AUTO: the release follows the music — quick after short peaks, slower when it works hard; MANUAL:
-// exactly RELEASE), BEHAVIOR ELECTRO (lets go faster as it nears no reduction: more level) or OPTO
+// exactly RELEASE), BEHAVIOR SNAP BACK (lets go faster as it nears no reduction: more level) or EASE OUT
 // (lets go slower near the end: smoother), CHARACTER WARM (a touch of low harmonics as it works) or
 // SMOOTH (clean), OUTPUT (a soft limiter after it keeps the peaks under 0 dBFS), MIX, TRIM.
 #include "hem/rack/Arsenal.hpp"
@@ -15,7 +15,7 @@ namespace {
 using namespace arsenal;
 
 const char* const kRelModeN[] = {"AUTO", "MANUAL"};
-const char* const kBehaviorN[] = {"ELECTRO", "OPTO"};
+const char* const kBehaviorN[] = {"SNAP BACK", "EASE OUT"};
 const char* const kCharacterN[] = {"WARM", "SMOOTH"};
 const ParamInfo kParams[kCount] = {
     {"threshold", "Threshold", "dB", -60.0f, 0.0f, -20.0f},
@@ -94,7 +94,7 @@ public:
             env_ = x > env_ ? x : x + envRel * (env_ - x);
             const float target = gainDb(dbOf(env_), thr, ratio);
             // the release: AUTO shortens it after single peaks and stretches it when working hard;
-            // ELECTRO speeds up as it nears no change, OPTO slows down there
+            // SNAP BACK speeds up as it nears no change, EASE OUT slows down there
             const float depth = std::clamp(std::fabs(gr_) / 10.0f, 0.0f, 1.0f);
             double ms = relMs * (autoRel ? 0.35 + 1.3 * mem_.v : 1.0);
             ms *= opto ? 1.0 + 3.0 * (1.0 - depth) : 0.25 + 0.75 * depth;

@@ -23,7 +23,7 @@
 //  TERRITORY    4-band dynamics: per band THRESHOLD, GAIN, RANGE (the most it moves: minus = down, plus =
 //               up; centred on the threshold), ATTACK, RELEASE, SOLO, BYPASS; MASTER THRESHOLD / GAIN /
 //               RANGE (added to every band) and ATTACK / RELEASE (x every band); three crossovers and their
-//               Q (0.10..0.75: how steep), RELEASE AUTO / MANUAL, BEHAVIOR OPTO / ELECTRO, KNEE 0 (soft)
+//               Q (0.10..0.75: how steep), RELEASE AUTO / MANUAL, BEHAVIOR EASE OUT / SNAP BACK, KNEE 0 (soft)
 //               .. 100 (hard), OUTPUT. Zero latency. Meters 0..3 band moves (dB), 4 output peak (dBFS).
 //  STRAIGHT EDGE 5-band linear-phase dynamics: the same band and MASTER controls, four crossovers,
 //               MAKEUP MANUAL / AUTO (each band gets half its RANGE back), ADAPTIVE (-40 = off .. +12: a
@@ -65,7 +65,7 @@
 //               EARLY / LATE (EARLY colours more), AUTO MAKEUP, ANALOG OFF / 50 / 60 HZ, METER, MIX, TRIM.
 //               Latency 23 samples. Meters: 0 / 1 input / output VU.
 //  OLD MONEY    smooth all-purpose compressor: THRESHOLD, RATIO 0.5..50 (under 1 lifts the loud parts),
-//               ATTACK, RELEASE, RELEASE AUTO / MANUAL, BEHAVIOR ELECTRO / OPTO, CHARACTER WARM / SMOOTH,
+//               ATTACK, RELEASE, RELEASE AUTO / MANUAL, BEHAVIOR SNAP BACK / EASE OUT, CHARACTER WARM / SMOOTH,
 //               OUTPUT (a soft limiter keeps it under 0 dBFS), MIX, TRIM. Meters: 0 / 1 input / output
 //               peak (dBFS), 2 the output limiter (dB).
 //  KNOCKOUT     transient designer: ATTACK (boost / cut the hits), SENSITIVITY, LENGTH, SHAPE SHARP / PUNCHY /
@@ -84,9 +84,9 @@
 //               2 high level, 3 output peak.
 //  WHEELMAN     vocal rider: TARGET, VOCAL SENSITIVITY (how loud the voice must be to count), ATTACK FAST /
 //               SLOW, RANGE MIN / MAX (how far the wheel may turn), IDLE (where it sits with no voice),
-//               LIVE + SPILL (anything under SPILL is other instruments in the mic), OUTPUT.
+//               STAGE + BLEED FLOOR (anything under BLEED FLOOR is other instruments in the mic), OUTPUT.
 //               Meters: 0 ride (dB), 1 level (dB). Zero latency.
-//  CHAUFFEUR    bass rider: TARGET, NOTE DETECT, RESPONSE FAST / SLOW, IGNORE SPILL, IGNORE ARTIFACTS (clicks and
+//  CHAUFFEUR    bass rider: TARGET, NOTE DETECT, RESPONSE FAST / SLOW, IGNORE BLEED, IGNORE ARTIFACTS (clicks and
 //               finger noise), RANGE MIN / MAX, IDLE, OUTPUT. Meters as WHEELMAN. Zero latency.
 //  BIG SHOT     (and the other maximizers): see Maximizers.hpp.
 //  SILENCER     de-esser: THRESHOLD, FREQUENCY, AUDIO SPLIT (only the highs come down) / WIDE, SIDECHAIN

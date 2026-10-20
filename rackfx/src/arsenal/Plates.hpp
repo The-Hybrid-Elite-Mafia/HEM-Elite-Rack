@@ -11,7 +11,7 @@ extern const PlateSpec kTerritory, kStraightEdge, kConsigliere, kStoneCold, kHea
 extern const PlateSpec kLowRider, kUndertow, kDeepPockets, kLowProfile, kTunnelVision;
 extern const PlateSpec kStraightShooter, kBottomLine, kTenToes, kFourCorners, kSmoothTalker, kTheBoss, kKingpin, kGoldChain, kIvories, kHighRoller, kMiddleman, kDoubleCross, kCutthroat;
 // the hideout (hideout/HideoutPlates.cpp)
-extern const PlateSpec kFixer, kDeadDrop, kBackAlley, kDriveBy, kHustle, kInformant, kStrapped, kSafeHouse;
+extern const PlateSpec kFixer, kDeadDrop, kBackAlley, kDriveBy, kHustle, kStrapped, kSafeHouse;
 // the streets (streets/StreetsPlates.cpp)
 extern const PlateSpec kTorch, kRacket, kSnitch, kPromotion, kWiseguys, kMadeMan, kDetective, kWitness, kLiveWire;
 // the maximizers (maxim/MaximPlates.cpp)

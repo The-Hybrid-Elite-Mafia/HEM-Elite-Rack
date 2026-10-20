@@ -12,7 +12,33 @@
 namespace hem::ui {
 
 namespace {
+constexpr bool kBlack[12] = {false, true, false, true, false, false, true, false, true, false, true, false};
+constexpr int kWhiteIndex[12] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6};   // a black key: the white key on its left
+int whiteKeys(int keys) noexcept {
+    int n = 0;
+    for (int k = 0; k < keys; ++k) n += kBlack[k % 12] ? 0 : 1;
+    return n;
+}
 float dist2(float ax, float ay, float bx, float by) { return (ax - bx) * (ax - bx) + (ay - by) * (ay - by); }
+}
+
+bool keyIsBlack(int k) noexcept { return kBlack[((k % 12) + 12) % 12]; }
+
+Rect keyRect(const Rect& kb, int keys, int k) noexcept {
+    const float ww = kb.w / static_cast<float>(std::max(1, whiteKeys(keys)));
+    const int white = (k / 12) * 7 + kWhiteIndex[k % 12];
+    if (!kBlack[k % 12]) return {kb.x + static_cast<float>(white) * ww, kb.y, ww, kb.h};
+    const float bw = ww * 0.6f;
+    return {kb.x + static_cast<float>(white + 1) * ww - bw * 0.5f, kb.y, bw, kb.h * 0.62f};
+}
+
+int keyAt(const Rect& kb, int keys, float x, float y) noexcept {
+    if (!kb.contains(x, y)) return -1;
+    for (int k = 0; k < keys; ++k)   // the black keys sit on top
+        if (kBlack[k % 12] && keyRect(kb, keys, k).contains(x, y)) return k;
+    for (int k = 0; k < keys; ++k)
+        if (!kBlack[k % 12] && keyRect(kb, keys, k).contains(x, y)) return k;
+    return -1;
 }
 
 float FaceController::plain(int param) const {
@@ -155,7 +181,31 @@ void FaceController::mouseDown(float x, float y, bool doubleClick, bool fine) {
         dragValue_ = host_.normalized(param);
         host_.beginEdit(param);
         return;
-    case WKind::Toggle: edit(param, plain(param) >= 0.5f ? 0.0f : 1.0f); return;
+    case WKind::Toggle: {
+        const bool turnOff = plain(param) >= 0.5f;
+        edit(param, turnOff ? 0.0f : 1.0f);
+        // a keyboard's SUSTAIN switched off lets go of every latched key
+        if (turnOff)
+            for (const Widget& kb : L_.widgets)
+                if (kb.kind == WKind::Keyboard && kb.param2 == param)
+                    for (int k = 0; k < kb.choice; ++k)
+                        if (plain(kb.param + k) >= 0.5f) edit(kb.param + k, 0.0f);
+        return;
+    }
+    case WKind::Keyboard: {
+        const int k = keyAt(w.r, w.choice, x, y);
+        if (k < 0) return;
+        st_.active = i;
+        if (w.param2 >= 0 && plain(w.param2) >= 0.5f) {   // SUSTAIN: a click latches or lets go; a drag does the same to every key it crosses
+            latchOn_ = plain(w.param + k) < 0.5f;
+            edit(w.param + k, latchOn_ ? 1.0f : 0.0f);
+            heldKey_ = k;
+        } else {   // NORMAL: the key sounds while the mouse holds it
+            heldKey_ = k;
+            edit(w.param + k, 1.0f);
+        }
+        return;
+    }
     case WKind::ChoiceButton: {
         const auto& pi = params_[static_cast<std::size_t>(param)];
         host_.beginEdit(param);
@@ -220,6 +270,14 @@ void FaceController::mouseMove(float x, float y, bool fine) {
             else setPlain(w.param2, std::max(hz, plain(w.param) * 1.26f));
         } else if (w.kind == WKind::EqGraph) {
             graphDrag(x, y, fine);
+        } else if (w.kind == WKind::Keyboard) {   // a glide across the keys
+            const int k = keyAt(w.r, w.choice, x, y);
+            if (k != heldKey_) {
+                const bool sustain = w.param2 >= 0 && plain(w.param2) >= 0.5f;
+                if (!sustain && heldKey_ >= 0) edit(w.param + heldKey_, 0.0f);
+                if (k >= 0) edit(w.param + k, sustain ? (latchOn_ ? 1.0f : 0.0f) : 1.0f);
+                heldKey_ = k;
+            }
         }
         lastX_ = x;
         lastY_ = y;
@@ -236,7 +294,10 @@ void FaceController::mouseUp() {
         const Widget& w = L_.widgets[static_cast<std::size_t>(st_.active)];
         if (w.kind == WKind::Knob) host_.endEdit(widgetParam(w, st_));
         else if (w.kind == WKind::RangeSlider) host_.endEdit(dragHandle_ == 1 ? w.param : w.param2);
-        else if (w.kind == WKind::EqGraph && st_.dragNode >= 0) {
+        else if (w.kind == WKind::Keyboard) {
+            const bool sustain = w.param2 >= 0 && plain(w.param2) >= 0.5f;
+            if (!sustain && heldKey_ >= 0) edit(w.param + heldKey_, 0.0f);
+        } else if (w.kind == WKind::EqGraph && st_.dragNode >= 0) {
             host_.endEdit(rack::eq::bandParam(st_.dragNode, rack::eq::Freq));
             host_.endEdit(rack::eq::bandParam(st_.dragNode, rack::eq::Gain));
         }
@@ -244,6 +305,7 @@ void FaceController::mouseUp() {
     st_.active = -1;
     st_.dragNode = -1;
     dragHandle_ = 0;
+    heldKey_ = -1;
 }
 
 void FaceController::wheel(float x, float y, float notches, bool fine) {

@@ -23,7 +23,8 @@ enum class Face : std::uint8_t { EliteEq, Restorer, BusGlue, Tape, TubeEq, Limit
                                 Channel,     // INSIDE MAN's channel-strip plate
                                 Movers,      // THE SETUP's filter-with-movers plate
                                 Taps,        // SIX SHOOTER's six-tap plate
-                                Voices };    // BODY DOUBLE's four-voice plate
+                                Voices,      // BODY DOUBLE's four-voice plate
+                                Keys };      // THE INFORMANT's vocoder plate with its 48-key keyboard
 
 // Where a plug-in sits in the rack's picker.
 enum class Group : std::uint8_t { Eq, Dynamics, Color, Space, Movement, Tools, kCount };

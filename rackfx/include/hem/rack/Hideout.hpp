@@ -40,10 +40,18 @@
 //                (x0.25–x100), WAVE (SQUARE, TRIANGLE, SAW UP, SAW DOWN, SINE). AM (level: DEPTH, ON, PHASE 0 / 90 /
 //                180 / 270°), FM (pitch: DEPTH, ON, PHASE), ROTATION (where the picture sits: CENTER ±180, how far it
 //                sweeps: RANGE 1–360, ON). GAIN ±12, MIX. Latency 10.5 ms (the pitch move needs room either way).
-//  THE INFORMANT vocoder with its own voice: the input's words shape a built-in carrier (NOTE,
-//                OCTAVE, CHORD, WAVE SAW / PULSE / NOISE). BANDS 16 / 24 / 32, REACT (how quickly the
-//                bands follow), SHIFT (moves the voice's formants), SIBILANCE (lets the esses
-//                through), MIX, OUTPUT.
+//  THE INFORMANT vocoder: the MODULATOR (L+R, LEFT or RIGHT of the input: the words) shapes the CARRIER (its own
+//                SYNTH, or the input's LEFT, RIGHT or STEREO). The synth: 48 keys (C2–B5, eight voices: more held keys
+//                than voices are ignored), SUSTAIN (NORMAL: a key sounds while held; SUSTAIN: a click latches it),
+//                SOUND (ten of our own), TUNE (A = 220–880 Hz), SPREAD (0 = all in the middle, 1 = the voices across
+//                the stereo). NOISE: white noise shaped by the words too (FILTER OFF / HI-PASS / LO-PASS, FREQ
+//                16 Hz–16 kHz). Morphing: PRESSURE 0–50 dB (lifts quiet words, then holds the loud ones in), FORMANT
+//                x0.5–x2 (moves the voice's shape down or up), SMOOTHING 60–800 (low = crisp and choppy, high = smooth),
+//                RELEASE 50–5000 ms (how long the last shape holds when the words stop; 5000 = for as long as the
+//                carrier plays). A five-band EQ on the morphed sound (low shelf, three bells, high shelf: ON, FREQ
+//                86 Hz–16 kHz, GAIN ±30, Q 0.26–6.5). The mixer: CARRIER, MODULATOR, NOISE (-60..0 dB) and MORPH
+//                (-60..+6 dB) levels (-60 = off), each with SOLO and MUTE. Meters: the output peaks. Zero latency.
+//                Not possible here: MIDI playing and a sidechain modulator or carrier.
 //  STRAPPED      guitar mix desk in six faders. MODE (CLEAN, CRUNCH, HEAVY: each its own fixed voicing; BYPASS: none),
 //                RE-AMP (a modelled amp for the mode, 4x oversampled). SENSITIVITY ±10 dB (in), BALANCE ±6 dB, OUTPUT
 //                ±10 dB. Six faders ±10, each with a colour (OFF bypasses or mutes it): BASS (a low shelf at 80 / 160 /
@@ -111,7 +119,13 @@ enum P : int { Sync, Rate, Factor, Wave, AmDepth, AmOn, AmPhase, FmDepth, FmOn, 
 } // namespace hustle
 
 namespace informant {
-enum P : int { Note, Octave, Chord, Wave, Bands, React, Shift, Sibilance, Mix, Output, kCount };
+inline constexpr int kEqBands = 5, kEqStride = 4, kKeys = 48, kLowKey = 36;   // keys: MIDI 36 (C2) .. 83 (B5)
+inline constexpr int kPaths = 4, CarrierPath = 0, ModPath = 1, NoisePath = 2, MorphPath = 3;
+enum EqP : int { EqOn, EqFreq, EqGain, EqQ };   // EQ band b's control k: Eq0 + b * kEqStride + k
+enum P : int { Modulator, Carrier, NoiseFilter, NoiseFreq, Sound, Tune, Spread, Eq0,
+               Pressure = Eq0 + kEqBands * kEqStride, Formant, Smoothing, Release,
+               Level0, Solo0 = Level0 + kPaths, Mute0 = Solo0 + kPaths, Sustain = Mute0 + kPaths, Key0, kCount = Key0 + kKeys };
+constexpr int eq(int b, int k) noexcept { return Eq0 + b * kEqStride + k; }
 } // namespace informant
 
 namespace strapped {

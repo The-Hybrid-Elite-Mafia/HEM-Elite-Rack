@@ -117,6 +117,8 @@ enum class WKind : std::uint8_t {
     Readout,       // a big number: meter `choice` of the effect, with `caption` and the meter's unit (display only)
     History,       // the last few seconds of meters 0 and 1 (gain reduction) and 2 (input level), scrolling (display only)
     PageTab,       // which page the paged controls edit (choice = page, caption = its name); a plate setting, not a parameter
+    Keyboard,      // piano keys: key k is the on / off parameter param + k (choice = how many keys, from a C);
+                   // param2 = the sustain switch (off: a key sounds while the mouse holds it; on: a click latches it)
 };
 
 struct Widget {
@@ -187,6 +189,7 @@ public:
     void mouseMove(float x, float y, bool fine);
     void mouseUp();
     void wheel(float x, float y, float notches, bool fine);
+    [[nodiscard]] int heldKey() const noexcept { return heldKey_; }   // the key the mouse is holding (-1: none)
     static constexpr float kDragForFullRange = 360.0f;   // plate units
 
 private:
@@ -210,6 +213,8 @@ private:
     FaceState&        st_;
     float lastX_ = 0, lastY_ = 0, dragValue_ = 0, dragValue2_ = 0;
     int   dragHandle_ = 0;   // range slider: 1 = low, 2 = high
+    int   heldKey_ = -1;     // keyboard: the key under the held mouse (NORMAL mode)
+    bool  latchOn_ = true;   // keyboard, SUSTAIN mode: a drag latches keys on (true) or off
 };
 
 // ---- drawing -----------------------------------------------------------------------------------
@@ -238,6 +243,7 @@ private:
     void vuMeter(const Ctx& c, const Widget& w, int meter, const char* caption) const;
     void vuMeter(const Ctx& c, const Widget& w) const;
     void readout(const Ctx& c, const Widget& w) const;
+    void keyboard(const Ctx& c, const Widget& w) const;
     void history(const Ctx& c, const Widget& w) const;
     void spectrumBehind(const Ctx& c, Rect plot, float alpha) const;
     void grid(const Ctx& c, Rect plot, float dbTop, float dbBottom, float dbStep, bool signedLabels) const;
@@ -256,6 +262,10 @@ private:
 
 // Plot rectangle inside an EQ graph or spectrum widget (plate units), shared by view and controller.
 [[nodiscard]] Rect plotArea(const Rect& widget) noexcept;
+// The keyboard's keys (WKind::Keyboard, starting on a C): where key k is, whether it is black, and the key at a point (-1: none).
+[[nodiscard]] bool keyIsBlack(int k) noexcept;
+[[nodiscard]] Rect keyRect(const Rect& keyboard, int keys, int k) noexcept;
+[[nodiscard]] int keyAt(const Rect& keyboard, int keys, float x, float y) noexcept;
 [[nodiscard]] float freqToX(const Rect& plot, float hz) noexcept;
 [[nodiscard]] float xToFreq(const Rect& plot, float x) noexcept;
 

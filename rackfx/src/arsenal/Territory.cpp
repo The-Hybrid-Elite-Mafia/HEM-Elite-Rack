@@ -9,7 +9,7 @@ namespace {
 using namespace arsenal;
 
 const char* const kRelN[] = {"AUTO", "MANUAL"};
-const char* const kBehaviorN[] = {"OPTO", "ELECTRO"};
+const char* const kBehaviorN[] = {"EASE OUT", "SNAP BACK"};
 const char* const kMakeupN[] = {"MANUAL", "AUTO"};
 const char* const kPushN[] = {"A", "B"};   // any change = a push
 

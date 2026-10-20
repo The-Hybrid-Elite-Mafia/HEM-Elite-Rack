@@ -1,3 +1,14 @@
+# HEM-Elite-Rack 0.30.0
+
+- **THE INFORMANT** — rebuilt with every control: a 48-key keyboard on its plate (eight voices, NORMAL or SUSTAIN), ten
+  synth sounds, TUNE, SPREAD; carrier and modulator sources; noise with its filter; PRESSURE, FORMANT, SMOOTHING,
+  RELEASE; a five-band EQ on the vocoded sound; a mixer with CARRIER, MODULATOR, NOISE and MORPH levels, SOLO and MUTE.
+  Not possible in the rack: playing it from MIDI, and a sidechain carrier or modulator.
+
+**Our own words on every control:** labels that copied an original's wording are renamed, meaning the same thing:
+EASE OUT / SNAP BACK (TERRITORY, OLD MONEY), STACKED ratios (HITMAN, QUICK DRAW), ERA (QUICK DRAW), STAGE + BLEED FLOOR
+(WHEELMAN), IGNORE BLEED (CHAUFFEUR). Saved settings are not affected.
+
 # HEM-Elite-Rack 0.29.0
 
 **ASIO is in, and the rack is now free software (GPLv3)**
@@ -100,8 +111,8 @@ left / right EQs have LEFT / RIGHT tabs, and the screen draws the right side in 
 - **FOUR KINGS** (new) — the same in four bands, each with on, range and sensitivity, plus a master
 - **BACKBONE** (new) — two faders: lift the quiet parts, hold the loud ones
 - **FULL HOUSE** — leveler (loud / soft), gate, low level (threshold + gain), high level (threshold + ceiling), each switchable
-- **WHEELMAN** — vocal rider: target, vocal sensitivity, attack, range min / max, idle, live spill
-- **CHAUFFEUR** (new) — bass rider: note detect, response, ignore spill, ignore clicks, range, idle
+- **WHEELMAN** — vocal rider: target, vocal sensitivity, attack, range min / max, idle, stage bleed floor
+- **CHAUFFEUR** (new) — bass rider: note detect, response, ignore bleed, ignore clicks, range, idle
 - **SILENCER** — the classic de-esser: threshold, frequency, split / wide, high-pass / band-pass, monitor
 - **TIGHT LIPS** (new) — de-esser with a range control and listen
 - **OMERTA** (new) — smart de-esser that hears esses at any pitch, wide-to-split blend, look-ahead
@@ -119,7 +130,7 @@ Multiband plates now use a grid: one row per band control, named once on the lef
   CANCEL, PDR; gate or expander with FLOOR, SLOPE, HOLD; each one WIDE, SIDECHAIN or SPLIT through the
   filter; LINK, LOOKAHEAD, KEY L > R / R > L, MONITOR, separate INPUT L / R. New plate.
 - **TERRITORY** — four bands, each with THRESHOLD, GAIN, RANGE, ATTACK, RELEASE, SOLO, BYPASS; a MASTER
-  column; crossovers with Q; AUTO / MANUAL release, OPTO / ELECTRO, KNEE. (Its old linear-phase mode is
+  column; crossovers with Q; AUTO / MANUAL release, EASE OUT / SNAP BACK, KNEE. (Its old linear-phase mode is
   now its own plug-in.)
 - **STRAIGHT EDGE** (new) — five linear-phase bands with the same controls, plus ADAPTIVE, AUTO MAKEUP,
   one-push TRIM and DITHER.
@@ -134,8 +145,8 @@ Multiband plates now use a grid: one row per band control, named once on the lef
 - **SLOW BURN** — INPUT, THRESHOLD 0-10, six time constants, SEPARATE / LINKED / MID-SIDE, MAINS, COMPRESS on / off
 - **LONE WOLF** (new) — one channel of SLOW BURN's circuit
 - **IRON FIST** — COMPRESS, RELEASE, DE-ESS switch, LIMITER with LEVEL / ATTACK / RELEASE, ANALOG, AUTO MAKEUP, MIX, TRIM
-- **QUICK DRAW** (new) — fast transistor limiting amp: attack / release 1-7, 4 / 8 / 12 / 20 / ALL, two revisions
-- **OLD MONEY** (new) — smooth all-purpose compressor: auto / manual release, electro / opto, warm / smooth
+- **QUICK DRAW** (new) — fast transistor limiting amp: attack / release 1-7, 4 / 8 / 12 / 20 / STACKED, early or late era
+- **OLD MONEY** (new) — smooth all-purpose compressor: auto / manual release, snap back / ease out, warm / smooth
 
 The needle on these plates can show the input or output VU level (METER IN / OUT) as well as the gain
 reduction. ANALOG hum follows the music, so silence stays silent.
@@ -286,7 +297,7 @@ halo around it either. On SURGEON, the band dot under the mouse now shows a ring
 
 **New: HITMAN** — a dual FET peak compressor (Dynamics tab, also as VST3 "HEM HITMAN"):
 - Two channels, L/R or M/S, with LINK (channel 2 follows channel 1) or set apart.
-- INPUT drives it, ATTACK / RELEASE 1–7, RATIO 4 / 8 / 12 / 20 / ALL.
+- INPUT drives it, ATTACK / RELEASE 1–7, RATIO 4 / 8 / 12 / 20 / STACKED.
 - LOOKAHEAD up to 2 ms; the latency stays the same whatever it is set to.
 - Sidechain: EQ (high-pass, bell, low-pass), LISTEN, SC LINK, and in the VST3 an external
   sidechain input (the rack app has no second input, so EXT listens to itself there).
@@ -470,7 +481,7 @@ to browse.
 - **LANTERN** — an optical leveler: PEAK REDUCTION and GAIN, COMPRESS / LIMIT, a two-stage release
   (fast, then slow), EMPHASIS for the highs, MIX.
 - **TRIGGER** — a fast TRIGGER limiting amplifier: INPUT / OUTPUT, ATTACK and RELEASE 1–7, RATIO 4 / 8 /
-  12 / 20 / ALL (all buttons in: aggressive and gritty), MIX.
+  12 / 20 / STACKED (all ratios at once: aggressive and gritty), MIX.
 
 **Also:** the compressor needles show the real value from the first moment (they used to swing in
 from zero); THE FAMILY's meter title no longer touches the needle; the plug-in picker shows nine in

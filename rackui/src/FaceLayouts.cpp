@@ -820,11 +820,12 @@ FaceLayout hitmanFace(const rack::PluginInfo& info) {
     L.widgets.push_back(choiceButton({210, 330, 130, 40}, Mode, 1, ""));
     L.widgets.push_back(toggle({70, 380, 270, 40}, Link, "LINK"));
     L.sections.push_back({{60, 428, 290, 26}, "RATIO"});
-    for (int i = 0; i < 5; ++i) L.widgets.push_back(choiceButton({70 + static_cast<float>(i) * 55, 458, 50, 40}, Ratio, 4 - i));   // ALL first, like the hardware
+    for (int i = 0; i < 4; ++i) L.widgets.push_back(choiceButton({70 + static_cast<float>(i) * 69, 456, 63, 30}, Ratio, i));
+    L.widgets.push_back(choiceButton({70, 490, 270, 32}, Ratio, 4));   // STACKED: every ratio at once
     {
         const std::size_t first = L.widgets.size();
-        L.widgets.push_back(knob({100, 548, 70, 70}, Lookahead, "LOOKAHEAD", "", "", true));
-        L.widgets.push_back(knob({240, 548, 70, 70}, Mix, "MIX", "", "", true));
+        L.widgets.push_back(knob({100, 560, 70, 70}, Lookahead, "LOOKAHEAD", "", "", true));
+        L.widgets.push_back(knob({240, 560, 70, 70}, Mix, "MIX", "", "", true));
         seatKnobs(L, first, 10);
     }
     buttonSeats(L);
@@ -1251,6 +1252,86 @@ FaceLayout voicesFace(const rack::PluginInfo& info) {
     return L;
 }
 
+FaceLayout keysFace(const rack::PluginInfo& info) {
+    using namespace rack::informant;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"THE WORDS TALK", "THE SYNTH SINGS"};
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 180, 1226, 640};
+    auto stepper = [&](Rect r, int param) {
+        Widget st;
+        st.kind = WKind::Stepper;
+        st.param = param;
+        st.r = r;
+        L.widgets.push_back(st);
+        L.recesses.push_back({st.r.inset(-4), 9, 4, false, false});
+    };
+    auto small = [&](float cx, float y, int param, const char* caption) {
+        const std::size_t first = L.widgets.size();
+        L.widgets.push_back(knob({cx - 17, y, 34, 34}, param, caption, "", "", true));
+        seatKnobs(L, first, 4);
+    };
+    // the sources, the synth and the noise
+    L.sections.push_back({{410, 180, 150, 22}, "MODULATOR"});
+    stepper({410, 208, 150, 34}, Modulator);
+    L.sections.push_back({{572, 180, 150, 22}, "CARRIER"});
+    stepper({572, 208, 150, 34}, Carrier);
+    L.sections.push_back({{734, 180, 180, 22}, "SOUND"});
+    stepper({734, 208, 180, 34}, Sound);
+    L.sections.push_back({{926, 180, 150, 22}, "NOISE"});
+    stepper({926, 208, 150, 34}, NoiseFilter);
+    small(690, 284, Tune, "TUNE");
+    small(840, 284, Spread, "SPREAD");
+    small(1001, 284, NoiseFreq, "NOISE FREQ");
+    // the morphing
+    L.grooves.push_back({1088, 184, 1088, 344});
+    L.sections.push_back({{1100, 180, 536, 22}, "MORPH"});
+    small(1167, 240, Pressure, "PRESSURE");
+    small(1301, 240, Formant, "FORMANT");
+    small(1435, 240, Smoothing, "SMOOTHING");
+    small(1569, 240, Release, "RELEASE");
+    L.grooves.push_back({410, 352, 1636, 352});
+    // the morphed sound's EQ
+    static const char* const kEqN[kEqBands] = {"LOW SHELF", "BELL 2", "BELL 3", "BELL 4", "HIGH SHELF"};
+    const float cw = 1226.0f / kEqBands;
+    for (int b = 0; b < kEqBands; ++b) {
+        const float x0 = 410 + static_cast<float>(b) * cw;
+        L.widgets.push_back(toggle({x0 + 10, 364, cw - 20, 32}, eq(b, EqOn), kEqN[b]));
+        small(x0 + cw * 0.5f - 76, 430, eq(b, EqFreq), "FREQ");
+        small(x0 + cw * 0.5f, 430, eq(b, EqGain), "GAIN");
+        small(x0 + cw * 0.5f + 76, 430, eq(b, EqQ), "Q");
+        if (b > 0) L.grooves.push_back({x0, 360, x0, 500});
+    }
+    L.grooves.push_back({410, 508, 1636, 508});
+    // the mixer
+    static const char* const kPathN[kPaths] = {"CARRIER", "MODULATOR", "NOISE", "MORPH"};
+    const float mw = 1226.0f / kPaths;
+    for (int q = 0; q < kPaths; ++q) {
+        const float x0 = 410 + static_cast<float>(q) * mw;
+        small(x0 + 60, 548, Level0 + q, kPathN[q]);
+        L.widgets.push_back(toggle({x0 + 112, 536, 180, 32}, Solo0 + q, "SOLO"));
+        L.widgets.push_back(toggle({x0 + 112, 574, 180, 32}, Mute0 + q, "MUTE"));
+        if (q > 0) L.grooves.push_back({x0, 516, x0, 620});
+    }
+    // the keys
+    Widget keys;
+    keys.kind = WKind::Keyboard;
+    keys.param = Key0;
+    keys.choice = kKeys;
+    keys.param2 = Sustain;
+    keys.r = {410, 640, 1226, 172};
+    L.widgets.push_back(keys);
+    L.recesses.push_back({keys.r.inset(-6), 8, 6, false, false});
+    // the left column: the output peaks and SUSTAIN
+    readoutAt(L, {70, 404, 270, 64}, 0, "OUT L", "dBFS", "+");
+    readoutAt(L, {70, 478, 270, 64}, 1, "OUT R", "dBFS", "+");
+    L.widgets.push_back(toggle({70, 560, 270, 40}, Sustain, "SUSTAIN"));
+    buttonSeats(L);
+    bypassAt(L, {160, 650, 90, 90});
+    return L;
+}
+
 // ---- plates laid out from a PlateSpec (Face::Spec) -------------------------------------------
 // The parts go where the plate's content leaves room: a screen (or none) on top, a column of
 // buttons and switches beside it, one or two rows of knobs under it, choice lists down the left.
@@ -1597,6 +1678,7 @@ FaceLayout faceLayout(const rack::PluginInfo& info) {
     case rack::Face::Movers: return moversFace(info);
     case rack::Face::Taps: return tapsFace(info);
     case rack::Face::Voices: return voicesFace(info);
+    case rack::Face::Keys: return keysFace(info);
     case rack::Face::Spec: if (info.plate) return specFace(info); break;
     case rack::Face::Restorer: break;
     }

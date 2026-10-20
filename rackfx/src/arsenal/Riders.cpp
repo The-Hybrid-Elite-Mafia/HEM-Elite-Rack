@@ -24,7 +24,7 @@ struct Rider {
 };
 
 // ---- WHEELMAN: listens to the voice's range (150 Hz .. 8 kHz). VOCAL SENSITIVITY decides how loud the
-// voice must be to count (+12 = even soft singing; -12 = only clear lines). LIVE: anything under SPILL
+// voice must be to count (+12 = even soft singing; -12 = only clear lines). STAGE: anything under BLEED FLOOR
 // is the other instruments leaking into the mic and is left alone.
 namespace wm {
 using namespace wheelman;
@@ -35,8 +35,8 @@ const ParamInfo kParams[kCount] = {
     {"rangemin", "Range Min", "dB", -12.0f, 11.0f, -6.0f},
     {"rangemax", "Range Max", "dB", -11.0f, 12.0f, 6.0f},
     {"idle", "Idle", "dB", -12.0f, 12.0f, 0.0f},
-    {"live", "Live", "", 0, 1, 0, Taper::Toggle, kOnOff},
-    {"spill", "Spill", "dB", -48.0f, -12.0f, -30.0f},
+    {"live", "Stage", "", 0, 1, 0, Taper::Toggle, kOnOff},
+    {"spill", "Bleed Floor", "dB", -48.0f, -12.0f, -30.0f},
     {"output", "Output", "dB", -12.0f, 12.0f, 0.0f},
 };
 class Impl final : public hc::fx::Effect {
@@ -91,7 +91,7 @@ private:
 };
 } // namespace wm
 
-// ---- CHAUFFEUR: listens to the bass range (30 .. 300 Hz). A note counts when it is over IGNORE SPILL
+// ---- CHAUFFEUR: listens to the bass range (30 .. 300 Hz). A note counts when it is over IGNORE BLEED
 // and the bass range carries enough of the sound (NOTE DETECT: 100 = even a note that is mostly
 // overtones); IGNORE ARTIFACTS holds off until a note has lasted 0..40 ms, so clicks and finger noise
 // don't move the wheel. RESPONSE FAST or SLOW.
@@ -101,7 +101,7 @@ const ParamInfo kParams[kCount] = {
     {"target", "Target", "dB", -42.0f, 0.0f, -14.0f},
     {"notesens", "Note Detect", "%", 0.0f, 100.0f, 50.0f},
     {"response", "Response", "", 0, 1, 1, Taper::Choice, kSpeedN},
-    {"ignorespill", "Ignore Spill", "dB", -50.0f, -3.0f, -40.0f},
+    {"ignorespill", "Ignore Bleed", "dB", -50.0f, -3.0f, -40.0f},
     {"ignoreartifacts", "Ignore Artifacts", "%", 0.0f, 100.0f, 50.0f},
     {"rangemin", "Range Min", "dB", -12.0f, 11.0f, -6.0f},
     {"rangemax", "Range Max", "dB", -11.0f, 12.0f, 6.0f},

@@ -12,7 +12,7 @@
 // the middle of the move — it starts half a RANGE under the threshold and is complete half a RANGE
 // over it), ATTACK, RELEASE, SOLO, BYPASS. KNEE 0 (soft: a longer, rounder move) .. 100 (hard: a
 // straight line). Release AUTO (short after short peaks, longer when it works hard) or MANUAL;
-// BEHAVIOR OPTO (lets go slower as it nears no change) or ELECTRO (quicker near no change).
+// BEHAVIOR EASE OUT (lets go slower as it nears no change) or SNAP BACK (quicker near no change).
 // AUTO MAKEUP gives each band back half its RANGE. ADAPTIVE (-40 = off .. +12 dB): a band only works
 // when it stands out over the band under it (its threshold rises to that band's level + ADAPTIVE).
 #include "Common.hpp"
@@ -107,7 +107,7 @@ public:
                 float thr = s.thr[b];
                 if (b > 0 && s.adaptive > -39.9f) thr = std::max(thr, lvDb[b - 1] + s.adaptive);
                 const float target = s.bypass[b] ? 0.0f : rangeMoveDb(lvDb[b], thr, s.range[b], s.knee);
-                // the release: AUTO stretches it after long hard work; OPTO slows near no change, ELECTRO speeds up there
+                // the release: AUTO stretches it after long hard work; EASE OUT slows near no change, SNAP BACK speeds up there
                 const float depth = std::clamp(std::fabs(g_[b]) / 10.0f, 0.0f, 1.0f);
                 double ms = rel[b] * (s.autoRel ? 0.35 + 1.3 * mem_.v : 1.0);
                 ms *= s.opto ? 1.0 + 3.0 * (1.0 - depth) : 0.25 + 0.75 * depth;

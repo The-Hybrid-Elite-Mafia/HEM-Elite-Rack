@@ -58,8 +58,8 @@ namespace wm {
 using namespace wheelman;
 constexpr PlateReadout readouts[] = {{0, "RIDING", "dB", "+"}, {1, "LEVEL", "dB"}};
 constexpr PlateChoice left[] = {{Attack, "ATTACK"}};
-constexpr PlateToggle leftT[] = {{Live, "LIVE"}};
-constexpr PlateKnob row1[] = {{Target, "TARGET", "-42", "0", K::Big}, {Sensitivity, "SENSITIVITY", "-12", "+12"}, {Spill, "SPILL", "-48", "-12"},
+constexpr PlateToggle leftT[] = {{Live, "STAGE"}};
+constexpr PlateKnob row1[] = {{Target, "TARGET", "-42", "0", K::Big}, {Sensitivity, "SENSITIVITY", "-12", "+12"}, {Spill, "BLEED FLOOR", "-48", "-12"},
                               {Output, "OUTPUT"}};
 constexpr PlateKnob row2[] = {{RangeMin, "RANGE MIN", "", "", K::Small}, {RangeMax, "RANGE MAX", "", "", K::Small}, {Idle, "IDLE", "", "", K::Small}};
 } // namespace wm
@@ -67,7 +67,7 @@ namespace cf {
 using namespace chauffeur;
 constexpr PlateReadout readouts[] = {{0, "RIDING", "dB", "+"}, {1, "LEVEL", "dB"}};
 constexpr PlateChoice left[] = {{Response, "RESPONSE"}};
-constexpr PlateKnob row1[] = {{Target, "TARGET", "-42", "0", K::Big}, {NoteSens, "NOTE DETECT", "0", "100"}, {IgnoreSpill, "IGNORE SPILL"},
+constexpr PlateKnob row1[] = {{Target, "TARGET", "-42", "0", K::Big}, {NoteSens, "NOTE DETECT", "0", "100"}, {IgnoreSpill, "IGNORE BLEED"},
                               {IgnoreArtifacts, "IGNORE CLICKS", "0", "100"}, {Output, "OUTPUT"}};
 constexpr PlateKnob row2[] = {{RangeMin, "RANGE MIN", "", "", K::Small}, {RangeMax, "RANGE MAX", "", "", K::Small}, {Idle, "IDLE", "", "", K::Small}};
 } // namespace cf

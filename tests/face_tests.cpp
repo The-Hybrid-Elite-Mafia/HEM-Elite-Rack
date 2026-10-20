@@ -4,6 +4,7 @@
 #include "TextRoom.hpp"
 
 #include "hem/rack/EliteEq.hpp"
+#include "hem/rack/Hideout.hpp"
 #include "hem/rack/Plugins.hpp"
 #include "hem/rack/Restorer.hpp"
 #include "hem/ui/Face.hpp"
@@ -61,6 +62,7 @@ void layoutRules(const rack::PluginInfo& info) {
         const Widget& w = L.widgets[i];
         if (w.r.x < 0 || w.r.y < 0 || w.r.right() > kPlateW || w.r.bottom() > L.footer.y) inside = false;
         if (w.param >= count || w.param2 >= count) paramsOk = false;
+        if (w.kind == WKind::Keyboard && w.param + w.choice > count) paramsOk = false;
         if (w.pageStride > 0) {   // every page's control exists
             int pg = 0;
             for (const Widget& o : L.widgets) pg += o.kind == WKind::PageTab ? 1 : 0;
@@ -88,6 +90,7 @@ void layoutRules(const rack::PluginInfo& info) {
             for (int pg = 0; pg < std::max(pages, 1); ++pg) reach.insert(w.param + pg * w.pageStride);
         if (w.param >= 0) reach.insert(w.param);
         if (w.param2 >= 0) reach.insert(w.param2);
+        if (w.kind == WKind::Keyboard) for (int k = 0; k < w.choice; ++k) reach.insert(w.param + k);
         if (w.control >= 0) for (int b = 0; b < rack::eq::kBands; ++b) reach.insert(rack::eq::bandParam(b, w.control));
     }
     int missing = 0;
@@ -159,6 +162,51 @@ void restorerGestures() {
     c.mouseUp();
     CHECK(host.bypass);
     CHECK(host.open() == 0);   // every beginEdit had its endEdit
+}
+
+// THE INFORMANT's keyboard: NORMAL holds a key while the mouse is down and glides; SUSTAIN latches; SUSTAIN off lets go.
+void keyboardGestures() {
+    using namespace rack::informant;
+    const rack::PluginInfo* info = rack::findPlugin("THE INFORMANT");
+    auto fx = info->create();
+    const FaceLayout L = faceLayout(*info);
+    TestHost host(*fx);
+    FaceFeed feed;
+    FaceState st;
+    FaceController c(L, fx->params(), host, feed, st);
+    const int kb = find(L, WKind::Keyboard);
+    CHECK(kb >= 0);
+    if (kb < 0) return;
+    const Widget& w = L.widgets[static_cast<std::size_t>(kb)];
+    auto at = [&](int k) { const Rect r = keyRect(w.r, w.choice, k); return std::pair<float, float>{r.cx(), r.y + r.h * 0.8f}; };
+    CHECK(keyAt(w.r, w.choice, at(1).first, at(1).second) == 1);    // C#2 (black)
+    CHECK(keyAt(w.r, w.choice, at(0).first, at(0).second) == 0);    // C2
+    CHECK(keyAt(w.r, w.choice, at(47).first, at(47).second) == 47); // B5
+    // NORMAL: E2 sounds while held, the glide to G2 lets E2 go, letting go ends it
+    c.mouseDown(at(4).first, at(4).second, false, false);
+    CHECK(plain(*fx, Key0 + 4) >= 0.5f);
+    c.mouseMove(at(7).first, at(7).second, false);
+    CHECK(plain(*fx, Key0 + 4) < 0.5f && plain(*fx, Key0 + 7) >= 0.5f);
+    c.mouseUp();
+    CHECK(plain(*fx, Key0 + 7) < 0.5f);
+    // SUSTAIN: clicks latch two keys, a second click lets one go
+    const Widget& sus = L.widgets[static_cast<std::size_t>(find(L, WKind::Toggle, Sustain))];
+    c.mouseDown(sus.r.cx(), sus.r.cy(), false, false);
+    c.mouseUp();
+    CHECK(plain(*fx, Sustain) >= 0.5f);
+    for (int k : {12, 16, 19}) { c.mouseDown(at(k).first, at(k).second, false, false); c.mouseUp(); }
+    CHECK(plain(*fx, Key0 + 12) >= 0.5f && plain(*fx, Key0 + 16) >= 0.5f && plain(*fx, Key0 + 19) >= 0.5f);
+    c.mouseDown(at(16).first, at(16).second, false, false);
+    c.mouseUp();
+    CHECK(plain(*fx, Key0 + 16) < 0.5f);
+    // SUSTAIN off: every latched key goes
+    c.mouseDown(sus.r.cx(), sus.r.cy(), false, false);
+    c.mouseUp();
+    int held = 0;
+    for (int k = 0; k < kKeys; ++k) held += plain(*fx, Key0 + k) >= 0.5f ? 1 : 0;
+    CHECK(held == 0);
+    CHECK(host.open() == 0);
+    std::printf("  THE INFORMANT keyboard: hold, glide, latch and let go all reach the key switches\n");
 }
 
 void eqGestures() {
@@ -350,6 +398,7 @@ void testFaces() {
     std::printf("[faceplates]\n");
     for (const auto& info : rack::plugins()) layoutRules(info);
     restorerGestures();
+    keyboardGestures();
     eqGestures();
     for (const auto& info : rack::plugins()) everyControl(info);
     plateRules();

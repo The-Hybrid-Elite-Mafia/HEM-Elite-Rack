@@ -220,6 +220,28 @@ void FaceView::button(const Ctx& c, Rect b, std::string_view text, bool lit, boo
     }
 }
 
+// Piano keys: white ivory-grey and black keys; a sounding key lights teal (solid, no glow). The C keys carry their octave.
+void FaceView::keyboard(const Ctx& c, const Widget& w) const {
+    Renderer& r = c.r;
+    const float z = c.z;
+    const Rgba ivory = rgb8(0xC9CFD2), ebony = rgb8(0x0B0E10);
+    const TextStyle ls = c.ts(TextStyle::Caption);
+    for (int pass = 0; pass < 2; ++pass)   // whites first, the blacks on top
+        for (int k = 0; k < w.choice; ++k) {
+            const bool black = keyIsBlack(k);
+            if (black != (pass == 1)) continue;
+            const Rect kr = c.T(keyRect(w.r, w.choice, k));
+            const bool on = plain(c.host, w.param + k) >= 0.5f, live = c.host.active(w.param + k);
+            const Rgba col = on ? th_.teal : black ? ebony : (live ? ivory : ivory.withAlpha(0.55f));
+            const Rect body = black ? Rect{kr.x, kr.y, kr.w, kr.h} : kr.inset(1.0f * z);
+            r.fillRound(body, (black ? 3.0f : 4.0f) * z, col, Blend::Over, false);
+            if (!black && k % 12 == 0) {
+                const std::string name = "C" + std::to_string(2 + k / 12);
+                r.text(ls, name, kr.cx(), kr.bottom() - 8 * z, on ? kInk : rgb8(0x384046), Align::Center, TextFx::Plain);
+            }
+        }
+}
+
 void FaceView::stepper(const Ctx& c, const Widget& w, int wi) const {
     Renderer& r = c.r;
     const float z = c.z;
@@ -909,6 +931,7 @@ void FaceView::draw(Renderer& r, const PanelHost& host, const FaceFeed& feed, co
         case WKind::VuMeter: vuMeter(c, w); break;
         case WKind::Readout: readout(c, w); break;
         case WKind::History: history(c, w); break;
+        case WKind::Keyboard: keyboard(c, w); break;
         case WKind::GraphRange: {
             const std::string t = fmt("%.0f dB", kGraphRanges[static_cast<std::size_t>(w.choice)]);
             button(c, c.T(w.r), t, st.graphRange == w.choice, hot, false, th_.teal);

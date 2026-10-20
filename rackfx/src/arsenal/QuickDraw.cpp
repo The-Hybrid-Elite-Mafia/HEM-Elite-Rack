@@ -18,7 +18,7 @@ namespace quickdraw {
 namespace {
 using namespace arsenal;
 
-const char* const kRatioN[] = {"4:1", "8:1", "12:1", "20:1", "ALL"};
+const char* const kRatioN[] = {"4:1", "8:1", "12:1", "20:1", "STACKED"};
 const char* const kRevN[] = {"EARLY", "LATE"};
 const ParamInfo kParams[kCount] = {
     {"input", "Input", "dB", -60.0f, 0.0f, -30.0f},
@@ -27,7 +27,7 @@ const ParamInfo kParams[kCount] = {
     {"release", "Release", "/10", 1.0f, 7.0f, 4.0f},
     {"ratio", "Ratio", "", 0, 4, 0, Taper::Choice, kRatioN},
     {"compress", "Compress", "", 0, 1, 1, Taper::Toggle, kOnOff},
-    {"revision", "Revision", "", 0, 1, 0, Taper::Choice, kRevN},
+    {"revision", "Era", "", 0, 1, 0, Taper::Choice, kRevN},
     {"automakeup", "Auto Makeup", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"analog", "Analog", "", 0, 2, 0, Taper::Choice, kMainsN},
     {"meter", "Meter", "", 0, 2, 1, Taper::Choice, kMeterN},

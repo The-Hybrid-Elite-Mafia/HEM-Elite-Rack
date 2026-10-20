@@ -42,7 +42,7 @@ using T = C::Type;
 
 const char* const kModeN[] = {"L/R", "M/S"};
 const char* const kOnOff[] = {"OFF", "ON"};
-const char* const kRatioN[] = {"4", "8", "12", "20", "ALL"};
+const char* const kRatioN[] = {"4", "8", "12", "20", "STACKED"};
 const char* const kSatN[] = {"DRY", "CLIP", "WARM", "TRIODE", "TAPE"};
 const char* const kSrcN[] = {"INT", "EXT"};
 const ParamInfo kParams[kCount] = {

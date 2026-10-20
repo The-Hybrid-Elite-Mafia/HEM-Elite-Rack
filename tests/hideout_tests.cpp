@@ -371,24 +371,93 @@ void testHustle() {
 
 void testInformant() {
     using namespace informant;
-    {
-        auto e = make("THE INFORMANT", {{Note, 9}, {Octave, 1}, {Sibilance, 0}});   // A3 = 220 Hz
+    // a talking-like modulator: noise in short bursts; the morph only (no noise path)
+    auto keysOn = [](hc::fx::Effect& e, std::initializer_list<int> keys) { for (int k : keys) e.set(Key0 + k, 1.0f); };
+    {   // A3 (key 21) held, noise as the words: the output is the synth's 220 Hz shaped by the noise
+        auto e = make("THE INFORMANT", {{Level0 + NoisePath, -60.0f}});
+        keysOn(*e, {21});
         Stereo s = noise(1.5, 0.2f);
-        const double inRms = rms(s.l, 24000, 24000);
         run(*e, s);
-        const double outRms = rms(s.l, 24000, 24000);
         const double h = toneAmp(s.l, 220, 24000, 48000), off = toneAmp(s.l, 300, 24000, 48000);
-        std::printf("  THE INFORMANT noise in, A3 carrier: level %+.1f dB vs the input, 220 Hz is %.1f dB over 300 Hz\n", db(outRms / inRms), db(h / off));
-        CHECK(std::fabs(db(outRms / inRms)) < 6.0 && db(h / off) > 15.0);
+        std::printf("  THE INFORMANT key A3, noise as the words: 220 Hz is %.1f dB over 300 Hz, level %.1f dBFS\n", db(h / off), db(rms(s.l, 24000, 48000)));
+        CHECK(db(h / off) > 15.0);
+        CHECK(db(rms(s.l, 24000, 48000)) > -40.0);
     }
-    {
-        auto e = make("THE INFORMANT", {{Mix, 0}});
+    {   // TUNE 220: the same key sounds an octave lower
+        auto e = make("THE INFORMANT", {{Level0 + NoisePath, -60.0f}, {Tune, 220.0f}});
+        keysOn(*e, {21});
+        Stereo s = noise(1.5, 0.2f);
+        run(*e, s);
+        const double h = toneAmp(s.l, 110, 24000, 48000), off = toneAmp(s.l, 150, 24000, 48000);
+        std::printf("  THE INFORMANT tune 220: A3 key at 110 Hz is %.1f dB over 150 Hz\n", db(h / off));
+        CHECK(db(h / off) > 12.0);
+    }
+    {   // eight voices: a ninth key is ignored
+        auto e = make("THE INFORMANT", {{Level0 + MorphPath, -60.0f}, {Level0 + NoisePath, -60.0f}, {Level0 + CarrierPath, 0.0f}, {Sound, 2}});
+        auto ref = make("THE INFORMANT", {{Level0 + MorphPath, -60.0f}, {Level0 + NoisePath, -60.0f}, {Level0 + CarrierPath, 0.0f}, {Sound, 2}});
+        keysOn(*e, {0, 2, 4, 5, 7, 9, 11, 12});
+        keysOn(*ref, {0, 2, 4, 5, 7, 9, 11, 12});
+        Stereo a(24000), b(24000);
+        run(*e, a);
+        run(*ref, b);
+        keysOn(*e, {45});   // A5 = 880 Hz on one of them: no voice left, so both stay the same
+        Stereo s(24000), t(24000);
+        run(*e, s);
+        run(*ref, t);
+        double diff = 0;
+        for (std::size_t i = 0; i < s.size(); ++i) diff = std::max(diff, static_cast<double>(std::fabs(s.l[i] - t.l[i])));
+        std::printf("  THE INFORMANT ninth key pressed with eight held: largest change %.2e\n", diff);
+        CHECK(diff < 1e-6);
+    }
+    {   // SPREAD 1 with two keys: one voice to each side
+        auto e = make("THE INFORMANT", {{Level0 + MorphPath, -60.0f}, {Level0 + NoisePath, -60.0f}, {Level0 + CarrierPath, 0.0f}, {Spread, 1.0f}, {Sound, 2}});
+        keysOn(*e, {21, 33});   // 220 and 440 Hz
+        Stereo s(24000);
+        run(*e, s);
+        const double lowL = toneAmp(s.l, 220, 9600, 14400), lowR = toneAmp(s.r, 220, 9600, 14400);
+        std::printf("  THE INFORMANT spread 1: the low voice is %.1f dB louder on the left\n", db(lowL / std::max(lowR, 1e-12)));
+        CHECK(db(lowL / std::max(lowR, 1e-12)) > 30.0);
+    }
+    {   // the mixer: MODULATOR at 0 dB with SOLO gives the input back untouched
+        auto e = make("THE INFORMANT", {{Level0 + ModPath, 0.0f}, {Solo0 + ModPath, 1.0f}});
+        keysOn(*e, {21});
         Stereo s = noise(0.3, 0.2f), ref = s;
         run(*e, s);
         double diff = 0;
-        for (std::size_t i = 0; i < s.size(); ++i) diff = std::max(diff, static_cast<double>(std::fabs(s.l[i] - ref.l[i])));
-        std::printf("  THE INFORMANT mix 0: largest change %.2e\n", diff);
-        CHECK(diff < 1e-6);
+        for (std::size_t i = 4800; i < s.size(); ++i) diff = std::max(diff, static_cast<double>(std::fabs(s.l[i] - ref.l[i])));
+        std::printf("  THE INFORMANT modulator solo: largest change %.2e\n", diff);
+        CHECK(diff < 1e-5);
+    }
+    {   // MUTE on the morph and the noise: silence even with a key and words
+        auto e = make("THE INFORMANT", {{Mute0 + MorphPath, 1.0f}, {Mute0 + NoisePath, 1.0f}});
+        keysOn(*e, {21});
+        Stereo s = noise(0.5, 0.2f);
+        run(*e, s);
+        std::printf("  THE INFORMANT morph and noise muted: peak %.2e\n", peakIn(s.l, 4800, s.size()));
+        CHECK(peakIn(s.l, 4800, s.size()) < 1e-5);
+    }
+    {   // RELEASE: after the words stop the shape holds (5000 = forever) - versus 50 ms, where it dies away
+        auto held = make("THE INFORMANT", {{Level0 + NoisePath, -60.0f}, {Release, 5000.0f}});
+        auto fast = make("THE INFORMANT", {{Level0 + NoisePath, -60.0f}, {Release, 50.0f}});
+        keysOn(*held, {21});
+        keysOn(*fast, {21});
+        Stereo a = noise(1.5, 0.2f), b = a;
+        for (std::size_t i = 36000; i < a.size(); ++i) a.l[i] = a.r[i] = b.l[i] = b.r[i] = 0.0f;   // the words stop at 0.75 s
+        run(*held, a);
+        run(*fast, b);
+        const double ha = db(rms(a.l, 60000, 12000)), fb = db(rms(b.l, 60000, 12000));
+        std::printf("  THE INFORMANT 0.5 s after the words stop: release 5000 %.1f dBFS, release 50 %.1f dBFS\n", ha, fb);
+        CHECK(ha > -40.0 && ha > fb + 30.0);
+    }
+    {   // FORMANT x2 moves the voice's shape up: a band of words at 500 Hz shows up near 1 kHz
+        auto up = make("THE INFORMANT", {{Level0 + NoisePath, -60.0f}, {Formant, 2.0f}, {Sound, 8}});   // AIR: noisy, a full spectrum
+        keysOn(*up, {21});
+        Stereo s = sine(500.0, 1.5, 0.3f);
+        run(*up, s);
+        const double near1k = toneAmp(s.l, 1000, 24000, 48000) + toneAmp(s.l, 880, 24000, 48000) + toneAmp(s.l, 1100, 24000, 48000);
+        const double near500 = toneAmp(s.l, 440, 24000, 48000) + toneAmp(s.l, 500, 24000, 48000) + toneAmp(s.l, 550, 24000, 48000);
+        std::printf("  THE INFORMANT formant x2, words at 500 Hz: around 1 kHz is %.1f dB over around 500 Hz\n", db(near1k / std::max(near500, 1e-12)));
+        CHECK(db(near1k / std::max(near500, 1e-12)) > 6.0);
     }
 }
 

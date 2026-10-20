@@ -71,7 +71,7 @@ ENFORCER
 
 HITMAN (dual FET peak compressor)
   Turn INPUT up to compress harder, OUTPUT to set the level (OUTPUT also drives SATURATION).
-  ATTACK and RELEASE: 7 is fastest. RATIO 4 / 8 / 12 / 20, or ALL for the aggressive, crunchy smash.
+  ATTACK and RELEASE: 7 is fastest. RATIO 4 / 8 / 12 / 20, or STACKED (every ratio at once) for the aggressive, crunchy smash.
   MODE L/R or M/S; LINK makes channel 2 follow channel 1's knobs (turn it off to set them apart).
   LOOKAHEAD (up to 2 ms) catches the very first edge of a hit. SC EQ shapes what it listens to
   (e.g. SC HPF so the kick doesn't pump it); LISTEN lets you hear that. SOURCE EXT uses the
@@ -94,7 +94,7 @@ TERRITORY / STRAIGHT EDGE
   Each band: THRESHOLD, GAIN, RANGE (minus = that band comes down when it's loud, plus = it gets lifted,
   0 = no movement; GAIN still works as an EQ), ATTACK, RELEASE, SOLO, BYPASS. The MASTER column moves
   every band at once. SPLIT knobs move the borders. KNEE 0 = soft and wide, 100 = hard. RELEASE AUTO
-  follows the music; OPTO lets go slowly at the end, ELECTRO quickly. TERRITORY: Q = how steep the steps
+  follows the music; EASE OUT lets go slowly at the end, SNAP BACK quickly. TERRITORY: Q = how steep the steps
   between bands are. STRAIGHT EDGE (no phase shift, 53 ms late): MAKEUP AUTO gives each band back half
   its RANGE, ADAPTIVE lets a band work only when it stands out over the band under it, TRIM (one push)
   brings the loudest peak since the last push to 0 dBFS, DITHER for 24-bit.
@@ -131,12 +131,12 @@ IRON FIST
 
 QUICK DRAW
   More INPUT = more limiting (-30 is where it starts); OUTPUT sets the level (-18 = no change).
-  ATTACK and RELEASE: 7 is the fastest. RATIO 4 to 20, or ALL for the famous over-the-top smash.
-  REVISION EARLY colours more than LATE.
+  ATTACK and RELEASE: 7 is the fastest. RATIO 4 to 20, or STACKED (every ratio at once) for the over-the-top smash.
+  ERA EARLY colours more than LATE.
 
 OLD MONEY
   A clean, smooth all-rounder. RATIO under 1 makes loud parts louder. RELEASE AUTO follows the
-  music; ELECTRO lets go quicker (more level), OPTO smoother. WARM adds a touch of colour. OUTPUT has
+  music; SNAP BACK lets go quicker (more level), EASE OUT smoother. WARM adds a touch of colour. OUTPUT has
   a soft limiter after it so it never goes over.
 
 KNOCKOUT
@@ -160,8 +160,8 @@ FULL HOUSE
 WHEELMAN / CHAUFFEUR
   Set TARGET to the level you want the vocal (WHEELMAN) or bass (CHAUFFEUR) to sit at; it rides the
   level between RANGE MIN and MAX. IDLE = where it sits when the part isn't playing. WHEELMAN: VOCAL
-  SENSITIVITY = how loud the voice must be to count; LIVE + SPILL ignores other instruments in the mic.
-  CHAUFFEUR: NOTE DETECT, IGNORE SPILL and IGNORE CLICKS decide what counts as a bass note.
+  SENSITIVITY = how loud the voice must be to count; STAGE + BLEED FLOOR ignores other instruments in the mic.
+  CHAUFFEUR: NOTE DETECT, IGNORE BLEED and IGNORE CLICKS decide what counts as a bass note.
   (No music sidechain and no automation writing: the rack doesn't have those.)
 
 THE MAXIMIZERS - every one ends with the same three steppers:
@@ -380,9 +380,15 @@ HUSTLE
   shape. GAIN and MIX at the end.
 
 THE INFORMANT
-  Talk or sing into it and the built-in synth "speaks" your words. NOTE, OCTAVE and CHORD set what
-  the synth plays, CARRIER its sound. BANDS 32 = clearer words. SHIFT moves the voice character up
-  or down, SIBILANCE lets the S and T sounds through.
+  Talk or sing into it and its own synth "speaks" your words. Play the synth on the 48 KEYS (up to
+  eight at once): NORMAL = a key sounds while you hold it (drag across for a glide), SUSTAIN = a click
+  keeps it on until you click it again. SOUND picks one of ten synth sounds, TUNE moves the whole synth
+  (A = 440 Hz normally), SPREAD fans the notes across left and right. CARRIER can also be your track's
+  left / right / stereo instead of the synth; MODULATOR picks which side of the input does the talking.
+  NOISE adds whispery breath (FILTER and FREQ shape it). PRESSURE evens out quiet and loud words, FORMANT
+  makes the voice smaller or bigger, SMOOTHING trades crisp words for a smoother sound, RELEASE holds the
+  last word's shape in the pauses. The EQ shapes the vocoded sound. The MIXER blends CARRIER, MODULATOR,
+  NOISE and MORPH (-60 = off), each with SOLO and MUTE. MIDI playing is not possible in the rack.
 
 STRAPPED
   A guitar desk. MODE: CLEAN, CRUNCH or HEAVY (each its own tone; BYPASS = none). RE-AMP runs it

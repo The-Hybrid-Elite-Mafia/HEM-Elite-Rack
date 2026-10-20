@@ -67,12 +67,12 @@ constexpr PlateChoice steppers[] = {{Release, "RELEASE"}, {LimitRelease, "LIMIT 
 // ---- QUICK DRAW
 namespace qd {
 using namespace quickdraw;
-constexpr PlateChoice choices[] = {{Meter, "METER"}, {Ratio, "RATIO"}, {Revision, "REVISION"}};
+constexpr PlateChoice choices[] = {{Meter, "METER"}, {Revision, "ERA"}};
 constexpr PlateToggle toggles[] = {{Compress, "COMPRESS"}};
 constexpr PlateKnob row1[] = {{Input, "INPUT", "-60", "0", K::Big}, {Output, "OUTPUT", "-60", "0", K::Big}, {Attack, "ATTACK", "1", "7"},
                               {Release, "RELEASE", "1", "7"}, {Mix, "MIX", "", "", K::Small}, {Trim, "TRIM", "", "", K::Small}};
 constexpr PlateToggle leftT[] = {{AutoMakeup, "AUTO MAKEUP"}};
-constexpr PlateChoice steppers[] = {{Analog, "ANALOG"}};
+constexpr PlateChoice steppers[] = {{Ratio, "RATIO"}, {Analog, "ANALOG"}};
 } // namespace qd
 
 // ---- OLD MONEY
