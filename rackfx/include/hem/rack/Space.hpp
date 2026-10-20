@@ -17,9 +17,9 @@
 namespace hem::rack {
 
 namespace verb {
-// Shared by CATHEDRAL and CHROME. Index 4 is EARLY (CATHEDRAL) or DIFFUSION (CHROME).
+// Shared by CATHEDRAL, CHROME and BACKROOM. Index 4 is EARLY (CATHEDRAL, BACKROOM) or DIFFUSION (CHROME).
 enum P : int { PreDelay, Size, Decay, Damping, Early, Mod, Width, LowCut, HighCut, Mix, kCount };
-enum class Kind : int { Hall, Plate };
+enum class Kind : int { Hall, Plate, Room };
 } // namespace verb
 namespace ddelay {
 enum P : int { Division, Bpm, Time, Feedback, PingPong, Offset, LowCut, HighCut, Mix, kCount };
@@ -29,6 +29,7 @@ inline constexpr float kBeats[] = {0.0f, 1.0f, 0.5f, 0.75f, 0.25f, 2.0f / 3.0f, 
 
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeHall();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makePlate();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeRoom();   // BACKROOM: small to large real rooms, early reflections up front
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeDigitalDelay();
 
 } // namespace hem::rack

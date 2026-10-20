@@ -44,6 +44,37 @@ VELVET
   HIGH ATTENUATION: SELECT 5 / 10 / 20 kHz and ATTEN to soften the top. TUBE: DRIVE, OUTPUT.
   EQ switches the EQ out (to compare; the tube stays). ANALOG adds the old box's hum (50 or 60 Hz).
 
+FOUNDRY
+  The console channel. Each band has a ring that picks its frequency (OFF = the band is out) and
+  a knob for how much (-18 .. +18 dB): LOWS (a shelf), MIDDLE (a bell), HIGHS (a shelf). LOW CUT
+  takes out rumble below its frequency, steeply. EQ OUT = the curves go flat (VINTAGE stays). FLIP
+  turns the sound upside down (for a second mic out of phase). VINTAGE adds the old desk's warmth
+  and a little hiss. The windows show the PEAK level out, TO TOP = how far OUTPUT can go up before
+  the peak reaches the top, and CLIPS; CLEAR resets them.
+
+BOARDROOM
+  The bigger console EQ, four bands. HIGH-PASS and LOW-PASS cut the extremes. LOWS and HIGHS are
+  shelves, or bells with LOWS BELL / HIGHS BELL. LOW MIDS and HIGH MIDS are bells: wide reaches
+  12 dB at the end of the knob, TIGHT is narrower and reaches 18. EQ, FLIP, VINTAGE, OUTPUT and the
+  readouts work as on FOUNDRY.
+
+MIDTOWN
+  The middle of the mix. LOW PEAK and HIGH PEAK lift a band (pick its frequency on the ring next
+  to it), DIP cuts one; all three can be used together. 10 on LOW PEAK or DIP = 10 dB, on HIGH PEAK
+  8 dB. EQ OUT to compare, HUM adds the tube box's hum (50 or 60 Hz).
+
+MIXTAPE
+  A cassette deck. DRIVE pushes the tape, TAPE picks TYPE I (darkest, saturates first), II or IV
+  (brightest, cleanest). WOW = slow pitch drift, FLUTTER = fast, HISS, AGE = a worn, duller tape.
+
+CRATE DIGGER
+  A record player. CRACKLE = clicks and pops, NOISE = surface hiss and rumble, WEAR = duller with
+  a little grit, WARP = the pitch wobble of a bent record. MONO LOWS puts the deep bass in the middle.
+
+SHREDDER
+  Lo-fi. BITS down for grit (8 and under is obvious), DOWNSAMPLE up for the metallic sound of a
+  low sample rate. MIX blends it with the clean sound.
+
 LOCKDOWN (put it last in the chain)
   INPUT pushes the song into it: louder. CEILING is the most that ever comes out (-1 dB is a
   safe choice for streaming). TRUE PEAK on keeps the peaks *between* samples under the ceiling
@@ -424,6 +455,12 @@ BIG HOUSE
   down = off), MIX. LOW / HIGH HZ with their X: the lows or highs last longer (over 1) or shorter (under 1).
   EQ LO / EQ HI shape the tail (all the way down = a cut). VARIATION changes the early reflections a bit.
 
+COIL
+  A spring reverb. TANK picks one of seven (DUO = two springs, grittier; TRIO = three, fuller),
+  LENGTH how long it rings. DRIVE pushes the sound into the springs (hotter = grittier), HEADROOM
+  how soon the peaks get rounded (quiet sounds stay the same level). PRE-DELAY waits before the
+  springs. TREBLE and BASS shape the reverb only. MIX, OUTPUT; MONO puts the same reverb on both sides.
+
 SPEAKEASY
   Puts the sound in a real room. ROOM SIZE = how big the room is, DISTANCE = how far away the sound
   stands (closer = a longer gap before the first reflections and more direct sound). With REAL ROOM on,
@@ -503,7 +540,7 @@ FURNACE
   DRIVE for more tube colour (the level stays about the same), BIAS toward EVEN = warmer.
   TONE darker or brighter after the tube, MIX to blend.
 
-CATHEDRAL, CHROME
+CATHEDRAL, CHROME, BACKROOM
   DECAY = how many seconds the tail lasts. PRE-DELAY keeps the dry sound clear before the
   reverb starts (20 - 60 ms on vocals). DAMPING makes the tail darker. LOW CUT on the reverb
   keeps the low end clean. For a send-style sound in the rack, keep MIX low (10 - 25 %).

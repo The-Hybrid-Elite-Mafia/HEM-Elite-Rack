@@ -22,6 +22,7 @@
 #include "hem/rack/Space.hpp"
 #include "hem/rack/Movement.hpp"
 #include "hem/rack/Specialty.hpp"
+#include "hem/rack/Comeback.hpp"
 #include "hybrid/fx/Dsp.hpp"
 
 #include <algorithm>
@@ -1043,8 +1044,8 @@ double periodSpread(const std::vector<float>& x, std::size_t from) {
 } // namespace
 
 void testColorFx() {
-    std::printf("[furnace] FURNACE\n");
-    for (const char* n : {"FURNACE"}) {
+    std::printf("[colour] FURNACE, MIXTAPE, CRATE DIGGER, SHREDDER\n");
+    for (const char* n : {"FURNACE", "MIXTAPE", "CRATE DIGGER", "SHREDDER"}) {
         const PluginInfo* info = findPlugin(n);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
@@ -1063,7 +1064,55 @@ void testColorFx() {
         run(*dry, s);
         CHECK(maxDelayedDiff(s, ref, dry->latency(), 0) < 1e-6);
     }
-    for (const char* n : {"FURNACE"}) {
+    {   // MIXTAPE: TYPE IV keeps more top than TYPE I; WOW moves the pitch; HISS lands near -40 dBFS at 100 %
+        using namespace mixtape;
+        auto top = [](float type) { auto e = fresh("MIXTAPE", {{Type, type}, {Drive, 0}, {Wow, 0}, {Flutter, 0}}); return toneOut(*e, 12000, 0.05f); };
+        const double t1 = top(0), t4 = top(2);
+        auto spread = [](float wow) {
+            auto e = fresh("MIXTAPE", {{Wow, wow}, {Flutter, 0}, {Drive, 0}});
+            Stereo s = sine(1000, 3.0, 0.1f);
+            run(*e, s);
+            return periodSpread(s.l, 4800);
+        };
+        const double still = spread(0), wobble = spread(100);
+        auto hs = fresh("MIXTAPE", {{Hiss, 100}});
+        Stereo z(96000);
+        run(*hs, z);
+        const double hissDb = db(rms(z.l, 48000, 48000));
+        std::printf("  MIXTAPE: 12 kHz TYPE I %.1f dB, TYPE IV %.1f dB; period spread still %.4f, wow 100 %% %.4f samples; hiss %.1f dBFS RMS\n", t1, t4, still, wobble, hissDb);
+        CHECK(t4 > t1 + 3.0 && wobble > 20.0 * std::max(still, 1e-4) && hissDb > -50.0 && hissDb < -30.0);
+    }
+    {   // CRATE DIGGER: clicks appear with CRACKLE; with everything off it's the input, delayed
+        using namespace cratedigger;
+        auto e = fresh("CRATE DIGGER", {{Crackle, 100}, {Wear, 0}, {Warp, 0}});
+        Stereo z(48000 * 4);
+        run(*e, z);
+        int clicks = 0;
+        for (std::size_t i = 1; i < z.size(); ++i) clicks += std::fabs(z.l[i]) > 0.01f && std::fabs(z.l[i - 1]) <= 0.01f;
+        auto clean = fresh("CRATE DIGGER", {{Wear, 0}, {Warp, 0}, {MonoLows, 0}});
+        Stereo s = noise(1.0, 0.3f), ref = s;
+        run(*clean, s);
+        const double d = maxDelayedDiff(s, ref, clean->latency(), 0);
+        std::printf("  CRATE DIGGER: crackle 100 %% -> %d click onsets in 4 s; all off: max difference from the input %.2e\n", clicks, d);
+        CHECK(clicks > 40 && d < 1e-6);
+    }
+    {   // SHREDDER: 4 bits = at most 17 levels; downsample 4 holds each value 4 samples; 24 bits / 1x is clean
+        using namespace shredder;
+        auto e = fresh("SHREDDER", {{Bits, 4}, {Downsample, 4}});
+        Stereo s = sine(97, 0.5, 0.9f);
+        run(*e, s);
+        std::set<float> levels(s.l.begin() + 4800, s.l.end());
+        bool held = true;
+        for (std::size_t i = 4800; i + 4 < s.size(); i += 4)
+            for (int k = 1; k < 4; ++k) held = held && s.l[i + k] == s.l[i];
+        auto hi = fresh("SHREDDER", {{Bits, 24}, {Downsample, 1}});
+        Stereo t = noise(0.5, 0.5f), ref = t;
+        run(*hi, t);
+        const double d = maxDelayedDiff(t, ref, 0, 0);
+        std::printf("  SHREDDER: 4 bits -> %zu levels, held for 4 samples %s; 24 bits 1x max difference %.2e\n", levels.size(), held ? "yes" : "no", d);
+        CHECK(levels.size() <= 17 && held && d < 1e-6);
+    }
+    for (const char* n : {"FURNACE", "MIXTAPE", "CRATE DIGGER", "SHREDDER"}) {
         Stereo in = hotMix(1.0);
         const double d = blockSizeDifference(*findPlugin(n), [](hc::fx::Effect&) {}, in);
         std::printf("  %s block size 1 vs 512: max difference %.2e\n", n, d);
@@ -1116,15 +1165,15 @@ double energyAround(const std::vector<float>& x, std::size_t at, std::size_t hal
 } // namespace
 
 void testSpace() {
-    std::printf("[space] CATHEDRAL, CHROME, REPEAT OFFENDER\n");
-    for (const char* n : {"CATHEDRAL", "CHROME", "REPEAT OFFENDER"}) {
+    std::printf("[space] CATHEDRAL, BACKROOM, CHROME, REPEAT OFFENDER\n");
+    for (const char* n : {"CATHEDRAL", "BACKROOM", "CHROME", "REPEAT OFFENDER"}) {
         const PluginInfo* info = findPlugin(n);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
     }
     {   // the reverbs: DECAY is the real reverb time; MIX 0 is the dry signal; the tail is wide
         using namespace verb;
-        const struct { const char* n; float decay; } cases[] = {{"CATHEDRAL", 3.0f}, {"CATHEDRAL", 1.2f}, {"CHROME", 2.0f}};
+        const struct { const char* n; float decay; } cases[] = {{"CATHEDRAL", 3.0f}, {"CATHEDRAL", 1.2f}, {"BACKROOM", 0.8f}, {"CHROME", 2.0f}};
         for (const auto& c : cases) {
             auto e = fresh(c.n, {{Decay, c.decay}, {Damping, 0}, {Mod, 0}, {LowCut, 20}, {HighCut, 20000}, {Mix, 100}, {PreDelay, 0}});
             Stereo s = impulse(c.decay * 2.0 + 0.5);
@@ -1166,7 +1215,7 @@ void testSpace() {
         CHECK(k == 12000 && std::fabs(s.l[k] - 1.0f) < 1e-6f && std::fabs(second + 6.0) < 1.5 && kq == 24000);
         CHECK(l1 > 0.1 && r1 < 1e-6 && r2 > 0.05 && l2 < 1e-6);
     }
-    for (const char* n : {"CATHEDRAL", "CHROME", "REPEAT OFFENDER"}) {
+    for (const char* n : {"CATHEDRAL", "BACKROOM", "CHROME", "REPEAT OFFENDER"}) {
         Stereo in = hotMix(1.0);
         const double d = blockSizeDifference(*findPlugin(n), [](hc::fx::Effect&) {}, in);
         std::printf("  %s block size 1 vs 512: max difference %.2e\n", n, d);

@@ -13,6 +13,9 @@ C++23 audio framework, as a library.
 | **THE FAMILY** | Console-style mix-bus compressor: 2 / 4 / 10:1, stepped attack and release (+ AUTO), sidechain HPF, mix |
 | **ARCHIVE** | Two-track tape machine: input drive, 15 / 30 IPS, head bump, wow & flutter, hiss, auto trim, VU meters with VU zero |
 | **VELVET** | Passive tube program EQ: low boost / atten (the low-end trick), high boost with bandwidth, high atten, tube drive, EQ in / out, hum |
+| **FOUNDRY** | British console channel EQ: stepped low cut (18 dB / oct), lows, middle and highs at the console's own steps, EQ in / out, flip, vintage colour; peak, to-top and clip readouts |
+| **BOARDROOM** | British console four-band EQ: stepped high- and low-pass, lows and highs as shelf or bell, wide or tight low and high mids, EQ in / out, flip, vintage; peak readouts |
+| **MIDTOWN** | Tube midrange EQ: low peak, dip and high peak at stepped frequencies, EQ in / out, hum, output; the curve on the plate |
 | **LOCKDOWN** | True-peak mastering limiter: input push, ceiling, look-ahead, auto release, stereo link, LUFS and true-peak readouts |
 | **WIDE LOAD** | Mono to 200 % width, MONO BASS (80–250 Hz), low widen and its frequency, low trim, aim, center shift, balance, polarity, swap, M / S in; correlation, width and L / R or M / S meters |
 | **SPARK** | Adds fresh harmonics above a frequency: TUBE (even) or TAPE (odd), drive, mix |
@@ -84,6 +87,7 @@ C++23 audio framework, as a library.
 | **STREET TEAM** | Channel strip: input, four-band EQ (cut / shelves / bells), gate with floor, compressor / expander, output |
 | **BIG HOUSE** | Reverb with twelve kinds of space (halls, room, chamber, sanctuary, plates, backwards, gated, shaped, echo room, ringing): variation, pre-delay either way, time, size, diffusion, decay shape, early / reverb levels, damping ratios, tail EQ, mix, gain |
 | **SPEAKEASY** | A real room around the sound: room size, distance (sets the first-reflection gap, and with REAL ROOM the levels and pre-delay as in a real room), room shape, balance, decay, pre-delay, density, dulling of the tail and the early reflections, low / high decay ratios, two variations, input, direct / early / reverb on with levels |
+| **COIL** | Spring reverb: drive, headroom, pre-delay, seven tanks, short / medium / long, treble and bass on the springs, mix, output, stereo or mono |
 | **THE INFORMANT** | Vocoder with its own 8-voice synth on 48 keys (hold or latch), ten sounds, tune, spread; noise with its filter; squeeze, formant, lag, hold; five-band EQ; carrier / modulator / noise / vocoded mixer with solo and mute |
 | **STRAPPED** | Guitar mix desk: clean tone / edge / high gain, re-amp, then six faders with a style each: bass, treble, compress, reverb, delay, pitch |
 | **SAFE HOUSE** | Speakers in your headphones: room, speaker angle, head turn, head size, ear to ear, mute left / right (for listening; bypass before export) |
@@ -97,7 +101,11 @@ C++23 audio framework, as a library.
 | **THE WITNESS** | VU and peak meters for left and right, calibration, peak hold |
 | **LIVE WIRE** | Test tones: sine, square, saw, triangle, white / pink noise, sweeps; left / right / both / opposed |
 | **FURNACE** | Tube stage: drive, bias (even harmonics), tone, mix — colour without a volume jump |
+| **MIXTAPE** | Cassette deck: tape type I / II / IV, drive, wow, flutter, hiss, age |
+| **CRATE DIGGER** | Record player: crackle, surface noise and rumble, wear, warp, mono lows |
+| **SHREDDER** | Bits and sample rate down: bits, downsample, mix |
 | **CATHEDRAL** | Concert hall reverb: pre-delay, size, decay, damping, early reflections, modulation, width, low / high cut |
+| **BACKROOM** | Room reverb, small to large: early reflections up front, short natural tails; pre-delay, size, decay, damping, early, modulation, width, low / high cut |
 | **CHROME** | Bright, dense plate reverb with diffusion control |
 | **REPEAT OFFENDER** | Clean stereo delay: note values at a BPM or ms, ping-pong, stereo offset, filtered repeats |
 | **THE CREW** | Stereo chorus: one to three voices, rate, depth, delay, width |
@@ -109,7 +117,7 @@ C++23 audio framework, as a library.
 | **UNDERGROUND** | More low end: a new sub an octave down, or harmonics small speakers can hear |
 | **SPOTLIGHT** | Vocal chain: high-pass, body, one-knob compressor, one-knob de-esser, presence, air |
 
-Ninety-two plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
+One hundred and eight plug-ins, under our own names and in our own words. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 
 ## Install
 Download `HEM-Elite-Rack-Setup-x.y.z.exe` from **Releases** and run it. Needs Windows 10 / 11

@@ -196,6 +196,23 @@ constexpr PlateKnob row1[] = {{LowFreq, "LOW PEAK AT", "200", "1K"}, {LowPeak, "
                               {Dip, "DIP", "0", "10"}, {HighFreq, "HIGH PEAK AT", "1.5K", "5K"}, {HighPeak, "HIGH PEAK", "0", "10"},
                               {Output, "OUTPUT", "-18", "+18"}};
 } // namespace mt
+// ---- MIXTAPE / CRATE DIGGER / SHREDDER
+namespace mx {
+using namespace mixtape;
+constexpr PlateChoice choices[] = {{Type, "TAPE"}};
+constexpr PlateKnob row1[] = {{Drive, "DRIVE", "0", "100", K::Big}, {Wow, "WOW"}, {Flutter, "FLUTTER"}, {Hiss, "HISS"}, {Age, "AGE"},
+                              {Output, "OUTPUT", "-18", "+18"}};
+} // namespace mx
+namespace cd {
+using namespace cratedigger;
+constexpr PlateToggle toggles[] = {{MonoLows, "MONO LOWS"}};
+constexpr PlateKnob row1[] = {{Crackle, "CRACKLE", "0", "100", K::Big}, {Noise, "NOISE"}, {Wear, "WEAR"}, {Warp, "WARP"}, {Output, "OUTPUT", "-18", "+18"}};
+} // namespace cd
+namespace sr {
+using namespace shredder;
+constexpr PlateKnob row1[] = {{Bits, "BITS", "1", "24", K::Big}, {Downsample, "DOWNSAMPLE", "1", "50", K::Big}, {Mix, "MIX", "DRY", "WET"},
+                              {Output, "OUTPUT", "-18", "+18"}};
+} // namespace sr
 
 } // namespace
 
@@ -211,6 +228,12 @@ const PlateSpec kBoardroom{.note1 = "FOUR BANDS", .note2 = "THE BIG DESK", .scre
                                using namespace boardroom;
                                e.set(HighPass, 2); e.set(LowGain, 3); e.set(LoMidGain, -4); e.set(HiMidGain, 3); e.set(HiMidTight, 1);
                            }};
+const PlateSpec kMixtape{.note1 = "SIDE A", .note2 = "PRESS PLAY", .screen = Screen::None, .choices = mx::choices, .row1 = mx::row1,
+                         .demo = [](hc::fx::Effect& e) { e.set(mixtape::Drive, 55); e.set(mixtape::Hiss, 20); }};
+const PlateSpec kCrateDigger{.note1 = "DUST ON THE NEEDLE", .note2 = "33 AND A THIRD", .screen = Screen::None, .toggles = cd::toggles, .row1 = cd::row1,
+                             .demo = [](hc::fx::Effect& e) { e.set(cratedigger::Crackle, 40); e.set(cratedigger::Noise, 25); }};
+const PlateSpec kShredder{.note1 = "FEWER BITS", .note2 = "FEWER SAMPLES", .screen = Screen::None, .row1 = sr::row1,
+                          .demo = [](hc::fx::Effect& e) { e.set(shredder::Bits, 6); e.set(shredder::Downsample, 6); }};
 const PlateSpec kMidtown{.note1 = "THE MIDDLE", .note2 = "WHERE THE SONG LIVES", .screen = Screen::Curve, .toggles = mt::toggles,
                          .row1 = mt::row1, .steppers = mt::steppers,
                          .demo = [](hc::fx::Effect& e) {

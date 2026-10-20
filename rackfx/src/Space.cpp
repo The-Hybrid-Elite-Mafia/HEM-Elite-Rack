@@ -59,6 +59,13 @@ const ParamInfo kHall[kCount] = {
     {"width", "Width", "%", 0.0f, 150.0f, 100.0f},          {"lowcut", "Low Cut", "Hz", 20.0f, 500.0f, 80.0f, Taper::Log},
     {"highcut", "High Cut", "Hz", 1000.0f, 20000.0f, 9000.0f, Taper::Log}, {"mix", "Mix", "%", 0.0f, 100.0f, 25.0f},
 };
+const ParamInfo kRoom[kCount] = {
+    {"predelay", "Pre-Delay", "ms", 0.0f, 100.0f, 5.0f},   {"size", "Size", "%", 0.0f, 100.0f, 50.0f},
+    {"decay", "Decay", "s", 0.2f, 4.0f, 0.8f, Taper::Log},  {"damping", "Damping", "%", 0.0f, 100.0f, 50.0f},
+    {"early", "Early", "%", 0.0f, 100.0f, 70.0f},          {"mod", "Mod", "%", 0.0f, 100.0f, 15.0f},
+    {"width", "Width", "%", 0.0f, 150.0f, 100.0f},          {"lowcut", "Low Cut", "Hz", 20.0f, 500.0f, 100.0f, Taper::Log},
+    {"highcut", "High Cut", "Hz", 1000.0f, 20000.0f, 8000.0f, Taper::Log}, {"mix", "Mix", "%", 0.0f, 100.0f, 20.0f},
+};
 const ParamInfo kPlate[kCount] = {
     {"predelay", "Pre-Delay", "ms", 0.0f, 200.0f, 10.0f},  {"size", "Size", "%", 0.0f, 100.0f, 50.0f},
     {"decay", "Decay", "s", 0.4f, 8.0f, 1.8f, Taper::Log},  {"damping", "Damping", "%", 0.0f, 100.0f, 20.0f},
@@ -70,7 +77,7 @@ const ParamInfo kPlate[kCount] = {
 class Reverb final : public hc::fx::Effect {
 public:
     explicit Reverb(Kind k) : kind_(k) { setDefaults(); }
-    std::span<const ParamInfo> params() const noexcept override { return kind_ == Kind::Hall ? std::span<const ParamInfo>(kHall) : std::span<const ParamInfo>(kPlate); }
+    std::span<const ParamInfo> params() const noexcept override { return kind_ == Kind::Hall ? std::span<const ParamInfo>(kHall) : kind_ == Kind::Room ? std::span<const ParamInfo>(kRoom) : std::span<const ParamInfo>(kPlate); }
 
     void prepare(double fs, std::uint32_t) override {
         fs_ = fs;
@@ -163,6 +170,7 @@ private:
     float scaleFor(float size) const noexcept {
         const float t = size * 0.01f;
         if (kind_ == Kind::Hall) return 1.0f + 1.2f * t;
+        if (kind_ == Kind::Room) return 0.25f + 0.65f * t;
         return 0.6f + 0.6f * t;
     }
     void designEq() noexcept {
@@ -268,6 +276,7 @@ private:
 
 std::unique_ptr<hc::fx::Effect> makeHall() { return std::make_unique<rv::Reverb>(verb::Kind::Hall); }
 std::unique_ptr<hc::fx::Effect> makePlate() { return std::make_unique<rv::Reverb>(verb::Kind::Plate); }
+std::unique_ptr<hc::fx::Effect> makeRoom() { return std::make_unique<rv::Reverb>(verb::Kind::Room); }
 std::unique_ptr<hc::fx::Effect> makeDigitalDelay() { return std::make_unique<dd::Impl>(); }
 
 } // namespace hem::rack

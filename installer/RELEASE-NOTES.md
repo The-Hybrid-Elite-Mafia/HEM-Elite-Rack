@@ -1,3 +1,21 @@
+# HEM-Elite-Rack 0.32.0
+
+**The eight retired plug-ins are back** (with their old IDs, so old sessions find them):
+- **FOUNDRY** — now the full British console channel EQ: stepped low cut, lows, middle and highs at the console's own
+  frequencies (±18 dB), EQ in / out, flip, vintage colour, output, and peak / to-top / clip readouts with clear.
+- **BOARDROOM** — now the full four-band console EQ: stepped high- and low-pass, lows and highs as shelf or bell, low and high
+  mids wide or tight, EQ in / out, flip, vintage, output, readouts.
+- **MIDTOWN** — now the full tube midrange EQ: low peak, dip and high peak at stepped frequencies, EQ in / out, hum, output.
+- **COIL** — now the full spring reverb: drive, headroom, pre-delay, seven tanks, short / medium / long, treble and bass on the
+  springs, mix, output, stereo or mono.
+- **BACKROOM**, **MIXTAPE**, **CRATE DIGGER**, **SHREDDER** — back as they were (our own designs; the cassette's drive stage
+  no longer dulls the top octave).
+- On FOUNDRY and BOARDROOM the original's one-click "set the output so the peak hits the top" can't save with a session in
+  the rack, so the TO TOP window shows how far to turn OUTPUT instead.
+
+**Fixed:** THE BOSS, GOLD CHAIN and STRAPPED lost about 4 dB at 20 kHz even with nothing turned (their colour stage ran the
+whole sound through the oversampler's filters). Now only the added harmonics go through it: flat to 20 kHz.
+
 # HEM-Elite-Rack 0.31.0
 
 - **SPEAKEASY** (new) — a real room around the sound, every control: room size, distance, room shape, real room (levels and

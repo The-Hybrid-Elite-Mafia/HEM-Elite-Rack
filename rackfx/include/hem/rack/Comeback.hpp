@@ -33,6 +33,10 @@
 //                MEDIUM / LONG, TREBLE and BASS ±18 dB on the reverb only, MIX 0..100 %, OUTPUT ±18 dB,
 //                WIDTH STEREO / MONO (mono: the right side is a copy of the left). The dry sound is not delayed.
 //                The springs are modelled (loops with dispersive all-pass chains), not recorded impulse responses.
+//  MIXTAPE, CRATE DIGGER, SHREDDER and BACKROOM are our own designs, not rebuilt after one original:
+//  MIXTAPE     cassette deck: DRIVE, TAPE TYPE I / II / IV, WOW, FLUTTER, HISS, AGE, OUTPUT
+//  CRATE DIGGER record player: CRACKLE, NOISE (surface and rumble), WEAR, WARP (33 rpm), MONO LOWS, OUTPUT
+//  SHREDDER    BITS 1..24, DOWNSAMPLE 1..50x, MIX, OUTPUT
 //  The slopes of the filters and the widths of the bells are our own choices (the manuals give the steps
 //  and ranges, not the curves). All three have a constant latency of 23 samples (the colour is 4x oversampled).
 // =============================================================================
@@ -74,11 +78,22 @@ namespace coil {
 enum P : int { Drive, PreDelay, Headroom, Tank, Length, Treble, Bass, Mix, Output, Width, kCount };
 } // namespace coil
 
+namespace mixtape {
+enum P : int { Drive, Type, Wow, Flutter, Hiss, Age, Output, kCount };
+inline constexpr double kTopHz[] = {10000, 13000, 15500};   // TYPE I, II, IV
+} // namespace mixtape
+namespace cratedigger { enum P : int { Crackle, Noise, Wear, Warp, MonoLows, Output, kCount }; }
+namespace shredder { enum P : int { Bits, Downsample, Mix, Output, kCount }; }
+inline constexpr std::uint32_t kMixtapeLatency = 23 + 96, kCrateDiggerLatency = 96;
+
 inline constexpr std::uint32_t kComebackEqLatency = 23;
 
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeFoundry();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeBoardroom();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeMidtown();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeCoil();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeMixtape();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeCrateDigger();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeShredder();
 
 } // namespace hem::rack

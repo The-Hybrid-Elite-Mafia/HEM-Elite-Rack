@@ -58,6 +58,7 @@ add_library(hem_rackfx STATIC
     src/tone/DoubleCross.cpp
     src/tone/Cutthroat.cpp
     src/tone/ConsoleEqs.cpp
+    src/tone/Lofi.cpp
     src/tone/TonePlates.cpp
     src/hideout/Fixer.cpp
     src/hideout/SixShooter.cpp

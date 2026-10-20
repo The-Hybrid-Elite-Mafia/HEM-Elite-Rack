@@ -1,5 +1,8 @@
 # Retired plug-ins (kept safe, not built)
 
+**Back in the rack since 0.32.0 (Oct 20, 2026):** BOARDROOM, FOUNDRY, MIDTOWN, BACKROOM, COIL, MIXTAPE, CRATE DIGGER,
+SHREDDER (same IDs). The copies below are kept as they were.
+
 These HEM-Elite-Rack plug-ins were taken out of the rack on Oct 19, 2026, so the collection stays
 tight. Nothing here is compiled or installed; the files are exact copies of the working, tested
 code from the version named in each folder. To bring one back, copy its class, its faceplate
