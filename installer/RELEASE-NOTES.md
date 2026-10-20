@@ -1,3 +1,21 @@
+# HEM-Elite-Rack 0.19.0
+
+**Nine new plug-ins: guitar, pitch, meters and test tones** (in the rack and as VST3), our own designs:
+- **TORCH** — guitar / bass amp with cabinet
+- **THE RACKET** — drive pedal: overdrive, distortion, fuzz, octave fuzz
+- **THE SNITCH** — tuner
+- **PROMOTION** — pitch shifter
+- **WISEGUYS** — three-voice harmonizer
+- **MADE MAN** — pitch correction for one voice
+- **THE DETECTIVE** — finds the song's key
+- **THE WITNESS** — VU and peak meters
+- **LIVE WIRE** — test tones and sweeps (off until you switch it on)
+
+Better pitch shifting everywhere it's used (BODY DOUBLE too): each splice now lands where the sound
+lines up, so held notes stay steady instead of warbling. Small fixes: HUSTLE's wave buttons read
+SINE / TRI / SQUARE / RISE / FALL, the first NOTE choice on SIX SHOOTER is MS and on HUSTLE HZ, and
+"BAR" replaces "1 BAR" on the note buttons so every word fits its button.
+
 # HEM-Elite-Rack 0.18.0
 
 **Nine new plug-ins: space, modulation, voice and monitoring** (in the rack and as VST3), our own designs:

@@ -118,14 +118,20 @@ inline int crampedButtons(const hem::ui::FaceLayout& L, std::span<const hc::fx::
     int n = 0;
     for (const hem::ui::Widget& w : L.widgets) {
         std::string t;
-        if (w.kind == WKind::ChoiceButton && w.param >= 0 && w.param < static_cast<int>(ps.size()) && ps[static_cast<std::size_t>(w.param)].choices)
+        // choice buttons: measured on the 0.18.0 screenshots, their words come out ~30 % wider than the
+        // estimate and may run to 3 units from each edge; switches keep the original margin
+        float scale = 1.0f, margin = 16.0f;
+        if (w.kind == WKind::ChoiceButton && w.param >= 0 && w.param < static_cast<int>(ps.size()) && ps[static_cast<std::size_t>(w.param)].choices) {
             t = ps[static_cast<std::size_t>(w.param)].choices[w.choice];
-        else if (w.kind == WKind::Toggle && w.hi != "PRESS")
+            scale = 1.3f;
+            margin = 6.0f;
+        } else if (w.kind == WKind::Toggle && w.hi != "PRESS") {
             t = w.caption + "  OFF";
-        else
+        } else {
             continue;
-        const float need = captionWidth(t);
-        if (need > w.r.w - 16.0f) {
+        }
+        const float need = captionWidth(t) * scale;
+        if (need > w.r.w - margin) {
             ++n;
             std::printf("  %s: the words '%s' don't fit their %.0f-wide button\n", name, t.c_str(), static_cast<double>(w.r.w));
         }

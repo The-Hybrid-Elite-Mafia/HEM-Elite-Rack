@@ -51,6 +51,15 @@ C++23 audio framework, as a library.
 | **THE INFORMANT** | Vocoder with its own synth carrier: note, octave, chord, saw / pulse / noise, 16–32 bands, formant shift |
 | **STRAPPED** | Guitar mix strip: tight, compress, bass / mids / treble, chorus, delay on the beat, room, width |
 | **SAFE HOUSE** | Headphone room: hear speakers at an angle in a dry, studio or live room (for listening; bypass before export) |
+| **TORCH** | Guitar / bass amp: clean, crunch, lead or bass; gate, gain, bass / mid / treble, presence, 1x12 / 4x12 / 8x10 cabinet, room |
+| **THE RACKET** | Drive pedal: overdrive, distortion, fuzz or octave fuzz; drive, tone, level, mix |
+| **THE SNITCH** | Tuner: note, cents and frequency; reference A 430–450 Hz; mute while tuning |
+| **PROMOTION** | Pitch shifter: ±12 semitones and cents, smooth or tight |
+| **WISEGUYS** | Harmonizer: three voices with their own interval, level and pan |
+| **MADE MAN** | Pitch correction for one voice: key, scale, speed, amount |
+| **THE DETECTIVE** | Key finder: names the song's key and how sure it is |
+| **THE WITNESS** | VU and peak meters for left and right, calibration, peak hold |
+| **LIVE WIRE** | Test tones: sine, square, saw, triangle, white / pink noise, sweeps; left / right / both / opposed |
 | **FURNACE** | Tube stage: drive, bias (even harmonics), tone, mix — colour without a volume jump |
 | **CATHEDRAL** | Concert hall reverb: pre-delay, size, decay, damping, early reflections, modulation, width, low / high cut |
 | **CHROME** | Bright, dense plate reverb with diffusion control |
@@ -64,7 +73,7 @@ C++23 audio framework, as a library.
 | **UNDERGROUND** | More low end: a new sub an octave down, or harmonics small speakers can hear |
 | **SPOTLIGHT** | Vocal chain: high-pass, body, one-knob compressor, one-knob de-esser, presence, air |
 
-Fifty-five plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
+Sixty-four plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 
 ## Install
 Download `HEM-Elite-Rack-Setup-x.y.z.exe` from **Releases** and run it. Needs Windows 10 / 11

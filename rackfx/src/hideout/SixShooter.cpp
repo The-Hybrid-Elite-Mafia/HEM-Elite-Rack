@@ -9,7 +9,7 @@ namespace {
 using namespace hideout;
 
 const char* const kShotsN[] = {"1", "2", "3", "4", "5", "6"};
-const char* const kNoteChoiceN[] = {"FREE", "1/16", "1/8 T", "1/8", "1/8 D", "1/4", "1/4 D", "1/2", "BAR"};
+const char* const kNoteChoiceN[] = {"MS", "1/16", "1/8 T", "1/8", "1/8 D", "1/4", "1/4 D", "1/2", "BAR"};
 const char* const kSourceN[] = {"HOST", "BPM"};
 const ParamInfo kParams[kCount] = {
     {"shots", "Shots", "", 0, 5, 2, Taper::Choice, kShotsN},

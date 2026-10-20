@@ -46,7 +46,8 @@ struct PlateToggle {
 };
 
 // A big-number window: one of the effect's meters.
-// fmt: "" = 0.0, "+" = signed, "+2" = signed with 2 decimals.
+// fmt: "" = 0.0, "+" = signed, "+2" = signed with 2 decimals, "0" = whole numbers,
+// "note" = a MIDI note number shown as a name (57 = A3), "key" = 0..11 C..B major, 12..23 C..B minor.
 struct PlateReadout {
     int         meter;
     const char* caption;

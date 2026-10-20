@@ -64,33 +64,63 @@ private:
     float damp_ = 0.0f;
 };
 
-// ---- a pitch shifter for small shifts: two read heads sweeping a short window, crossfaded -------
+// ---- a pitch shifter: one read head gliding through a short window of the past; when it runs out
+// of room it hands over (a short crossfade) to a new head placed where the sound lines up best with
+// what the old head is playing (the best match of the last few ms), so the splices don't warble.
 class PitchShift {
 public:
     void prepare(double fs, double windowMs) {
         win_ = static_cast<float>(windowMs * 0.001 * fs);
-        d_.prepare(static_cast<std::uint32_t>(win_) + 8);
+        fade_ = std::max(16.0f, win_ * 0.25f);
+        search_ = std::min(static_cast<int>(0.02 * fs), static_cast<int>(win_ * 0.5f));
+        match_ = std::max(32, static_cast<int>(0.004 * fs));
+        d_.prepare(static_cast<std::uint32_t>(win_ * 2.0f + static_cast<float>(search_ + match_) + 16.0f));
         clear();
     }
     void clear() noexcept {
         d_.clear();
-        phase_ = 0.0f;
+        head_ = 1.0f + 0.5f * win_;
+        old_ = head_;
+        fadeLeft_ = 0;
     }
-    // ratio = output pitch / input pitch (e.g. 2^(cents/1200))
+    // ratio = output pitch / input pitch (e.g. 2^(cents/1200)); 0.5 .. 2
     float tick(float x, float ratio) noexcept {
         d_.write(x);
-        phase_ += (1.0f - ratio) / win_;
-        phase_ -= std::floor(phase_);
-        float p2 = phase_ + 0.5f;
-        if (p2 >= 1.0f) p2 -= 1.0f;
-        const float a = std::sin(static_cast<float>(std::numbers::pi) * phase_), b = std::sin(static_cast<float>(std::numbers::pi) * p2);
-        return a * a * d_.read(1.0f + phase_ * win_) + b * b * d_.read(1.0f + p2 * win_);
+        const float move = ratio - 1.0f;   // how much nearer the present each head gets per sample
+        head_ -= move;
+        if (fadeLeft_ > 0) old_ -= move;
+        // out of room (the head would pass the present, or the far end of the window): splice
+        const float lo = 2.0f + std::max(0.0f, move) * fade_, hi = win_ - std::max(0.0f, -move) * fade_;
+        if (fadeLeft_ == 0 && (head_ < lo || head_ > hi)) splice(head_ < lo);
+        float y = d_.read(head_);
+        if (fadeLeft_ > 0) {
+            const float t = static_cast<float>(fadeLeft_) / fade_;   // 1 -> 0: the old head fades out
+            y = y * (1.0f - t) + d_.read(old_) * t;
+            --fadeLeft_;
+        }
+        return y;
     }
-    [[nodiscard]] float latencyGuess() const noexcept { return win_ * 0.5f; }
 
 private:
+    // a new head near the other end of the window, where the sound matches the current head's best
+    void splice(bool toFar) noexcept {
+        old_ = head_;
+        const float frac = head_ - std::floor(head_);
+        const int base = toFar ? static_cast<int>(win_) - search_ - 2 : 3;
+        int best = base;
+        float bestScore = -1e30f;
+        for (int c = base; c < base + search_; ++c) {
+            float score = 0.0f;
+            for (int j = 0; j < match_; j += 2) score += d_.read(old_ + static_cast<float>(j)) * d_.read(static_cast<float>(c) + frac + static_cast<float>(j));
+            if (score > bestScore) { bestScore = score; best = c; }
+        }
+        head_ = static_cast<float>(best) + frac;
+        fadeLeft_ = static_cast<int>(fade_);
+    }
+
     hc::fx::DelayLine d_;
-    float win_ = 1000.0f, phase_ = 0.0f;
+    float win_ = 1000.0f, fade_ = 250.0f, head_ = 500.0f, old_ = 500.0f;
+    int search_ = 500, match_ = 192, fadeLeft_ = 0;
 };
 
 // ---- LFO shapes (phase 0..1 -> -1..+1) ----------------------------------------------------------
@@ -111,7 +141,7 @@ inline float lfo(double phase, Wave w) noexcept {
 }
 
 // Note lengths in beats used by the synced plug-ins.
-inline constexpr const char* kNoteN[] = {"1/16", "1/8 T", "1/8", "1/8 D", "1/4", "1/4 D", "1/2", "1 BAR"};
+inline constexpr const char* kNoteN[] = {"1/16", "1/8 T", "1/8", "1/8 D", "1/4", "1/4 D", "1/2", "BAR"};
 inline constexpr double kNoteBeats[] = {0.25, 1.0 / 3.0, 0.5, 0.75, 1.0, 1.5, 2.0, 4.0};
 
 } // namespace hem::rack::hideout

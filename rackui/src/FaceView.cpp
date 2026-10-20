@@ -628,9 +628,18 @@ void FaceView::readout(const Ctx& c, const Widget& w) const {
     if (small) r.text(cs, w.lo, b.x + 18 * z, b.bottom() - 16 * z, th_.teal, Align::Left, TextFx::Shadowed);
     else r.text(cs, w.lo, b.x + 18 * z, b.y + 60 * z, th_.teal, Align::Left, TextFx::Shadowed);   // the unit, under the name
     char t[24];
-    const char* f = w.hi == "+2" ? "%+.2f" : w.hi == "+" ? "%+.1f" : "%.1f";
-    if (v > -99.0f) std::snprintf(t, sizeof t, f, static_cast<double>(v));
-    else std::snprintf(t, sizeof t, "--");
+    static constexpr const char* kNames[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+    const int idx = static_cast<int>(std::lround(v));
+    if (v <= -99.0f || ((w.hi == "note" || w.hi == "key") && v < -0.5f)) {
+        std::snprintf(t, sizeof t, "--");
+    } else if (w.hi == "note") {   // a MIDI note number as a name and octave: 57 -> A3
+        std::snprintf(t, sizeof t, "%s%d", kNames[std::clamp(idx, 0, 127) % 12], std::clamp(idx, 0, 127) / 12 - 1);
+    } else if (w.hi == "key") {    // 0..11 = C..B major, 12..23 = C..B minor
+        std::snprintf(t, sizeof t, "%s %s", kNames[std::clamp(idx, 0, 23) % 12], idx >= 12 ? "MIN" : "MAJ");
+    } else {
+        const char* f = w.hi == "+2" ? "%+.2f" : w.hi == "+" ? "%+.1f" : w.hi == "0" ? "%.0f" : "%.1f";
+        std::snprintf(t, sizeof t, f, static_cast<double>(v));
+    }
     const bool over = w.hi == "CEIL" && v > plain(c.host, rack::limiter::Ceiling) + 0.05f;   // true peak above the ceiling
     const TextStyle big = c.fit(small ? TextStyle::Panel : TextStyle::Display, t, b.w * (small ? 0.5f : 0.55f));   // the left side keeps the name and unit
     r.text(big, t, b.right() - 18 * z, b.bottom() - (small ? 14 : 18) * z, over ? th_.red : th_.teal, Align::Right, TextFx::Shadowed);

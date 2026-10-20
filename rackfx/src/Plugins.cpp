@@ -16,6 +16,7 @@
 #include "hem/rack/Arsenal.hpp"
 #include "hem/rack/ToneShop.hpp"
 #include "hem/rack/Hideout.hpp"
+#include "hem/rack/Streets.hpp"
 #include "arsenal/Plates.hpp"
 
 #include <cstring>
@@ -244,6 +245,42 @@ const PluginInfo kPlugins[] = {
      "Hear speakers in a room through headphones (for listening, bypass before export)",
      {0xEEDDC596u, 0xC40347B6u, 0xA27F381Fu, 0x490B08EBu}, {0xB36587D4u, 0x3F294216u, 0x8F6194C9u, 0x7DE890BBu},
      Face::Spec, Group::Tools, &makeSafeHouse, nullptr, &plates::kSafeHouse},
+    {"TORCH", "GUITAR AND BASS AMP", "LIGHT WHAT MATTERS", "Fx|Distortion",
+     "Amp and cabinet: clean, crunch, lead or bass; tone stack, presence, room",
+     {0xC6B2BAE6u, 0xD42A4527u, 0xAAE4E04Du, 0xCFEC5CAEu}, {0xF0E1CD7Fu, 0x65C2483Bu, 0x8D8E21E2u, 0xB9B147A0u},
+     Face::Spec, Group::Color, &makeTorch, nullptr, &plates::kTorch},
+    {"THE RACKET", "DRIVE PEDAL", "DRIVE WHAT MATTERS", "Fx|Distortion",
+     "Overdrive, distortion, fuzz or octave fuzz with tone, level and mix",
+     {0x9B5A4115u, 0x48E74E4Au, 0xB30331A4u, 0xF1D19821u}, {0xCA7A2464u, 0x2E5B4F7Fu, 0xB237BB18u, 0x7A5ED16Du},
+     Face::Spec, Group::Color, &makeRacket, nullptr, &plates::kRacket},
+    {"THE SNITCH", "TUNER", "TUNE WHAT MATTERS", "Fx|Analyzer",
+     "Tuner: note, cents off and frequency; reference pitch, mute while tuning",
+     {0x3E610A2Au, 0xCF7D4303u, 0x919FB7D8u, 0xBF71641Au}, {0x579DED4Au, 0x5A3D467Du, 0xA0536847u, 0xFCEB72A6u},
+     Face::Spec, Group::Tools, &makeSnitch, nullptr, &plates::kSnitch},
+    {"PROMOTION", "PITCH SHIFTER", "SHIFT WHAT MATTERS", "Fx|Pitch Shift",
+     "Pitch up or down by semitones and cents, smooth or tight",
+     {0x304F916Au, 0xA2DC4851u, 0x961DD59Fu, 0xD27AF97Bu}, {0x3986EE64u, 0x726F4DF3u, 0x926DC0AEu, 0x45ED907Eu},
+     Face::Spec, Group::Movement, &makePromotion, nullptr, &plates::kPromotion},
+    {"WISEGUYS", "HARMONIZER", "HARMONIZE WHAT MATTERS", "Fx|Pitch Shift",
+     "Three extra voices at your intervals, each with level and pan",
+     {0xC10D2891u, 0x02F749D6u, 0x892E84E2u, 0xB43ABC27u}, {0xE17BBE24u, 0x025D469Fu, 0xB6C43DBCu, 0x8ADCDD90u},
+     Face::Spec, Group::Movement, &makeWiseguys, nullptr, &plates::kWiseguys},
+    {"MADE MAN", "PITCH CORRECTION", "CORRECT WHAT MATTERS", "Fx|Pitch Shift",
+     "Pulls a single voice onto the notes of a key, gently or hard",
+     {0xA6C03B07u, 0x0F624D4Bu, 0x8508A1A2u, 0x9FC6B8EFu}, {0x89199847u, 0x7523433Du, 0xB4171685u, 0xF8F059E5u},
+     Face::Spec, Group::Tools, &makeMadeMan, nullptr, &plates::kMadeMan},
+    {"THE DETECTIVE", "KEY FINDER", "FIND WHAT MATTERS", "Fx|Analyzer",
+     "Listens and names the song's key, and how sure it is",
+     {0x52F8361Du, 0x8E7A4116u, 0x984CA120u, 0xFEDD638Au}, {0x9193B181u, 0x567B417Cu, 0xABF390A4u, 0x1CB63A2Cu},
+     Face::Spec, Group::Tools, &makeDetective, nullptr, &plates::kDetective},
+    {"THE WITNESS", "VU AND PEAK METERS", "WATCH WHAT MATTERS", "Fx|Analyzer",
+     "VU and peak meters for left and right, with calibration and peak hold",
+     {0xF3B88685u, 0x60DC43DDu, 0xAA072FADu, 0xCF34E94Bu}, {0x46675020u, 0x926345CCu, 0xBB525165u, 0x0F862B4Eu},
+     Face::Spec, Group::Tools, &makeWitness, nullptr, &plates::kWitness},
+    {"LIVE WIRE", "TEST TONES", "TEST WHAT MATTERS", "Fx|Generator",
+     "Test tones: sine, square, saw, triangle, white or pink noise, sweeps",
+     {0x4E67D0F2u, 0x358E43BFu, 0x9A4CF56Cu, 0x8ED69590u}, {0x799CBBD9u, 0x58574C6Du, 0xB7182981u, 0xD59B0322u},
+     Face::Spec, Group::Tools, &makeLiveWire, nullptr, &plates::kLiveWire},
 };
 } // namespace
 

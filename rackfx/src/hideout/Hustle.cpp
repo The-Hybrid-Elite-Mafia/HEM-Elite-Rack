@@ -8,9 +8,9 @@ namespace hustle {
 namespace {
 using namespace hideout;
 
-const char* const kNoteChoiceN[] = {"FREE", "1/16", "1/8 T", "1/8", "1/8 D", "1/4", "1/4 D", "1/2", "BAR"};
+const char* const kNoteChoiceN[] = {"HZ", "1/16", "1/8 T", "1/8", "1/8 D", "1/4", "1/4 D", "1/2", "BAR"};
 const char* const kSourceN[] = {"HOST", "BPM"};
-const char* const kWaveN[] = {"SINE", "TRIANGLE", "SQUARE", "SAW UP", "SAW DOWN"};
+const char* const kWaveN[] = {"SINE", "TRI", "SQUARE", "RISE", "FALL"};
 const ParamInfo kParams[kCount] = {
     {"rate", "Rate", "Hz", 0.05f, 20.0f, 4.0f, Taper::Log},
     {"note", "Note", "", 0, 8, 0, Taper::Choice, kNoteChoiceN},

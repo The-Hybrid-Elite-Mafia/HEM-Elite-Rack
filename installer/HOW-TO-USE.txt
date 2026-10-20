@@ -185,7 +185,7 @@ THE FIXER
   takes. LISTEN plays one band alone so you can find the right FREQ.
 
 SIX SHOOTER
-  SHOTS = how many echoes in a row, NOTE = how far apart (FREE uses TIME in ms). DECAY makes each
+  SHOTS = how many echoes in a row, NOTE = how far apart (MS uses the TIME knob instead). DECAY makes each
   shot quieter, SPREAD bounces them left / right, SWING makes every second one late, FEEDBACK starts
   the round again, TONE darkens them.
 
@@ -204,7 +204,7 @@ BODY DOUBLE
   SPREAD = how far left / right. VOICE LEVEL and DRY balance them; LOW CUT keeps the copies out of the bass.
 
 HUSTLE
-  One wobble for three things: TREMOLO (level), VIBRATO (pitch) and PAN. RATE in Hz, or pick a NOTE
+  One wobble for three things: TREMOLO (level), VIBRATO (pitch) and PAN. NOTE HZ uses the RATE knob, or pick a note
   to lock it to the tempo. WAVE changes the shape; OFFSET moves where the pan swings.
 
 THE INFORMANT
@@ -220,6 +220,46 @@ SAFE HOUSE
   For checking a mix on headphones: it sounds like speakers in front of you. ANGLE = how wide they
   sit, CROSSFEED = how much each ear hears the other speaker, ROOM DRY / STUDIO / LIVE and ROOM LEVEL.
   It is for listening only: switch it off before you export.
+
+TORCH
+  A guitar (or bass) amp with its cabinet. MODEL: CLEAN, CRUNCH, LEAD or BASS. GAIN is how hard it's
+  driven; BASS / MID / TREBLE and PRESENCE shape it; CABINET picks the speaker box (OFF if you use your
+  own). GATE quiets the hiss between notes. MASTER is the volume.
+
+THE RACKET
+  A drive pedal. TYPE: OVERDRIVE (warm), DISTORTION (harder), FUZZ (square and wild) or OCTAVE (fuzz
+  with an octave on top). DRIVE, TONE (dark to bright), LEVEL, MIX.
+
+THE SNITCH
+  Tuner. Play one note: it shows the NOTE, how many CENTS off (minus = flat, plus = sharp) and the
+  PITCH in Hz. REFERENCE A is 440 unless your band tunes elsewhere. MUTE silences the track while you tune.
+
+PROMOTION
+  Moves the pitch: SHIFT in semitones (12 = an octave), FINE in cents. CHARACTER SMOOTH for held notes
+  and vocals, TIGHT for rhythm parts. It delays the sound by 35 ms (DAWs make up for it).
+
+WISEGUYS
+  Three backing voices from one: each VOICE is an interval in semitones (3 = minor third, 4 = major
+  third, 7 = fifth, 12 = octave, minus = below), with its LEVEL and PAN. DRY is the original.
+
+MADE MAN
+  Pitch correction for one voice. Set KEY and SCALE (CHROMATIC = every note allowed). SPEED all the way
+  down = hard, robotic snap; up = gentle and natural. AMOUNT sets how far it pulls. SUNG shows the note,
+  PULL how far it moved it.
+
+THE DETECTIVE
+  Play the song: after a few seconds it shows the KEY (MAJ / MIN) and how SURE it is. LISTEN picks
+  how much it remembers (the last 10 s, 30 s, or the whole song). RESET starts over.
+
+THE WITNESS
+  VU meters (slow, like the needles on a desk) and peak meters for left and right. 0 VU AT sets the
+  level that reads 0 (-18 dBFS is the usual). PEAK HOLD keeps the highest peak up for a moment.
+
+LIVE WIRE
+  Test tones, off until you switch TONE ON. WAVE: sine, square, saw, triangle, white or pink noise, or
+  a sweep from 20 Hz to 20 kHz. FREQ and LEVEL (dBFS). SIDES: both, left, right, or opposed (right
+  upside down: checks wiring). MODE REPLACE plays only the tone, ADD puts it on top of the track.
+  Start quiet: tones can be loud.
 
 FURNACE
   DRIVE for more tube colour (the level stays about the same), BIAS toward EVEN = warmer.

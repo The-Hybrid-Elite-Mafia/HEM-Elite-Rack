@@ -85,7 +85,7 @@ constexpr PlateKnob row2[] = {{Chorus, "CHORUS"}, {Delay, "DELAY"}, {Room, "ROOM
 namespace sh {
 using namespace safehouse;
 constexpr PlateChoice choices[] = {{Room, "ROOM"}};
-constexpr PlateKnob row1[] = {{Angle, "ANGLE", "20", "60"}, {Crossfeed, "CROSSFEED", "0", "100", K::Big}, {RoomLevel, "ROOM LEVEL"}, {Bass, "BASS"},
+constexpr PlateKnob row1[] = {{Angle, "ANGLE"}, {Crossfeed, "CROSSFEED", "0", "100", K::Big}, {RoomLevel, "ROOM LEVEL"}, {Bass, "BASS"},
                               {Output, "OUTPUT", "", "", K::Small}};
 } // namespace sh
 

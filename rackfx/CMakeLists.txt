@@ -54,6 +54,16 @@ add_library(hem_rackfx STATIC
     src/hideout/Strapped.cpp
     src/hideout/SafeHouse.cpp
     src/hideout/HideoutPlates.cpp
+    src/streets/Torch.cpp
+    src/streets/Racket.cpp
+    src/streets/Snitch.cpp
+    src/streets/Promotion.cpp
+    src/streets/Wiseguys.cpp
+    src/streets/MadeMan.cpp
+    src/streets/Detective.cpp
+    src/streets/Witness.cpp
+    src/streets/LiveWire.cpp
+    src/streets/StreetsPlates.cpp
     src/Plugins.cpp)
 add_library(hem::rackfx ALIAS hem_rackfx)
 target_include_directories(hem_rackfx PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
