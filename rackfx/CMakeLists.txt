@@ -61,6 +61,7 @@ add_library(hem_rackfx STATIC
     src/tone/Lofi.cpp
     src/tone/HeavyHitter.cpp
     src/tone/ReelMoney.cpp
+    src/tone/Hothead.cpp
     src/tone/TonePlates.cpp
     src/hideout/Fixer.cpp
     src/hideout/SixShooter.cpp

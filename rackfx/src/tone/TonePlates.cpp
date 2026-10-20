@@ -234,6 +234,9 @@ constexpr PlateKnob row1[] = {{IntoTape, "INTO TAPE", "-18", "+18", K::Big}, {Ta
 constexpr PlateKnob row2[] = {{EchoTime, "ECHO TIME", "1", "500"}, {EchoLevel, "ECHO LEVEL", "OFF", "100"}, {EchoTone, "ECHO TONE", "200", "16K"},
                               {VuZero, "VU ZERO", "-24", "-8"}};
 } // namespace rm
+namespace hd {
+constexpr PlateKnob row1[] = {{hothead::Drive, "DRIVE", "0", "10", K::Big}};
+} // namespace hd
 
 } // namespace
 
@@ -261,6 +264,8 @@ const PlateSpec kHeavyHitter{.note1 = "PICK THE DRUM", .note2 = "MAKE IT HIT", .
 const PlateSpec kReelMoney{.note1 = "ROLL THE TAPE", .note2 = "TUBES AND IRON", .screen = Screen::Needle, .choices = rm::choices,
                            .toggles = rm::toggles, .row1 = rm::row1, .row2 = rm::row2, .steppers = rm::steppers, .meterSelect = reelmoney::Meter,
                            .vuMeter = 0, .demo = [](hc::fx::Effect& e) { e.set(reelmoney::IntoTape, 6); e.set(reelmoney::EchoLevel, 30); }};
+const PlateSpec kHothead{.note1 = "ONE KNOB", .note2 = "TURN UP THE HEAT", .screen = Screen::None, .row1 = hd::row1,
+                         .demo = [](hc::fx::Effect& e) { e.set(hothead::Drive, 6); }};
 const PlateSpec kMidtown{.note1 = "THE MIDDLE", .note2 = "WHERE THE SONG LIVES", .screen = Screen::Curve, .toggles = mt::toggles,
                          .row1 = mt::row1, .steppers = mt::steppers,
                          .demo = [](hc::fx::Effect& e) {

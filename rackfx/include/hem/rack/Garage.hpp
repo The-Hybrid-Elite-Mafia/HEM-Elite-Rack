@@ -32,6 +32,9 @@
 //                        (level), SPEED (how fast they move).
 //                MASTER  INPUT ±18 dB, OUTPUT ±18 dB, LOW CUT 30..1500 Hz, HIGH CUT 15..21 kHz, MONO 0..10 (10 = the
 //                        stereo as it was). Readouts: IN and OUT peaks. Constant latency (kPawnLatency).
+//  HOTHEAD       one-knob overdrive: DRIVE 0..10 (0 = untouched; up from there a mid push, the clipping and a
+//                warmth filter that closes as it goes, the level kept about the same). The original's guide
+//                names no other control. Latency 23 samples (the clipping is 4x oversampled).
 // =============================================================================
 #include "hybrid/fx/Fx.hpp"
 
@@ -61,7 +64,13 @@ inline constexpr float kNoteBeats[] = {4.0f, 2.0f, 3.0f, 1.0f, 1.5f, 2.0f / 3.0f
 inline constexpr std::uint32_t kPawnLatency = 160;
 } // namespace pawnshop
 
+namespace hothead {
+enum P : int { Drive, kCount };
+inline constexpr std::uint32_t kLatency = 23;
+} // namespace hothead
+
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeHeavyHitter();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeHothead();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makePawnShop();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeReelMoney();
 

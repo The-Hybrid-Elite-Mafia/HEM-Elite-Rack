@@ -55,7 +55,7 @@ double peakIn(const std::vector<float>& x, std::size_t from, std::size_t to) {
 
 void allRules() {
     for (const char* name : {"STRAIGHT SHOOTER", "BOTTOM LINE", "TEN TOES", "FOUR CORNERS", "SMOOTH TALKER", "INSIDE MAN", "LOW RIDER", "UNDERTOW", "DEEP POCKETS", "LOW PROFILE", "THE BOSS", "KINGPIN", "GOLD CHAIN", "IVORIES", "HIGH ROLLER", "THE MIDDLEMAN", "DOUBLE CROSS",
-                             "CUTTHROAT", "TUNNEL VISION", "THE SETUP", "FOUNDRY", "BOARDROOM", "MIDTOWN", "HEAVY HITTER", "REEL MONEY"}) {
+                             "CUTTHROAT", "TUNNEL VISION", "THE SETUP", "FOUNDRY", "BOARDROOM", "MIDTOWN", "HEAVY HITTER", "REEL MONEY", "HOTHEAD"}) {
         const PluginInfo* info = findPlugin(name);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
@@ -1294,6 +1294,34 @@ void testReelMoney() {
     }
 }
 
+void testHothead() {
+    using namespace hothead;
+    {   // DRIVE 0: untouched, kLatency late
+        auto e = make("HOTHEAD");
+        CHECK(e->latency() == kLatency);
+        Stereo s = noise(0.5, 0.5f), ref = s;
+        run(*e, s);
+        double d = 0;
+        for (std::size_t i = kLatency; i < s.size(); ++i) d = std::max(d, static_cast<double>(std::fabs(s.l[i] - ref.l[i - kLatency])));
+        std::printf("  HOTHEAD drive 0: largest change %.1e\n", d);
+        CHECK(d < 1e-5);
+    }
+    {   // more DRIVE = more harmonics; a -12 dBFS tone comes out within a few dB; the top darkens
+        double prev = -300;
+        bool rising = true;
+        for (float d : {2.0f, 5.0f, 10.0f}) {
+            auto e = make("HOTHEAD", {{Drive, d}});
+            const double h = harmonicDb(*e, 200, 3, 0.25f);
+            rising = rising && h > prev + 3.0;
+            prev = h;
+        }
+        auto e = make("HOTHEAD", {{Drive, 10}});
+        const double lv = toneGain(*e, 400, 0.25f), top = toneGain(*e, 10000, 0.002f) - toneGain(*e, 1000, 0.002f);
+        std::printf("  HOTHEAD drive 10: 3rd harmonic %.1f dB; a -12 dBFS tone %+.1f dB; quiet 10 kHz vs 1 kHz %+.1f dB\n", prev, lv, top);
+        CHECK(rising && prev > -20.0 && std::fabs(lv) < 4.0 && top < -15.0);
+    }
+}
+
 } // namespace
 
 void testToneShop() {
@@ -1320,6 +1348,7 @@ void testToneShop() {
     testConsoleEqs();
     testHeavyHitter();
     testReelMoney();
+    testHothead();
 }
 
 } // namespace hem::test
