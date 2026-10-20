@@ -3,6 +3,7 @@
 
 #include "hem/rack/ToneShop.hpp"
 #include "hem/rack/Comeback.hpp"
+#include "hem/rack/Garage.hpp"
 
 namespace hem::rack::plates {
 namespace {
@@ -213,6 +214,15 @@ using namespace shredder;
 constexpr PlateKnob row1[] = {{Bits, "BITS", "1", "24", K::Big}, {Downsample, "DOWNSAMPLE", "1", "50", K::Big}, {Mix, "MIX", "DRY", "WET"},
                               {Output, "OUTPUT", "-18", "+18"}};
 } // namespace sr
+// ---- HEAVY HITTER: the drum on the left, the level windows on top
+namespace hh {
+using namespace heavyhitter;
+constexpr PlateReadout readouts[] = {{0, "LEVEL", "dBFS", "+"}, {1, "INPUT", "dBFS", "+"}};
+constexpr PlateChoice choices[] = {{Meter, "METER"}};
+constexpr PlateChoice steppers[] = {{Drum, "DRUM"}};
+constexpr PlateKnob row1[] = {{Sensitivity, "SENSITIVITY", "-18", "+18"}, {Thump, "THUMP", "-12", "+12", K::Big}, {Treble, "TREBLE", "-12", "+12", K::Big},
+                              {Snap, "SNAP", "MIN", "MAX", K::Big}, {Output, "OUTPUT", "-18", "+18"}};
+} // namespace hh
 
 } // namespace
 
@@ -234,6 +244,9 @@ const PlateSpec kCrateDigger{.note1 = "DUST ON THE NEEDLE", .note2 = "33 AND A T
                              .demo = [](hc::fx::Effect& e) { e.set(cratedigger::Crackle, 40); e.set(cratedigger::Noise, 25); }};
 const PlateSpec kShredder{.note1 = "FEWER BITS", .note2 = "FEWER SAMPLES", .screen = Screen::None, .row1 = sr::row1,
                           .demo = [](hc::fx::Effect& e) { e.set(shredder::Bits, 6); e.set(shredder::Downsample, 6); }};
+const PlateSpec kHeavyHitter{.note1 = "PICK THE DRUM", .note2 = "MAKE IT HIT", .screen = Screen::Readouts, .readouts = hh::readouts,
+                             .choices = hh::choices, .row1 = hh::row1, .steppers = hh::steppers,
+                             .demo = [](hc::fx::Effect& e) { e.set(heavyhitter::Thump, 5); e.set(heavyhitter::Snap, 60); e.set(heavyhitter::Treble, 3); }};
 const PlateSpec kMidtown{.note1 = "THE MIDDLE", .note2 = "WHERE THE SONG LIVES", .screen = Screen::Curve, .toggles = mt::toggles,
                          .row1 = mt::row1, .steppers = mt::steppers,
                          .demo = [](hc::fx::Effect& e) {

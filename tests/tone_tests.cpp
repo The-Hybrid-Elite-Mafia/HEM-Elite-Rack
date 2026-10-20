@@ -7,6 +7,7 @@
 #include "hem/rack/Plugins.hpp"
 #include "hem/rack/ToneShop.hpp"
 #include "hem/rack/Comeback.hpp"
+#include "hem/rack/Garage.hpp"
 #include "hem/rack/Tools.hpp"
 
 #include <algorithm>
@@ -49,7 +50,7 @@ double rmsDb(const std::vector<float>& x, std::size_t from, std::size_t len) { r
 
 void allRules() {
     for (const char* name : {"STRAIGHT SHOOTER", "BOTTOM LINE", "TEN TOES", "FOUR CORNERS", "SMOOTH TALKER", "INSIDE MAN", "LOW RIDER", "UNDERTOW", "DEEP POCKETS", "LOW PROFILE", "THE BOSS", "KINGPIN", "GOLD CHAIN", "IVORIES", "HIGH ROLLER", "THE MIDDLEMAN", "DOUBLE CROSS",
-                             "CUTTHROAT", "TUNNEL VISION", "THE SETUP", "FOUNDRY", "BOARDROOM", "MIDTOWN"}) {
+                             "CUTTHROAT", "TUNNEL VISION", "THE SETUP", "FOUNDRY", "BOARDROOM", "MIDTOWN", "HEAVY HITTER"}) {
         const PluginInfo* info = findPlugin(name);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
@@ -1159,6 +1160,51 @@ void testConsoleEqs() {
     }
 }
 
+void testHeavyHitter() {
+    using namespace heavyhitter;
+    {   // at rest: untouched
+        auto e = make("HEAVY HITTER");
+        Stereo s = noise(0.3, 0.2f), ref = s;
+        run(*e, s);
+        double d = 0;
+        for (std::size_t i = 0; i < s.size(); ++i) d = std::max(d, static_cast<double>(std::fabs(s.l[i] - ref.l[i])));
+        std::printf("  HEAVY HITTER at rest: largest change %.1e\n", d);
+        CHECK(d < 1e-6);
+    }
+    {   // THUMP +12 on KICK lifts 60 Hz 12 dB; on HATS it's a low shelf; TREBLE +12 on SNARE TOP lifts the top
+        auto k = make("HEAVY HITTER", {{Drum, Kick}, {Thump, 12}});
+        const double k60 = toneGain(*k, 60, 0.05f, false, 2.0), k1k = toneGain(*k, 1000, 0.05f);
+        auto h = make("HEAVY HITTER", {{Drum, Hats}, {Thump, -12}});
+        const double h50 = toneGain(*h, 50, 0.05f, false, 2.0);
+        auto t = make("HEAVY HITTER", {{Drum, SnareTop}, {Treble, 12}});
+        const double t15 = toneGain(*t, 15000, 0.05f);
+        std::printf("  HEAVY HITTER kick thump +12: 60 Hz %+.1f, 1 kHz %+.2f; hats thump -12: 50 Hz %+.1f; snare treble +12: 15 kHz %+.1f dB\n",
+                    k60, k1k, h50, t15);
+        CHECK(std::fabs(k60 - 12.0) < 0.3 && std::fabs(k1k) < 0.3 && h50 < -10.5 && t15 > 10.5);
+    }
+    {   // SNAP: the front of a hit gets louder, the steady part does not
+        auto hits = [&](float snap) {
+            auto e = make("HEAVY HITTER", {{Drum, SnareTop}, {Snap, snap}});
+            Stereo s(48000);
+            for (std::size_t i = 4800; i < s.size(); ++i) s.l[i] = s.r[i] = 0.2f * static_cast<float>(std::sin(2.0 * 3.14159265 * 200.0 * static_cast<double>(i) / kFs));
+            run(*e, s);
+            return std::pair<double, double>{db(rms(s.l, 4800, 240)), db(rms(s.l, 24000, 4800))};
+        };
+        const auto a = hits(0), b = hits(100);
+        std::printf("  HEAVY HITTER snap 100: the first 5 ms %+.1f dB, the steady part %+.2f dB\n", b.first - a.first, b.second - a.second);
+        CHECK(b.first - a.first > 4.0 && std::fabs(b.second - a.second) < 0.3);
+    }
+    {   // SENSITIVITY / OUTPUT, and the meters
+        auto e = make("HEAVY HITTER", {{Sensitivity, 6}, {Output, -6}, {Meter, 0}});
+        const double g = toneGain(*e, 1000, 0.1f);
+        Stereo s = sine(1000, 0.5, 0.1f);
+        e->reset();
+        run(*e, s);
+        std::printf("  HEAVY HITTER sensitivity +6, output -6: %+.2f dB; meter IN %.1f dBFS, INPUT %.1f dBFS\n", g, e->meter(0), e->meter(1));
+        CHECK(std::fabs(g) < 0.05 && std::fabs(e->meter(0) - (-20.0 + 6.0)) < 0.3 && std::fabs(e->meter(1) - e->meter(0)) < 0.01);
+    }
+}
+
 } // namespace
 
 void testToneShop() {
@@ -1183,6 +1229,7 @@ void testToneShop() {
     testTheSetup();
     testWideLoadAdditions();
     testConsoleEqs();
+    testHeavyHitter();
 }
 
 } // namespace hem::test

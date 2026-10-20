@@ -18,6 +18,7 @@
 #include "hem/rack/Hideout.hpp"
 #include "hem/rack/Streets.hpp"
 #include "hem/rack/Comeback.hpp"
+#include "hem/rack/Garage.hpp"
 #include "arsenal/Plates.hpp"
 
 #include <cstring>
@@ -310,6 +311,10 @@ const PluginInfo kPlugins[] = {
      "British-console channel: mic / line preamp, stepped high shelf, mid boost / cut, low shelf, 50 Hz cut, hum and hiss, VU",
      {0x82D3954Bu, 0x486C4D59u, 0x93C55EDDu, 0xCC9D71C9u}, {0x146B2456u, 0xF3A44803u, 0xA5C4439Bu, 0x6E01E0E6u},
      Face::Spec, Group::Tools, &makeTheBoss, nullptr, &plates::kTheBoss},
+    {"HEAVY HITTER", "DRUM ENHANCER", "HIT HARDER", "Fx|Dynamics",
+     "Drum enhancer: pick the drum, then sensitivity, thump, treble, snap, output; level meter in or out",
+     {0x964F2332u, 0x9C0D48A8u, 0xA737556Bu, 0x0CA0B24Au}, {0x4B8ABE01u, 0x644B48B0u, 0x923FF30Bu, 0xD2DFDC39u},
+     Face::Spec, Group::Dynamics, &makeHeavyHitter, nullptr, &plates::kHeavyHitter},
     {"KINGPIN", "DRUM CHANNEL", "HIT WHAT MATTERS", "Fx|Dynamics",
      "Drum channel: pick the drum, then pickup, compression, gate, ambience, bass, treble, VU",
      {0xC1C0D57Eu, 0x097E4E12u, 0xAD48C393u, 0x522671CBu}, {0x0AE9BC6Du, 0xEEB94CC5u, 0x80C29BC7u, 0x0CF175B7u},
