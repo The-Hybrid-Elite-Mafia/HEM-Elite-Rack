@@ -150,7 +150,7 @@ void RackView::button(Renderer& r, Rect b, std::string_view text, bool lit, bool
         r.text(s, text, b.cx(), mid(r, b, s), kInk, Align::Center, TextFx::Plain);
     } else {
         r.fillRound(b.inset(2), 9, kGlass, Blend::Over);
-        r.fillRound({b.x + 6, b.y + 3, b.w - 12, 2}, 1, kTh.teal.withAlpha(dim ? 0.1f : hot ? 0.8f : 0.3f), Blend::Over, !dim);
+        r.fillRound({b.x + 6, b.y + 3, b.w - 12, 2}, 1, kTh.teal.withAlpha(dim ? 0.1f : hot ? 0.8f : 0.3f), Blend::Over, false);
         r.text(s, text, b.cx(), mid(r, b, s), dim ? kTh.dim : hot ? kTh.silver : kTh.label, Align::Center, TextFx::Shadowed);
     }
 }
@@ -159,13 +159,13 @@ void RackView::drawBack(Renderer& r, const RackViewState& s, const Hit& hv) cons
     // Background and panels.
     r.fillRound({-400, -400, kW + 800, kH + 800}, 0, kBg0, Blend::Over);
     r.fillRound(kTop, 0, rgb8(0x101417), Blend::Over);
-    r.fillRound({0, kTop.bottom() - 2, kW, 2}, 1, kTh.tealDeep.withAlpha(0.6f), Blend::Over, true);
+    r.fillRound({0, kTop.bottom() - 2, kW, 2}, 1, kTh.teal, Blend::Over, false);   // solid lit line, no glow
     r.fillRound(kTransport, 14, kPanel, Blend::Over);
     r.fillRound(kChain, 14, kPanel, Blend::Over);
     r.fillRound(faceArea().inset(-4), 16, rgb8(0x07090A), Blend::Over);
 
     // Top bar.
-    r.text(TextStyle::Heading, "HEM-ELITE-RACK", 36, 60, kTh.teal, Align::Left, TextFx::Neon);
+    r.text(TextStyle::Heading, "HEM-ELITE-RACK", 36, 60, kTh.teal, Align::Left, TextFx::Shadowed);
     const float tw = r.textWidth(TextStyle::Heading, "HEM-ELITE-RACK");
     r.text(TextStyle::Caption, "HYBRID ELITE MAFIA  -  EST. 2024", 36 + tw + 24, 56, kTh.label, Align::Left, TextFx::Shadowed);
     button(r, kOpen, "OPEN SONG", false, hv.action == Action::OpenSong);
@@ -181,10 +181,10 @@ void RackView::drawBack(Renderer& r, const RackViewState& s, const Hit& hv) cons
         const Rect p = kPlay;
         // solid teal while playing: no glow and not emissive, so no haze around it
         r.fillRound(p.inset(2), p.w * 0.5f - 2, s.playing ? kTh.teal.withAlpha(0.95f) : kGlass, Blend::Over, false);
-        r.arc(p.cx(), p.cy(), p.w * 0.47f, 2.5f, -kPi, kPi, kTh.teal.withAlpha(hot ? 0.9f : 0.35f), hot);
+        r.arc(p.cx(), p.cy(), p.w * 0.47f, 2.5f, -kPi, kPi, kTh.teal.withAlpha(hot ? 0.9f : 0.35f), false);
         const float ic = p.w * 0.42f;
         r.sprite(s.playing ? Sprite::IconPause : Sprite::IconPlay, {p.cx() - ic * 0.5f, p.cy() - ic * 0.5f, ic, ic},
-                 s.playing ? kInk : kTh.teal, Blend::Over, !s.playing);
+                 s.playing ? kInk : kTh.teal, Blend::Over, false);
         const Rect q = kStop;
         r.fillRound(q.inset(2), q.w * 0.5f - 2, kGlass, Blend::Over);
         r.arc(q.cx(), q.cy(), q.w * 0.47f, 2.0f, -kPi, kPi, kTh.teal.withAlpha(hv.action == Action::Stop ? 0.9f : 0.3f), false);
@@ -197,11 +197,11 @@ void RackView::drawBack(Renderer& r, const RackViewState& s, const Hit& hv) cons
         const float timeW = time.empty() ? 0.0f : r.textWidth(TextStyle::Title, time) + 30;
         const TextStyle ns = fit(r, TextStyle::Title, name, kSongLine.w - timeW);
         r.text(ns, clip(r, ns, name, kSongLine.w - timeW), kSongLine.x, kSongLine.bottom() - 6, s.songName.empty() ? kTh.label : kTh.silver, Align::Left, TextFx::Shadowed);
-        if (!time.empty()) r.text(TextStyle::Title, time, kSongLine.right(), kSongLine.bottom() - 6, kTh.teal, Align::Right, TextFx::NeonCrisp);
+        if (!time.empty()) r.text(TextStyle::Title, time, kSongLine.right(), kSongLine.bottom() - 6, kTh.teal, Align::Right, TextFx::Shadowed);
         const Rect o = kOverview;
         r.fillRound(o, 8, kGlass, Blend::Over);
         if (s.loading) {
-            r.fillRound({o.x + 4, o.cy() - 3, (o.w - 8) * std::clamp(s.loadProgress, 0.0f, 1.0f), 6}, 3, kTh.teal, Blend::Over, true);
+            r.fillRound({o.x + 4, o.cy() - 3, (o.w - 8) * std::clamp(s.loadProgress, 0.0f, 1.0f), 6}, 3, kTh.teal, Blend::Over, false);
         } else if (s.overview && !s.overview->empty()) {
             const int cols = static_cast<int>(s.overview->size() / 2);
             const float colW = (o.w - 8) / static_cast<float>(cols);
@@ -214,9 +214,9 @@ void RackView::drawBack(Renderer& r, const RackViewState& s, const Hit& hv) cons
                             past ? kTh.teal.withAlpha(0.85f) : kTh.before.withAlpha(0.45f), Blend::Over, false);
             }
             const float px = o.x + 4 + (o.w - 8) * std::clamp(played, 0.0f, 1.0f);
-            r.fillRound({px - 1.5f, o.y + 2, 3, o.h - 4}, 1.5f, kTh.silver, Blend::Over, true);
+            r.fillRound({px - 1.5f, o.y + 2, 3, o.h - 4}, 1.5f, kTh.silver, Blend::Over, false);
         }
-        if (hv.action == Action::Seek && !s.songName.empty()) r.fillRound({o.x + o.w * hv.value - 1, o.y + 2, 2, o.h - 4}, 1, kTh.teal.withAlpha(0.6f), Blend::Over, true);
+        if (hv.action == Action::Seek && !s.songName.empty()) r.fillRound({o.x + o.w * hv.value - 1, o.y + 2, 2, o.h - 4}, 1, kTh.teal.withAlpha(0.6f), Blend::Over, false);
     }
     button(r, kA, "A  PROCESSED", !s.original, hv.action == Action::PlayA);
     button(r, kB, "B  ORIGINAL", s.original, hv.action == Action::PlayB);
@@ -231,14 +231,14 @@ void RackView::drawBack(Renderer& r, const RackViewState& s, const Hit& hv) cons
             if (f > 0.002f) {
                 const float hot = std::clamp((s.peakDb[ch] + 3.0f) / 3.0f, 0.0f, 1.0f);
                 const Rgba c{kTh.teal.r + (1.0f - kTh.teal.r) * hot, kTh.teal.g * (1.0f - 0.6f * hot), kTh.teal.b * (1.0f - 0.6f * hot), 1.0f};
-                r.fillRound({bar.x + 2, bar.y + 2, (bar.w - 4) * f, bar.h - 4}, 4, c, Blend::Over, true);
+                r.fillRound({bar.x + 2, bar.y + 2, (bar.w - 4) * f, bar.h - 4}, 4, c, Blend::Over, false);
             }
             r.text(TextStyle::Caption, ch == 0 ? "L" : "R", m.x + 14, bar.y + 15, kTh.label, Align::Center, TextFx::Shadowed);
         }
         char b[96];
         if (s.outLufs > -100.0f) std::snprintf(b, sizeof b, "OUT %.1f LUFS", s.outLufs);
         else std::snprintf(b, sizeof b, "OUT  --  LUFS");
-        r.text(TextStyle::Value, b, m.x + 34, m.y + 82, kTh.teal, Align::Left, TextFx::NeonCrisp);
+        r.text(TextStyle::Value, b, m.x + 34, m.y + 82, kTh.teal, Align::Left, TextFx::Shadowed);
         if (s.match) std::snprintf(b, sizeof b, "B MATCHED %+.1f dB  -  DELAY %.0f ms", s.matchDb, s.latencyMs);
         else std::snprintf(b, sizeof b, "B NOT MATCHED  -  DELAY %.0f ms", s.latencyMs);
         const TextStyle cs = fit(r, TextStyle::Caption, b, m.w - 40);
@@ -265,7 +265,7 @@ void RackView::drawBack(Renderer& r, const RackViewState& s, const Hit& hv) cons
         const TextStyle ns = fit(r, TextStyle::Title, sv.name, 152);
         r.text(ns, clip(r, ns, sv.name, 152), row.x + 46, row.y + 42, sv.on ? kTh.silver : kTh.dim, Align::Left, TextFx::Shadowed);
         const TextStyle ss = fit(r, TextStyle::Caption, sv.suite, 152);
-        r.text(ss, clip(r, ss, sv.suite, 152), row.x + 46, row.y + 74, sv.on ? kTh.teal : kTh.dim, Align::Left, sv.on ? TextFx::NeonCrisp : TextFx::Shadowed);
+        r.text(ss, clip(r, ss, sv.suite, 152), row.x + 46, row.y + 74, sv.on ? kTh.teal : kTh.dim, Align::Left, sv.on ? TextFx::Shadowed : TextFx::Shadowed);
         button(r, slotOn(i), sv.on ? "ON" : "OFF", sv.on, hv.action == Action::SlotOn && hv.index == i);
         button(r, slotDel(i), "DEL", false, hv.action == Action::SlotRemove && hv.index == i);
         // UP / DOWN: arrows (no word fits these little buttons at every window size)
@@ -276,7 +276,7 @@ void RackView::drawBack(Renderer& r, const RackViewState& s, const Hit& hv) cons
             button(r, b, "", false, hot, dim);
             const float sz = b.h * 0.62f;
             r.spriteRotated(k == 0 ? Sprite::IconPrev : Sprite::IconNext, b.cx(), b.cy(), sz, sz, kPi * 0.5f,
-                            dim ? kTh.dim : hot ? kTh.silver : kTh.teal, Blend::Over, !dim);
+                            dim ? kTh.dim : hot ? kTh.silver : kTh.teal, Blend::Over, false);
         }
     }
     button(r, kAdd, "+  ADD PLUG-IN", false, hv.action == Action::AddOpen && hv.index < 0);
@@ -285,7 +285,7 @@ void RackView::drawBack(Renderer& r, const RackViewState& s, const Hit& hv) cons
     if (s.selected < 0 || !s.slots[static_cast<std::size_t>(std::clamp(s.selected, 0, 7))].used) {
         const Rect a = faceArea();
         r.text(TextStyle::Panel, "NO PLUG-IN SELECTED", a.cx(), a.cy() - 20, kTh.label, Align::Center, TextFx::Shadowed);
-        r.text(TextStyle::Label, "PRESS  + ADD PLUG-IN  ON THE LEFT", a.cx(), a.cy() + 36, kTh.teal, Align::Center, TextFx::NeonCrisp);
+        r.text(TextStyle::Label, "PRESS  + ADD PLUG-IN  ON THE LEFT", a.cx(), a.cy() + 36, kTh.teal, Align::Center, TextFx::Shadowed);
     }
 
     // Status line.
@@ -296,7 +296,7 @@ void RackView::drawBack(Renderer& r, const RackViewState& s, const Hit& hv) cons
         if (s.exportProgress >= 0.0f) {
             const Rect bar{kStatus.right() - 420, kStatus.y + 9, 400, 14};
             r.fillRound(bar, 7, kGlass, Blend::Over);
-            r.fillRound({bar.x + 2, bar.y + 2, (bar.w - 4) * std::clamp(s.exportProgress, 0.0f, 1.0f), bar.h - 4}, 5, kTh.teal, Blend::Over, true);
+            r.fillRound({bar.x + 2, bar.y + 2, (bar.w - 4) * std::clamp(s.exportProgress, 0.0f, 1.0f), bar.h - 4}, 5, kTh.teal, Blend::Over, false);
             right = bar.x - 20;
         } else {
             char b[64];
@@ -314,9 +314,8 @@ void RackView::drawFront(Renderer& r, const RackViewState& s, const Hit& hv) con
     const Rect a = faceArea();
     r.fillRound(a, 16, rgb8(0x000000, 0.72f), Blend::Over);
     const Rect p = pickerPanel();
-    r.glow(p.inset(6), 16, 22.0f, kTh.teal.withAlpha(0.25f), true);
     r.fillRound(p, 16, kPanel, Blend::Over);
-    r.text(TextStyle::Panel, "ADD A PLUG-IN", p.x + 40, p.y + 70, kTh.teal, Align::Left, TextFx::Neon);
+    r.text(TextStyle::Panel, "ADD A PLUG-IN", p.x + 40, p.y + 70, kTh.teal, Align::Left, TextFx::Shadowed);
     button(r, pickerClose(), "CLOSE", false, hv.action == Action::PickerClose);
     const int tabs = static_cast<int>(s.pickerTabs.size());
     for (int t = 0; t < tabs; ++t) {
@@ -332,7 +331,7 @@ void RackView::drawFront(Renderer& r, const RackViewState& s, const Hit& hv) con
         const bool hot = hv.action == Action::AddPlugin && hv.index == item.plugin;
         r.fillRound(it, 12, hot ? rgb8(0x0F2427) : rgb8(0x0D1113), Blend::Over);   // no halo on hover
         const TextStyle ns = fit(r, TextStyle::Panel, item.name, it.w - 40);
-        r.text(ns, item.name, it.x + 20, it.y + 54, hot ? kTh.teal : kTh.silver, Align::Left, hot ? TextFx::Neon : TextFx::Shadowed);
+        r.text(ns, item.name, it.x + 20, it.y + 54, hot ? kTh.teal : kTh.silver, Align::Left, hot ? TextFx::Shadowed : TextFx::Shadowed);
         const TextStyle bs = TextStyle::Caption;
         // the description on two lines
         std::string a = item.blurb, b;

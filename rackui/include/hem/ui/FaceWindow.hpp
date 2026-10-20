@@ -48,6 +48,10 @@ public:
     void frame();                          // input + draw + present (child windows: called by the timer)
     [[nodiscard]] hc::ui::Image snapshot(); // draw once into the capture buffer and read it back
     [[nodiscard]] FaceState& state() noexcept { return state_; }
+    // Parts drawn as light sources (blurred into a glow) in the last frame. The rack's faceplates draw
+    // none: lights are solid and sharp, with no glow around them (Steven, Oct 20). The snapshot tool
+    // fails a plate that draws any.
+    [[nodiscard]] std::uint32_t glowingParts() const noexcept { return renderer_.stats().bloomQuads; }
     [[nodiscard]] int width() const noexcept { return w_; }
     [[nodiscard]] int height() const noexcept { return h_; }
 

@@ -186,8 +186,10 @@ int main(int argc, char** argv) {
         std::string file = info.name;
         for (char& c : file) if (c == ' ') c = '_';
         const auto path = out / ("HEM_" + file + ".png");
-        const bool ok = !img.empty() && sd > 8.0 && hc::ui::writePng(path, img);
-        std::printf("%s %s: %ux%u, luma spread %.1f -> %s\n", ok ? "OK  " : "FAIL", info.name, img.width, img.height, sd, path.string().c_str());
+        const std::uint32_t glowing = win.glowingParts();   // lights are solid: nothing may glow
+        const bool ok = !img.empty() && sd > 8.0 && glowing == 0 && hc::ui::writePng(path, img);
+        std::printf("%s %s: %ux%u, luma spread %.1f, glowing parts %u -> %s\n", ok ? "OK  " : "FAIL", info.name, img.width, img.height, sd,
+                    glowing, path.string().c_str());
         if (!ok) ++failures;
     }
     return failures ? 3 : 0;

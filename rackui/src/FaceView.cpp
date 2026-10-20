@@ -84,37 +84,35 @@ float FaceView::plain(const PanelHost& host, int param) const {
 void FaceView::header(const Ctx& c) const {
     Renderer& r = c.r;
     const float z = c.z;
-    // Lit channels in the metal.
+    // Lit channels in the metal: bright solid teal with a hot core, sharp edges, no glow around them.
     for (const auto& g : L_.grooves) {
         const float xs[2] = {c.X(g[0]), c.X(g[2])}, ys[2] = {c.Y(g[1]), c.Y(g[3])};
-        r.glow({std::min(xs[0], xs[1]), std::min(ys[0], ys[1]) - 1 * z, std::fabs(xs[1] - xs[0]), std::fabs(ys[1] - ys[0]) + 2 * z}, 2 * z,
-               10.0f * z, th_.teal.withAlpha(0.32f), true);
-        r.polyline(xs, ys, 2, 2.4f * z, th_.tealDeep, Blend::Over, true);
-        r.polyline(xs, ys, 2, 1.0f * z, {1, 1, 1, 0.35f}, Blend::Add, true);
+        r.polyline(xs, ys, 2, 2.4f * z, th_.teal, Blend::Over, false);
+        r.polyline(xs, ys, 2, 1.0f * z, {1, 1, 1, 0.35f}, Blend::Add, false);
     }
     // Section names over their part of the plate ("LMF", "RATIO").
     for (const auto& [rect, text] : L_.sections) {
         const Rect sr = c.T(rect);
         const TextStyle st = c.fit(TextStyle::Label, text, sr.w - 10 * z);
-        r.text(st, text, sr.cx(), c.mid(sr, st), th_.teal, Align::Center, TextFx::NeonCrisp);
+        r.text(st, text, sr.cx(), c.mid(sr, st), th_.teal, Align::Center, TextFx::Shadowed);
     }
     // HYBRID ELITE MAFIA / suite between the crown and the ghost.
     const float cx = c.X(kPlateW * 0.5f);
     const TextStyle hs = c.fit(TextStyle::Heading, "HYBRID ELITE MAFIA", 760 * z);
     r.text(hs, "HYBRID ELITE MAFIA", cx, c.Y(84), th_.silver, Align::Center, TextFx::Shadowed);
     const TextStyle ss = c.fit(TextStyle::Label, L_.suite, 760 * z);
-    r.text(ss, L_.suite, cx, c.Y(126), th_.teal, Align::Center, TextFx::NeonCrisp);
+    r.text(ss, L_.suite, cx, c.Y(126), th_.teal, Align::Center, TextFx::Shadowed);
     // HEM AUDIO / EST. 2024 beside the ghost; HEM-ELITE-RACK beside the crown.
     const TextStyle ls = c.ts(TextStyle::Label), cs = c.ts(TextStyle::Caption);
     r.text(ls, "HEM AUDIO", c.X(L_.ghost.x - 26), c.Y(78), th_.silver, Align::Right, TextFx::Shadowed);
-    r.text(cs, "EST. 2024", c.X(L_.ghost.x - 26), c.Y(112), th_.teal, Align::Right, TextFx::NeonCrisp);
+    r.text(cs, "EST. 2024", c.X(L_.ghost.x - 26), c.Y(112), th_.teal, Align::Right, TextFx::Shadowed);
     r.text(ls, "HEM-ELITE-RACK", c.X(L_.crown.right() + 26), c.Y(78), th_.silver, Align::Left, TextFx::Shadowed);
     r.text(cs, "AUDIO TOOLS", c.X(L_.crown.right() + 26), c.Y(112), th_.dim, Align::Left, TextFx::Shadowed);
 
     // The plug-in name, big, with its notes under it.
     const Rect ta = c.T(L_.title);
     const TextStyle ns = c.fit(TextStyle::Display, L_.name, ta.w);
-    r.text(ns, L_.name, ta.x, ta.y + ta.h * 0.66f, th_.teal, Align::Left, TextFx::Neon);
+    r.text(ns, L_.name, ta.x, ta.y + ta.h * 0.66f, th_.teal, Align::Left, TextFx::Shadowed);
     float y = L_.title.bottom() + 30;
     for (const std::string& n : L_.leftNotes) {
         const TextStyle s = c.fit(TextStyle::Label, n, ta.w);
@@ -128,7 +126,7 @@ void FaceView::header(const Ctx& c) const {
         for (std::size_t i = 0; i < L_.sideNotes.size(); ++i) {
             const std::string& n = L_.sideNotes[i];
             const TextStyle s = c.fit(TextStyle::Label, n, 180 * z);
-            r.text(s, n, x, c.Y(sy), i % 2 == 0 ? th_.silver : th_.teal, Align::Center, i % 2 == 0 ? TextFx::Shadowed : TextFx::NeonCrisp);
+            r.text(s, n, x, c.Y(sy), i % 2 == 0 ? th_.silver : th_.teal, Align::Center, i % 2 == 0 ? TextFx::Shadowed : TextFx::Shadowed);
             sy += i % 2 == 0 ? 34 : 70;
         }
     }
@@ -136,7 +134,7 @@ void FaceView::header(const Ctx& c) const {
     const Rect fp = c.T(L_.footerPlate);
     r.fillRound(fp.inset(4 * z), 6 * z, kGlass, Blend::Over);
     const TextStyle tg = c.fit(TextStyle::Tab, L_.tagline, fp.w - 40 * z);
-    r.text(tg, L_.tagline, fp.cx(), c.mid(fp, tg), th_.teal, Align::Center, TextFx::Neon);
+    r.text(tg, L_.tagline, fp.cx(), c.mid(fp, tg), th_.teal, Align::Center, TextFx::Shadowed);
     const Rect ft = c.T(L_.footer);
     r.text(cs, L_.name, c.X(80), c.mid(ft, cs), th_.dim, Align::Left, TextFx::Shadowed);
     r.text(cs, "HYBRID ELITE MAFIA", c.X(kPlateW - 80), c.mid(ft, cs), th_.dim, Align::Right, TextFx::Shadowed);
@@ -168,11 +166,12 @@ void FaceView::knob(const Ctx& c, const Widget& w, int wi) const {
         const float d0 = kKnobMin + span * static_cast<float>(i) + span * 0.18f, d1 = d0 + span * 0.64f;
         const float m = 0.5f * (d0 + d1);
         const bool lit = on && m >= lo - span * 0.5f && m <= hi + span * 0.5f && std::fabs(ang - a0) > 0.004f;
-        r.arc(cx, cy, ar, aw, d0, d1, lit ? th_.teal : th_.teal.withAlpha(0.14f), lit);
+        r.arc(cx, cy, ar, aw, d0, d1, lit ? th_.teal : th_.teal.withAlpha(0.14f), false);
     }
-    if (on) {
-        const float tx = cx + std::sin(ang) * ar, ty = cy - std::cos(ang) * ar;
-        r.sprite(Sprite::GlowDot, {tx - aw * 2.4f, ty - aw * 2.4f, aw * 4.8f, aw * 4.8f}, th_.teal.withAlpha(0.9f), Blend::Add, true);
+    if (on) {   // the lit tip of the scale: a solid bright dot, no glow around it
+        const float tx = cx + std::sin(ang) * ar, ty = cy - std::cos(ang) * ar, dr = aw * 1.15f;
+        const Rgba tip{th_.teal.r + (1.0f - th_.teal.r) * 0.45f, th_.teal.g + (1.0f - th_.teal.g) * 0.45f, th_.teal.b + (1.0f - th_.teal.b) * 0.45f, 1.0f};
+        r.fillRound({tx - dr, ty - dr, 2 * dr, 2 * dr}, dr, tip, Blend::Over, false);
     }
     const float bodyR = kn::kBody * R;
     r.sprite(Sprite::KnobShadow, {cx - bodyR * 1.14f + 0.06f * bodyR, cy - bodyR * 1.14f + 0.10f * bodyR, bodyR * 2.28f, bodyR * 2.28f});
@@ -181,10 +180,9 @@ void FaceView::knob(const Ctx& c, const Widget& w, int wi) const {
     const float len = (kn::kIndicatorTo - kn::kIndicatorFrom) * bodyR, mid = 0.5f * (kn::kIndicatorTo + kn::kIndicatorFrom) * bodyR;
     const float ih = len * 96.0f / 72.0f, iw = ih * 24.0f / 96.0f;
     r.spriteRotated(Sprite::KnobIndicator, cx + std::sin(ang) * mid, cy - std::cos(ang) * mid, iw, ih, ang,
-                    {0.55f + 0.45f * th_.teal.r, 0.55f + 0.45f * th_.teal.g, 0.55f + 0.45f * th_.teal.b, 1.0f}, Blend::Over, on);
+                    {0.55f + 0.45f * th_.teal.r, 0.55f + 0.45f * th_.teal.g, 0.55f + 0.45f * th_.teal.b, 1.0f}, Blend::Over, false);
     r.sprite(Sprite::KnobLight, {cx - bd / 2, cy - bd / 2, bd, bd});
     if (!on) r.fillRound(dial.inset(dial.w * 0.04f), dial.w * 0.46f, rgb8(0x000000, 0.6f), Blend::Over);
-    if (hot) r.glow(dial.inset(dial.w * 0.12f), dial.w * 0.4f, 16.0f * z, th_.teal.withAlpha(0.28f), true);
 
     // Caption above, value under, scale ends at the arc's ends.
     const TextStyle cap = c.fit(w.small ? TextStyle::Caption : TextStyle::Label, w.caption, dial.w + (w.small ? 26 : 70) * z);
@@ -192,7 +190,7 @@ void FaceView::knob(const Ctx& c, const Widget& w, int wi) const {
     const std::string v = on ? c.host.text(param) : std::string("--");
     const TextStyle vs = c.fit(w.small ? TextStyle::Value : TextStyle::Title, v, dial.w + (w.small ? 26 : 50) * z);
     r.text(vs, v, cx, dial.bottom() + (w.small ? 26 : 32) * z, on ? (hot ? th_.silver : th_.teal) : th_.dim, Align::Center,
-           on ? TextFx::NeonCrisp : TextFx::Shadowed);
+           on ? TextFx::Shadowed : TextFx::Shadowed);
     // The scale's end labels sit in the dial's own bottom corners, under the ends of the arc and above
     // the value, so they can never run into the value or into the next knob. A label too wide for its
     // corner is left out (both go, so the pair stays balanced) - the value underneath says it anyway.
@@ -217,7 +215,7 @@ void FaceView::button(const Ctx& c, Rect b, std::string_view text, bool lit, boo
         r.text(bs, text, b.cx(), c.mid(b, bs), kInk, Align::Center, TextFx::Plain);
     } else {
         r.fillRound(b.inset(2 * z), 9 * z, kGlass, Blend::Over);
-        r.fillRound({b.x + 6 * z, b.y + 3 * z, b.w - 12 * z, 2 * z}, 1 * z, colour.withAlpha(dim ? 0.12f : hot ? 0.8f : 0.32f), Blend::Over, !dim);
+        r.fillRound({b.x + 6 * z, b.y + 3 * z, b.w - 12 * z, 2 * z}, 1 * z, colour.withAlpha(dim ? 0.12f : hot ? 0.8f : 0.32f), Blend::Over, false);
         r.text(bs, text, b.cx(), c.mid(b, bs), dim ? th_.dim : hot ? th_.silver : th_.label, Align::Center, TextFx::Shadowed);
     }
 }
@@ -231,11 +229,11 @@ void FaceView::stepper(const Ctx& c, const Widget& w, int wi) const {
     r.fillRound(b.inset(2 * z), 8 * z, kGlass, Blend::Over);
     const float s = b.h * 0.42f;
     const Rgba ic = on ? (hot ? th_.silver : th_.teal) : th_.dim;
-    r.sprite(Sprite::IconPrev, {b.x + 8 * z, b.cy() - s * 0.5f, s, s}, ic, Blend::Over, on);
-    r.sprite(Sprite::IconNext, {b.right() - 8 * z - s, b.cy() - s * 0.5f, s, s}, ic, Blend::Over, on);
+    r.sprite(Sprite::IconPrev, {b.x + 8 * z, b.cy() - s * 0.5f, s, s}, ic, Blend::Over, false);
+    r.sprite(Sprite::IconNext, {b.right() - 8 * z - s, b.cy() - s * 0.5f, s, s}, ic, Blend::Over, false);
     const std::string v = c.host.text(param);
     const TextStyle vs = c.fit(TextStyle::Label, v, b.w - 2 * s - 26 * z);
-    r.text(vs, v, b.cx(), c.mid(b, vs), on ? th_.teal : th_.dim, Align::Center, on ? TextFx::NeonCrisp : TextFx::Shadowed);
+    r.text(vs, v, b.cx(), c.mid(b, vs), on ? th_.teal : th_.dim, Align::Center, on ? TextFx::Shadowed : TextFx::Shadowed);
     const TextStyle cs = c.ts(TextStyle::Caption);
     r.text(cs, w.caption, b.x - 12 * z, c.mid(b, cs), on ? th_.label : th_.dim, Align::Right, TextFx::Shadowed);
 }
@@ -250,14 +248,13 @@ void FaceView::rangeSlider(const Ctx& c, const Widget& w, int wi) const {
     r.fillRound(track, 4 * z, kGlass, Blend::Over);
     const float x0 = c.X(freqToX(plot, lo)), x1 = c.X(freqToX(plot, hi));
     const Rect sel{x0, track.y, std::max(x1 - x0, 1.0f), track.h};
-    r.glow(sel, 4 * z, 8.0f * z, th_.teal.withAlpha(0.35f), true);
-    r.fillRound(sel, 4 * z, th_.teal, Blend::Over, true);
+    r.fillRound(sel, 4 * z, th_.teal, Blend::Over, false);
     const bool hot = c.st.hover == wi || c.st.active == wi;
     for (float x : {x0, x1}) {
         const Rect h{x - 9 * z, t.y + 4 * z, 18 * z, t.h - 8 * z};
         r.fillRound(h.offset(2 * z, 3 * z), 6 * z, rgb8(0x000000, 0.5f), Blend::Over);
         r.fillRound(h, 6 * z, hot ? th_.silver : rgb8(0xA8B2B8), Blend::Over);
-        r.fillRound({h.cx() - 1.5f * z, h.y + 6 * z, 3 * z, h.h - 12 * z}, 1.5f * z, th_.tealDeep, Blend::Over, true);
+        r.fillRound({h.cx() - 1.5f * z, h.y + 6 * z, 3 * z, h.h - 12 * z}, 1.5f * z, th_.tealDeep, Blend::Over, false);
     }
     const std::string text = w.caption + "   " + c.host.text(w.param) + "  -  " + c.host.text(w.param2);
     const TextStyle s = c.fit(TextStyle::Caption, text, t.w);
@@ -338,18 +335,18 @@ void FaceView::spectrum(const Ctx& c, const Widget& w) const {
             r.colorQuad(qx, qy, cols, Blend::Over, false);
         }
         r.polyline(xs, yb, rack::kSpectrumBins, 1.6f * z, th_.before.withAlpha(0.75f), Blend::Over, false);
-        r.polyline(xs, ya, rack::kSpectrumBins, 2.4f * z, th_.teal, Blend::Over, true);
+        r.polyline(xs, ya, rack::kSpectrumBins, 2.4f * z, th_.teal, Blend::Over, false);
     }
     if (L_.face == rack::Face::Exciter) {   // below FREQUENCY nothing is added: dim it, mark the edge
         const float x1 = c.X(freqToX(plot, plain(c.host, rack::exciter::Freq)));
         if (x1 > p.x + 0.5f) r.fillRound({p.x, p.y, x1 - p.x, p.h}, 0, rgb8(0x000000, 0.55f), Blend::Over);
         const float lx[2] = {x1, x1}, ly[2] = {p.y, p.bottom()};
-        r.polyline(lx, ly, 2, 2.0f * z, th_.gold.withAlpha(0.8f), Blend::Over, true);
+        r.polyline(lx, ly, 2, 2.0f * z, th_.gold.withAlpha(0.8f), Blend::Over, false);
     }
     const TextStyle s = c.ts(TextStyle::Caption);
     float lx = p.x + 14 * z;
     auto legend = [&](const char* t, Rgba col) {
-        r.fillRound({lx, p.y + 14 * z, 18 * z, 4 * z}, 2 * z, col, Blend::Over, true);
+        r.fillRound({lx, p.y + 14 * z, 18 * z, 4 * z}, 2 * z, col, Blend::Over, false);
         r.text(s, t, lx + 26 * z, p.y + 14 * z + r.capHeight(s) * 0.6f, col, Align::Left, TextFx::Shadowed);
         lx += 26 * z + r.textWidth(s, t) + 30 * z;
     };
@@ -362,16 +359,16 @@ void FaceView::spectrum(const Ctx& c, const Widget& w) const {
             xs[i] = c.X(freqToX(plot, rack::spectrumBinHz(i)));
             ys[i] = yOf(c.feed.noiseFloor(i));
         }
-        for (int i = 0; i + 2 < rack::kSpectrumBins; i += 4) r.polyline(xs + i, ys + i, 3, 2.0f * z, th_.gold.withAlpha(0.9f), Blend::Over, true);
+        for (int i = 0; i + 2 < rack::kSpectrumBins; i += 4) r.polyline(xs + i, ys + i, 3, 2.0f * z, th_.gold.withAlpha(0.9f), Blend::Over, false);
         const float rem = c.feed.removedDb();
         const std::string t = rem < -0.05f ? fmt("TAKING OUT %.1f dB", -rem) : std::string("NOTHING TAKEN OUT");
         const TextStyle vs = c.ts(TextStyle::Value);
-        r.text(vs, t, p.right() - 14 * z, p.y + 14 * z + r.capHeight(vs), th_.teal, Align::Right, TextFx::NeonCrisp);
+        r.text(vs, t, p.right() - 14 * z, p.y + 14 * z + r.capHeight(vs), th_.teal, Align::Right, TextFx::Shadowed);
     }
     if (isRestorer && plain(c.host, rack::restorer::Listen) >= 0.5f) {
         const char* t = "LISTEN IS ON: YOU HEAR ONLY WHAT IS TAKEN OUT";
         const TextStyle ls = c.fit(TextStyle::Label, t, p.w - 40 * z);
-        r.text(ls, t, p.cx(), p.bottom() - 18 * z, th_.gold, Align::Center, TextFx::NeonCrisp);
+        r.text(ls, t, p.cx(), p.bottom() - 18 * z, th_.gold, Align::Center, TextFx::Shadowed);
     }
 }
 
@@ -459,12 +456,11 @@ void FaceView::eqGraph(const Ctx& c, const Widget& w) const {
         }
     }
     if (anyOn) {
-        r.polyline(xs, total, kN, 6.0f * z, th_.teal.withAlpha(0.25f), Blend::Add, true);
-        r.polyline(xs, total, kN, 2.8f * z, th_.teal, Blend::Over, true);
-        if (anyDyn) r.polyline(xs, liveY, kN, 1.6f * z, th_.silver.withAlpha(0.85f), Blend::Over, true);
+        r.polyline(xs, total, kN, 2.8f * z, th_.teal, Blend::Over, false);
+        if (anyDyn) r.polyline(xs, liveY, kN, 1.6f * z, th_.silver.withAlpha(0.85f), Blend::Over, false);
     } else {
         const float xs2[2] = {p.x, p.right()}, ys2[2] = {p.cy(), p.cy()};
-        r.polyline(xs2, ys2, 2, 2.0f * z, th_.teal.withAlpha(0.6f), Blend::Over, true);
+        r.polyline(xs2, ys2, 2, 2.0f * z, th_.teal.withAlpha(0.6f), Blend::Over, false);
         const char* t = "DOUBLE-CLICK THE GRAPH TO ADD A BAND";
         const TextStyle hs = c.fit(TextStyle::Label, t, p.w * 0.8f);
         r.text(hs, t, p.cx(), p.cy() - 30 * z, th_.label, Align::Center, TextFx::Shadowed);
@@ -482,13 +478,12 @@ void FaceView::eqGraph(const Ctx& c, const Widget& w) const {
         if (typeCanBeDynamic(bd.type) && plain(c.host, bandParam(b, Dyn)) >= 0.5f) {
             const float yd = yOf(bd.gainDb + c.feed.dynamicGainDb(b));
             const float lx[2] = {x, x}, ly[2] = {y, yd};
-            r.polyline(lx, ly, 2, 2.0f * z, col.withAlpha(0.7f), Blend::Over, true);
-            r.arc(x, yd, rad * 0.75f, 2.0f * z, -kPi, kPi, col, true);
+            r.polyline(lx, ly, 2, 2.0f * z, col.withAlpha(0.7f), Blend::Over, false);
+            r.arc(x, yd, rad * 0.75f, 2.0f * z, -kPi, kPi, col, false);
         }
-        if (selected || hot) r.glow({x - rad, y - rad, 2 * rad, 2 * rad}, rad, 14.0f * z, col.withAlpha(0.45f), true);
         r.fillRound({x - rad + 1.5f * z, y - rad + 2.5f * z, 2 * rad, 2 * rad}, rad, rgb8(0x000000, 0.55f), Blend::Over);
-        r.fillRound({x - rad, y - rad, 2 * rad, 2 * rad}, rad, col, Blend::Over, true);
-        if (selected) r.arc(x, y, rad + 4 * z, 2.0f * z, -kPi, kPi, th_.silver, true);
+        r.fillRound({x - rad, y - rad, 2 * rad, 2 * rad}, rad, col, Blend::Over, false);
+        if (selected || hot) r.arc(x, y, rad + 4 * z, 2.0f * z, -kPi, kPi, selected ? th_.silver : th_.silver.withAlpha(0.6f), false);   // a ring, no glow
         const std::string t = std::to_string(b + 1);
         r.text(ns, t, x, y + r.capHeight(ns) * 0.5f, kInk, Align::Center, TextFx::Plain);
     }
@@ -496,7 +491,7 @@ void FaceView::eqGraph(const Ctx& c, const Widget& w) const {
     if (plain(c.host, Global::AutoGain) >= 0.5f) {
         const std::string t = fmt("AUTO GAIN %+.1f dB", c.feed.autoGainDb());
         const TextStyle vs = c.ts(TextStyle::Value);
-        r.text(vs, t, p.x + 14 * z, p.y + 14 * z + r.capHeight(vs), th_.teal, Align::Left, TextFx::NeonCrisp);
+        r.text(vs, t, p.x + 14 * z, p.y + 14 * z + r.capHeight(vs), th_.teal, Align::Left, TextFx::Shadowed);
     }
 }
 
@@ -554,8 +549,7 @@ void FaceView::consoleCurve(const Ctx& c, const Widget& w) const {
         const Rgba cols[4] = {a, a, b, b};
         r.colorQuad(qx, qy, cols, Blend::Over, false);
     }
-    r.polyline(xs, ys, kN, 6.0f * z, th_.teal.withAlpha(0.25f), Blend::Add, true);
-    r.polyline(xs, ys, kN, 2.8f * z, th_.teal, Blend::Over, true);
+    r.polyline(xs, ys, kN, 2.8f * z, th_.teal, Blend::Over, false);
     // A dot on the curve at each band's frequency.
     struct Dot { double hz; Rgba col; };
     std::array<Dot, 12> dots{};
@@ -573,7 +567,7 @@ void FaceView::consoleCurve(const Ctx& c, const Widget& w) const {
     for (int i = 0; i < nd; ++i) {
         const double hz = std::clamp(dots[static_cast<std::size_t>(i)].hz, 20.0, 20000.0);
         const float x = c.X(freqToX(plot, static_cast<float>(hz))), y = yOf(curve(hz));
-        r.fillRound({x - 7 * z, y - 7 * z, 14 * z, 14 * z}, 7 * z, dots[static_cast<std::size_t>(i)].col, Blend::Over, true);
+        r.fillRound({x - 7 * z, y - 7 * z, 14 * z, 14 * z}, 7 * z, dots[static_cast<std::size_t>(i)].col, Blend::Over, false);
     }
 }
 
@@ -594,8 +588,8 @@ void FaceView::vuMeter(const Ctx& c, const Widget& w) const {
         const float t = std::clamp((a - lo) / (hi - lo), 0.0f, 1.0f);
         return (-50.0f + 100.0f * t) * kPi / 180.0f;
     };
-    r.arc(px, py, R, 3.0f * z, angle(-20.0f), angle(0.0f), th_.teal.withAlpha(0.45f), true);
-    r.arc(px, py, R, 5.0f * z, angle(0.0f), angle(3.0f), th_.red.withAlpha(0.85f), true);
+    r.arc(px, py, R, 3.0f * z, angle(-20.0f), angle(0.0f), th_.teal.withAlpha(0.45f), false);
+    r.arc(px, py, R, 5.0f * z, angle(0.0f), angle(3.0f), th_.red.withAlpha(0.85f), false);
     const TextStyle ts = c.ts(TextStyle::Caption);
     for (float v : {-20.0f, -10.0f, -7.0f, -5.0f, -3.0f, -2.0f, -1.0f, 0.0f, 1.0f, 2.0f, 3.0f}) {
         const float a = angle(v), sx = std::sin(a), sy = -std::cos(a);
@@ -610,12 +604,11 @@ void FaceView::vuMeter(const Ctx& c, const Widget& w) const {
     }
     const float a = angle(vu_[ch]);
     const float nx[2] = {px, px + std::sin(a) * R * 0.97f}, ny[2] = {py, py - std::cos(a) * R * 0.97f};
-    r.polyline(nx, ny, 2, 7.0f * z, th_.teal.withAlpha(0.25f), Blend::Add, true);
-    r.polyline(nx, ny, 2, 2.6f * z, th_.silver, Blend::Over, true);
+    r.polyline(nx, ny, 2, 2.6f * z, th_.silver, Blend::Over, false);
     r.fillRound({px - 13 * z, py - 13 * z, 26 * z, 26 * z}, 13 * z, rgb8(0x9AA4AA), Blend::Over);
-    r.fillRound({px - 6 * z, py - 6 * z, 12 * z, 12 * z}, 6 * z, th_.tealDeep, Blend::Over, true);
+    r.fillRound({px - 6 * z, py - 6 * z, 12 * z, 12 * z}, 6 * z, th_.tealDeep, Blend::Over, false);
     const TextStyle ls = c.ts(TextStyle::Label);
-    r.text(ls, "VU", d.x + 24 * z, d.y + 40 * z, th_.teal, Align::Left, TextFx::NeonCrisp);
+    r.text(ls, "VU", d.x + 24 * z, d.y + 40 * z, th_.teal, Align::Left, TextFx::Shadowed);
     r.text(ls, w.caption, d.right() - 24 * z, d.y + 40 * z, th_.label, Align::Right, TextFx::Shadowed);
     char calText[32];
     std::snprintf(calText, sizeof calText, "0 VU = %.0f dBFS", static_cast<double>(cal));
@@ -630,14 +623,14 @@ void FaceView::readout(const Ctx& c, const Widget& w) const {
     const float v = c.feed.meterDb(w.choice);
     const TextStyle cs = c.ts(TextStyle::Caption);
     r.text(cs, w.caption, b.x + 18 * z, b.y + 30 * z, th_.label, Align::Left, TextFx::Shadowed);
-    r.text(cs, w.lo, b.x + 18 * z, b.y + 60 * z, th_.teal, Align::Left, TextFx::NeonCrisp);   // the unit, under the name
+    r.text(cs, w.lo, b.x + 18 * z, b.y + 60 * z, th_.teal, Align::Left, TextFx::Shadowed);   // the unit, under the name
     char t[24];
     const char* f = w.hi == "+2" ? "%+.2f" : w.hi == "+" ? "%+.1f" : "%.1f";
     if (v > -99.0f) std::snprintf(t, sizeof t, f, static_cast<double>(v));
     else std::snprintf(t, sizeof t, "--");
     const bool over = w.hi == "CEIL" && v > plain(c.host, rack::limiter::Ceiling) + 0.05f;   // true peak above the ceiling
     const TextStyle big = c.fit(TextStyle::Display, t, b.w * 0.55f);   // the left side keeps the name and unit
-    r.text(big, t, b.right() - 18 * z, b.bottom() - 18 * z, over ? th_.red : th_.teal, Align::Right, TextFx::Neon);
+    r.text(big, t, b.right() - 18 * z, b.bottom() - 18 * z, over ? th_.red : th_.teal, Align::Right, TextFx::Shadowed);
 }
 
 // HITMAN: the last few seconds, scrolling right to left — gain reduction of both channels hanging
@@ -676,7 +669,7 @@ void FaceView::history(const Ctx& c, const Widget& w) const {
                     const Rgba cols[4] = {a, a, bb, bb};
                     r.colorQuad(qx, qy, cols, Blend::Over, false);
                 }
-            r.polyline(xs, ys, n, width * z, col, Blend::Over, true);
+            r.polyline(xs, ys, n, width * z, col, Blend::Over, false);
         };
         // input level: from the bottom up (louder = higher)
         for (int i = 0; i < n; ++i) {
@@ -746,8 +739,8 @@ void FaceView::grMeter(const Ctx& c, const Widget& w) const {
         return (50.0f - 100.0f * t) * kPi / 180.0f;
     };
     // the scale: a lit arc, ticks and numbers
-    r.arc(px, py, R, 3.0f * z, angle(-20.0f), angle(0.0f), th_.teal.withAlpha(0.35f), true);
-    r.arc(px, py, R, 5.0f * z, angle(-3.0f), angle(0.0f), th_.teal.withAlpha(0.75f), true);
+    r.arc(px, py, R, 3.0f * z, angle(-20.0f), angle(0.0f), th_.teal.withAlpha(0.35f), false);
+    r.arc(px, py, R, 5.0f * z, angle(-3.0f), angle(0.0f), th_.teal.withAlpha(0.75f), false);
     // Every tick is drawn; a number is left out when it would touch the one before it (20 and 0 always stay).
     constexpr float kMarks[] = {0.0f, -1.0f, -2.0f, -3.0f, -4.0f, -6.0f, -8.0f, -10.0f, -14.0f, -20.0f};
     constexpr int kN = static_cast<int>(std::size(kMarks));
@@ -777,15 +770,14 @@ void FaceView::grMeter(const Ctx& c, const Widget& w) const {
     // the needle and its pivot
     const float a = angle(needle_);
     const float nx[2] = {px, px + std::sin(a) * R * 0.97f}, ny[2] = {py, py - std::cos(a) * R * 0.97f};
-    r.polyline(nx, ny, 2, 7.0f * z, th_.teal.withAlpha(0.25f), Blend::Add, true);
-    r.polyline(nx, ny, 2, 2.6f * z, th_.silver, Blend::Over, true);
+    r.polyline(nx, ny, 2, 2.6f * z, th_.silver, Blend::Over, false);
     r.fillRound({px - 13 * z, py - 13 * z, 26 * z, 26 * z}, 13 * z, rgb8(0x9AA4AA), Blend::Over);
-    r.fillRound({px - 6 * z, py - 6 * z, 12 * z, 12 * z}, 6 * z, th_.tealDeep, Blend::Over, true);
+    r.fillRound({px - 6 * z, py - 6 * z, 12 * z, 12 * z}, 6 * z, th_.tealDeep, Blend::Over, false);
     // labels and the number
     r.text(ls, caption, d.x + 20 * z, d.bottom() - 18 * z, th_.label, Align::Left, TextFx::Shadowed);
     char b[32];
     std::snprintf(b, sizeof b, "%.1f", static_cast<double>(target));
-    r.text(big, b, d.right() - 24 * z, bigBaseline, th_.teal, Align::Right, TextFx::NeonCrisp);
+    r.text(big, b, d.right() - 24 * z, bigBaseline, th_.teal, Align::Right, TextFx::Shadowed);
 }
 
 void FaceView::draw(Renderer& r, const PanelHost& host, const FaceFeed& feed, const FaceState& st, float ox, float oy, float zoom,

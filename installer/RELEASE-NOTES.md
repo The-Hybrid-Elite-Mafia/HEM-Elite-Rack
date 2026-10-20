@@ -1,3 +1,11 @@
+# HEM-Elite-Rack 0.15.4
+
+**Lights without the haze** (the sound is unchanged): everything that lights up stays lit, in the
+same colours, but sharp, with no soft glow around it. That covers the teal lines across the plates,
+plug-in names, numbers and labels, knob rings and their tips, meters, needles, EQ and spectrum
+curves, and the rack app's title, times, meters and progress bars. The hooded ghost logo has no
+halo around it either. On SURGEON, the band dot under the mouse now shows a ring instead of a glow.
+
 # HEM-Elite-Rack 0.15.3
 
 **Solid buttons, no haze** (the sound is unchanged):

@@ -218,10 +218,9 @@ hc::ui::Image renderRackPlate(const FaceLayout& L, const BrandArt& art, float pp
             lin[static_cast<std::size_t>(py * W + px)] = {c.x * vig, c.y * vig, c.z * vig};
         }
     }
-    // The crown badge (top left) and the ghost (top right), with shadow; the ghost glows teal.
-    const Theme theme;
+    // The crown badge (top left) and the ghost (top right), with shadow; no halo around the ghost.
     composite(lin, W, H, ppu, art.crown, L.crown, 0.75f, nullptr, 0.0f);
-    composite(lin, W, H, ppu, art.ghost, L.ghost, 0.0f, &theme.teal, 0.18f);
+    composite(lin, W, H, ppu, art.ghost, L.ghost, 0.0f, nullptr, 0.0f);
 
     hc::ui::Image img;
     img.width = static_cast<std::uint32_t>(W);
