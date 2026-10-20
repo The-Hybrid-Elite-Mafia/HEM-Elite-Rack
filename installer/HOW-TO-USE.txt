@@ -490,6 +490,20 @@ COIL
   how soon the peaks get rounded (quiet sounds stay the same level). PRE-DELAY waits before the
   springs. TREBLE and BASS shape the reverb only. MIX, OUTPUT; MONO puts the same reverb on both sides.
 
+GRAND LARCENY
+  An electric grand piano. In the rack: put it in a slot and play a MIDI keyboard (any keyboard
+  plugged into the PC is picked up within a few seconds; its sustain pedal works), or click the 61
+  keys on the plate (LATCH makes a click hold a key until you click it again). In a DAW it loads as an
+  instrument on a MIDI track. Whatever is already playing through that rack slot keeps playing.
+  KEYS: VEL CURVE (plus = you have to hit harder to get loud), FORMANT (moves the tone's body up or
+  down without changing the pitch), TUNE (cents). MIX: MAIN (the strings), KEY UP (the damper landing
+  when you let go), ACTION (the keys' thump), PEDAL (the pedal's own sound), SQUEEZE (a compressor mixed
+  in), SYMPATHY (the other strings ringing along while the pedal is down). TONE: BASS, MID, TREBLE.
+  VOLUME (7 = as it comes), LIMIT keeps it under -0.3 dBFS. EFFECTS turns all of these on or off:
+  TREMOLO, AUTO PAN and PHASER (RATE: SYNC to the song with NOTE, or FREE in HZ; DEPTH; the phaser's MIX),
+  CHORUS (DEPTH), REVERB (MIX, PRE-DELAY, TIME, DAMP = how fast the highs die). PEDAL is the sustain pedal.
+  The piano is our own (made by the plug-in, not recorded).
+
 FINGERPRINT
   A convolution reverb: it plays your sound through the "fingerprint" of a space (its impulse
   response). SPACE picks one of sixteen; the RT60 window shows how long that reverb lasts. START skips

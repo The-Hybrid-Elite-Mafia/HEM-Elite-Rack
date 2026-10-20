@@ -12,7 +12,7 @@ add_executable(HEMEliteRack WIN32
     src/RackHost.cpp
     src/RackView.cpp
     "${CMAKE_CURRENT_BINARY_DIR}/HEMEliteRack.rc")
-target_link_libraries(HEMEliteRack PRIVATE hem_rackapp_core hem::rackui hc::io hc::media hc::params opengl32 shell32 ole32)
+target_link_libraries(HEMEliteRack PRIVATE hem_rackapp_core hem::rackui hc::io hc::media hc::params opengl32 shell32 ole32 winmm)
 target_compile_definitions(HEMEliteRack PRIVATE HEM_RACK_VERSION_STR="${PROJECT_VERSION}")
 set_target_properties(HEMEliteRack PROPERTIES OUTPUT_NAME "HEMEliteRack")
 hem_copy_assets(HEMEliteRack)

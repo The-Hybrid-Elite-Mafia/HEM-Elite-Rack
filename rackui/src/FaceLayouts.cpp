@@ -19,6 +19,7 @@
 #include "hem/rack/Garage.hpp"
 #include "hem/rack/Analyzer.hpp"
 #include "hem/rack/Streets.hpp"
+#include "hem/rack/Holdouts.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -1599,6 +1600,93 @@ FaceLayout stompFace(const rack::PluginInfo& info) {
     return L;
 }
 
+// GRAND LARCENY: keys / mix / tone / output across the top, the five effects in columns, the keyboard below.
+FaceLayout pianoFace(const rack::PluginInfo& info) {
+    using namespace rack::grandlarceny;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"SIXTY-ONE KEYS", "NO QUESTIONS"};
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 180, 1226, 640};
+    struct K { int p; const char* cap; };
+    auto knobs = [&](float x0, float w, float y, std::initializer_list<K> ks) {
+        const std::size_t first = L.widgets.size();
+        const float pitch = w / static_cast<float>(ks.size());
+        int k = 0;
+        for (const K& kk : ks) {
+            const float cx = x0 + (static_cast<float>(k++) + 0.5f) * pitch;
+            L.widgets.push_back(knob({cx - 19, y, 38, 38}, kk.p, kk.cap, "", "", true));
+        }
+        seatKnobs(L, first, 4);
+    };
+    auto stepper = [&](Rect r, int param, const char* caption) {
+        Widget st;
+        st.kind = WKind::Stepper;
+        st.param = param;
+        st.caption = caption;
+        st.r = r;
+        L.widgets.push_back(st);
+        L.recesses.push_back({st.r.inset(-4), 9, 4, false, false});
+    };
+    // the top: keys, mix, tone, output
+    L.sections.push_back({{410, 184, 230, 22}, "KEYS"});
+    knobs(410, 230, 238, {{VelCurve, "VEL CURVE"}, {Formant, "FORMANT"}, {Tune, "TUNE"}});
+    L.sections.push_back({{650, 184, 530, 22}, "MIX"});
+    knobs(650, 530, 238, {{Main, "MAIN"}, {KeyUp, "KEY UP"}, {Mechanics, "ACTION"}, {PedalNoise, "PEDAL"}, {Squeeze, "SQUEEZE"}, {Sympathy, "SYMPATHY"}});
+    L.sections.push_back({{1190, 184, 270, 22}, "TONE"});
+    knobs(1190, 270, 238, {{Bass, "BASS"}, {Mid, "MID"}, {Treble, "TREBLE"}});
+    L.sections.push_back({{1466, 184, 170, 22}, "OUTPUT"});
+    knobs(1466, 170, 238, {{Volume, "VOLUME"}});
+    for (float x : {645.0f, 1185.0f, 1463.0f}) L.grooves.push_back({x, 190, x, 300});
+    L.grooves.push_back({410, 316, 1636, 316});
+    // the effects, a column each
+    const float cw = 1226.0f / 5.0f;
+    struct Col { int on, sync, note, hz, depth, mix; const char* name; };
+    const Col cols[3] = {{TremOn, TremSync, TremNote, TremHz, TremDepth, -1, "TREMOLO"},
+                         {PanOn, PanSync, PanNote, PanHz, PanDepth, -1, "AUTO PAN"},
+                         {PhOn, PhSync, PhNote, PhHz, PhDepth, PhMix, "PHASER"}};
+    for (int c = 0; c < 3; ++c) {
+        const float x0 = 410 + static_cast<float>(c) * cw;
+        L.widgets.push_back(toggle({x0 + 8, 330, cw - 16, 30}, cols[c].on, cols[c].name));
+        stepper({x0 + 72, 372, cw - 80, 30}, cols[c].sync, "RATE");
+        stepper({x0 + 72, 412, cw - 80, 30}, cols[c].note, "NOTE");
+        if (cols[c].mix >= 0) knobs(x0, cw, 478, {{cols[c].hz, "HZ"}, {cols[c].depth, "DEPTH"}, {cols[c].mix, "MIX"}});
+        else knobs(x0, cw, 478, {{cols[c].hz, "HZ"}, {cols[c].depth, "DEPTH"}});
+    }
+    {
+        const float x0 = 410 + 3 * cw;
+        L.widgets.push_back(toggle({x0 + 8, 330, cw - 16, 30}, ChOn, "CHORUS"));
+        knobs(x0, cw, 478, {{ChDepth, "DEPTH"}});
+    }
+    {
+        const float x0 = 410 + 4 * cw;
+        L.sections.push_back({{x0, 334, cw, 22}, "REVERB"});
+        knobs(x0, cw, 382, {{RvMix, "MIX"}, {RvPre, "PRE-DELAY"}});
+        knobs(x0, cw, 478, {{RvTime, "TIME"}, {RvDamp, "DAMP"}});
+    }
+    for (int c = 1; c < 5; ++c) L.grooves.push_back({410 + static_cast<float>(c) * cw, 326, 410 + static_cast<float>(c) * cw, 552});
+    L.grooves.push_back({410, 568, 1636, 568});
+    // the keyboard
+    Widget keys;
+    keys.kind = WKind::Keyboard;
+    keys.param = Key0;
+    keys.choice = kKeys;
+    keys.param2 = Latch;
+    keys.r = {410, 596, 1226, 214};
+    L.widgets.push_back(keys);
+    L.recesses.push_back({keys.r.inset(-6), 8, 6, false, false});
+    // the left column
+    readoutAt(L, {70, 396, 270, 52}, OutL, "OUT L", "dBFS", "+");
+    readoutAt(L, {70, 456, 270, 52}, OutR, "OUT R", "dBFS", "+");
+    L.widgets.push_back(toggle({70, 520, 270, 32}, Pedal, "PEDAL"));
+    L.widgets.push_back(toggle({70, 558, 270, 32}, Latch, "LATCH"));
+    L.widgets.push_back(toggle({70, 596, 270, 32}, FxOn, "EFFECTS"));
+    L.widgets.push_back(toggle({70, 634, 270, 32}, Limit, "LIMIT"));
+    buttonSeats(L);
+    bypassAt(L, {160, 692, 90, 90});
+    return L;
+}
+
 FaceLayout stakeoutFace(const rack::PluginInfo& info) {
     using namespace rack::stakeout;
     FaceLayout L;
@@ -2015,6 +2103,7 @@ FaceLayout faceLayout(const rack::PluginInfo& info) {
     case rack::Face::Audit: return auditFace(info);
     case rack::Face::Stakeout: return stakeoutFace(info);
     case rack::Face::Stomp: return stompFace(info);
+    case rack::Face::Piano: return pianoFace(info);
     case rack::Face::Spec: if (info.plate) return specFace(info); break;
     case rack::Face::Restorer: break;
     }

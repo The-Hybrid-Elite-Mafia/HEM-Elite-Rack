@@ -88,6 +88,7 @@ C++23 audio framework, as a library.
 | **STREET TEAM** | Channel strip: input, four-band EQ (cut / shelves / bells), gate with floor, compressor / expander, output |
 | **BIG HOUSE** | Reverb with twelve kinds of space (halls, room, chamber, sanctuary, plates, backwards, gated, shaped, echo room, ringing): variation, pre-delay either way, time, size, diffusion, decay shape, early / reverb levels, damping ratios, tail EQ, mix, gain |
 | **SPEAKEASY** | A real room around the sound: room size, distance (sets the first-reflection gap, and with REAL ROOM the levels and pre-delay as in a real room), room shape, balance, decay, pre-delay, density, dulling of the tail and the early reflections, low / high decay ratios, two variations, input, direct / early / reverb on with levels |
+| **GRAND LARCENY** | Electric grand piano (an instrument: a MIDI keyboard in the rack, a MIDI track in a DAW, or its 61 plate keys): velocity curve, formant, tune; main, key up, action, pedal sound, squeeze, sympathetic strings; bass / mid / treble; volume, limit; tremolo, auto pan, phaser (rate synced or free), chorus, reverb; sustain pedal |
 | **FINGERPRINT** | Convolution reverb: sixteen spaces of our own (booth, rooms, chambers, halls, church, plates, springs, garage), start, length, decay, mix, direct, pre-delay, dry delay, CPU full / low, output, crosstalk; RT60 readout |
 | **COIL** | Spring reverb: drive, headroom, pre-delay, seven tanks, short / medium / long, treble and bass on the springs, mix, output, stereo or mono |
 | **THE INFORMANT** | Vocoder with its own 8-voice synth on 48 keys (hold or latch), ten sounds, tune, spread; noise with its filter; squeeze, formant, lag, hold; five-band EQ; carrier / modulator / noise / vocoded mixer with solo and mute |
@@ -126,7 +127,7 @@ C++23 audio framework, as a library.
 | **UNDERGROUND** | More low end: a new sub an octave down, or harmonics small speakers can hear |
 | **SPOTLIGHT** | Vocal chain: high-pass, body, one-knob compressor, one-knob de-esser, presence, air |
 
-One hundred and seventeen plug-ins, under our own names and in our own words. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
+One hundred and eighteen plug-ins, under our own names and in our own words. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 
 ## Install
 Download `HEM-Elite-Rack-Setup-x.y.z.exe` from **Releases** and run it. Needs Windows 10 / 11

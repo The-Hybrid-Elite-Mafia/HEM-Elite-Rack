@@ -425,6 +425,10 @@ const PluginInfo kPlugins[] = {
      "A real room: size, distance, room shape, balance, decay, pre-delay, density, shelves, damping, variations; direct, early and reverb levels",
      {0x66F2A7CAu, 0x82804983u, 0xAF47E3DBu, 0x0DAF2509u}, {0x38D2C619u, 0x238F40D3u, 0x83ABFA14u, 0xEE406F0Fu},
      Face::Spec, Group::Space, &makeSpeakeasy, nullptr, &plates::kSpeakeasy},
+    {"GRAND LARCENY", "ELECTRIC GRAND PIANO", "PLAY WHAT MATTERS", "Instrument|Piano",
+     "Electric grand piano: play it from MIDI or its 61 keys; velocity curve, formant, tune, mix, tone, tremolo, pan, phaser, chorus, reverb",
+     {0x433C7C81u, 0x0248DE17u, 0x99BD5D36u, 0x18823185u}, {0x1BF68E89u, 0xF82D578Fu, 0xE9C665E8u, 0x27C3A097u},
+     Face::Piano, Group::Keys, &makeGrandLarceny},
     {"FINGERPRINT", "CONVOLUTION REVERB", "PRINT WHAT MATTERS", "Fx|Reverb",
      "Real spaces by their impulse responses: sixteen spaces, start, length, decay, mix, direct, pre-delay, dry delay, CPU, output, crosstalk",
      {0x3CC3B29Cu, 0x89827AA3u, 0x67D811B4u, 0x85429B1Eu}, {0x2AF67B09u, 0xB6377726u, 0x11BEAAF4u, 0x2801DC4Du},
@@ -508,6 +512,7 @@ const char* groupName(Group g) noexcept {
     case Group::Space: return "SPACE";
     case Group::Movement: return "MOVEMENT";
     case Group::Tools: return "TOOLS";
+    case Group::Keys: return "KEYS";
     case Group::kCount: break;
     }
     return "";

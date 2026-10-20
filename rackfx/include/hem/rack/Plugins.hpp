@@ -29,10 +29,11 @@ enum class Face : std::uint8_t { EliteEq, Restorer, BusGlue, Tape, TubeEq, Limit
                                 Pawn,        // PAWN SHOP's four modules and master
                                 Audit,       // THE AUDITOR's readouts and settings
                                 Stakeout,    // STAKEOUT's bands, stereo position and meters
-                                Stomp };     // THE RACKET's pedal picker and the chosen pedal's controls
+                                Stomp,       // THE RACKET's pedal picker and the chosen pedal's controls
+                                Piano };     // GRAND LARCENY's keys, mix, tone, effects and keyboard
 
 // Where a plug-in sits in the rack's picker.
-enum class Group : std::uint8_t { Eq, Dynamics, Color, Space, Movement, Tools, kCount };
+enum class Group : std::uint8_t { Eq, Dynamics, Color, Space, Movement, Tools, Keys, kCount };
 [[nodiscard]] const char* groupName(Group g) noexcept;   // "EQ", "DYNAMICS", ...
 
 // For the EQs whose faceplate draws their curve: the exact response the audio runs, computed

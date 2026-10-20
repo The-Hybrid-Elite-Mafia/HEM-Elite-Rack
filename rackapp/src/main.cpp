@@ -25,6 +25,7 @@
 #include "hybrid/ui/Renderer.hpp"
 
 #include <windows.h>
+#include <mmsystem.h>
 #include <shellapi.h>
 #include <shlobj.h>
 #include <shobjidl.h>
@@ -208,6 +209,53 @@ std::shared_ptr<Song> demoSong() {
     s->name = "HEM demo groove (made up for testing)";
     return s;
 }
+
+// ---- MIDI keyboards: every MIDI input Windows has, opened at the start and again whenever one is plugged in
+// or out. Their messages go straight to the rack processor (any thread; it queues them for the audio thread).
+class MidiInputs {
+public:
+    explicit MidiInputs(RackProcessor& rack) : rack_(rack) {}
+    ~MidiInputs() { closeAll(); }
+    MidiInputs(const MidiInputs&) = delete;
+    MidiInputs& operator=(const MidiInputs&) = delete;
+    // true when the inputs changed (they were opened again)
+    bool refresh() {
+        const UINT n = ::midiInGetNumDevs();
+        if (!first_ && n == count_) return false;
+        first_ = false;
+        closeAll();
+        count_ = n;
+        for (UINT i = 0; i < n; ++i) {
+            HMIDIIN h = nullptr;
+            if (::midiInOpen(&h, i, reinterpret_cast<DWORD_PTR>(&MidiInputs::callback), reinterpret_cast<DWORD_PTR>(&rack_), CALLBACK_FUNCTION) != MMSYSERR_NOERROR)
+                continue;
+            if (::midiInStart(h) == MMSYSERR_NOERROR) open_.push_back(h);
+            else ::midiInClose(h);
+        }
+        return true;
+    }
+    [[nodiscard]] int opened() const noexcept { return static_cast<int>(open_.size()); }
+
+private:
+    static void CALLBACK callback(HMIDIIN, UINT msg, DWORD_PTR instance, DWORD_PTR p1, DWORD_PTR) {
+        if (msg != MIM_DATA) return;
+        const auto m = static_cast<DWORD>(p1);
+        reinterpret_cast<RackProcessor*>(instance)->midi(static_cast<std::uint8_t>(m & 0xFF), static_cast<std::uint8_t>((m >> 8) & 0x7F),
+                                                        static_cast<std::uint8_t>((m >> 16) & 0x7F));
+    }
+    void closeAll() noexcept {
+        for (HMIDIIN h : open_) {
+            ::midiInStop(h);
+            ::midiInReset(h);
+            ::midiInClose(h);
+        }
+        open_.clear();
+    }
+    RackProcessor& rack_;
+    std::vector<HMIDIIN> open_;
+    UINT count_ = 0;
+    bool first_ = true;
+};
 
 std::string mmss(double sec) {
     char b[32];
@@ -578,6 +626,11 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     if (!opts.song.empty()) a.loadSong(opts.song);
     else if (!opts.demo) a.say("Open a song (OPEN SONG, or drop a WAV / MP3 / FLAC on the window), then add plug-ins on the left");
 
+    // MIDI keyboards (for the instruments in the chain)
+    MidiInputs midiIn(a.rack());
+    (void)midiIn.refresh();
+    auto lastMidiScan = std::chrono::steady_clock::now();
+
     std::vector<RackViewState::PickerItem> pickerItems;
     std::vector<std::string> pickerTabs;
     for (int g = 0; g < static_cast<int>(rack::Group::kCount); ++g) pickerTabs.emplace_back(rack::groupName(static_cast<rack::Group>(g)));
@@ -776,6 +829,10 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
         const auto now = std::chrono::steady_clock::now();
         const float dt = std::min(0.1f, std::chrono::duration<float>(now - lastFrame).count());
         lastFrame = now;
+        if (now - lastMidiScan > std::chrono::seconds(3)) {   // a keyboard plugged in or out
+            lastMidiScan = now;
+            if (midiIn.refresh()) a.say("MIDI: " + std::to_string(midiIn.opened()) + (midiIn.opened() == 1 ? " keyboard" : " keyboards") + " ready");
+        }
         if (now - lastSave > std::chrono::seconds(5) && !opts.demo) {
             lastSave = now;
             if (chainToText(snapshotChain(a.rack())) != a.savedChain) a.saveSettings();

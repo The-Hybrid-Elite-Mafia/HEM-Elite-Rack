@@ -1,3 +1,13 @@
+# HEM-Elite-Rack 0.38.0
+
+- **GRAND LARCENY** (new, its own plate) — electric grand piano with its original's full control set: velocity curve, formant,
+  tune; main, key up, action, pedal sound, squeeze, sympathetic strings; bass / mid / treble; volume and limiter; tremolo, auto
+  pan and phaser (rate synced or free), chorus, reverb. The first instrument in the rack.
+- **MIDI keyboards** — the rack app now hears every MIDI keyboard plugged into the PC (picked up within a few seconds, also when
+  plugged in later) and plays the instruments in the chain; the sustain pedal works. As a VST3, GRAND LARCENY is an instrument
+  with a MIDI input; the sustain pedal (controller 64) moves its PEDAL.
+- New **KEYS** tab in the plug-in picker.
+
 # HEM-Elite-Rack 0.37.0
 
 - **FINGERPRINT** (new) — convolution reverb with its original's full control set: space (sixteen impulse responses we make

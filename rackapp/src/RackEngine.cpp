@@ -133,6 +133,7 @@ void RackProcessor::applyCommands() noexcept {
             SlotRt& s = rt_[static_cast<std::size_t>(c.a)];
             if (s.fx) (void)retired_.tryPush(Retired{nullptr, s.fx});
             s.fx = c.fx;
+            s.notes = dynamic_cast<rack::NoteSink*>(c.fx);
             std::fill(s.dl.begin(), s.dl.end(), 0.0f);
             std::fill(s.dr.begin(), s.dr.end(), 0.0f);
             s.pos = 0;
@@ -142,6 +143,26 @@ void RackProcessor::applyCommands() noexcept {
         case Command::Type::Move:
             std::swap(rt_[static_cast<std::size_t>(c.a)], rt_[static_cast<std::size_t>(c.b)]);
             break;
+        }
+    }
+}
+
+void RackProcessor::midi(std::uint8_t status, std::uint8_t d1, std::uint8_t d2) noexcept {
+    while (midiLock_.test_and_set(std::memory_order_acquire)) {}
+    (void)midi_.tryPush(Midi{status, d1, d2});   // full: the message is dropped
+    midiLock_.clear(std::memory_order_release);
+}
+
+void RackProcessor::applyMidi() noexcept {
+    Midi m;
+    while (midi_.tryPop(m)) {
+        const int type = m.status & 0xF0;
+        for (SlotRt& s : rt_) {
+            if (!s.notes || !s.fx) continue;
+            if (type == 0x90 && m.d2 > 0) s.notes->noteOn(m.d1 & 0x7F, static_cast<float>(m.d2 & 0x7F) / 127.0f, 0);
+            else if (type == 0x80 || type == 0x90) s.notes->noteOff(m.d1 & 0x7F, 0);
+            else if (type == 0xB0 && m.d1 == 64 && s.notes->sustainParam() >= 0) s.fx->set(s.notes->sustainParam(), m.d2 >= 64 ? 1.0f : 0.0f);
+            else if (type == 0xB0 && (m.d1 == 120 || m.d1 == 123)) s.notes->allNotesOff();
         }
     }
 }
@@ -255,6 +276,7 @@ void RackProcessor::renderChunk(float* l, float* r, std::uint32_t n) noexcept {
 
 void RackProcessor::render(float* left, float* right, std::uint32_t frames) noexcept {
     applyCommands();
+    applyMidi();
     for (std::uint32_t done = 0; done < frames;) {
         const std::uint32_t n = std::min(kChunk, frames - done);
         renderChunk(left + done, right + done, n);
@@ -267,6 +289,7 @@ void RackProcessor::process(const hc::engine::ProcessContext& ctx) noexcept {
     float* l = ctx.outputs[0];
     float* r = ctx.numOutputs > 1 ? ctx.outputs[1] : nullptr;
     applyCommands();
+    applyMidi();
     for (std::uint32_t done = 0; done < ctx.frames;) {
         const std::uint32_t n = std::min(kChunk, ctx.frames - done);
         if (r) {

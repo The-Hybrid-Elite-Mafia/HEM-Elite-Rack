@@ -21,6 +21,7 @@
 #include "hem/rack/Hideout.hpp"
 #include "hem/rack/Garage.hpp"
 #include "hem/rack/Streets.hpp"
+#include "hem/rack/Holdouts.hpp"
 #include "hem/rack/Analyzer.hpp"
 #include "hem/ui/FaceWindow.hpp"
 
@@ -174,6 +175,10 @@ int main(int argc, char** argv) {
         } else if (info.face == hem::rack::Face::Pawn) {
             using namespace hem::rack::pawnshop;
             fx->set(SpaceOn, 1); fx->set(NoiseOn, 1); fx->set(NoiseType, Crackle); fx->set(Ringer, 20);
+        } else if (info.face == hem::rack::Face::Piano) {
+            using namespace hem::rack::grandlarceny;
+            for (int k : {12, 16, 19, 24}) fx->set(Key0 + k, 1.0f);   // a C major chord around C3
+            fx->set(Pedal, 1);
         } else if (info.face == hem::rack::Face::Stomp) {
             using namespace hem::rack::racket;
             fx->set(Which, PdFlipEcho); fx->set(FeMix, 40);

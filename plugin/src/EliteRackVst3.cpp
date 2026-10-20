@@ -1,9 +1,10 @@
 // =============================================================================
-//  HEM-Elite-Rack.vst3 — every HEM-Elite-Rack plug-in (all 49) as VST3 plug-ins (one bundle, one plug-in each),
+//  HEM-Elite-Rack.vst3 — every HEM-Elite-Rack plug-in as a VST3 plug-in (one bundle, one plug-in each),
 //  with the same teal / gunmetal faceplates as the rack app (hem::ui::FaceWindow, OpenGL, inside
 //  the host's window).
 //
-//  Per plug-in: stereo in / out; its parameters (ids 0..n-1, same ranges and text as the app);
+//  Per plug-in: stereo in / out (an instrument: MIDI in, stereo out; the sustain pedal, controller 64, mapped
+//  to its pedal parameter); its parameters (ids 0..n-1, same ranges and text as the app);
 //  a Bypass parameter (latency-matched, 10 ms crossfade, no click). What the faceplate shows
 //  besides the knobs (before / after spectrum, THE CLEANER's noise curve, SURGEON's dynamic gains
 //  and auto gain) travels from the processor to the editor as hidden read-only output
@@ -14,6 +15,7 @@
 #include "hem/rack/Plugins.hpp"
 #include "hem/rack/Analyzer.hpp"
 #include "hem/rack/Sidechain.hpp"
+#include "hem/rack/Notes.hpp"
 #include "hem/rack/Restorer.hpp"
 #include "hem/rack/Spectrum.hpp"
 #include "hem/ui/Face.hpp"
@@ -21,6 +23,8 @@
 #include "hybrid/fx/Dsp.hpp"
 
 #include "pluginterfaces/base/ibstream.h"
+#include "pluginterfaces/vst/ivstevents.h"
+#include "pluginterfaces/vst/ivstmidicontrollers.h"
 #include "pluginterfaces/vst/ivstparameterchanges.h"
 #include "pluginterfaces/vst/ivstprocesscontext.h"
 #include "pluginterfaces/vst/vsttypes.h"
@@ -146,18 +150,24 @@ public:
         eq_ = dynamic_cast<rack::EliteEqView*>(fx_.get());
         sc_ = dynamic_cast<rack::SidechainSink*>(fx_.get());
         analyzer_ = dynamic_cast<rack::AnalyzerSource*>(fx_.get());
+        note_ = dynamic_cast<rack::NoteSink*>(fx_.get());
     }
     static FUnknown* createInstance(void* ctx) { return static_cast<Vst::IAudioProcessor*>(new Processor(static_cast<const rack::PluginInfo*>(ctx))); }
 
     tresult PLUGIN_API initialize(FUnknown* context) SMTG_OVERRIDE {
         const tresult r = AudioEffect::initialize(context);
         if (r != kResultOk) return r;
-        addAudioInput(STR16("Stereo In"), Vst::SpeakerArr::kStereo);
+        if (note_) addEventInput(STR16("MIDI In"), 16);
+        else addAudioInput(STR16("Stereo In"), Vst::SpeakerArr::kStereo);
         if (sc_) addAudioInput(STR16("Sidechain"), Vst::SpeakerArr::kStereo, Vst::BusTypes::kAux, 0);   // off until the host routes one
         addAudioOutput(STR16("Stereo Out"), Vst::SpeakerArr::kStereo);
         return kResultOk;
     }
     tresult PLUGIN_API setBusArrangements(Vst::SpeakerArrangement* inputs, int32 numIns, Vst::SpeakerArrangement* outputs, int32 numOuts) SMTG_OVERRIDE {
+        if (note_) {   // an instrument: no audio in
+            if (numIns != 0 || numOuts != 1 || outputs[0] != Vst::SpeakerArr::kStereo) return kResultFalse;
+            return AudioEffect::setBusArrangements(inputs, numIns, outputs, numOuts);
+        }
         const int32 wantIns = sc_ ? 2 : 1;
         if (numIns != wantIns || numOuts != 1 || inputs[0] != Vst::SpeakerArr::kStereo || outputs[0] != Vst::SpeakerArr::kStereo) return kResultFalse;
         if (sc_ && inputs[1] != Vst::SpeakerArr::kStereo) return kResultFalse;
@@ -207,17 +217,23 @@ public:
         // the song's tempo, for the plug-ins that sync to it (when the host says it)
         if (data.processContext && (data.processContext->state & Vst::ProcessContext::kTempoValid) && data.processContext->tempo > 0.0)
             fx_->setTempo(data.processContext->tempo);
-        if (data.numSamples <= 0 || data.numInputs < 1 || data.numOutputs < 1 || maxBlock_ == 0) return kResultOk;
-        Vst::AudioBusBuffers& in = data.inputs[0];
+        if (data.numSamples <= 0 || data.numOutputs < 1 || maxBlock_ == 0 || (!note_ && data.numInputs < 1)) return kResultOk;
         Vst::AudioBusBuffers& out = data.outputs[0];
-        if (!out.channelBuffers32 || out.numChannels < 2 || !in.channelBuffers32 || in.numChannels < 2) return kResultOk;
+        if (!out.channelBuffers32 || out.numChannels < 2) return kResultOk;
         float* oL = out.channelBuffers32[0];
         float* oR = out.channelBuffers32[1];
-        const float* iL = in.channelBuffers32[0];
-        const float* iR = in.channelBuffers32[1];
         const auto total = static_cast<std::uint32_t>(data.numSamples);
-        if (oL != iL) std::memcpy(oL, iL, total * sizeof(float));
-        if (oR != iR) std::memcpy(oR, iR, total * sizeof(float));
+        if (note_) {   // an instrument starts from silence
+            std::memset(oL, 0, total * sizeof(float));
+            std::memset(oR, 0, total * sizeof(float));
+        } else {
+            Vst::AudioBusBuffers& in = data.inputs[0];
+            if (!in.channelBuffers32 || in.numChannels < 2) return kResultOk;
+            const float* iL = in.channelBuffers32[0];
+            const float* iR = in.channelBuffers32[1];
+            if (oL != iL) std::memcpy(oL, iL, total * sizeof(float));
+            if (oR != iR) std::memcpy(oR, iR, total * sizeof(float));
+        }
 
         const float target = bypass_ ? 0.0f : 1.0f;
         for (std::uint32_t done = 0; done < total;) {
@@ -236,6 +252,21 @@ public:
                     if (bus && bus->isActive()) { sL = data.inputs[1].channelBuffers32[0] + done; sR = data.inputs[1].channelBuffers32[1] + done; }
                 }
                 sc_->setSidechain(sL, sR);
+            }
+            if (note_ && data.inputEvents) {   // the notes that land in this piece of the block
+                const int32 count = data.inputEvents->getEventCount();
+                for (int32 i = 0; i < count; ++i) {
+                    Vst::Event ev{};
+                    if (data.inputEvents->getEvent(i, ev) != kResultOk) continue;
+                    if (ev.sampleOffset < static_cast<int32>(done) || ev.sampleOffset >= static_cast<int32>(done + n)) continue;
+                    const int off = ev.sampleOffset - static_cast<int32>(done);
+                    if (ev.type == Vst::Event::kNoteOnEvent) {
+                        if (ev.noteOn.velocity > 0.0f) note_->noteOn(ev.noteOn.pitch, ev.noteOn.velocity, off);
+                        else note_->noteOff(ev.noteOn.pitch, off);
+                    } else if (ev.type == Vst::Event::kNoteOffEvent) {
+                        note_->noteOff(ev.noteOff.pitch, off);
+                    }
+                }
             }
             fx_->process(L, R, n);
             if (mix_ != 1.0f || target != 1.0f) {
@@ -318,6 +349,7 @@ private:
     rack::EliteEqView* eq_ = nullptr;
     rack::SidechainSink* sc_ = nullptr;
     rack::AnalyzerSource* analyzer_ = nullptr;
+    rack::NoteSink* note_ = nullptr;
     hc::fx::DelayLine bypassDelay_[2];
     std::vector<float> dry_[2];
     double sampleRate_ = 48000.0;
@@ -481,9 +513,23 @@ private:
     float                   scale_ = 0.72f;
 };
 
-class Controller final : public Vst::EditController {
+class Controller final : public Vst::EditController, public Vst::IMidiMapping {
 public:
-    explicit Controller(const rack::PluginInfo* info) : info_(info), fx_(info->create()), host_(*this, *fx_), feed_(*this, *info, *fx_) {}
+    explicit Controller(const rack::PluginInfo* info) : info_(info), fx_(info->create()), host_(*this, *fx_), feed_(*this, *info, *fx_) {
+        if (auto* ns = dynamic_cast<rack::NoteSink*>(fx_.get())) sustain_ = ns->sustainParam();
+    }
+    OBJ_METHODS(Controller, EditController)
+    DEFINE_INTERFACES
+        DEF_INTERFACE(Vst::IMidiMapping)
+    END_DEFINE_INTERFACES(EditController)
+    REFCOUNT_METHODS(EditController)
+
+    // the sustain pedal (MIDI controller 64) moves an instrument's pedal parameter
+    tresult PLUGIN_API getMidiControllerAssignment(int32 busIndex, int16, Vst::CtrlNumber number, Vst::ParamID& id) SMTG_OVERRIDE {
+        if (busIndex != 0 || number != Vst::kCtrlSustainOnOff || sustain_ < 0) return kResultFalse;
+        id = static_cast<Vst::ParamID>(sustain_);
+        return kResultTrue;
+    }
     static FUnknown* createInstance(void* ctx) { return static_cast<Vst::IEditController*>(new Controller(static_cast<const rack::PluginInfo*>(ctx))); }
 
     tresult PLUGIN_API initialize(FUnknown* context) SMTG_OVERRIDE {
@@ -550,6 +596,7 @@ private:
     std::unique_ptr<hc::fx::Effect> fx_;   // parameter descriptions, text, paramActive (never processes audio)
     ControllerHost                  host_;
     ControllerFeed                  feed_;
+    int                             sustain_ = -1;
 };
 
 } // namespace hem::vst

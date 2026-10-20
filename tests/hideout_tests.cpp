@@ -8,6 +8,7 @@
 #include "hem/rack/Comeback.hpp"
 #include "hem/rack/Garage.hpp"
 #include "hem/rack/Holdouts.hpp"
+#include "hem/rack/Notes.hpp"
 #include "hem/rack/Plugins.hpp"
 
 #include <algorithm>
@@ -56,7 +57,7 @@ double peakIn(const std::vector<float>& x, std::size_t from, std::size_t to) {
 }
 
 void allRules() {
-    for (const char* name : {"FINGERPRINT", "PAWN SHOP", "COIL", "SPEAKEASY", "BIG HOUSE", "MOUTHPIECE", "SLINGER", "STREET TEAM", "COLD CASE", "SWERVE", "THE FIXER", "SIX SHOOTER", "DEAD DROP", "BACK ALLEY", "DRIVE-BY", "BODY DOUBLE", "HUSTLE", "THE INFORMANT", "STRAPPED", "SAFE HOUSE"}) {
+    for (const char* name : {"GRAND LARCENY", "FINGERPRINT", "PAWN SHOP", "COIL", "SPEAKEASY", "BIG HOUSE", "MOUTHPIECE", "SLINGER", "STREET TEAM", "COLD CASE", "SWERVE", "THE FIXER", "SIX SHOOTER", "DEAD DROP", "BACK ALLEY", "DRIVE-BY", "BODY DOUBLE", "HUSTLE", "THE INFORMANT", "STRAPPED", "SAFE HOUSE"}) {
         const PluginInfo* info = findPlugin(name);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
@@ -1345,10 +1346,93 @@ void testFingerprint() {
     CHECK(d < 1e-6);
 }
 
+// GRAND LARCENY: in tune, the force of the blow, the dampers and the pedal, the plate's keys, the voices, the
+// limiter, and what comes in passing untouched.
+void testGrandLarceny() {
+    using namespace grandlarceny;
+    // a dry piano: no effects, no squeeze, no action sounds
+    auto dry = [](std::initializer_list<std::pair<int, float>> v) {
+        auto e = make("GRAND LARCENY", {{FxOn, 0}, {Squeeze, 0}, {Mechanics, 0}, {KeyUp, 0}, {PedalNoise, 0}, {Sympathy, 0}});
+        for (const auto& [i, x] : v) e->set(i, x);
+        return e;
+    };
+    auto play = [](hc::fx::Effect& e, int note, float vel, double seconds, double offAt = -1.0) {
+        auto* ns = dynamic_cast<rack::NoteSink*>(&e);
+        Stereo s(static_cast<std::size_t>(seconds * kFs));
+        bool off = false;
+        for (std::size_t i = 0; i < s.size(); i += 256) {
+            if (i == 0) ns->noteOn(note, vel, 10);
+            if (!off && offAt >= 0.0 && static_cast<double>(i) >= offAt * kFs) { ns->noteOff(note, 0); off = true; }
+            e.process(s.l.data() + i, s.r.data() + i, static_cast<std::uint32_t>(std::min<std::size_t>(256, s.size() - i)));
+        }
+        return s;
+    };
+    auto e = dry({});
+    CHECK(dynamic_cast<rack::NoteSink*>(e.get()) != nullptr && e->latency() == kLatency);
+    Stereo a4 = play(*e, 69, 0.8f, 1.0);
+    const double f1 = toneAmp(a4.l, 440.0, 4800, 24000), f0b = toneAmp(a4.l, 437.0, 4800, 24000), f0a = toneAmp(a4.l, 443.0, 4800, 24000);
+    // the strongest component near a frequency (0.25 Hz steps)
+    auto peakHz = [](const std::vector<float>& x, double lo, double hi) {
+        double best = 0, at = lo;
+        for (double f = lo; f <= hi; f += 0.25) { const double v = toneAmp(x, f, 4800, 38400); if (v > best) { best = v; at = f; } }
+        return at;
+    };
+    const double hz = peakHz(a4.l, 420, 460);
+    auto tuned = dry({{Tune, 100}});
+    Stereo b4 = play(*tuned, 69, 0.8f, 1.0);
+    const double hzUp = peakHz(b4.l, 445, 490);
+    std::printf("  GRAND LARCENY A4: strongest at %.2f Hz (437 / 440 / 443: %.1f / %.1f / %.1f dB); TUNE +100 cents: %.2f Hz\n", hz,
+                db(f0b), db(f1), db(f0a), hzUp);
+    CHECK(std::fabs(hz - 440.0) < 1.0 && f1 > f0b && f1 > f0a && std::fabs(hzUp - 466.16) < 1.0);
+    // harder: louder and brighter
+    auto soft = dry({}), hard = dry({});
+    Stereo s1 = play(*soft, 57, 0.3f, 0.6), s2 = play(*hard, 57, 1.0f, 0.6);
+    const double loud = db(rms(s2.l, 2400, 9600)) - db(rms(s1.l, 2400, 9600));
+    const double brightS = db(toneAmp(s1.l, 220.0 * 4 * std::sqrt(1 + 2e-4 * std::exp2(-3.0 / 24.0) * 16), 2400, 9600)) - db(toneAmp(s1.l, 220.0, 2400, 9600));
+    const double brightH = db(toneAmp(s2.l, 220.0 * 4 * std::sqrt(1 + 2e-4 * std::exp2(-3.0 / 24.0) * 16), 2400, 9600)) - db(toneAmp(s2.l, 220.0, 2400, 9600));
+    std::printf("  GRAND LARCENY A3 velocity 0.3 -> 1.0: %+.1f dB, 4th partial against the note %+.1f -> %+.1f dB\n", loud, brightS, brightH);
+    CHECK(loud > 8.0 && brightH > brightS + 3.0);
+    // the damper: let go at 0.3 s and it is gone; with the pedal down it rings on
+    auto d1 = dry({}), d2 = dry({{Pedal, 1}});
+    Stereo r1 = play(*d1, 60, 0.8f, 1.0, 0.3), r2 = play(*d2, 60, 0.8f, 1.0, 0.3);
+    const double held = db(rms(r1.l, 12000, 2400)), damped = db(rms(r1.l, 26400, 2400)), pedalled = db(rms(r2.l, 26400, 2400));
+    std::printf("  GRAND LARCENY C4 let go at 0.3 s: %.1f dB before, %.1f dB at 0.55 s; with the pedal %.1f dB\n", held, damped, pedalled);
+    CHECK(held - damped > 40.0 && held - pedalled < 12.0);
+    // the plate's key 33 is A4
+    auto k = dry({{Key0 + 33, 1}});
+    Stereo kp(static_cast<std::size_t>(kFs));
+    run(*k, kp);
+    const double khz = peakHz(kp.l, 420, 460);
+    // what comes in passes untouched, 48 samples later
+    auto thru = make("GRAND LARCENY");
+    Stereo in = sine(1000, 0.2, 0.3f), ref = in;
+    run(*thru, in);
+    double diff = 0;
+    for (std::size_t i = kLatency + 2000; i < in.size(); ++i) diff = std::max(diff, static_cast<double>(std::fabs(in.l[i] - ref.l[i - kLatency])));
+    // forty notes: never more than 32 voices, finite; LIMIT holds -0.3 dBFS with everything up
+    auto many = make("GRAND LARCENY", {{Volume, 10}, {Limit, 1}});
+    auto* ns = dynamic_cast<rack::NoteSink*>(many.get());
+    Stereo big(static_cast<std::size_t>(kFs));
+    for (int nn = 0; nn < 40; ++nn) ns->noteOn(40 + nn, 1.0f, nn);
+    float voices = 0.0f;
+    for (std::size_t i = 0; i < big.size(); i += 512) {
+        many->process(big.l.data() + i, big.r.data() + i, static_cast<std::uint32_t>(std::min<std::size_t>(512, big.size() - i)));
+        voices = std::max(voices, many->meter(Voices));
+    }
+    std::printf("  GRAND LARCENY plate key 33: %.1f Hz; input passes with %.1e change; 40 notes: %.0f voices, peak %.4f (limit 0.9661)\n", khz, diff,
+                static_cast<double>(voices), static_cast<double>(peak(big)));
+    CHECK(std::fabs(khz - 440.0) < 1.0 && diff < 1e-6 && voices <= 32.0f && voices >= 30.0f && finite(big) && peak(big) <= 0.9662f);
+    // the same result whatever the host's block size
+    const double bs = blockSizeDifference(*findPlugin("GRAND LARCENY"), [](hc::fx::Effect& x) { x.set(Key0 + 20, 1); x.set(Key0 + 24, 1); }, Stereo(24000));
+    std::printf("  GRAND LARCENY block size 512 vs 1: %.2e\n", bs);
+    CHECK(bs < 1e-5);
+}
+
 void testHideout() {
     std::printf("[the hideout]\n");
     allRules();
     testFingerprint();
+    testGrandLarceny();
     testFixer();
     testDeadDrop();
     testSwerve();

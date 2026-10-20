@@ -17,7 +17,10 @@
 //                     audio thread lets go of comes back through another ring and is freed here.
 //    audio thread   : process() only. No allocation, no locks, no waiting.
 //  Plug-in parameters are atomics: faceplates turn knobs on the live plug-in directly.
+//  MIDI (keyboards): any thread hands a message to midi(); the audio thread passes notes to every plug-in
+//  in the chain that plays notes (an instrument), and the sustain pedal to its pedal parameter.
 // =============================================================================
+#include "hem/rack/Notes.hpp"
 #include "hybrid/core/SpscRing.hpp"
 #include "hybrid/engine/AudioProcessor.hpp"
 #include "hybrid/fx/Dsp.hpp"
@@ -85,6 +88,8 @@ public:
     void setLoop(bool on) noexcept { loop_.store(on, std::memory_order_relaxed); }
     void setOriginal(bool b) noexcept { original_.store(b, std::memory_order_relaxed); }   // true = B (untouched song)
     void setMatch(bool on) noexcept { match_.store(on, std::memory_order_relaxed); }
+    // One MIDI message (status, data 1, data 2), from any thread (several MIDI inputs at once are fine).
+    void midi(std::uint8_t status, std::uint8_t d1, std::uint8_t d2) noexcept;
     [[nodiscard]] bool wantsPlay() const noexcept { return play_.load(std::memory_order_relaxed); }
     [[nodiscard]] bool loop() const noexcept { return loop_.load(std::memory_order_relaxed); }
     [[nodiscard]] bool original() const noexcept { return original_.load(std::memory_order_relaxed); }
@@ -121,11 +126,16 @@ private:
     };
     struct SlotRt {
         hc::fx::Effect*    fx = nullptr;
+        rack::NoteSink*    notes = nullptr;        // the plug-in plays notes
         float              mix = 1.0f;            // 1 = plug-in, 0 = its delayed input
         std::vector<float> dl, dr;                // bypass delay (kMaxSlotDelay)
         std::uint32_t      pos = 0;
     };
     void applyCommands() noexcept;
+    void applyMidi() noexcept;
+    struct Midi { std::uint8_t status = 0, d1 = 0, d2 = 0; };
+    hc::core::SpscRing<Midi, 1024> midi_;
+    std::atomic_flag midiLock_ = ATOMIC_FLAG_INIT;   // between the MIDI inputs only (the audio thread never takes it)
     void renderChunk(float* l, float* r, std::uint32_t n) noexcept;
     void readSong(float* l, float* r, std::uint32_t n) noexcept;
 
