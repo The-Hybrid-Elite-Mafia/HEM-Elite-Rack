@@ -102,7 +102,7 @@ C++23 audio framework, as a library.
 | **MADE MAN** | Pitch correction for one voice: key, scale, speed, amount |
 | **THE DETECTIVE** | Key finder: the key, two alternatives and the song's tuning; detect / stop, your own key (root, scale), sharps or flats |
 | **THE WITNESS** | VU meters for left and right: headroom, display delay, clip lights with clear |
-| **LIVE WIRE** | Test tones: sine, square, saw, triangle, white / pink noise, sweeps; left / right / both / opposed |
+| **LIVE WIRE** | Signal generator: pink, white or sine; frequency and gain with quick settings; send L / R / both; flip |
 | **FURNACE** | Tube stage: drive, bias (even harmonics), tone, mix — colour without a volume jump |
 | **REEL MONEY** | Tube tape machine: 7.5 / 15 IPS, tape or input monitor, normal or hot bias, into / off tape with link, tape level, wobble, hiss, slap or repeating tape echo with tone, VU with its zero |
 | **PAWN SHOP** | Lo-fi box in four modules: an old device (sound, tone, squash, ringer, decade, mix), space (synced echo, ping pong, feedback, spring or plate), twelve noises (duck or gate, pre or post), tape and record mechanics; low / high cut, mono, in / out |

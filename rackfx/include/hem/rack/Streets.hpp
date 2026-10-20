@@ -35,10 +35,11 @@
 //                DISPLAY DELAY 0..1000 ms (holds the needles back to line up with buses that come out later), and
 //                a clip light per side (a sample at -0.009 dBFS or more) that CLEAR puts out. The sound passes
 //                untouched. Meters: 0 / 1 VU left / right, 2 / 3 clip left / right (1 = lit).
-//  LIVE WIRE     test tones: ON, WAVE SINE / SQUARE / SAW / TRIANGLE / WHITE / PINK / SWEEP, FREQ, LEVEL
-//                (dBFS), SWEEP TIME, MODE REPLACE (only the tone) or ADD (tone on top), CHANNELS BOTH /
-//                LEFT / RIGHT / OPPOSED (right upside down). Off by default; when ON it makes sound out of
-//                silence, on purpose.
+//  LIVE WIRE     signal generator: ON (off by default: then the sound passes untouched; on: only the signal comes
+//                out), TYPE PINK / WHITE (20 Hz .. 21 kHz) / SINE, FREQ 20 Hz .. 21 kHz (SINE) with QUICK FREQ (the
+//                knob, or 100 Hz / 1 kHz / 10 kHz), GAIN 0..-120 dB with QUICK GAIN (the knob, or -6 / -12 / -20),
+//                SEND L / R / L+R, FLIP (the right side upside down). A sine at GAIN peaks there; the noises have
+//                the same RMS as that sine.
 // =============================================================================
 #include "hybrid/fx/Fx.hpp"
 
@@ -86,7 +87,8 @@ enum P : int { Headroom, DisplayDelay, Clear, kCount };
 } // namespace witness
 
 namespace livewire {
-enum P : int { On, Wave, Freq, Level, SweepTime, Mode, Channels, kCount };
+enum P : int { On, Type, Freq, QuickFreq, Gain, QuickGain, Send, Flip, kCount };
+enum Signal : int { Pink, White, Sine };
 } // namespace livewire
 
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeTorch();

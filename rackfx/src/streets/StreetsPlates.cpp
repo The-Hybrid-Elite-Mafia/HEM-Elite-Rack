@@ -96,10 +96,11 @@ constexpr PlateKnob row1[] = {{Headroom, "HEADROOM", "4", "26"}, {DisplayDelay, 
 
 namespace lw {
 using namespace livewire;
-constexpr PlateChoice choices[] = {{Mode, "MODE"}};
-constexpr PlateKnob row1[] = {{Freq, "FREQ"}, {Level, "LEVEL", "-60", "0", K::Big}, {SweepTime, "SWEEP TIME"}};
-constexpr PlateChoice steppers[] = {{Wave, "WAVE"}, {Channels, "SIDES"}};
-constexpr PlateToggle leftT[] = {{On, "TONE"}};
+constexpr PlateChoice choices[] = {{Type, "TYPE"}, {Send, "SEND"}};
+constexpr PlateToggle toggles[] = {{Flip, "FLIP"}};
+constexpr PlateKnob row1[] = {{Freq, "FREQ", "20", "21K", K::Big}, {Gain, "GAIN", "-120", "0", K::Big}};
+constexpr PlateChoice steppers[] = {{QuickFreq, "QUICK FREQ"}, {QuickGain, "QUICK GAIN"}};
+constexpr PlateToggle leftT[] = {{On, "POWER"}};
 } // namespace lw
 
 } // namespace
@@ -129,8 +130,8 @@ const PlateSpec kDetective{.note1 = "WHAT KEY", .note2 = "IS IT IN?", .screen = 
                            .choices = dt::choices, .toggles = dt::toggles, .steppers = dt::steppers, .demo = nullptr};
 const PlateSpec kWitness{.note1 = "SAW EVERYTHING", .note2 = "SAYS IT STRAIGHT", .screen = Screen::Readouts, .readouts = wi::readouts,
                          .toggles = wi::toggles, .row1 = wi::row1, .demo = nullptr};
-const PlateSpec kLiveWire{.note1 = "TEST TONES", .note2 = "SWEEPS AND NOISE", .screen = Screen::None, .choices = lw::choices,
+const PlateSpec kLiveWire{.note1 = "TEST SIGNALS", .note2 = "PINK, WHITE, SINE", .screen = Screen::None, .choices = lw::choices, .toggles = lw::toggles,
                           .row1 = lw::row1, .leftToggles = lw::leftT, .steppers = lw::steppers,
-                          .demo = [](hc::fx::Effect& e) { e.set(livewire::Wave, 6); }};
+                          .demo = [](hc::fx::Effect& e) { e.set(livewire::Type, livewire::Sine); }};
 
 } // namespace hem::rack::plates

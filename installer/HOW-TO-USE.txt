@@ -590,10 +590,11 @@ THE WITNESS
   them out. The old peak meters and PEAK HOLD are gone: the original has neither.
 
 LIVE WIRE
-  Test tones, off until you switch TONE ON. WAVE: sine, square, saw, triangle, white or pink noise, or
-  a sweep from 20 Hz to 20 kHz. FREQ and LEVEL (dBFS). SIDES: both, left, right, or opposed (right
-  upside down: checks wiring). MODE REPLACE plays only the tone, ADD puts it on top of the track.
-  Start quiet: tones can be loud.
+  A test signal, off until you switch POWER on (then only the signal comes out). TYPE: PINK noise,
+  WHITE noise or a SINE. FREQ (for the sine) and GAIN; QUICK FREQ and QUICK GAIN jump to the usual
+  settings (100 Hz / 1 kHz / 10 kHz; -6 / -12 / -20 dB) - back to KNOB to use the knobs. SEND: left,
+  right or both. FLIP turns the right side upside down (checks wiring). Start quiet: tones can be loud.
+  The old square, saw, triangle and sweep, and ADD, are gone: the original has none of them.
 
 FURNACE
   DRIVE for more tube colour (the level stays about the same), BIAS toward EVEN = warmer.

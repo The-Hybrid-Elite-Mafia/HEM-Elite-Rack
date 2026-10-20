@@ -345,26 +345,40 @@ void testWitness() {
 
 void testLiveWire() {
     using namespace livewire;
-    {
-        auto e = make("LIVE WIRE", {{On, 1}, {Wave, 0}, {Freq, 1000}, {Level, -18}, {Channels, 1}});
+    {   // SINE 1 kHz at -18, sent left only: the left is the tone (the input gone), the right silent
+        auto e = make("LIVE WIRE", {{On, 1}, {Type, Sine}, {Freq, 1000}, {Gain, -18}, {Send, 0}});
         Stereo s = sine(300, 1.0, 0.3f);
         run(*e, s);
         const double tone = db(toneAmp(s.l, 1000, 24000, 24000)), input = db(toneAmp(s.l, 300, 24000, 24000));
-        std::printf("  LIVE WIRE sine 1 kHz at -18 dBFS, left only, replace: left %.1f dB, input left %.1f dB, right peak %.2e\n", tone, input,
-                    static_cast<double>(*std::max_element(s.r.begin() + 24000, s.r.end(), [](float x, float y) { return std::fabs(x) < std::fabs(y); })));
-        CHECK(std::fabs(tone + 18.0) < 0.2 && input < -80.0);
         double rpk = 0;
         for (std::size_t i = 24000; i < s.size(); ++i) rpk = std::max(rpk, static_cast<double>(std::fabs(s.r[i])));
-        CHECK(rpk < 1e-6);
+        std::printf("  LIVE WIRE sine 1 kHz at -18, left only: left %.1f dB, input left %.1f dB, right peak %.1e\n", tone, input, rpk);
+        CHECK(std::fabs(tone + 18.0) < 0.2 && input < -80.0 && rpk < 1e-6);
     }
-    {
-        auto e = make("LIVE WIRE");
-        Stereo s = noise(0.5, 0.3f), ref = s;
+    {   // QUICK FREQ 10 kHz and QUICK GAIN -6 override the knobs; FLIP turns the right over
+        auto e = make("LIVE WIRE", {{On, 1}, {Type, Sine}, {Freq, 300}, {QuickFreq, 3}, {Gain, -60}, {QuickGain, 1}, {Flip, 1}});
+        Stereo s(48000);
         run(*e, s);
-        double diff = 0;
-        for (std::size_t i = 0; i < s.size(); ++i) diff = std::max(diff, static_cast<double>(std::fabs(s.l[i] - ref.l[i])));
-        std::printf("  LIVE WIRE off: sound changed by %.1e\n", diff);
-        CHECK(diff == 0.0);
+        double worst = 0;
+        for (std::size_t i = 2400; i < s.size(); ++i) worst = std::max(worst, static_cast<double>(std::fabs(s.l[i] + s.r[i])));
+        std::printf("  LIVE WIRE quick 10 kHz at -6: %.1f dB; L + R largest %.1e\n", db(toneAmp(s.l, 10000, 24000, 24000)), worst);
+        CHECK(std::fabs(db(toneAmp(s.l, 10000, 24000, 24000)) + 6.0) < 0.2 && worst < 1e-6);
+    }
+    {   // the noises at -20 have the RMS of a -20 sine (-23 dBFS); off: untouched
+        for (float t : {static_cast<float>(Pink), static_cast<float>(White)}) {
+            auto e = make("LIVE WIRE", {{On, 1}, {Type, t}, {Gain, -20}});
+            Stereo s(96000);
+            run(*e, s);
+            const double lv = db(rms(s.l, 24000, 72000));
+            std::printf("  LIVE WIRE %s at -20: %.2f dBFS RMS (a -20 sine: -23.01)\n", t == Pink ? "pink" : "white", lv);
+            CHECK(std::fabs(lv + 23.01) < 0.5);
+        }
+        auto off = make("LIVE WIRE");
+        Stereo s = noise(0.3, 0.2f), ref = s;
+        run(*off, s);
+        double d = 0;
+        for (std::size_t i = 0; i < s.size(); ++i) d = std::max(d, static_cast<double>(std::fabs(s.l[i] - ref.l[i])));
+        CHECK(d == 0.0);
     }
 }
 
