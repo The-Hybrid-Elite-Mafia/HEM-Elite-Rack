@@ -1,3 +1,17 @@
+# HEM-Elite-Rack 0.15.0
+
+**New: HITMAN** — a dual FET peak compressor (Dynamics tab, also as VST3 "HEM HITMAN"):
+- Two channels, L/R or M/S, with LINK (channel 2 follows channel 1) or set apart.
+- INPUT drives it, ATTACK / RELEASE 1–7, RATIO 4 / 8 / 12 / 20 / ALL.
+- LOOKAHEAD up to 2 ms; the latency stays the same whatever it is set to.
+- Sidechain: EQ (high-pass, bell, low-pass), LISTEN, SC LINK, and in the VST3 an external
+  sidechain input (the rack app has no second input, so EXT listens to itself there).
+- SATURATION after the compressor: DRY, CLIP (nothing over 0 dBFS), WARM, TRIODE, TAPE. MIX.
+- Two gain-reduction needles and a scrolling history of both channels' gain reduction and the input.
+
+**Kept safe:** every plug-in taken out of the rack is in the project's `retired/` folder, with a list
+of where each one is, ready to bring back.
+
 # HEM-Elite-Rack 0.14.0
 
 **A trimmed collection: 22 plug-ins**, in the rack and as VST3:

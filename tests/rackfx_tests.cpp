@@ -15,6 +15,8 @@
 #include "hem/rack/Spectrum.hpp"
 #include "hem/rack/Tools.hpp"
 #include "hem/rack/MoreDynamics.hpp"
+#include "hem/rack/Hitman.hpp"
+#include "hem/rack/Sidechain.hpp"
 #include "hem/rack/ColorFx.hpp"
 #include "hem/rack/Space.hpp"
 #include "hem/rack/Movement.hpp"
@@ -1356,6 +1358,118 @@ void testSpecialty() {
         std::printf("  %s block size 1 vs 512: max difference %.2e\n", n, d);
         CHECK(d < 1e-5);
     }
+}
+
+} // namespace hem::test
+
+// ---- HITMAN ------------------------------------------------------------------------------------------
+namespace hem::test {
+
+void testHitman() {
+    using namespace hitman;
+    std::printf("[hitman] HITMAN: dual FET peak compressor\n");
+    const PluginInfo* info = findPlugin("HITMAN");
+    CHECK(info != nullptr);
+    if (!info) return;
+    commonRules(*info);
+    auto make = [](std::initializer_list<std::pair<int, float>> v) {
+        auto e = findPlugin("HITMAN")->create();
+        e->set(Input1, 0); e->set(Output1, 0); e->set(Input2, 0); e->set(Output2, 0);
+        for (const auto& [i, x] : v) e->set(i, x);
+        e->prepare(kFs, 512);
+        return e;
+    };
+    {   // under the threshold: the same sound, delayed by the fixed latency (2 ms + the oversampler)
+        auto e = make({});
+        Stereo s = sine(1000, 1.0, 0.05f), ref = s;
+        run(*e, s);
+        const double d = maxDelayedDiff(s, ref, e->latency(), 4800);
+        std::printf("  -26 dBFS: latency %u samples (%.2f ms), max difference %.2e\n", e->latency(), e->latency() / 48.0, d);
+        CHECK(e->latency() == 96 + hc::fx::Oversampler4::latency());
+        CHECK(d < 2e-3);
+        auto la = make({{Lookahead, 2.0f}});
+        CHECK(la->latency() == e->latency());   // LOOKAHEAD never changes the timing
+    }
+    {   // the static curve: 4:1, threshold -14 (knee 6): a -6 dBFS tone is 8 dB over -> 6 dB down
+        auto e = make({});
+        const double out = toneOut(*e, 1000, 0.5f);
+        std::printf("  4:1, -6 dBFS tone: %.2f dB (curve -6.0), needles %.1f / %.1f dB\n", out, e->meter(0), e->meter(1));
+        CHECK(std::fabs(out + 6.0) < 0.8);
+        CHECK(e->meter(0) < -5.0f && e->meter(1) < -5.0f);
+        auto r4 = make({{Input1, 12}}), all = make({{Ratio, 4}, {Input1, 12}});
+        const double out4 = toneOut(*r4, 1000, 0.5f) - 12.0, outAll = toneOut(*all, 1000, 0.5f) - 12.0;
+        std::printf("  driven +12 dB: 4:1 %.1f dB, ALL %.1f dB\n", out4, outAll);
+        CHECK(outAll < out4 - 4.0);
+    }
+    {   // LOOKAHEAD: the first millisecond of a sudden burst gets through less with it
+        auto hit = [&](float la) {
+            auto e = make({{Lookahead, la}, {Attack1, 1}, {Ratio, 3}});
+            Stereo s(48000);   // a burst that starts at full height (a cosine), slow attack (1)
+            for (std::size_t i = 24000; i < s.size(); ++i) s.l[i] = s.r[i] = 0.9f * static_cast<float>(std::cos(2 * std::numbers::pi * 100 * (i - 24000) / kFs));
+            run(*e, s);
+            double pk = 0;
+            const std::size_t at = 24000 + e->latency();
+            for (std::size_t i = at; i < at + 24; ++i) pk = std::max(pk, static_cast<double>(std::fabs(s.l[i])));
+            return db(pk / 0.9);
+        };
+        const double without = hit(0), with = hit(2);
+        std::printf("  burst, first 0.5 ms (attack 1): lookahead 0 -> %.1f dB, lookahead 2 ms -> %.1f dB\n", without, with);
+        CHECK(with < without - 1.0);
+    }
+    {   // M/S with the channels unlinked: a side-only signal is compressed by channel 2 only
+        auto e = make({{Mode, 1}, {Link, 0}, {Input1, 0}, {Input2, 18}, {ScLink, 0}});
+        Stereo s = sine(500, 1.0, 0.2f, kFs, true);   // pure side
+        add(s, sine(1500, 1.0, 0.05f));                // a little mid
+        run(*e, s);
+        std::printf("  M/S unlinked, loud side: channel 1 (mid) %.1f dB, channel 2 (side) %.1f dB\n", e->meter(0), e->meter(1));
+        CHECK(e->meter(0) > -0.5f && e->meter(1) < -6.0f);
+    }
+    {   // the external sidechain: a quiet signal, ducked by a loud one on the sidechain; INT ignores it
+        auto ducked = [&](float src) {
+            auto e = make({{ScSource, src}});
+            Stereo s = sine(1000, 1.0, 0.05f), key = sine(100, 1.0, 0.8f);
+            for (std::size_t i = 0; i < s.size(); i += 512) {
+                const auto n = static_cast<std::uint32_t>(std::min<std::size_t>(512, s.size() - i));
+                dynamic_cast<SidechainSink*>(e.get())->setSidechain(key.l.data() + i, key.r.data() + i);
+                e->process(s.l.data() + i, s.r.data() + i, n);
+            }
+            return db(toneAmp(s.l, 1000, 24000, 12000) / 0.05);
+        };
+        const double ext = ducked(1), intl = ducked(0);
+        std::printf("  external sidechain: EXT %.1f dB, INT %.2f dB\n", ext, intl);
+        CHECK(ext < -8.0 && std::fabs(intl) < 0.1);
+    }
+    {   // SC EQ: a high-pass at 300 Hz makes it ignore a loud 60 Hz; LISTEN plays what the detector hears
+        auto bass = [&](float eq) { auto e = make({{ScEq, eq}, {ScHpf, 300}}); return toneOut(*e, 60, 0.5f, 2.0); };
+        const double off = bass(0), on = bass(1);
+        auto lis = make({{ScEq, 1}, {ScHpf, 300}, {ScListen, 1}});
+        const double heard = toneOut(*lis, 60, 0.5f, 2.0);
+        std::printf("  60 Hz at -6 dBFS: SC EQ off %.1f dB, SC HPF 300 Hz %.1f dB; LISTEN hears 60 Hz at %.1f dB\n", off, on, heard);
+        CHECK(on > off + 3.0 && heard < -15.0);
+    }
+    {   // saturation: TRIODE adds a 2nd harmonic, DRY doesn't; CLIP keeps peaks under 0 dBFS
+        auto h2 = [&](float sat) { auto e = make({{Saturation, sat}, {Output1, 6}}); return harmonicDb(*e, 200, 2, 0.4f); };
+        const double dry = h2(0), triode = h2(3);
+        auto peakWith = [&](float sat) {   // hot drums, slow attack: transients get past the compressor
+            auto e = make({{Saturation, sat}, {Input1, 6}, {Attack1, 1}, {Output1, 12}});
+            Stereo s = hotMix(2.0);
+            run(*e, s);
+            return samplePeakDb(s, 9600);
+        };
+        const double pkDry = peakWith(0), pkClip = peakWith(1);
+        std::printf("  2nd harmonic: DRY %.1f dB, TRIODE %.1f dB; peaks DRY %.2f dBFS, CLIP %.2f dBFS\n", dry, triode, pkDry, pkClip);
+        CHECK(triode > dry + 15.0 && pkClip < pkDry - 3.0 && pkClip < 1.0);
+    }
+    {   // MIX 0: the dry sound, delayed
+        auto e = make({{Mix, 0}, {Input1, 24}});
+        Stereo s = noise(1.0, 0.5f), ref = s;
+        run(*e, s);
+        CHECK(maxDelayedDiff(s, ref, e->latency(), 0) < 1e-6);
+    }
+    Stereo in = hotMix(1.0);
+    const double d = blockSizeDifference(*info, [](hc::fx::Effect& x) { x.set(Input1, 10); x.set(Lookahead, 1); x.set(Saturation, 2); x.set(Mode, 1); }, in);
+    std::printf("  block size 1 vs 512: max difference %.2e\n", d);
+    CHECK(d < 1e-5);
 }
 
 } // namespace hem::test

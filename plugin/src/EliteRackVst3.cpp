@@ -12,6 +12,7 @@
 // =============================================================================
 #include "hem/rack/EliteEq.hpp"
 #include "hem/rack/Plugins.hpp"
+#include "hem/rack/Sidechain.hpp"
 #include "hem/rack/Restorer.hpp"
 #include "hem/rack/Spectrum.hpp"
 #include "hem/ui/Face.hpp"
@@ -65,7 +66,7 @@ float dbToNorm(float db, float lo, float hi) { return std::clamp((db - lo) / (hi
 float normToDb(double n, float lo, float hi) { return lo + static_cast<float>(n) * (hi - lo); }
 constexpr float kSpecLo = -120.0f, kSpecHi = 0.0f;
 bool isCompressor(rack::Face f) {
-    return f == rack::Face::BusGlue || f == rack::Face::Limiter || f == rack::Face::VcaComp || f == rack::Face::VocalStrip;
+    return f == rack::Face::BusGlue || f == rack::Face::Limiter || f == rack::Face::VcaComp || f == rack::Face::VocalStrip || f == rack::Face::Hitman;
 }
 
 // <bundle>/Contents/x86_64-win/<dll> -> <bundle>/Contents/Resources (fonts/, faceplates/, brand/).
@@ -133,6 +134,7 @@ public:
         spectrum_ = dynamic_cast<rack::SpectrumSource*>(fx_.get());
         noise_ = dynamic_cast<rack::NoiseProfileSource*>(fx_.get());
         eq_ = dynamic_cast<rack::EliteEqView*>(fx_.get());
+        sc_ = dynamic_cast<rack::SidechainSink*>(fx_.get());
     }
     static FUnknown* createInstance(void* ctx) { return static_cast<Vst::IAudioProcessor*>(new Processor(static_cast<const rack::PluginInfo*>(ctx))); }
 
@@ -140,11 +142,14 @@ public:
         const tresult r = AudioEffect::initialize(context);
         if (r != kResultOk) return r;
         addAudioInput(STR16("Stereo In"), Vst::SpeakerArr::kStereo);
+        if (sc_) addAudioInput(STR16("Sidechain"), Vst::SpeakerArr::kStereo, Vst::BusTypes::kAux, 0);   // off until the host routes one
         addAudioOutput(STR16("Stereo Out"), Vst::SpeakerArr::kStereo);
         return kResultOk;
     }
     tresult PLUGIN_API setBusArrangements(Vst::SpeakerArrangement* inputs, int32 numIns, Vst::SpeakerArrangement* outputs, int32 numOuts) SMTG_OVERRIDE {
-        if (numIns != 1 || numOuts != 1 || inputs[0] != Vst::SpeakerArr::kStereo || outputs[0] != Vst::SpeakerArr::kStereo) return kResultFalse;
+        const int32 wantIns = sc_ ? 2 : 1;
+        if (numIns != wantIns || numOuts != 1 || inputs[0] != Vst::SpeakerArr::kStereo || outputs[0] != Vst::SpeakerArr::kStereo) return kResultFalse;
+        if (sc_ && inputs[1] != Vst::SpeakerArr::kStereo) return kResultFalse;
         return AudioEffect::setBusArrangements(inputs, numIns, outputs, numOuts);
     }
     tresult PLUGIN_API canProcessSampleSize(int32 size) SMTG_OVERRIDE { return size == Vst::kSample32 ? kResultTrue : kResultFalse; }
@@ -208,6 +213,15 @@ public:
             for (std::uint32_t k = 0; k < n; ++k) {
                 dry_[0][k] = bypassDelay_[0].process(L[k], fx_->latency());
                 dry_[1][k] = bypassDelay_[1].process(R[k], fx_->latency());
+            }
+            if (sc_) {   // the sidechain input, when the host has one connected
+                const float* sL = nullptr;
+                const float* sR = nullptr;
+                if (data.numInputs > 1 && data.inputs[1].channelBuffers32 && data.inputs[1].numChannels >= 2) {
+                    const Vst::AudioBus* bus = getAudioInput(1);
+                    if (bus && bus->isActive()) { sL = data.inputs[1].channelBuffers32[0] + done; sR = data.inputs[1].channelBuffers32[1] + done; }
+                }
+                sc_->setSidechain(sL, sR);
             }
             fx_->process(L, R, n);
             if (mix_ != 1.0f || target != 1.0f) {
@@ -276,6 +290,7 @@ private:
     rack::SpectrumSource* spectrum_ = nullptr;
     rack::NoiseProfileSource* noise_ = nullptr;
     rack::EliteEqView* eq_ = nullptr;
+    rack::SidechainSink* sc_ = nullptr;
     hc::fx::DelayLine bypassDelay_[2];
     std::vector<float> dry_[2];
     double sampleRate_ = 48000.0;

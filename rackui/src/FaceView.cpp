@@ -642,12 +642,81 @@ void FaceView::readout(const Ctx& c, const Widget& w) const {
     r.text(big, t, b.right() - 18 * z, b.bottom() - 18 * z, over ? th_.red : th_.teal, Align::Right, TextFx::Neon);
 }
 
+// HITMAN: the last few seconds, scrolling right to left — gain reduction of both channels hanging
+// from the top (0 dB at the top, -24 at the bottom) over the input level (0 dBFS at the top, -60 at the bottom).
+void FaceView::history(const Ctx& c, const Widget& w) const {
+    Renderer& r = c.r;
+    const float z = c.z;
+    const Rect b = c.T(w.r);
+    const Rect p = b.inset(16 * z);
+    // one new column per frame
+    hist_[0][static_cast<std::size_t>(histPos_)] = std::clamp(c.feed.meterDb(0), -24.0f, 0.0f);
+    hist_[1][static_cast<std::size_t>(histPos_)] = std::clamp(c.feed.meterDb(1), -24.0f, 0.0f);
+    hist_[2][static_cast<std::size_t>(histPos_)] = std::clamp(c.feed.meterDb(2), -60.0f, 0.0f);
+    histPos_ = (histPos_ + 1) % kHistory;
+    histCount_ = std::min(histCount_ + 1, kHistory);
+    const TextStyle ts = c.ts(TextStyle::Caption);
+    for (float db : {0.0f, -6.0f, -12.0f, -18.0f, -24.0f}) {
+        const float y = p.y + (-db / 24.0f) * p.h;
+        const float xs[2] = {p.x, p.right()}, ys[2] = {y, y};
+        r.polyline(xs, ys, 2, 1.0f * z, th_.silver.withAlpha(0.10f), Blend::Over, false);
+        char t[8];
+        std::snprintf(t, sizeof t, "%.0f", static_cast<double>(db));
+        r.text(ts, t, p.x + 4 * z, y + (db == 0.0f ? r.capHeight(ts) + 4 * z : -4 * z), th_.dim, Align::Left, TextFx::Shadowed);
+    }
+    const int n = histCount_;
+    if (n >= 2) {
+        float xs[kHistory], ys[kHistory];
+        auto line = [&](int which, float lo, Rgba col, float width, bool fill) {
+            for (int i = 0; i < n; ++i) {
+                const int idx = (histPos_ - n + i + 2 * kHistory) % kHistory;
+                xs[i] = p.right() - static_cast<float>(n - 1 - i) / static_cast<float>(kHistory - 1) * p.w;
+                ys[i] = p.y + std::clamp(hist_[static_cast<std::size_t>(which)][static_cast<std::size_t>(idx)] / lo, 0.0f, 1.0f) * p.h;
+            }
+            if (fill)
+                for (int i = 0; i + 1 < n; ++i) {
+                    const float qx[4] = {xs[i], xs[i + 1], xs[i + 1], xs[i]}, qy[4] = {ys[i], ys[i + 1], p.bottom(), p.bottom()};
+                    const Rgba a = col.withAlpha(0.22f), bb = col.withAlpha(0.03f);
+                    const Rgba cols[4] = {a, a, bb, bb};
+                    r.colorQuad(qx, qy, cols, Blend::Over, false);
+                }
+            r.polyline(xs, ys, n, width * z, col, Blend::Over, true);
+        };
+        // input level: from the bottom up (louder = higher)
+        for (int i = 0; i < n; ++i) {
+            const int idx = (histPos_ - n + i + 2 * kHistory) % kHistory;
+            xs[i] = p.right() - static_cast<float>(n - 1 - i) / static_cast<float>(kHistory - 1) * p.w;
+            ys[i] = p.y + std::clamp(hist_[2][static_cast<std::size_t>(idx)] / -60.0f, 0.0f, 1.0f) * p.h;
+        }
+        for (int i = 0; i + 1 < n; ++i) {
+            const float qx[4] = {xs[i], xs[i + 1], xs[i + 1], xs[i]}, qy[4] = {ys[i], ys[i + 1], p.bottom(), p.bottom()};
+            const Rgba a = th_.silver.withAlpha(0.18f), bb = th_.silver.withAlpha(0.02f);
+            const Rgba cols[4] = {a, a, bb, bb};
+            r.colorQuad(qx, qy, cols, Blend::Over, false);
+        }
+        r.polyline(xs, ys, n, 1.4f * z, th_.silver.withAlpha(0.6f), Blend::Over, false);
+        line(1, -24.0f, th_.gold, 2.0f, false);
+        line(0, -24.0f, th_.red, 2.4f, false);
+    }
+    float lx = p.right() - 8 * z;
+    auto legend = [&](const char* t, Rgba col) {
+        const float tw = r.textWidth(ts, t);
+        r.text(ts, t, lx, p.bottom() - 6 * z, col, Align::Right, TextFx::Shadowed);
+        lx -= tw + 26 * z;
+    };
+    legend("INPUT", th_.silver);
+    legend("GR 2", th_.gold);
+    legend("GR 1", th_.red);
+    (void)w;
+}
+
 // Compressors: a gain-reduction needle with a console-meter scale (0 on the right, -20 on the left).
 void FaceView::grMeter(const Ctx& c, const Widget& w) const {
     Renderer& r = c.r;
     const float z = c.z;
     const Rect d = c.T(w.r);
-    const float target = std::clamp(c.feed.reductionDb(), -20.0f, 0.0f);
+    const float target = std::clamp(w.choice >= 0 ? c.feed.meterDb(w.choice) : c.feed.reductionDb(), -20.0f, 0.0f);
+    float& needle_ = w.choice >= 0 ? needles_[static_cast<std::size_t>(std::clamp(w.choice, 0, 3))] : this->needle_;
     if (needle_ > 0.5f) needle_ = target;    // the first frame shows where it is
     needle_ += (target - needle_) * 0.35f;   // then it swings like a real needle, ~0.1 s
     if (std::fabs(needle_) < 0.01f) needle_ = 0.0f;
@@ -677,7 +746,7 @@ void FaceView::grMeter(const Ctx& c, const Widget& w) const {
     r.fillRound({px - 6 * z, py - 6 * z, 12 * z, 12 * z}, 6 * z, th_.tealDeep, Blend::Over, true);
     // labels and the number
     const TextStyle ls = c.ts(TextStyle::Caption);
-    r.text(ls, "GAIN REDUCTION  dB", d.x + 20 * z, d.bottom() - 18 * z, th_.label, Align::Left, TextFx::Shadowed);
+    r.text(ls, w.caption.empty() ? std::string("GAIN REDUCTION  dB") : w.caption, d.x + 20 * z, d.bottom() - 18 * z, th_.label, Align::Left, TextFx::Shadowed);
     char b[32];
     std::snprintf(b, sizeof b, "%.1f", static_cast<double>(target));
     const TextStyle big = c.ts(TextStyle::Panel);
@@ -727,6 +796,7 @@ void FaceView::draw(Renderer& r, const PanelHost& host, const FaceFeed& feed, co
         case WKind::GrMeter: grMeter(c, w); break;
         case WKind::VuMeter: vuMeter(c, w); break;
         case WKind::Readout: readout(c, w); break;
+        case WKind::History: history(c, w); break;
         case WKind::GraphRange: {
             const std::string t = fmt("%.0f dB", kGraphRanges[static_cast<std::size_t>(w.choice)]);
             button(c, c.T(w.r), t, st.graphRange == w.choice, hot, false, th_.teal);

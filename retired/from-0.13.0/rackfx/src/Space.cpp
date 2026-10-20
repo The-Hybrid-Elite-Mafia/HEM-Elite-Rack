@@ -1,0 +1,441 @@
+// Reverbs and echoes: HALL, ROOM, PLATE, SPRING, TAPE ECHO, DIGITAL DELAY (see Space.hpp).
+#include "hem/rack/Space.hpp"
+
+#include "hybrid/fx/Dsp.hpp"
+
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <numbers>
+#include <vector>
+
+namespace hem::rack {
+
+float ddelay::delayMs(int division, float bpm, float freeMs) noexcept {
+    const int d = std::clamp(division, 0, 7);
+    if (d == 0) return freeMs;
+    return 60000.0f / std::max(bpm, 1.0f) * kBeats[d];
+}
+
+namespace {
+using hc::fx::ParamInfo;
+using hc::fx::Taper;
+using C = hc::fx::BiquadCoefs;
+using T = C::Type;
+constexpr double kTwoPi = 2.0 * std::numbers::pi;
+const char* const kOnOff[] = {"OFF", "ON"};
+inline float soft(float v) noexcept { return v / std::cbrt(1.0f + std::fabs(v) * v * v); }
+inline std::uint32_t samples(double fs, double ms) noexcept { return static_cast<std::uint32_t>(std::lround(fs * ms * 0.001)); }
+
+// Schroeder all-pass (diffuser) with a fixed delay.
+struct Diffuser {
+    hc::fx::DelayLine d;
+    std::uint32_t len = 1;
+    void prepare(std::uint32_t maxLen) { d.prepare(maxLen + 1); }
+    void clear() noexcept { d.clear(); }
+    float tick(float x, float g) noexcept {
+        const float z = d.read(static_cast<float>(len - 1));
+        const float v = x + g * z;
+        d.write(v);
+        return z - g * v;
+    }
+};
+
+// ---- the FDN reverb ---------------------------------------------------------------------------------
+namespace rv {
+using namespace verb;
+constexpr int kLines = 8;
+constexpr double kLineMs[kLines] = {29.7, 37.1, 41.1, 43.7, 53.3, 59.9, 67.7, 73.1};
+constexpr double kLfoHz[kLines] = {0.31, 0.47, 0.59, 0.71, 0.83, 0.97, 1.07, 1.19};
+constexpr double kDiffMs[4] = {4.7, 3.6, 12.7, 9.3};
+struct Tap { double ms; float g; };
+constexpr Tap kEarly[8] = {{4.3, 0.84f}, {8.9, 0.63f}, {13.1, 0.50f}, {17.9, -0.42f}, {23.3, 0.35f}, {29.1, -0.30f}, {36.7, 0.25f}, {44.3, 0.20f}};
+constexpr double kMaxScale = 2.2;
+constexpr float kModMax = 12.0f;   // samples of movement at MOD 100 %
+
+const ParamInfo kHall[kCount] = {
+    {"predelay", "Pre-Delay", "ms", 0.0f, 200.0f, 20.0f},  {"size", "Size", "%", 0.0f, 100.0f, 60.0f},
+    {"decay", "Decay", "s", 0.5f, 12.0f, 2.5f, Taper::Log}, {"damping", "Damping", "%", 0.0f, 100.0f, 40.0f},
+    {"early", "Early", "%", 0.0f, 100.0f, 40.0f},          {"mod", "Mod", "%", 0.0f, 100.0f, 30.0f},
+    {"width", "Width", "%", 0.0f, 150.0f, 100.0f},          {"lowcut", "Low Cut", "Hz", 20.0f, 500.0f, 80.0f, Taper::Log},
+    {"highcut", "High Cut", "Hz", 1000.0f, 20000.0f, 9000.0f, Taper::Log}, {"mix", "Mix", "%", 0.0f, 100.0f, 25.0f},
+};
+const ParamInfo kRoom[kCount] = {
+    {"predelay", "Pre-Delay", "ms", 0.0f, 100.0f, 5.0f},   {"size", "Size", "%", 0.0f, 100.0f, 50.0f},
+    {"decay", "Decay", "s", 0.2f, 4.0f, 0.8f, Taper::Log},  {"damping", "Damping", "%", 0.0f, 100.0f, 50.0f},
+    {"early", "Early", "%", 0.0f, 100.0f, 70.0f},          {"mod", "Mod", "%", 0.0f, 100.0f, 15.0f},
+    {"width", "Width", "%", 0.0f, 150.0f, 100.0f},          {"lowcut", "Low Cut", "Hz", 20.0f, 500.0f, 100.0f, Taper::Log},
+    {"highcut", "High Cut", "Hz", 1000.0f, 20000.0f, 8000.0f, Taper::Log}, {"mix", "Mix", "%", 0.0f, 100.0f, 20.0f},
+};
+const ParamInfo kPlate[kCount] = {
+    {"predelay", "Pre-Delay", "ms", 0.0f, 200.0f, 10.0f},  {"size", "Size", "%", 0.0f, 100.0f, 50.0f},
+    {"decay", "Decay", "s", 0.4f, 8.0f, 1.8f, Taper::Log},  {"damping", "Damping", "%", 0.0f, 100.0f, 20.0f},
+    {"diffusion", "Diffusion", "%", 0.0f, 100.0f, 80.0f},  {"mod", "Mod", "%", 0.0f, 100.0f, 25.0f},
+    {"width", "Width", "%", 0.0f, 150.0f, 100.0f},          {"lowcut", "Low Cut", "Hz", 20.0f, 500.0f, 120.0f, Taper::Log},
+    {"highcut", "High Cut", "Hz", 1000.0f, 20000.0f, 12000.0f, Taper::Log}, {"mix", "Mix", "%", 0.0f, 100.0f, 25.0f},
+};
+
+class Reverb final : public hc::fx::Effect {
+public:
+    explicit Reverb(Kind k) : kind_(k) { setDefaults(); }
+    std::span<const ParamInfo> params() const noexcept override { return kind_ == Kind::Hall ? std::span<const ParamInfo>(kHall) : kind_ == Kind::Room ? std::span<const ParamInfo>(kRoom) : std::span<const ParamInfo>(kPlate); }
+
+    void prepare(double fs, std::uint32_t) override {
+        fs_ = fs;
+        const std::uint32_t maxLine = samples(fs, kLineMs[kLines - 1] * kMaxScale) + static_cast<std::uint32_t>(kModMax) + 4;
+        for (auto& l : line_) l.prepare(maxLine);
+        pre_.prepare(samples(fs, 200.0) + 2);
+        early_.prepare(samples(fs, 44.3 * kMaxScale * 1.1) + 2);
+        for (auto& d : diff_) d.prepare(samples(fs, 12.7 * kMaxScale) + 2);
+        reset();
+    }
+    void reset() noexcept override {
+        for (auto& l : line_) l.clear();
+        pre_.clear();
+        early_.clear();
+        for (auto& d : diff_) d.clear();
+        for (auto& b : eq_) for (auto& x : b) x.clear();
+        lp_.fill(0.0f);
+        lfo_.fill(0.0);
+        clock_ = 0;
+        for (int i = 0; i < kLines; ++i) lfo_[static_cast<std::size_t>(i)] = kTwoPi * i / kLines;
+        eqKey_ = -1.0f;
+        scale_.prepare(fs_, 200, scaleFor(p(Size)));
+        pd_.prepare(fs_, 100, static_cast<float>(p(PreDelay) * 0.001 * fs_));
+        mix_.prepare(fs_, 30, p(Mix) * 0.01f);
+    }
+
+    void process(float* L, float* R, std::uint32_t n) noexcept override {
+        designEq();
+        const float decay = p(Decay), damp = p(Damping) * 0.01f, mod = p(Mod) * 0.01f * kModMax;
+        const float width = p(Width) * 0.01f;
+        const float er = kind_ == Kind::Plate ? 0.0f : p(Early) * 0.01f;
+        const float diffG = kind_ == Kind::Plate ? 0.45f + 0.3f * p(Early) * 0.01f : kind_ == Kind::Hall ? 0.6f : 0.5f;
+        // damping: a one-pole low-pass in each line, from open (0 %) to dark (100 %)
+        const float dampK = static_cast<float>(std::exp(-kTwoPi * (16000.0 * std::pow(0.08, damp)) / fs_));
+        std::array<double, kLines> inc{};
+        for (int i = 0; i < kLines; ++i) inc[static_cast<std::size_t>(i)] = kTwoPi * kLfoHz[i] / fs_;
+        for (std::uint32_t s = 0; s < n; ++s) {
+            const float scale = scale_.next(scaleFor(p(Size)));
+            const float pdS = pd_.next(static_cast<float>(p(PreDelay) * 0.001 * fs_));
+            const float mono = 0.5f * (L[s] + R[s]);
+            pre_.write(mono);
+            const float in = pre_.read(pdS);
+            // early reflections: taps on the pre-delayed input
+            early_.write(in);
+            float eL = 0, eR = 0;
+            if (er > 0.0f)
+                for (const Tap& t : kEarly) {
+                    eL += t.g * early_.read(static_cast<float>(t.ms * 0.001 * fs_ * scale));
+                    eR += t.g * early_.read(static_cast<float>(t.ms * 1.07 * 0.001 * fs_ * scale));
+                }
+            // input diffusion
+            float x = in;
+            for (int d = 0; d < 4; ++d) {
+                diff_[static_cast<std::size_t>(d)].len = std::max<std::uint32_t>(1, samples(fs_, kDiffMs[d] * std::min(scale, 1.4f)));
+                x = diff_[static_cast<std::size_t>(d)].tick(x, diffG);
+            }
+            // the network: read, damp, mix (Householder), feed back
+            std::array<float, kLines> o{};
+            float sum = 0;
+            for (int i = 0; i < kLines; ++i) {
+                const auto u = static_cast<std::size_t>(i);
+                lfo_[u] += inc[u];
+                if (lfo_[u] > kTwoPi) lfo_[u] -= kTwoPi;
+                const float len = static_cast<float>(kLineMs[i] * 0.001 * fs_) * scale;
+                const float v = line_[u].read(len - 1.0f + mod * static_cast<float>(std::sin(lfo_[u])));
+                lp_[u] = v + dampK * (lp_[u] - v);
+                if ((clock_ & 31u) == 0) g_[u] = static_cast<float>(std::pow(10.0, -3.0 * len / (fs_ * decay)));   // -60 dB after DECAY seconds
+                o[u] = lp_[u] * g_[u];
+                sum += o[u];
+            }
+            ++clock_;
+            const float h = sum * (2.0f / kLines);
+            for (int i = 0; i < kLines; ++i) {
+                const auto u = static_cast<std::size_t>(i);
+                line_[u].write((i & 1 ? -x : x) * 0.5f + o[u] - h);
+            }
+            float wl = (o[0] - o[1] + o[2] - o[3] + o[4] - o[5] + o[6] - o[7]) * 0.6f + er * eL * 0.5f;
+            float wr = (o[0] + o[1] - o[2] - o[3] + o[4] + o[5] - o[6] - o[7]) * 0.6f + er * eR * 0.5f;
+            // the reverb's EQ and width
+            wl = static_cast<float>(eq_[0][1].tick(eq_[0][0].tick(wl)));
+            wr = static_cast<float>(eq_[1][1].tick(eq_[1][0].tick(wr)));
+            const float m = 0.5f * (wl + wr), sd = 0.5f * (wl - wr) * width;
+            const float mx = mix_.next(p(Mix) * 0.01f);
+            L[s] += mx * ((m + sd) - L[s]);
+            R[s] += mx * ((m - sd) - R[s]);
+        }
+    }
+
+private:
+    float scaleFor(float size) const noexcept {
+        const float t = size * 0.01f;
+        if (kind_ == Kind::Hall) return 1.0f + 1.2f * t;
+        if (kind_ == Kind::Room) return 0.25f + 0.65f * t;
+        return 0.6f + 0.6f * t;
+    }
+    void designEq() noexcept {
+        const float key = p(LowCut) * 100000.0f + p(HighCut);
+        if (key == eqKey_) return;
+        eqKey_ = key;
+        const C hp = C::make(T::HighPass, fs_, p(LowCut), 0.7071), lp = C::make(T::LowPass, fs_, std::min<double>(p(HighCut), fs_ * 0.45), 0.7071);
+        for (auto& b : eq_) { b[0].c = hp; b[1].c = lp; }
+    }
+    Kind kind_;
+    double fs_ = 48000;
+    std::array<hc::fx::DelayLine, kLines> line_;
+    hc::fx::DelayLine pre_, early_;
+    std::array<Diffuser, 4> diff_;
+    std::array<std::array<hc::fx::Biquad, 2>, 2> eq_{};
+    std::array<float, kLines> lp_{}, g_{};
+    std::array<double, kLines> lfo_{};
+    std::uint32_t clock_ = 0;
+    float eqKey_ = -1;
+    hc::fx::Smoothed scale_, pd_, mix_;
+};
+} // namespace rv
+
+// ---- SPRING -----------------------------------------------------------------------------------------
+namespace sp {
+using namespace spring;
+const ParamInfo kParams[kCount] = {
+    {"decay", "Decay", "s", 0.5f, 5.0f, 2.0f, Taper::Log},
+    {"tension", "Tension", "%", 0.0f, 100.0f, 50.0f},
+    {"drip", "Drip", "%", 0.0f, 100.0f, 50.0f},
+    {"tone", "Tone", "%", 0.0f, 100.0f, 50.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 25.0f},
+};
+constexpr int kStages = 24;
+class Impl final : public hc::fx::Effect {
+public:
+    Impl() { setDefaults(); }
+    std::span<const ParamInfo> params() const noexcept override { return kParams; }
+    void prepare(double fs, std::uint32_t) override {
+        fs_ = fs;
+        for (auto& d : loop_) d.prepare(samples(fs, 90.0) + 4);
+        reset();
+    }
+    void reset() noexcept override {
+        for (auto& d : loop_) d.clear();
+        for (auto& ch : ap_) ch.fill(0.0f);
+        for (auto& ch : f_) for (auto& b : ch) b.clear();
+        lp_[0] = lp_[1] = 0.0f;
+        toneKey_ = -1.0f;
+        clock_ = 0;
+        len_.prepare(fs_, 100, lenFor());
+        mix_.prepare(fs_, 30, p(Mix) * 0.01f);
+    }
+    void process(float* L, float* R, std::uint32_t n) noexcept override {
+        designTone();
+        // DRIP: how dispersive the spring is (the all-pass coefficient of the chirp chain)
+        const float a = -(0.3f + 0.45f * p(Drip) * 0.01f);
+        const float decay = p(Decay);
+        const float loopLp = static_cast<float>(std::exp(-kTwoPi * 4500.0 / fs_));
+        float* io[2] = {L, R};
+        for (std::uint32_t i = 0; i < n; ++i) {
+            const float len = len_.next(lenFor());
+            if ((clock_++ & 31u) == 0) g_ = static_cast<float>(std::pow(10.0, -3.0 * len / (fs_ * decay)));
+            const float g = g_;
+            const float mx = mix_.next(p(Mix) * 0.01f);
+            for (int c = 0; c < 2; ++c) {
+                const float l = len * (c == 0 ? 1.0f : 1.13f);   // two springs, slightly different
+                const float back = loop_[c].read(l - 1.0f);
+                lp_[c] = back + loopLp * (lp_[c] - back);
+                float v = io[c][i] * 0.6f + g * lp_[c];
+                // the chirp: a chain of first-order all-passes (high frequencies arrive at different times)
+                auto& st = ap_[static_cast<std::size_t>(c)];
+                for (int k = 0; k < kStages; ++k) {
+                    const float y = a * v + st[static_cast<std::size_t>(k)];
+                    st[static_cast<std::size_t>(k)] = v - a * y;
+                    v = y;
+                }
+                loop_[c].write(v);
+                auto& f = f_[static_cast<std::size_t>(c)];
+                const float wet = static_cast<float>(f[1].tick(f[0].tick(v)));
+                io[c][i] += mx * (wet - io[c][i]);
+            }
+        }
+    }
+private:
+    float lenFor() const noexcept { return static_cast<float>((30.0 + 40.0 * p(Tension) * 0.01) * 0.001 * fs_); }
+    void designTone() noexcept {
+        const float t = p(Tone);
+        if (t == toneKey_) return;
+        toneKey_ = t;
+        const C hp = C::make(T::HighPass, fs_, 120, 0.7071), lp = C::make(T::LowPass, fs_, 1800.0 * std::pow(4.0, t * 0.01), 0.7071);   // 1.8 .. 7.2 kHz
+        for (auto& ch : f_) { ch[0].c = hp; ch[1].c = lp; }
+    }
+    double fs_ = 48000;
+    hc::fx::DelayLine loop_[2];
+    std::array<std::array<float, kStages>, 2> ap_{};
+    std::array<std::array<hc::fx::Biquad, 2>, 2> f_{};
+    float lp_[2] = {0, 0}, toneKey_ = -1, g_ = 0;
+    std::uint32_t clock_ = 0;
+    hc::fx::Smoothed len_, mix_;
+};
+} // namespace sp
+
+// ---- TAPE ECHO --------------------------------------------------------------------------------------
+namespace te {
+using namespace tapeecho;
+const char* const kHeadsN[] = {"1", "1+2", "1+2+3"};
+const ParamInfo kParams[kCount] = {
+    {"time", "Time", "ms", 40.0f, 1000.0f, 300.0f, Taper::Log},
+    {"heads", "Heads", "", 0, 2, 0, Taper::Choice, kHeadsN},
+    {"feedback", "Feedback", "%", 0.0f, 110.0f, 40.0f},
+    {"tone", "Tone", "%", 0.0f, 100.0f, 50.0f},
+    {"wobble", "Wobble", "%", 0.0f, 100.0f, 25.0f},
+    {"saturation", "Saturation", "%", 0.0f, 100.0f, 40.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 30.0f},
+};
+class Impl final : public hc::fx::Effect {
+public:
+    Impl() { setDefaults(); }
+    std::span<const ParamInfo> params() const noexcept override { return kParams; }
+    void prepare(double fs, std::uint32_t) override {
+        fs_ = fs;
+        for (auto& d : tape_) d.prepare(samples(fs, 3000.0 * 1.01) + 64);
+        reset();
+    }
+    void reset() noexcept override {
+        for (auto& d : tape_) d.clear();
+        for (auto& ch : f_) for (auto& b : ch) b.clear();
+        toneKey_ = -1.0f;
+        wow_ = flut_ = 0.0;
+        time_.prepare(fs_, 150, static_cast<float>(p(Time) * 0.001 * fs_));   // TIME glides: the pitch bends like tape
+        mix_.prepare(fs_, 30, p(Mix) * 0.01f);
+        fb_.prepare(fs_, 30, p(Feedback) * 0.01f);
+    }
+    void process(float* L, float* R, std::uint32_t n) noexcept override {
+        designTone();
+        const int heads = std::clamp(static_cast<int>(std::lround(p(Heads))), 0, 2) + 1;
+        const float wob = p(Wobble) * 0.01f, sat = 1.0f + 3.0f * p(Saturation) * 0.01f;
+        const double wInc = kTwoPi * 0.7 / fs_, fInc = kTwoPi * 7.3 / fs_;
+        float* io[2] = {L, R};
+        for (std::uint32_t i = 0; i < n; ++i) {
+            const float t = time_.next(static_cast<float>(p(Time) * 0.001 * fs_));
+            wow_ += wInc; if (wow_ > kTwoPi) wow_ -= kTwoPi;
+            flut_ += fInc; if (flut_ > kTwoPi) flut_ -= kTwoPi;
+            const float wobble = wob * static_cast<float>(0.004 * t * std::sin(wow_) + 0.0008 * t * std::sin(flut_));
+            const float fb = fb_.next(p(Feedback) * 0.01f), mx = mix_.next(p(Mix) * 0.01f);
+            for (int c = 0; c < 2; ++c) {
+                // playback heads at 1x, 2x, 3x TIME; the last one feeds back
+                float out = 0, last = 0;
+                for (int h = 1; h <= heads; ++h) {
+                    const float v = tape_[c].read(static_cast<float>(h) * t - 1.0f + wobble);
+                    out += v;
+                    last = v;
+                }
+                out /= static_cast<float>(heads);
+                auto& f = f_[static_cast<std::size_t>(c)];
+                const float back = static_cast<float>(f[1].tick(f[0].tick(last)));
+                // the record head: the input plus the feedback, through the tape's saturation
+                tape_[c].write(soft(sat * (io[c][i] + fb * back)) / sat);
+                io[c][i] += mx * (out - io[c][i]);
+            }
+        }
+    }
+private:
+    void designTone() noexcept {
+        const float t = p(Tone);
+        if (t == toneKey_) return;
+        toneKey_ = t;
+        const C hp = C::make(T::HighPass, fs_, 90, 0.6), lp = C::make(T::LowPass, fs_, 1500.0 * std::pow(6.0, t * 0.01), 0.6);   // 1.5 .. 9 kHz
+        for (auto& ch : f_) { ch[0].c = hp; ch[1].c = lp; }
+    }
+    double fs_ = 48000, wow_ = 0, flut_ = 0;
+    hc::fx::DelayLine tape_[2];
+    std::array<std::array<hc::fx::Biquad, 2>, 2> f_{};
+    float toneKey_ = -1;
+    hc::fx::Smoothed time_, mix_, fb_;
+};
+} // namespace te
+
+// ---- DIGITAL DELAY ----------------------------------------------------------------------------------
+namespace dd {
+using namespace ddelay;
+const char* const kDivN[] = {"FREE", "1/4", "1/8", "1/8 D", "1/16", "1/4 T", "1/8 T", "1/2"};
+const ParamInfo kParams[kCount] = {
+    {"division", "Note", "", 0, 7, 2, Taper::Choice, kDivN},
+    {"bpm", "BPM", "", 60.0f, 200.0f, 120.0f},
+    {"time", "Time", "ms", 1.0f, 2000.0f, 375.0f, Taper::Log},
+    {"feedback", "Feedback", "%", 0.0f, 98.0f, 35.0f},
+    {"pingpong", "Ping-Pong", "", 0, 1, 0, Taper::Toggle, kOnOff},
+    {"offset", "Stereo Offset", "ms", 0.0f, 30.0f, 0.0f},
+    {"lowcut", "Low Cut", "Hz", 20.0f, 1000.0f, 60.0f, Taper::Log},
+    {"highcut", "High Cut", "Hz", 1000.0f, 20000.0f, 12000.0f, Taper::Log},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 30.0f},
+};
+class Impl final : public hc::fx::Effect {
+public:
+    Impl() { setDefaults(); }
+    std::span<const ParamInfo> params() const noexcept override { return kParams; }
+    bool paramActive(int i) const noexcept override {
+        const bool free = std::lround(p(Division)) == 0;
+        if (i == Time) return free;
+        if (i == Bpm) return !free;
+        return true;
+    }
+    void prepare(double fs, std::uint32_t) override {
+        fs_ = fs;
+        for (auto& d : line_) d.prepare(samples(fs, 2000.0 + 30.0) + 64);
+        reset();
+    }
+    void reset() noexcept override {
+        for (auto& d : line_) d.clear();
+        for (auto& ch : f_) for (auto& b : ch) b.clear();
+        eqKey_ = -1.0f;
+        time_.prepare(fs_, 50, target());
+        off_.prepare(fs_, 50, static_cast<float>(p(Offset) * 0.001 * fs_));
+        mix_.prepare(fs_, 30, p(Mix) * 0.01f);
+        fb_.prepare(fs_, 30, p(Feedback) * 0.01f);
+    }
+    void process(float* L, float* R, std::uint32_t n) noexcept override {
+        designEq();
+        const bool ping = p(PingPong) >= 0.5f;
+        for (std::uint32_t i = 0; i < n; ++i) {
+            const float t = time_.next(target()), off = off_.next(static_cast<float>(p(Offset) * 0.001 * fs_));
+            const float fb = fb_.next(p(Feedback) * 0.01f), mx = mix_.next(p(Mix) * 0.01f);
+            const float el = line_[0].read(t - 1.0f), er = line_[1].read(t + off - 1.0f);
+            const float fl = static_cast<float>(f_[0][1].tick(f_[0][0].tick(el))), fr = static_cast<float>(f_[1][1].tick(f_[1][0].tick(er)));
+            if (ping) {   // the input goes left; each repeat crosses to the other side
+                line_[0].write(0.5f * (L[i] + R[i]) + fb * fr);
+                line_[1].write(fb * fl);
+            } else {
+                line_[0].write(L[i] + fb * fl);
+                line_[1].write(R[i] + fb * fr);
+            }
+            L[i] += mx * (el - L[i]);
+            R[i] += mx * (er - R[i]);
+        }
+    }
+private:
+    float target() const noexcept {
+        const float ms = delayMs(static_cast<int>(std::lround(p(Division))), p(Bpm), p(Time));
+        return std::clamp(static_cast<float>(ms * 0.001 * fs_), 1.0f, static_cast<float>(2000.0 * 0.001 * fs_));
+    }
+    void designEq() noexcept {
+        const float key = p(LowCut) * 100000.0f + p(HighCut);
+        if (key == eqKey_) return;
+        eqKey_ = key;
+        const C hp = C::make(T::HighPass, fs_, p(LowCut), 0.7071), lp = C::make(T::LowPass, fs_, std::min<double>(p(HighCut), fs_ * 0.45), 0.7071);
+        for (auto& ch : f_) { ch[0].c = hp; ch[1].c = lp; }
+    }
+    double fs_ = 48000;
+    hc::fx::DelayLine line_[2];
+    std::array<std::array<hc::fx::Biquad, 2>, 2> f_{};
+    float eqKey_ = -1;
+    hc::fx::Smoothed time_, off_, mix_, fb_;
+};
+} // namespace dd
+
+} // namespace
+
+std::unique_ptr<hc::fx::Effect> makeHall() { return std::make_unique<rv::Reverb>(verb::Kind::Hall); }
+std::unique_ptr<hc::fx::Effect> makeRoom() { return std::make_unique<rv::Reverb>(verb::Kind::Room); }
+std::unique_ptr<hc::fx::Effect> makePlate() { return std::make_unique<rv::Reverb>(verb::Kind::Plate); }
+std::unique_ptr<hc::fx::Effect> makeSpring() { return std::make_unique<sp::Impl>(); }
+std::unique_ptr<hc::fx::Effect> makeTapeEcho() { return std::make_unique<te::Impl>(); }
+std::unique_ptr<hc::fx::Effect> makeDigitalDelay() { return std::make_unique<dd::Impl>(); }
+
+} // namespace hem::rack

@@ -8,6 +8,7 @@
 #include "hem/rack/Restorer.hpp"
 #include "hem/rack/Tools.hpp"
 #include "hem/rack/MoreDynamics.hpp"
+#include "hem/rack/Hitman.hpp"
 #include "hem/rack/ColorFx.hpp"
 #include "hem/rack/Space.hpp"
 #include "hem/rack/Movement.hpp"
@@ -718,6 +719,87 @@ FaceLayout vocalFace(const rack::PluginInfo& info) {
     return L;
 }
 
+// ---- HITMAN: sidechain EQ + history on top, the sidechain strip, then the two channels, two needles
+// and the saturation; mode, link, ratio, lookahead and mix on the left
+FaceLayout hitmanFace(const rack::PluginInfo& info) {
+    using namespace rack::hitman;
+    FaceLayout L;
+    common(L, info);
+    L.leftNotes = {"DUAL FET", "EATS THE PEAKS"};
+    L.title = {60, 190, 330, 110};
+    L.display = {410, 182, 1226, 250};
+    {   // the sidechain EQ's curve over what the detector hears, and the last few seconds
+        Widget curve;
+        curve.kind = WKind::CurveDisplay;
+        curve.r = {410, 182, 600, 250};
+        L.widgets.push_back(curve);
+        L.recesses.push_back({curve.r, 14, 9, false, true});
+        Widget hist;
+        hist.kind = WKind::History;
+        hist.r = {1026, 182, 610, 250};
+        L.widgets.push_back(hist);
+        L.recesses.push_back({hist.r, 14, 9, false, true});
+    }
+    // the sidechain strip
+    L.widgets.push_back(toggle({410, 462, 150, 40}, ScEq, "SC EQ"));
+    L.widgets.push_back(toggle({410, 516, 150, 40}, ScListen, "LISTEN"));
+    L.widgets.push_back(choiceButton({575, 462, 150, 40}, ScSource, 0, ""));
+    L.widgets.push_back(choiceButton({575, 516, 150, 40}, ScSource, 1, ""));
+    {
+        const std::size_t first = L.widgets.size();
+        const struct { int p; const char* cap; } sk[6] = {{ScHpf, "SC HPF"}, {ScBellFreq, "BELL FREQ"}, {ScBellGain, "BELL GAIN"},
+                                                         {ScBellQ, "BELL Q"}, {ScLpf, "SC LPF"}, {ScLink, "SC LINK"}};
+        for (int i = 0; i < 6; ++i) {
+            const float cx = 814 + static_cast<float>(i) * 149;
+            L.widgets.push_back(knob({cx - 32, 476, 64, 64}, sk[i].p, sk[i].cap, "", "", true));
+        }
+        seatKnobs(L, first, 9);
+    }
+    L.grooves.push_back({410, 592, 1636, 592});
+    // the two channels: INPUT, OUTPUT, ATTACK, RELEASE
+    {
+        const std::size_t first = L.widgets.size();
+        const int ch1[4] = {Input1, Output1, Attack1, Release1}, ch2[4] = {Input2, Output2, Attack2, Release2};
+        const char* cap1[4] = {"INPUT 1", "OUTPUT 1", "ATTACK 1", "RELEASE 1"};
+        const char* cap2[4] = {"INPUT 2", "OUTPUT 2", "ATTACK 2", "RELEASE 2"};
+        for (int i = 0; i < 4; ++i) {
+            const float cx = 470 + static_cast<float>(i) * 120;
+            L.widgets.push_back(knob({cx - 30, 624, 60, 60}, ch1[i], cap1[i], "", "", true));
+            L.widgets.push_back(knob({cx - 30, 730, 60, 60}, ch2[i], cap2[i], "", "", true));
+        }
+        seatKnobs(L, first, 8);
+    }
+    L.grooves.push_back({895, 604, 895, 820});
+    // the needles: channel 1 and channel 2
+    for (int c = 0; c < 2; ++c) {
+        Widget gr;
+        gr.kind = WKind::GrMeter;
+        gr.choice = c;
+        gr.caption = c == 0 ? "CHANNEL 1  (L / M)" : "CHANNEL 2  (R / S)";
+        gr.r = {910 + static_cast<float>(c) * 245, 606, 235, 212};
+        L.widgets.push_back(gr);
+        L.recesses.push_back({gr.r, 12, 8, false, true});
+    }
+    // saturation
+    L.sections.push_back({{1400, 596, 236, 28}, "SATURATION"});
+    for (int i = 0; i < 5; ++i) L.widgets.push_back(choiceButton({1400, 630 + static_cast<float>(i) * 38, 236, 32}, Saturation, i));
+    // the left column: mode, link, ratio, lookahead, mix, power
+    L.widgets.push_back(choiceButton({70, 330, 130, 40}, Mode, 0, ""));
+    L.widgets.push_back(choiceButton({210, 330, 130, 40}, Mode, 1, ""));
+    L.widgets.push_back(toggle({70, 380, 270, 40}, Link, "LINK"));
+    L.sections.push_back({{60, 428, 290, 26}, "RATIO"});
+    for (int i = 0; i < 5; ++i) L.widgets.push_back(choiceButton({70 + static_cast<float>(i) * 55, 458, 50, 40}, Ratio, 4 - i));   // ALL first, like the hardware
+    {
+        const std::size_t first = L.widgets.size();
+        L.widgets.push_back(knob({100, 548, 70, 70}, Lookahead, "LOOKAHEAD", "", "", true));
+        L.widgets.push_back(knob({240, 548, 70, 70}, Mix, "MIX", "", "", true));
+        seatKnobs(L, first, 10);
+    }
+    buttonSeats(L);
+    bypassAt(L, {160, 692, 90, 90});
+    return L;
+}
+
 } // namespace
 
 FaceLayout faceLayout(const rack::PluginInfo& info) {
@@ -743,6 +825,7 @@ FaceLayout faceLayout(const rack::PluginInfo& info) {
     case rack::Face::AutoFilter: return movementFace(info);
     case rack::Face::Sub: return subFace(info);
     case rack::Face::VocalStrip: return vocalFace(info);
+    case rack::Face::Hitman: return hitmanFace(info);
     case rack::Face::Restorer: break;
     }
     return restorer(info);

@@ -112,9 +112,10 @@ enum class WKind : std::uint8_t {
     GraphRange,    // ELITE EQ: ±3 / ±6 / ±12 / ±30 dB buttons (choice = index)
     BandButton,    // ELITE EQ: band 1..16 selector (choice = band)
     CurveDisplay,  // VELVET: spectrum + the EQ's curve (display only)
-    GrMeter,       // compressors: gain-reduction needle (display only)
+    GrMeter,       // compressors: gain-reduction needle (display only); choice >= 0: meter `choice` instead, caption under it
     VuMeter,       // TAPE: VU needle for meter `choice` (display only)
     Readout,       // a big number: meter `choice` of the effect, with `caption` and the meter's unit (display only)
+    History,       // the last few seconds of meters 0 and 1 (gain reduction) and 2 (input level), scrolling (display only)
 };
 
 struct Widget {
@@ -232,6 +233,7 @@ private:
     void grMeter(const Ctx& c, const Widget& w) const;
     void vuMeter(const Ctx& c, const Widget& w) const;
     void readout(const Ctx& c, const Widget& w) const;
+    void history(const Ctx& c, const Widget& w) const;
     void spectrumBehind(const Ctx& c, Rect plot, float alpha) const;
     void grid(const Ctx& c, Rect plot, float dbTop, float dbBottom, float dbStep, bool signedLabels) const;
     [[nodiscard]] float plain(const PanelHost& host, int param) const;
@@ -240,6 +242,10 @@ private:
     ParamTable        params_;
     Theme             th_;
     mutable float     needle_ = 1.0f;   // the GR needle's position (it swings, it doesn't jump); > 0 = not drawn yet
+    mutable std::array<float, 4> needles_{1.0f, 1.0f, 1.0f, 1.0f};   // needles that show a meter (by meter index)
+    static constexpr int kHistory = 240;   // frames of meter history (about 4 s at 60 frames a second)
+    mutable std::array<std::array<float, kHistory>, 3> hist_{};
+    mutable int histPos_ = 0, histCount_ = 0;
     mutable float     vu_[2] = {100.0f, 100.0f};   // VU needles; 100 = not drawn yet
 };
 

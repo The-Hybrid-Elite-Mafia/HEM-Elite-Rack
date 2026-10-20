@@ -8,6 +8,7 @@
 #include "hem/rack/Restorer.hpp"
 #include "hem/rack/Tools.hpp"
 #include "hem/rack/MoreDynamics.hpp"
+#include "hem/rack/Hitman.hpp"
 #include "hem/rack/ColorFx.hpp"
 #include "hem/rack/Space.hpp"
 #include "hem/rack/Movement.hpp"
@@ -58,6 +59,10 @@ const PluginInfo kPlugins[] = {
      "Clean, modern compressor: ratio, knee, attack, release or auto, auto makeup, sidechain HPF",
      {0x823E513Au, 0x83E8451Bu, 0xA51AB94Cu, 0xE6F6EA5Bu}, {0x1FBA4F56u, 0xF9B74DC4u, 0xA5C98199u, 0x9A92B5B2u},
      Face::VcaComp, Group::Dynamics, &makeVcaComp},
+    {"HITMAN", "DUAL FET PEAK COMPRESSOR", "EAT THE PEAKS", "Fx|Dynamics",
+     "Dual FET compressor: L/R or M/S, lookahead, sidechain EQ, saturation, mix",
+     {0x8B792152u, 0x8154454Du, 0xAF70E40Au, 0x892CECEDu}, {0xEE8B2C74u, 0x8D894CE5u, 0xAA3D510Fu, 0x23EB1DB9u},
+     Face::Hitman, Group::Dynamics, &makeHitman, &kHitmanScCurve},
     {"FURNACE", "TUBE SATURATOR", "WARM WHAT MATTERS", "Fx|Distortion",
      "Tube stage: drive, bias for even harmonics, tone, mix - colour without the volume jump",
      {0x4B77D551u, 0xB1494534u, 0x8B631BB3u, 0x5A93E0F1u}, {0x84D480F5u, 0xD1364F7Du, 0x91770D82u, 0xA8291747u},

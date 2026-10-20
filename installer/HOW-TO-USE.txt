@@ -63,6 +63,16 @@ ENFORCER
   (higher = smoother), ATTACK (slower lets the punch through), RELEASE or AUTO REL,
   AUTO GAIN gives back about half of what it takes. SIDECHAIN HPF stops the bass pumping it.
 
+HITMAN (dual FET peak compressor)
+  Turn INPUT up to compress harder, OUTPUT to set the level (OUTPUT also drives SATURATION).
+  ATTACK and RELEASE: 7 is fastest. RATIO 4 / 8 / 12 / 20, or ALL for the aggressive, crunchy smash.
+  MODE L/R or M/S; LINK makes channel 2 follow channel 1's knobs (turn it off to set them apart).
+  LOOKAHEAD (up to 2 ms) catches the very first edge of a hit. SC EQ shapes what it listens to
+  (e.g. SC HPF so the kick doesn't pump it); LISTEN lets you hear that. SOURCE EXT uses the
+  sidechain input in a DAW (the rack has no second input, so there it listens to itself).
+  SATURATION: DRY, CLIP (nothing over 0 dBFS), WARM, TRIODE, TAPE. MIX for parallel smashing.
+  The screen on the right shows the last few seconds: gain reduction of both channels and the input.
+
 FURNACE
   DRIVE for more tube colour (the level stays about the same), BIAS toward EVEN = warmer.
   TONE darker or brighter after the tube, MIX to blend.

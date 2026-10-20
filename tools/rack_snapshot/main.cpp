@@ -12,6 +12,7 @@
 #include "hem/rack/Restorer.hpp"
 #include "hem/rack/Tools.hpp"
 #include "hem/rack/MoreDynamics.hpp"
+#include "hem/rack/Hitman.hpp"
 #include "hem/rack/ColorFx.hpp"
 #include "hem/rack/Space.hpp"
 #include "hem/rack/Movement.hpp"
@@ -140,6 +141,10 @@ int main(int argc, char** argv) {
             fx->set(hem::rack::sub::Amount, 60);
         } else if (info.face == hem::rack::Face::VocalStrip) {
             fx->set(hem::rack::vocal::Compress, 70); fx->set(hem::rack::vocal::Hpf, 2);
+        } else if (info.face == hem::rack::Face::Hitman) {
+            using namespace hem::rack::hitman;
+            fx->set(Input1, 14); fx->set(Ratio, 1); fx->set(ScEq, 1); fx->set(ScHpf, 90); fx->set(ScBellFreq, 3000); fx->set(ScBellGain, 6);
+            fx->set(Saturation, 2);
         } else if (info.face == hem::rack::Face::Restorer) {
             fx->set(hem::rack::restorer::Reduction, 6.0f);
         }

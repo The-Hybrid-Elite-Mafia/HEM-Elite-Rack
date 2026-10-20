@@ -14,6 +14,7 @@ add_library(hem_rackfx STATIC
     src/Tools.cpp
     src/LoudnessMeter.cpp
     src/MoreDynamics.cpp
+    src/Hitman.cpp
     src/ColorFx.cpp
     src/Space.cpp
     src/Movement.cpp
