@@ -11,7 +11,7 @@ using namespace tommygun;
 const char* const kRateN[] = {"1/16", "1/8", "1/4", "1/2", "1 BAR"};
 const char* const kSourceN[] = {"HOST", "BPM"};
 const ParamInfo kParams[kCount] = {
-    {"amount", "Amount", "%", 0.0f, 100.0f, 0.0f},
+    {"amount", "Amount", "/10", 0.0f, 10.0f, 0.0f},
     {"rate", "Rate", "", 0, 4, 2, Taper::Choice, kRateN},
     {"offset", "Offset", "deg", -180.0f, 180.0f, 0.0f},
     {"syncsource", "Tempo From", "", 0, 1, 0, Taper::Choice, kSourceN},
@@ -36,7 +36,7 @@ public:
         const double bpm = p(SyncSource) >= 0.5f ? p(Bpm) : tempo();
         const double cycle = kRateBeats[ri];
         const double beatPerSample = bpm / 60.0 / fs_;
-        const float amt = p(Amount) * 0.01f;
+        const float amt = p(Amount) * 0.1f;
         const float depthDb = -24.0f * amt;                     // how deep it dips
         const float sharp = 3.0f + 6.0f * amt;                  // and how quickly it comes back up (harder with AMOUNT)
         const double off = p(Offset) / 360.0;

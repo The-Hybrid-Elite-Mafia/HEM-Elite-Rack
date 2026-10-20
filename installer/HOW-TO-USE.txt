@@ -138,16 +138,28 @@ OLD MONEY
 
 KNOCKOUT
   ATTACK + makes hits snap, - softens them. SUSTAIN + brings up the ring and room, - dries it.
-  SENSITIVITY and LENGTH for each, SHAPE for the feel. MODE 4-BAND lets you set how much each band
-  gets (LOW .. HIGH). GUARD CLIP / LIMIT keeps it under 0 dBFS.
+  SENSITIVITY and LENGTH for each, SHAPE for the feel. GUARD CLIP / LIMIT keeps it under 0 dBFS.
+
+HAYMAKER / FOUR KINGS
+  RANGE + makes hits stand out, - softens them; SENS = how big a jump counts as a hit; DURATION = how
+  fast a rise must be; RELEASE = how quickly it lets go. FOUR KINGS does it in four bands (each with
+  ON, RANGE, SENS; MASTER moves them all). TRIM (one push) brings the loudest peak to 0 dBFS.
+
+BACKBONE
+  Two faders. LOW LEVEL up = the quiet parts come up (it lifts noise too, so go easy). HIGH LEVEL down =
+  the loud parts are held, with the level made back up. OUTPUT trims the end result.
 
 FULL HOUSE
-  GATE keeps quiet noise down. LOW THRESHOLD + MAX LIFT bring up the quiet parts. LEVELER rides the
-  average level (SOFT slower, LOUD faster). HIGH LEVEL holds the loud parts and makes the level back up.
+  Four sections, each with its own ON. LEVELER brings loud passages toward its level, slowly (LOUD lets
+  go sooner). GATE keeps quiet noise down. LOW LEVEL lifts what's under its THRESHOLD by up to GAIN.
+  HIGH LEVEL holds what's over its THRESHOLD; its GAIN is the most that ever comes out.
 
-WHEELMAN
-  Pick VOCAL or BASS, set TARGET to the level you want. It rides up to MAX BOOST and down to MAX CUT,
-  and holds still for anything under SENSITIVITY (gaps, breaths). SPEED SLOW is smoother.
+WHEELMAN / CHAUFFEUR
+  Set TARGET to the level you want the vocal (WHEELMAN) or bass (CHAUFFEUR) to sit at; it rides the
+  level between RANGE MIN and MAX. IDLE = where it sits when the part isn't playing. WHEELMAN: VOCAL
+  SENSITIVITY = how loud the voice must be to count; LIVE + SPILL ignores other instruments in the mic.
+  CHAUFFEUR: NOTE DETECT, IGNORE SPILL and IGNORE CLICKS decide what counts as a bass note.
+  (No music sidechain and no automation writing: the rack doesn't have those.)
 
 THE MAXIMIZERS - every one ends with the same three steppers:
   QUANTIZE = the word length of what comes out (24 BIT unless the file is going to 16 bit).
@@ -188,17 +200,25 @@ SWEET SIXTEEN
   SEPARATION LOW / MEDIUM / HIGH = how sharply the sixteen bands are cut apart. The lowest bands
   overlap (no linear-phase filter can cut sharply that low).
 
-SILENCER
-  THRESHOLD down until the esses get caught, RANGE = the most it takes off. DETECT SMART catches loud
-  and soft esses the same; CLASSIC listens with a filter at FREQUENCY. TAKES DOWN SPLIT = only the
-  highs, WIDE = the whole sound. LISTEN plays what it reacts to.
+SILENCER / TIGHT LIPS
+  THRESHOLD down until the esses get caught. FREQUENCY = where the esses are; SIDECHAIN HIGH-PASS
+  listens to everything above it, BAND-PASS only around it. SPLIT turns down only the highs, WIDE the
+  whole sound for that moment. TIGHT LIPS: RANGE = the most it takes off; LISTEN plays what it hears.
+  SILENCER: MONITOR SIDECHAIN plays what it hears.
+
+OMERTA
+  No frequency to set: it hears how bright each sound is, so loud and soft esses at any pitch are
+  caught the same. THRESHOLD, RANGE, DETECTION WIDTH (0 = only pure esses), MODE from WIDE to SPLIT,
+  LOOKAHEAD catches each ess from its start. MONITOR plays what it takes out.
 
 BREATHLESS
   LEVEL GATE: breaths are quieter than this. SENSITIVITY: how breath-like a sound must be.
-  REDUCTION: how far they go down. FADE OUT / IN for smooth edges. LISTEN BREATHS plays only what it takes out.
+  REDUCTION: how far they go down (all the way left = gone). FADE OUT / IN for smooth edges.
+  ROOM TONE: breaths only go down to the room's level, so gaps don't go dead. LISTEN BREATHS plays only
+  what it takes out.
 
 TOMMY GUN
-  One knob: AMOUNT. RATE = how often it pumps (a note of the tempo), OFFSET shifts where in the beat
+  One knob: AMOUNT (0-10). RATE = how often it pumps (a note of the tempo), OFFSET shifts where in the beat
   it dips. TEMPO FROM HOST in a DAW; BPM knob in the rack.
 
 STRAIGHT SHOOTER

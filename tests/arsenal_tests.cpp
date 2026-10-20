@@ -78,7 +78,8 @@ void hitAndTail(const Stereo& s, std::uint32_t lat, double& hitDb, double& tailD
 
 void allRules() {
     for (const char* name : {"SWITCHBLADE", "TERRITORY", "STRAIGHT EDGE", "CONSIGLIERE", "STONE COLD", "HEAVYWEIGHT", "THE DON", "SLOW BURN", "LONE WOLF",
-                             "IRON FIST", "QUICK DRAW", "OLD MONEY", "KNOCKOUT", "FULL HOUSE", "WHEELMAN", "SILENCER", "BREATHLESS", "TOMMY GUN"}) {
+                             "IRON FIST", "QUICK DRAW", "OLD MONEY", "KNOCKOUT", "HAYMAKER", "FOUR KINGS", "BACKBONE", "FULL HOUSE", "WHEELMAN",
+                             "CHAUFFEUR", "SILENCER", "TIGHT LIPS", "OMERTA", "BREATHLESS", "TOMMY GUN"}) {
         const PluginInfo* info = findPlugin(name);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
@@ -455,55 +456,132 @@ void testPunchers() {
         Stereo n = noise(0.5, 0.5f), ref = n;
         run(*neutral, n);
         CHECK(maxDelayedDiff(n, ref, 0, 0) < 1e-5);
-        const double d = blockSizeDifference(*findPlugin("KNOCKOUT"), [](hc::fx::Effect& x) { x.set(Attack, 80); x.set(Mode, 1); x.set(Guard, 2); }, hits(1.0, 0.8f));
+        const double d = blockSizeDifference(*findPlugin("KNOCKOUT"), [](hc::fx::Effect& x) { x.set(Attack, 80); x.set(Guard, 2); }, hits(1.0, 0.8f));
         CHECK(d < 1e-5);
+    }
+    {   // HAYMAKER: plus RANGE makes the hits stand out, minus softens them; the body stays
+        using namespace haymaker;
+        Stereo dry = hits(3.0, 0.5f);
+        double hd, td, hu, tu, hdn, tdn;
+        hitAndTail(dry, 0, hd, td);
+        auto up = make("HAYMAKER", {{Range, 12}}), down = make("HAYMAKER", {{Range, -12}});
+        Stereo a = dry, b = dry;
+        run(*up, a);
+        run(*down, b);
+        hitAndTail(a, 0, hu, tu);
+        hitAndTail(b, 0, hdn, tdn);
+        std::printf("  HAYMAKER hits: dry %.1f dB; range +12 %.1f; range -12 %.1f (tails %.1f / %.1f / %.1f)\n", hd, hu, hdn, td, tu, tdn);
+        CHECK(hu > hd + 3.0 && hdn < hd - 3.0 && std::fabs(tu - td) < 1.5);
+        auto flat = make("HAYMAKER", {{Range, 6}});
+        CHECK(std::fabs(toneOut(*flat, 1000, 0.3f)) < 0.2);   // a steady tone has no transients
+        // TRIM: one push brings the loudest peak to 0 dBFS
+        auto t = make("HAYMAKER", {{Range, 0}});
+        Stereo x = noise(1.0, 0.25f, 2);
+        run(*t, x);
+        t->set(Trim, 1);
+        Stereo y = noise(1.0, 0.25f, 2);
+        run(*t, y);
+        CHECK(std::fabs(peakDb(y, 0)) < 0.5);
+    }
+    {   // FOUR KINGS: only the band that's switched on and has RANGE moves
+        using namespace fourkings;
+        auto low = make("FOUR KINGS", {{band(0, Range), 12}, {band(1, On), 0}, {band(2, On), 0}, {band(3, On), 0}});
+        auto none = make("FOUR KINGS", {{band(0, On), 0}, {band(1, On), 0}, {band(2, On), 0}, {band(3, On), 0}});
+        Stereo dry = hits(3.0, 0.5f), a = dry, b = dry;
+        run(*low, a);
+        run(*none, b);
+        double ha, ta, hb, tb;
+        hitAndTail(a, 0, ha, ta);
+        hitAndTail(b, 0, hb, tb);
+        std::printf("  FOUR KINGS 120 Hz hits: band 1 range +12 %.1f dB, all off %.1f dB\n", ha, hb);
+        CHECK(ha > hb + 3.0);
+        // all off: the bands add back up to an all-pass (same level)
+        Stereo n = noise(1.0, 0.3f, 6), r = n;
+        run(*none, n);
+        CHECK(std::fabs(db(rms(n.l, 0, 48000)) - db(rms(r.l, 0, 48000))) < 0.1);
     }
 }
 
 void testLoudness() {
     {   using namespace fullhouse;
-        auto lift = make("FULL HOUSE", {{LowLift, 12}, {LowThreshold, -30}});
-        const double q = toneOut(*lift, 500, 0.01f, 3.0);   // -40 dBFS: 10 dB under -30 -> +5 dB
-        auto hold = make("FULL HOUSE", {{HighLevel, 100}});
-        const double l = toneOut(*hold, 500, 0.9f, 2.0);
-        auto gate = make("FULL HOUSE", {{Gate, -50}});
+        auto lift = make("FULL HOUSE", {{LowOn, 1}, {LowGain, 12}, {LowThreshold, -30}, {HighOn, 0}});
+        const double q = toneOut(*lift, 500, 0.01f, 3.0);   // -40 dBFS: 10 dB under -30 -> +5 dB (sine peaks: a little less)
+        auto hold = make("FULL HOUSE", {{LowOn, 0}, {HighOn, 1}, {HighThreshold, -24}, {HighGain, -6}});
+        Stereo n = noise(2.0, 0.9f);
+        run(*hold, n);
+        auto gate = make("FULL HOUSE", {{GateOn, 1}, {Gate, -50}, {LowOn, 0}, {HighOn, 0}});
         const double g = toneOut(*gate, 500, 0.001f, 2.0);
-        std::printf("  FULL HOUSE: -40 dBFS lifted %+.1f dB; loud held %+.1f dB; -60 dBFS under a -50 gate %+.1f dB\n", q, l, g);
-        CHECK(q > 3.5 && q < 6.5 && l < -3.0 && g < -25.0);
+        auto lev = make("FULL HOUSE", {{LevelerOn, 1}, {Leveler, -20}, {LowOn, 0}, {HighOn, 0}});
+        const double l = toneOut(*lev, 500, 0.5f, 8.0);
+        std::printf("  FULL HOUSE: -40 dBFS lifted %+.1f dB; high gain -6 peaks %.2f dBFS; -60 dBFS under a -50 gate %+.1f dB; -9 dBFS RMS levelled to -20: %+.1f dB\n",
+                    q, peakDb(n, 0), g, l);
+        CHECK(q > 3.0 && q < 6.5 && peakDb(n, 0) <= -5.99 && g < -8.0 && l < -8.0);
+    }
+    {   using namespace backbone;
+        auto lift = make("BACKBONE", {{LowLevel, 24}});
+        const double q = toneOut(*lift, 500, 0.01f, 3.0);   // -40 dBFS, threshold -36: +2 dB; quieter: more
+        const double qq = toneOut(*lift, 500, 0.001f, 3.0); // -60 dBFS: 24 under -> +12
+        auto hold = make("BACKBONE", {{HighLevel, -24}});
+        const double h = toneOut(*hold, 500, 0.1f, 2.0) + db(0.1);   // -20 dBFS over -24, made up so 0 dBFS stays
+        std::printf("  BACKBONE: low level 24 lifts -40 dBFS %+.1f dB, -60 dBFS %+.1f dB; high level -24: -20 dBFS comes out %.1f dBFS\n", q, qq, h);
+        CHECK(q > 0.5 && qq > 9.0 && qq < 13.0 && h > -8.0);
     }
     {   using namespace wheelman;
-        auto e = make("WHEELMAN", {{Target, -20}, {MaxBoost, 12}, {MaxCut, 12}});
+        auto e = make("WHEELMAN", {{Target, -20}, {RangeMin, -12}, {RangeMax, 12}});
         const double loud = toneOut(*e, 1000, 0.5f, 4.0), quiet = toneOut(*e, 1000, 0.03f, 4.0);
-        // -6 dBFS -> wants -20: cut 12 (the most); -30 dBFS -> boost 10 (sine peaks read +3 over RMS)
+        // -9 dBFS RMS -> wants -20: cut 11; -33 dBFS RMS -> boost 12 (the most)
         std::printf("  WHEELMAN target -20: a -6 dBFS tone %+.1f dB, a -30 dBFS tone %+.1f dB\n", loud, quiet);
-        CHECK(loud < -10.0 && quiet > 6.0);
-        auto still = make("WHEELMAN", {{Sensitivity, -40}});
-        const double under = toneOut(*still, 1000, 0.003f, 2.0);   // -50 dBFS, under SENSITIVITY: left alone
-        CHECK(std::fabs(under) < 0.2);
+        CHECK(loud < -9.0 && quiet > 9.0);
+        auto idle = make("WHEELMAN", {{Idle, -6}, {Sensitivity, -12}});
+        const double under = toneOut(*idle, 1000, 0.003f, 3.0);   // too quiet to count as a voice: the wheel sits at IDLE
+        std::printf("  WHEELMAN idle -6, no voice: %+.1f dB\n", under);
+        CHECK(std::fabs(under + 6.0) < 0.5);
+        auto live = make("WHEELMAN", {{Live, 1}, {Spill, -20}, {Idle, 0}});
+        CHECK(std::fabs(toneOut(*live, 1000, 0.03f, 3.0)) < 0.5);   // -33 dBFS RMS is under SPILL: left alone
+    }
+    {   using namespace chauffeur;
+        auto e = make("CHAUFFEUR", {{Target, -20}, {RangeMin, -12}, {RangeMax, 12}});
+        const double loud = toneOut(*e, 80, 0.5f, 4.0), quiet = toneOut(*e, 80, 0.05f, 4.0);
+        std::printf("  CHAUFFEUR target -20: an 80 Hz note at -6 dBFS %+.1f dB, at -26 dBFS %+.1f dB\n", loud, quiet);
+        CHECK(loud < -8.0 && quiet > 4.0);
+        // a cymbal-like high sound isn't a bass note: the wheel stays at IDLE
+        auto hi = make("CHAUFFEUR", {{Target, -20}, {Idle, 0}});
+        const double h = toneOut(*hi, 6000, 0.05f, 3.0);
+        std::printf("  CHAUFFEUR a 6 kHz tone: %+.1f dB (not a note)\n", h);
+        CHECK(std::fabs(h) < 0.5);
     }
 }
 
 void testDeEssAndBreath() {
     {   using namespace silencer;
-        for (int det = 0; det < 2; ++det) {
-            auto e = make("SILENCER", {{Detect, static_cast<float>(det)}, {Threshold, -40}, {Range, 12}});
-            const double ess = toneOut(*e, 8000, 0.3f), body = toneOut(*e, 400, 0.3f);
-            std::printf("  SILENCER %s: 8 kHz %.1f dB, 400 Hz %.1f dB\n", det ? "smart" : "classic", ess, body);
-            CHECK(ess < -8.0 && std::fabs(body) < 0.5);
-        }
-        // SMART: a loud voice with only a little top isn't an ess (CLASSIC at the same threshold reacts to it)
-        auto mixSig = [] {
-            Stereo s = sine(300, 1.5, 0.6f);
-            add(s, sine(7000, 1.5, 0.05f));
-            return s;
-        };
-        auto cl = make("SILENCER", {{Detect, 0}, {Threshold, -40}, {Range, 12}}), sm = make("SILENCER", {{Detect, 1}, {Threshold, -40}, {Range, 12}});
-        Stereo a = mixSig(), b = mixSig();
-        run(*cl, a);
-        run(*sm, b);
-        const double ca = db(toneAmp(a.l, 7000, a.size() - 12000, 12000) / 0.05), sa = db(toneAmp(b.l, 7000, b.size() - 12000, 12000) / 0.05);
-        std::printf("  SILENCER voice with a little top: classic takes %.1f dB, smart %.1f dB\n", ca, sa);
-        CHECK(ca < -6.0 && sa > -2.0);
+        auto e = make("SILENCER", {{Threshold, -40}});
+        const double ess = toneOut(*e, 8000, 0.3f), body = toneOut(*e, 400, 0.3f);
+        std::printf("  SILENCER: 8 kHz %.1f dB, 400 Hz %.1f dB\n", ess, body);
+        CHECK(ess < -8.0 && std::fabs(body) < 0.5);
+        auto wide = make("SILENCER", {{Threshold, -40}, {Audio, 1}});
+        Stereo s = sine(400, 1.5, 0.3f);
+        add(s, sine(8000, 1.5, 0.3f));
+        run(*wide, s);
+        CHECK(db(toneAmp(s.l, 400, s.size() - 12000, 12000) / 0.3) < -3.0);   // WIDE: the body comes down with the ess
+    }
+    {   using namespace tightlips;
+        auto e = make("TIGHT LIPS", {{Threshold, -50}, {Range, -8}});
+        const double ess = toneOut(*e, 8000, 0.3f), body = toneOut(*e, 400, 0.3f);
+        std::printf("  TIGHT LIPS range -8: 8 kHz %.1f dB, 400 Hz %.1f dB\n", ess, body);
+        CHECK(std::fabs(ess + 8.0) < 2.5 && std::fabs(body) < 0.5);   // SPLIT: the highs band runs a little over the cut
+    }
+    {   using namespace omerta;
+        // a loud voice with only a little top isn't an ess; a pure ess is
+        auto e = make("OMERTA", {{Threshold, -50}, {Range, -12}});
+        Stereo a = sine(300, 1.5, 0.6f);
+        add(a, sine(7000, 1.5, 0.05f));
+        run(*e, a);
+        const double voice = db(toneAmp(a.l, 7000, a.size() - 12000, 12000) / 0.05);
+        auto f = make("OMERTA", {{Threshold, -50}, {Range, -12}, {Mode, 100}});
+        const double ess = toneOut(*f, 7000, 0.1f), body = toneOut(*f, 300, 0.1f);
+        std::printf("  OMERTA: a voice's little top %.1f dB; a pure ess %.1f dB; a low tone %.1f dB\n", voice, ess, body);
+        CHECK(voice > -2.0 && ess < -8.0 && std::fabs(body) < 0.5);
+        CHECK(e->latency() == kLookahead);
     }
     {   using namespace breathless;
         // a breath: soft noise in the middle highs; a word: a voiced tone with harmonics, at the same level
@@ -521,7 +599,7 @@ void testDeEssAndBreath() {
             for (int k = 1; k <= 8; ++k) v += static_cast<float>(std::sin(2 * std::numbers::pi * 160 * k * t) / k);
             word.l[i] = word.r[i] = 0.012f * v;
         }
-        auto e = make("BREATHLESS", {{Reduction, 20}});
+        auto e = make("BREATHLESS", {{Reduction, -20}});
         Stereo b = breath, w = word;
         run(*e, b);
         e->reset();
@@ -529,6 +607,15 @@ void testDeEssAndBreath() {
         const double bd = db(rms(b.l, 24000, 36000) / rms(breath.l, 24000, 36000)), wd = db(rms(w.l, 24000, 36000) / rms(word.l, 24000, 36000));
         std::printf("  BREATHLESS: breath-like noise %.1f dB, voiced tone %.1f dB\n", bd, wd);
         CHECK(bd < -12.0 && std::fabs(wd) < 1.0);
+        // ROOM TONE: the breath only comes down as far as the room (here: the breath itself is the quietest there is)
+        auto room = make("BREATHLESS", {{Reduction, -80}, {RoomTone, 1}});
+        Stereo c = breath, longer = breath;
+        for (int k = 0; k < 2; ++k) { c.l.insert(c.l.end(), breath.l.begin(), breath.l.end()); c.r.insert(c.r.end(), breath.r.begin(), breath.r.end()); }
+        longer = c;
+        run(*room, c);
+        const double rd = db(rms(c.l, 144000, 48000) / rms(longer.l, 144000, 48000));
+        std::printf("  BREATHLESS reduction all, ROOM TONE on: breath %.1f dB\n", rd);
+        CHECK(rd > -12.0);
     }
 }
 
@@ -538,11 +625,11 @@ void testPump() {
     Stereo s = noise(0.5, 0.5f), ref = s;
     run(*off, s);
     CHECK(maxDelayedDiff(s, ref, 0, 0) < 1e-6);
-    auto e = make("TOMMY GUN", {{Amount, 100}, {SyncSource, 1}, {Bpm, 120}, {Rate, 2}});   // a dip every 0.5 s
+    auto e = make("TOMMY GUN", {{Amount, 10}, {SyncSource, 1}, {Bpm, 120}, {Rate, 2}});   // a dip every 0.5 s
     Stereo c = sine(1000, 2.0, 0.5f);
     run(*e, c);
     const double dip = db(rms(c.l, 48000 + 240, 240) / (0.5 / std::sqrt(2.0))), up = db(rms(c.l, 48000 + 19200, 960) / (0.5 / std::sqrt(2.0)));
-    std::printf("  TOMMY GUN amount 100, quarter notes at 120: on the beat %.1f dB, 0.4 s later %.1f dB\n", dip, up);
+    std::printf("  TOMMY GUN amount 10, quarter notes at 120: on the beat %.1f dB, 0.4 s later %.1f dB\n", dip, up);
     CHECK(dip < -15.0 && up > -3.0);
 }
 

@@ -1,4 +1,4 @@
-// KNOCKOUT — transient designer, wide or 4-band (see Arsenal.hpp).
+// KNOCKOUT — transient designer (see Arsenal.hpp).
 #include "hem/rack/Arsenal.hpp"
 
 #include "Common.hpp"
@@ -8,12 +8,10 @@ namespace {
 using namespace arsenal;
 using namespace knockout;
 
-const char* const kModeN[] = {"WIDE", "4-BAND"};
 const char* const kAttShapeN[] = {"SHARP", "PUNCHY", "ROUND"};
 const char* const kSusShapeN[] = {"EVEN", "CURVED", "SOFT"};
 const char* const kGuardN[] = {"OFF", "CLIP", "LIMIT"};
 const ParamInfo kParams[kCount] = {
-    {"mode", "Mode", "", 0, 1, 0, Taper::Choice, kModeN},
     {"attack", "Attack", "%", -100.0f, 100.0f, 0.0f},
     {"attacksens", "Attack Sensitivity", "%", 0.0f, 100.0f, 50.0f},
     {"attacktime", "Attack Length", "ms", 0.5f, 500.0f, 20.0f, Taper::Log},
@@ -22,16 +20,11 @@ const ParamInfo kParams[kCount] = {
     {"sustainsens", "Sustain Sensitivity", "%", 0.0f, 100.0f, 50.0f},
     {"sustaintime", "Sustain Length", "ms", 30.0f, 1000.0f, 200.0f, Taper::Log},
     {"sustainshape", "Sustain Shape", "", 0, 2, 0, Taper::Choice, kSusShapeN},
-    {"band1", "Low Amount", "%", 0.0f, 200.0f, 100.0f},
-    {"band2", "Low Mid Amount", "%", 0.0f, 200.0f, 100.0f},
-    {"band3", "High Mid Amount", "%", 0.0f, 200.0f, 100.0f},
-    {"band4", "High Amount", "%", 0.0f, 200.0f, 100.0f},
     {"guard", "Guard", "", 0, 2, 0, Taper::Choice, kGuardN},
     {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
     {"output", "Output", "dB", -24.0f, 24.0f, 0.0f},
 };
 
-constexpr int kB = 4;
 constexpr float kCeil = 0.9886f;   // -0.1 dBFS
 
 // One band's shaper state.
@@ -45,7 +38,6 @@ public:
     Impl() { setDefaults(); }
     std::span<const ParamInfo> params() const noexcept override { return kParams; }
     bool paramActive(int i) const noexcept override {
-        if (i >= Band1 && i <= Band4) return p(Mode) >= 0.5f;
         if (i == AttackSens || i == AttackTime || i == AttackShape) return p(Attack) != 0.0f;
         if (i == SustainSens || i == SustainTime || i == SustainShape) return p(Sustain) != 0.0f;
         return true;
@@ -53,19 +45,14 @@ public:
 
     void prepare(double fs, std::uint32_t) override {
         fs_ = fs;
-        for (auto& x : xo_) x.design(fs, kCrossHz, kB);
         reset();
     }
     void reset() noexcept override {
-        for (auto& x : xo_) x.clear();
-        for (auto& s : sh_) s.clear();
         wide_.clear();
         lim_ = 1.0f;
         limEnv_ = 0.0f;
-        modeMix_ = p(Mode) >= 0.5f ? 1.0f : 0.0f;
         mix_.prepare(fs_, 30, p(Mix) * 0.01f);
         out_.prepare(fs_, 30, hc::fx::dbToGain(p(Output)));
-        for (auto& b : amt_) b.prepare(fs_, 30, 1.0f);
         publishReduction(0.0f);
     }
 
@@ -80,35 +67,14 @@ public:
         const float tA = coefMs(fs_, 1.0), tShort = coefMs(fs_, 20.0), tLong = coefMs(fs_, sT);
         // shapes: how the resulting gain moves (SHARP = as detected; PUNCHY / ROUND = smoothed)
         const float gAtt = coefMs(fs_, aShape == 2 ? 2.0 : 0.02), gRel = coefMs(fs_, aShape == 0 ? 0.02 : aShape == 1 ? aT * 0.3 : aT * 0.6);
-        const bool multi = p(Mode) >= 0.5f;
         const int guard = std::clamp(static_cast<int>(std::lround(p(Guard))), 0, 2);
         const float limRel = coefMs(fs_, 60.0);
-        const float step = static_cast<float>(1.0 / (fs_ * 0.02));
-        const int bandP[kB] = {Band1, Band2, Band3, Band4};
         float worst = 0.0f;
         for (std::uint32_t i = 0; i < n; ++i) {
-            modeMix_ = multi ? std::min(1.0f, modeMix_ + step) : std::max(0.0f, modeMix_ - step);
-            float bl[kB], br[kB];
-            xo_[0].split(L[i], bl);
-            xo_[1].split(R[i], br);
-            // WIDE: one shaper on the whole signal; 4-BAND: one per band (each scaled by its amount)
-            float wl = 0, wr = 0, dryMulti_l = 0, dryMulti_r = 0;
-            for (int b = 0; b < kB; ++b) {
-                const float a = amt_[b].next(p(bandP[b]) * 0.01f);
-                const float gDb = shape(sh_[b], std::max(std::fabs(bl[b]), std::fabs(br[b])), atk * a, sus * a, aThr, sThr,
-                                        fA, fR, sA, sR, tA, tShort, tLong, gAtt, gRel, sShape);
-                const float g = hc::fx::dbToGain(gDb);
-                wl += bl[b] * g;
-                wr += br[b] * g;
-                dryMulti_l += bl[b];
-                dryMulti_r += br[b];
-            }
             const float gW = hc::fx::dbToGain(shape(wide_, std::max(std::fabs(L[i]), std::fabs(R[i])), atk, sus, aThr, sThr,
                                                     fA, fR, sA, sR, tA, tShort, tLong, gAtt, gRel, sShape));
             worst = std::min(worst, dbOf(gW));
-            // the multi path's dry is the bands added back (an all-pass of the input), so MIX never combs
-            const float dl = L[i] + modeMix_ * (dryMulti_l - L[i]), dr = R[i] + modeMix_ * (dryMulti_r - R[i]);
-            const float pl = L[i] * gW + modeMix_ * (wl - L[i] * gW), pr = R[i] * gW + modeMix_ * (wr - R[i] * gW);
+            const float dl = L[i], dr = R[i], pl = L[i] * gW, pr = R[i] * gW;
             const float m = mix_.next(p(Mix) * 0.01f), o = out_.next(hc::fx::dbToGain(p(Output)));
             float yl = (dl + m * (pl - dl)) * o, yr = (dr + m * (pr - dr)) * o;
             if (guard == 1) { yl = clipSoft(yl); yr = clipSoft(yr); }
@@ -153,10 +119,9 @@ private:
     }
 
     double fs_ = 48000.0;
-    Crossover<kB> xo_[2];
-    Shaper sh_[kB], wide_;
-    float lim_ = 1.0f, limEnv_ = 0.0f, modeMix_ = 0.0f;
-    hc::fx::Smoothed mix_, out_, amt_[kB];
+    Shaper wide_;
+    float lim_ = 1.0f, limEnv_ = 0.0f;
+    hc::fx::Smoothed mix_, out_;
 };
 
 } // namespace

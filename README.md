@@ -31,9 +31,13 @@ C++23 audio framework, as a library.
 | **IRON FIST** | Console channel compressor + limiter you drive with INPUT: ratio, release, de-ess, limit level / attack / release, analog, auto makeup, mix, trim |
 | **QUICK DRAW** | Fast transistor limiting amp: input, output, attack and release 1-7, 4 / 8 / 12 / 20 / ALL, two revisions, auto makeup, mix, trim |
 | **OLD MONEY** | Smooth all-purpose compressor: ratio 0.5-50, auto or manual release, electro or opto, warm or smooth, output limiter, mix, trim |
-| **KNOCKOUT** | Transient designer: attack and sustain up or down, wide or four bands, guard (clip / limit) |
-| **FULL HOUSE** | Loudness without squash: gate, lift the quiet parts, leveler, hold the loud parts |
-| **WHEELMAN** | Automatic level rider for a vocal or a bass: target, max boost / cut, holds still in the gaps |
+| **KNOCKOUT** | Transient designer: attack and sustain each with level, sensitivity, length and shape; guard, mix, output |
+| **HAYMAKER** | Transient shaper: range, sensitivity, duration, release, output, one-push trim |
+| **FOUR KINGS** | Four-band transient shaper: range, sensitivity, on per band, master, duration, release, trim |
+| **BACKBONE** | Two-fader loudness: low level lifts the quiet parts, high level holds the loud ones, output |
+| **FULL HOUSE** | Loudness without squash: leveler (loud / soft), gate, low level (threshold, gain), high level (threshold, ceiling), each switchable |
+| **WHEELMAN** | Vocal rider: target, vocal sensitivity, attack, range min / max, idle, live spill, output |
+| **CHAUFFEUR** | Bass rider: target, note detect, response, ignore spill, ignore artifacts, range, idle, output |
 | **BIG SHOT** | One-band maximizer: threshold, ceiling, auto release; word length, dither and noise shaping |
 | **LAST WORD** | One-band peak limiter: input left / right with link, release, auto release, digital / analog / true-peak ceiling; word length, dither, shaping |
 | **HIGH STAKES** | Five-band linear-phase maximizer: four crossovers, separation, release type, gain / priority / link / release / solo per band; word length, dither, shaping |
@@ -41,9 +45,11 @@ C++23 audio framework, as a library.
 | **SWEET SIXTEEN** | Sixteen-band linear-phase maximizer: six EQ / priority bands (gain, priority, link, freq, Q, type, in), 22 release characters, separation; word length, dither, shaping |
 | **FAST MONEY** | HIGH STAKES with a low-latency band split (2 ms instead of 55 ms) |
 | **QUICK CASH** | TOP DOG with the low-latency band split |
-| **SILENCER** | De-esser: classic filter or smart detection, split or wide, look-ahead, listen |
-| **BREATHLESS** | Breath remover: finds breaths between words, turns them down with smooth fades |
-| **TOMMY GUN** | One-knob tempo pump: ducks on the beat and pumps back up, no sidechain needed |
+| **SILENCER** | De-esser: threshold, frequency, split or wide, high-pass or band-pass sidechain, monitor |
+| **TIGHT LIPS** | De-esser: threshold, range, frequency, sidechain filter, split or wide, listen |
+| **OMERTA** | Smart de-esser that hears esses at any pitch: threshold, range, detection width, wide-to-split, look-ahead, monitor |
+| **BREATHLESS** | Breath remover: breath and level thresholds, reduction, fades, room tone, listen voice / breaths |
+| **TOMMY GUN** | One-knob tempo pump: amount 0-10, rate, offset (tempo from the host or a BPM) |
 | **STRAIGHT SHOOTER** | Linear-phase EQ: low / high cut (12 / 24 / 48 dB), shelves, three bells, no phase shift at all |
 | **CUTTHROAT** | Sweep filter: high-pass + low-pass, one-knob SWEEP, resonance, 12 / 24 dB, drive, mix |
 | **THE BOSS** | Channel strip: gate, compressor, four-band EQ, low cut, EQ before or after the dynamics, limiter |
@@ -84,7 +90,7 @@ C++23 audio framework, as a library.
 | **UNDERGROUND** | More low end: a new sub an octave down, or harmonics small speakers can hear |
 | **SPOTLIGHT** | Vocal chain: high-pass, body, one-knob compressor, one-knob de-esser, presence, air |
 
-Seventy-five plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
+Eighty-one plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 
 ## Install
 Download `HEM-Elite-Rack-Setup-x.y.z.exe` from **Releases** and run it. Needs Windows 10 / 11

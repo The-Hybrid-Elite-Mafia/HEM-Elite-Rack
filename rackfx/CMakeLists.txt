@@ -28,8 +28,10 @@ add_library(hem_rackfx STATIC
     src/arsenal/IronFist.cpp
     src/arsenal/Knockout.cpp
     src/arsenal/FullHouse.cpp
-    src/arsenal/Wheelman.cpp
-    src/arsenal/Silencer.cpp
+    src/arsenal/Riders.cpp
+    src/arsenal/DeEssers.cpp
+    src/arsenal/Transients.cpp
+    src/arsenal/Backbone.cpp
     src/arsenal/Breathless.cpp
     src/arsenal/TommyGun.cpp
     src/arsenal/Plates.cpp

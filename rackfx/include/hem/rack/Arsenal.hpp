@@ -68,25 +68,39 @@
 //               ATTACK, RELEASE, RELEASE AUTO / MANUAL, BEHAVIOR ELECTRO / OPTO, CHARACTER WARM / SMOOTH,
 //               OUTPUT (a soft limiter keeps it under 0 dBFS), MIX, TRIM. Meters: 0 / 1 input / output
 //               peak (dBFS), 2 the output limiter (dB).
-//  KNOCKOUT     transient designer: ATTACK (boost / cut the hits), SENSITIVITY, LENGTH, SHAPE; the
-//               same for SUSTAIN; WIDE or 4-BAND (each band's amount); GUARD OFF / CLIP / LIMIT; MIX,
+//  KNOCKOUT     transient designer: ATTACK (boost / cut the hits), SENSITIVITY, LENGTH, SHAPE SHARP / PUNCHY /
+//               ROUND; the same for SUSTAIN (shape EVEN / CURVED / SOFT); GUARD OFF / CLIP / LIMIT; MIX,
 //               OUTPUT. Zero latency.
-//  FULL HOUSE   loudness without squash: GATE (quiet noise stays down), LOW LEVEL lifts the quiet
-//               parts (THRESHOLD, MAX LIFT), LEVELER rides the average (AMOUNT, SPEED), HIGH LEVEL
-//               holds the loud parts (with automatic gain), OUTPUT. Meters: 0 lift, 1 leveler,
-//               2 hold (all dB).
-//  WHEELMAN     an automatic level rider: keeps a VOCAL or BASS at the TARGET level, within MAX
-//               BOOST / MAX CUT, ignoring anything under SENSITIVITY (it holds still in the gaps),
-//               SPEED SLOW / FAST, OUTPUT. Meters: 0 ride (dB), 1 level (dB). Zero latency.
+//  HAYMAKER     transient shaper: RANGE -24..+18 dB (how far the hits move), SENS -10..+10, DURATION (how
+//               fast a rise counts as a hit), RELEASE, OUTPUT, TRIM (a push). Meters: 0 gain, 1 output peak.
+//  FOUR KINGS   the same in four bands (150 Hz / 1.2 kHz / 5 kHz): RANGE, SENS, ON per band, MASTER RANGE /
+//               SENS, DURATION, RELEASE, OUTPUT, TRIM. Meters 0..3 band gains, 4 output peak.
+//  BACKBONE     two-fader loudness: LOW LEVEL 0..48 (lifts the quiet parts), HIGH LEVEL 0..-48 (holds the
+//               loud parts, made up so full scale stays full scale), OUTPUT. Meters: 0 cut, 1 boost, 2 output.
+//  FULL HOUSE   loudness without squash, four sections each with ON: LEVELER (slowly brings anything louder
+//               than its fader toward it; release LOUD / SOFT), GATE (gentle downward expansion under its
+//               threshold), LOW LEVEL (THRESHOLD, GAIN: lifts the quiet parts), HIGH LEVEL (THRESHOLD: holds
+//               the loud parts with make-up; GAIN: the most that comes out). Meters: 0 energy, 1 low gain,
+//               2 high level, 3 output peak.
+//  WHEELMAN     vocal rider: TARGET, VOCAL SENSITIVITY (how loud the voice must be to count), ATTACK FAST /
+//               SLOW, RANGE MIN / MAX (how far the wheel may turn), IDLE (where it sits with no voice),
+//               LIVE + SPILL (anything under SPILL is other instruments in the mic), OUTPUT.
+//               Meters: 0 ride (dB), 1 level (dB). Zero latency.
+//  CHAUFFEUR    bass rider: TARGET, NOTE DETECT, RESPONSE FAST / SLOW, IGNORE SPILL, IGNORE ARTIFACTS (clicks and
+//               finger noise), RANGE MIN / MAX, IDLE, OUTPUT. Meters as WHEELMAN. Zero latency.
 //  BIG SHOT     (and the other maximizers): see Maximizers.hpp.
-//  SILENCER     de-esser: DETECT CLASSIC (a filter at FREQUENCY, HIGH-PASS or BAND-PASS) or SMART
-//               (how much of the sound sits above FREQUENCY, so loud and quiet esses are caught the
-//               same; WIDTH = how strict), THRESHOLD, RANGE (most it takes off), SPLIT (only the
-//               highs go down) or WIDE, LOOKAHEAD, LISTEN. Latency 240 samples, always.
-//  BREATHLESS   breath remover: SENSITIVITY (how breath-like a sound must be), LEVEL GATE (breaths
-//               are quieter than this), REDUCTION, FADE OUT / FADE IN, LISTEN VOICE / BREATHS.
-//               Latency 480 samples. Meters: 0 breath score (%), 1 level (dB), 2 reduction (dB).
-//  TOMMY GUN    one-knob pump: AMOUNT (how deep and how hard), RATE (a note of the tempo),
+//  SILENCER     de-esser: THRESHOLD, FREQUENCY, AUDIO SPLIT (only the highs come down) / WIDE, SIDECHAIN
+//               HIGH-PASS / BAND-PASS, MONITOR AUDIO / SIDECHAIN. Meters: 0 energy, 1 most taken off, 2 output.
+//  TIGHT LIPS   de-esser: THRESHOLD, RANGE (the most it takes off), FREQUENCY, SIDECHAIN HIGH-PASS / BAND-PASS,
+//               MODE SPLIT / WIDE, LISTEN.
+//  OMERTA       smart de-esser (hears how much of a sound is highs, at any pitch): THRESHOLD, RANGE,
+//               DETECTION WIDTH, MODE 0 (wide) .. 100 (split), LOOKAHEAD, MONITOR (hear what's taken out).
+//               Latency 240 samples, always.
+//  BREATHLESS   breath remover: SENSITIVITY (how breath-like a sound must be), LEVEL GATE (breaths are quieter
+//               than this), REDUCTION 0..-80 (-80 = all the way), FADE OUT / FADE IN, ROOM TONE (a breath only
+//               comes down to the room's level), LISTEN VOICE / BREATHS. Latency 480 samples.
+//               Meters: 0 breath score (%), 1 level (dB), 2 reduction (dB).
+//  TOMMY GUN    one-knob pump: AMOUNT 0..10 (how deep and how hard), RATE (a note of the tempo),
 //               OFFSET (where in the beat it dips), SYNC HOST or BPM (the BPM knob). Zero latency.
 // =============================================================================
 #include "hem/rack/Maximizers.hpp"
@@ -170,26 +184,52 @@ enum P : int { Threshold, Ratio, Attack, Release, ReleaseMode, Behavior, Charact
 } // namespace oldmoney
 
 namespace knockout {
-enum P : int { Mode, Attack, AttackSens, AttackTime, AttackShape, Sustain, SustainSens, SustainTime, SustainShape,
-               Band1, Band2, Band3, Band4, Guard, Mix, Output, kCount };
-inline constexpr float kCrossHz[3] = {150.0f, 1200.0f, 5000.0f};
+enum P : int { Attack, AttackSens, AttackTime, AttackShape, Sustain, SustainSens, SustainTime, SustainShape, Guard, Mix, Output, kCount };
 } // namespace knockout
 
+namespace haymaker {
+enum P : int { Range, Sens, Duration, Release, Output, Trim, kCount };
+} // namespace haymaker
+
+namespace fourkings {   // 4 bands: RANGE, SENS, ON; then MASTER RANGE, SENS (added to every band)
+inline constexpr int kBands = 4, kPerBand = 3;
+enum BandP : int { Range, Sens, On };
+inline constexpr int band(int b, int k) noexcept { return b * kPerBand + k; }
+enum P : int { MRange = kBands * kPerBand, MSens, Duration, Release, Output, Trim, kCount };
+inline constexpr float kCrossHz[3] = {150.0f, 1200.0f, 5000.0f};
+} // namespace fourkings
+
+namespace backbone {
+enum P : int { LowLevel, HighLevel, Output, kCount };
+} // namespace backbone
+
 namespace fullhouse {
-enum P : int { Gate, LowThreshold, LowLift, Leveler, LevelSpeed, HighLevel, Output, kCount };
+enum P : int { GateOn, Gate, LowOn, LowThreshold, LowGain, LevelerOn, Leveler, LevelerMode, HighOn, HighThreshold, HighGain, kCount };
 } // namespace fullhouse
 
 namespace wheelman {
-enum P : int { Source, Target, Sensitivity, MaxBoost, MaxCut, Speed, Output, kCount };
+enum P : int { Target, Sensitivity, Attack, RangeMin, RangeMax, Idle, Live, Spill, Output, kCount };
 } // namespace wheelman
 
+namespace chauffeur {
+enum P : int { Target, NoteSens, Response, IgnoreSpill, IgnoreArtifacts, RangeMin, RangeMax, Idle, Output, kCount };
+} // namespace chauffeur
+
 namespace silencer {
-enum P : int { Detect, Freq, Filter, Width, Threshold, Range, Split, Lookahead, Listen, kCount };
-inline constexpr std::uint32_t kLookahead = 240;   // 5 ms at 48 kHz
+enum P : int { Threshold, Freq, Audio, Sidechain, Monitor, kCount };
 } // namespace silencer
 
+namespace tightlips {
+enum P : int { Threshold, Range, Freq, Filter, Mode, Listen, kCount };
+} // namespace tightlips
+
+namespace omerta {
+enum P : int { Threshold, Range, Width, Mode, Lookahead, Monitor, kCount };
+inline constexpr std::uint32_t kLookahead = 240;   // 5 ms at 48 kHz, always
+} // namespace omerta
+
 namespace breathless {
-enum P : int { Sensitivity, LevelGate, Reduction, FadeOut, FadeIn, Listen, kCount };
+enum P : int { Sensitivity, LevelGate, Reduction, FadeOut, FadeIn, RoomTone, Listen, kCount };
 inline constexpr std::uint32_t kLookahead = 480;   // 10 ms at 48 kHz
 } // namespace breathless
 
@@ -211,6 +251,12 @@ inline constexpr float kRateBeats[] = {0.25f, 0.5f, 1.0f, 2.0f, 4.0f};   // 1/16
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeOldMoney();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeIronFist();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeKnockout();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeHaymaker();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeFourKings();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeBackbone();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeChauffeur();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeTightLips();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeOmerta();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeFullHouse();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeWheelman();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeSilencer();

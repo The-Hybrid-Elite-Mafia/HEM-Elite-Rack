@@ -3,8 +3,8 @@
 #include "hem/rack/Plate.hpp"
 
 namespace hem::rack::plates {
-extern const PlateSpec kKnockout, kFullHouse, kWheelman,
-    kSilencer, kBreathless, kTommyGun;
+extern const PlateSpec kKnockout, kHaymaker, kFourKings, kBackbone, kFullHouse, kWheelman, kChauffeur, kSilencer, kTightLips, kOmerta,
+    kBreathless, kTommyGun;
 // the hardware-style compressors (arsenal/CompPlates.cpp)
 extern const PlateSpec kTerritory, kStraightEdge, kConsigliere, kStoneCold, kHeavyweight, kTheDon, kSlowBurn, kLoneWolf, kIronFist, kQuickDraw, kOldMoney;
 // the tone shop (tone/TonePlates.cpp)

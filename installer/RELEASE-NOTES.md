@@ -1,3 +1,23 @@
+# HEM-Elite-Rack 0.24.0
+
+**Transients, riders and de-essers, rebuilt with every control** — one plug-in per original:
+- **KNOCKOUT** — the transient designer, wide (its 4-band mode is now its own plug-in)
+- **HAYMAKER** (new) — transient shaper: range, sensitivity, duration, release, one-push trim
+- **FOUR KINGS** (new) — the same in four bands, each with on, range and sensitivity, plus a master
+- **BACKBONE** (new) — two faders: lift the quiet parts, hold the loud ones
+- **FULL HOUSE** — leveler (loud / soft), gate, low level (threshold + gain), high level (threshold + ceiling), each switchable
+- **WHEELMAN** — vocal rider: target, vocal sensitivity, attack, range min / max, idle, live spill
+- **CHAUFFEUR** (new) — bass rider: note detect, response, ignore spill, ignore clicks, range, idle
+- **SILENCER** — the classic de-esser: threshold, frequency, split / wide, high-pass / band-pass, monitor
+- **TIGHT LIPS** (new) — de-esser with a range control and listen
+- **OMERTA** (new) — smart de-esser that hears esses at any pitch, wide-to-split blend, look-ahead
+- **BREATHLESS** — reduction all the way to silence, and ROOM TONE
+- **TOMMY GUN** — AMOUNT on a 0-10 dial
+
+Not possible in the rack (said plainly): the vocal rider's music sidechain and automation writing.
+
+Multiband plates now use a grid: one row per band control, named once on the left.
+
 # HEM-Elite-Rack 0.23.0
 
 **The last three compressors, rebuilt with every control:**
