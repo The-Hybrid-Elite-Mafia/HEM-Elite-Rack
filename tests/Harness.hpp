@@ -39,6 +39,7 @@ void testArsenal();
 void testToneShop();
 void testHideout();
 void testStreets();
+void testMaximizers();
 void testSpectrum();
 void testFaces();
 void testChain();

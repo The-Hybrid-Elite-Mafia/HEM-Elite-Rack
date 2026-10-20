@@ -55,6 +55,19 @@ struct PlateReadout {
     const char* fmt = "";
 };
 
+// Multiband plates: one column of controls per band. The parameters of band b are
+// first + b * stride + offset (knobs / steppers / toggles give the offset).
+struct PlateBands {
+    int count = 0;                              // columns
+    int first = 0;                              // band 0's first parameter
+    int stride = 0;                             // parameters per band
+    std::span<const PlateKnob>   knobs{};       // per band, stacked (two side by side when there are more than three)
+    std::span<const PlateChoice> steppers{};    // per band, under the knobs
+    std::span<const PlateToggle> toggles{};     // per band, side by side at the bottom
+    std::span<const PlateKnob>   borders{};     // knobs on the borders between the columns (absolute parameters)
+    int meter = -1;                             // band b's readout on top is meter `meter + b` (-1: none)
+};
+
 struct PlateSpec {
     const char* note1 = "";             // the two lines under the plug-in's name
     const char* note2 = "";
@@ -69,6 +82,7 @@ struct PlateSpec {
     std::span<const PlateChoice>  steppers{};    // compact ◀ value ▶ choices, down the left column
     const char* historyA = "";                  // History screen: names of meters 0 and 1 ("" = GR 1 / GR 2)
     const char* historyB = "";
+    const PlateBands* bands = nullptr;          // multiband: the columns; row1 and toggles go on the top row
     bool        reportsReduction = false;       // publishes gain reduction (hosts get a GR meter)
     void (*demo)(hc::fx::Effect&) = nullptr;    // settings for the CI screenshot (something to see)
 };

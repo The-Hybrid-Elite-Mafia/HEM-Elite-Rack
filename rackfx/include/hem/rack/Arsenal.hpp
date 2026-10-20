@@ -43,10 +43,7 @@
 //  WHEELMAN     an automatic level rider: keeps a VOCAL or BASS at the TARGET level, within MAX
 //               BOOST / MAX CUT, ignoring anything under SENSITIVITY (it holds still in the gaps),
 //               SPEED SLOW / FAST, OUTPUT. Meters: 0 ride (dB), 1 level (dB). Zero latency.
-//  BIG SHOT     loudness maximizer: THRESHOLD (push), CEILING, RELEASE or AUTO, BANDS 1 / 5 / 16
-//               (the limiting is shared out across the bands so the loudest part gives the most),
-//               PRIORITY LOW / MID / HIGH (which part keeps its punch), STYLE (how it lets go),
-//               DITHER (OFF / 24 / 16 bit). Look-ahead 1.5 ms; latency fixed.
+//  BIG SHOT     (and the other maximizers): see Maximizers.hpp.
 //               Meters: 0 loudness (LUFS, 3 s), 1 output peak (dBFS).
 //  SILENCER     de-esser: DETECT CLASSIC (a filter at FREQUENCY, HIGH-PASS or BAND-PASS) or SMART
 //               (how much of the sound sits above FREQUENCY, so loud and quiet esses are caught the
@@ -58,6 +55,7 @@
 //  TOMMY GUN    one-knob pump: AMOUNT (how deep and how hard), RATE (a note of the tempo),
 //               OFFSET (where in the beat it dips), SYNC HOST or BPM (the BPM knob). Zero latency.
 // =============================================================================
+#include "hem/rack/Maximizers.hpp"
 #include "hybrid/fx/Fx.hpp"
 
 #include <memory>
@@ -128,12 +126,6 @@ namespace wheelman {
 enum P : int { Source, Target, Sensitivity, MaxBoost, MaxCut, Speed, Output, kCount };
 } // namespace wheelman
 
-namespace bigshot {
-enum P : int { Threshold, Ceiling, Release, AutoRelease, Bands, PriorityLow, PriorityMid, PriorityHigh, Style, Dither, kCount };
-inline constexpr std::uint32_t kLookahead = 72;   // 1.5 ms at 48 kHz
-inline constexpr std::uint32_t kLatency = kLookahead;
-} // namespace bigshot
-
 namespace silencer {
 enum P : int { Detect, Freq, Filter, Width, Threshold, Range, Split, Lookahead, Listen, kCount };
 inline constexpr std::uint32_t kLookahead = 240;   // 5 ms at 48 kHz
@@ -159,7 +151,6 @@ inline constexpr float kRateBeats[] = {0.25f, 0.5f, 1.0f, 2.0f, 4.0f};   // 1/16
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeKnockout();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeFullHouse();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeWheelman();
-[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeBigShot();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeSilencer();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeBreathless();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeTommyGun();

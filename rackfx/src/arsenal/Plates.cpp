@@ -91,18 +91,6 @@ constexpr PlateKnob row1[] = {{Target, "TARGET", "-40", "0", K::Big}, {Sensitivi
                               {MaxCut, "MAX CUT", "0", "18"}, {Output, "OUTPUT", "", "", K::Small}};
 } // namespace wm
 
-// ---- BIG SHOT
-namespace bs {
-using namespace bigshot;
-constexpr PlateReadout readouts[] = {{0, "LOUDNESS (3 s)", "LUFS"}, {1, "PEAK", "dBFS"}};
-constexpr PlateChoice choices[] = {{Bands, "BANDS"}};
-constexpr PlateChoice steppers[] = {{Style, "STYLE"}, {Dither, "DITHER"}};
-constexpr PlateToggle leftT[] = {{AutoRelease, "AUTO REL"}};
-constexpr PlateKnob row1[] = {{Threshold, "THRESHOLD", "-24", "0", K::Big}, {Ceiling, "CEILING", "-3", "0"}, {Release, "RELEASE"},
-                              {PriorityLow, "LOW KEEPS", "", "", K::Small}, {PriorityMid, "MID KEEPS", "", "", K::Small},
-                              {PriorityHigh, "HIGH KEEPS", "", "", K::Small}};
-} // namespace bs
-
 // ---- SILENCER
 namespace si {
 using namespace silencer;
@@ -167,9 +155,6 @@ const PlateSpec kFullHouse{.note1 = "LOUDER, NOT SMALLER", .note2 = "QUIET PARTS
 const PlateSpec kWheelman{.note1 = "RIDES THE FADER", .note2 = "SO YOU DON'T HAVE TO", .screen = Screen::Readouts, .readouts = wm::readouts,
                           .row1 = wm::row1, .left = wm::left,
                           .demo = [](hc::fx::Effect& e) { e.set(wheelman::Target, -24); }};
-const PlateSpec kBigShot{.note1 = "LOUD AND PROUD", .note2 = "NEVER OVER THE TOP", .screen = Screen::Needle, .readouts = bs::readouts,
-                         .choices = bs::choices, .row1 = bs::row1, .leftToggles = bs::leftT, .steppers = bs::steppers, .reportsReduction = true,
-                         .demo = [](hc::fx::Effect& e) { e.set(bigshot::Threshold, -8); e.set(bigshot::Bands, 1); }};
 const PlateSpec kSilencer{.note1 = "SOFTER ESSES", .note2 = "SAME VOICE", .screen = Screen::Needle, .choices = si::choices,
                           .toggles = si::toggles, .row1 = si::row1, .reportsReduction = true,
                           .demo = [](hc::fx::Effect& e) { e.set(silencer::Threshold, -40); }};

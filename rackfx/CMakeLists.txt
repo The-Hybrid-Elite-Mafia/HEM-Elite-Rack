@@ -29,11 +29,16 @@ add_library(hem_rackfx STATIC
     src/arsenal/Knockout.cpp
     src/arsenal/FullHouse.cpp
     src/arsenal/Wheelman.cpp
-    src/arsenal/BigShot.cpp
     src/arsenal/Silencer.cpp
     src/arsenal/Breathless.cpp
     src/arsenal/TommyGun.cpp
     src/arsenal/Plates.cpp
+    src/maxim/BigShot.cpp
+    src/maxim/LastWord.cpp
+    src/maxim/MultiMax.cpp
+    src/maxim/UltraMax.cpp
+    src/maxim/SweetSixteen.cpp
+    src/maxim/MaximPlates.cpp
     src/tone/StraightShooter.cpp
     src/tone/TheBoss.cpp
     src/tone/Kingpin.cpp

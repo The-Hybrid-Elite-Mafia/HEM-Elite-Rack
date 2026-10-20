@@ -125,10 +125,44 @@ WHEELMAN
   Pick VOCAL or BASS, set TARGET to the level you want. It rides up to MAX BOOST and down to MAX CUT,
   and holds still for anything under SENSITIVITY (gaps, breaths). SPEED SLOW is smoother.
 
+THE MAXIMIZERS - every one ends with the same three steppers:
+  QUANTIZE = the word length of what comes out (24 BIT unless the file is going to 16 bit).
+  DITHER TYPE 1 = plain, safe; TYPE 2 = less noise, a little grit at very low levels; NONE.
+  SHAPING MODERATE / NORMAL / ULTRA moves that noise away from where the ear hears best (ULTRA only
+  on the very last step of a master); NONE. Silence stays silent.
+
 BIG SHOT
-  THRESHOLD down = louder; CEILING = nothing comes out above it. BANDS 5 or 16 shares the limiting out
-  so the loudest part gives the most; LOW / MID / HIGH KEEPS = which part keeps its punch.
-  STYLE CLEAN / PUNCHY / WARM. DITHER 16 BIT when the file goes to 16 bit.
+  THRESHOLD down = louder; CEILING = nothing comes out above it. AUTO REL on (best for most things)
+  lets go quickly after single peaks and slower when it's working hard; off = a steady 100 ms.
+
+LAST WORD
+  INPUT L / R trim each side first (INPUT LINK on: both follow INPUT L). THRESHOLD, CEILING, RELEASE
+  (0.01 ms to 1 s), AUTO REL (quicker after single peaks, up to RELEASE when it works hard).
+  DOMAIN: DIGITAL = no sample above the ceiling; TRUE PEAK = not even between the samples (what
+  streaming services check); ANALOG = like TRUE PEAK, rounded softly into the ceiling.
+
+HIGH STAKES / FAST MONEY
+  Five bands. THRESHOLD, CEILING, LINK (on: the ceiling comes down with the threshold, so you hear
+  the limiting without the loudness going up), RELEASE (times every band's release), SEPARATION
+  (0 = all bands give the same, 100 = the band carrying the peak gives the most), the four SPLIT
+  knobs between the bands. Per band: GAIN (pushes that band in harder), PRIORITY (that band gives up
+  less, the others more), LINK (GAIN also raises PRIORITY: louder band, kept), RELEASE, SOLO.
+  RELEASE stepper: AUTO, AUTO LOWS (adapts most in the lows), AUTO HIGHS, HARD (loudest), MANUAL
+  (each band's own release). HIGH STAKES is linear phase (55 ms late, the host lines it up);
+  FAST MONEY is 2 ms late, for tracking and live.
+
+TOP DOG / QUICK CASH
+  The five-band limiter driven by a PROFILE: STANDARD, OLD SCHOOL (thick, soft), HALF SPLIT,
+  SINGLE AUTO / SINGLE FIXED (works as one band), VELVET (smooth, warm), HEAVY (loudest), STRIPPED
+  (lean), QUIET LIFT (brings quiet parts up). THRESHOLD, CEILING, LINK, RELEASE. QUICK CASH = 2 ms late.
+
+SWEET SIXTEEN
+  Sixteen bands. Six EQ / priority columns: GAIN is an EQ before the limiter, PRIORITY uses the same
+  curve to say where the limiting may come from, LINK moves them together, FREQ, Q, the type
+  stepper (BELL / LOW SHELF / HIGH SHELF), IN. CHARACTER = how the sixteen bands let go (22 of them:
+  VOCAL UP lets the vocal range back quicker, HARSH DOWN keeps 2-6 kHz down longer, and so on);
+  SEPARATION LOW / MEDIUM / HIGH = how sharply the sixteen bands are cut apart. The lowest bands
+  overlap (no linear-phase filter can cut sharply that low).
 
 SILENCER
   THRESHOLD down until the esses get caught, RANGE = the most it takes off. DETECT SMART catches loud

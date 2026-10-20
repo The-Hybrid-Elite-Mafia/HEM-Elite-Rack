@@ -29,7 +29,13 @@ C++23 audio framework, as a library.
 | **KNOCKOUT** | Transient designer: attack and sustain up or down, wide or four bands, guard (clip / limit) |
 | **FULL HOUSE** | Loudness without squash: gate, lift the quiet parts, leveler, hold the loud parts |
 | **WHEELMAN** | Automatic level rider for a vocal or a bass: target, max boost / cut, holds still in the gaps |
-| **BIG SHOT** | Maximizer: one band or the limiting shared across 5 / 16 bands, priorities, styles, dither |
+| **BIG SHOT** | One-band maximizer: threshold, ceiling, auto release; word length, dither and noise shaping |
+| **LAST WORD** | One-band peak limiter: input left / right with link, release, auto release, digital / analog / true-peak ceiling; word length, dither, shaping |
+| **HIGH STAKES** | Five-band linear-phase maximizer: four crossovers, separation, release type, gain / priority / link / release / solo per band; word length, dither, shaping |
+| **TOP DOG** | Five-band linear-phase maximizer run from nine profiles: threshold, ceiling, link, release; word length, dither, shaping |
+| **SWEET SIXTEEN** | Sixteen-band linear-phase maximizer: six EQ / priority bands (gain, priority, link, freq, Q, type, in), 22 release characters, separation; word length, dither, shaping |
+| **FAST MONEY** | HIGH STAKES with a low-latency band split (2 ms instead of 55 ms) |
+| **QUICK CASH** | TOP DOG with the low-latency band split |
 | **SILENCER** | De-esser: classic filter or smart detection, split or wide, look-ahead, listen |
 | **BREATHLESS** | Breath remover: finds breaths between words, turns them down with smooth fades |
 | **TOMMY GUN** | One-knob tempo pump: ducks on the beat and pumps back up, no sidechain needed |
@@ -73,7 +79,7 @@ C++23 audio framework, as a library.
 | **UNDERGROUND** | More low end: a new sub an octave down, or harmonics small speakers can hear |
 | **SPOTLIGHT** | Vocal chain: high-pass, body, one-knob compressor, one-knob de-esser, presence, air |
 
-Sixty-four plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
+Seventy plug-ins, our own designs. Faceplates: brushed gunmetal and teal, with the Hybrid Elite Mafia crown and the ghost.
 
 ## Install
 Download `HEM-Elite-Rack-Setup-x.y.z.exe` from **Releases** and run it. Needs Windows 10 / 11

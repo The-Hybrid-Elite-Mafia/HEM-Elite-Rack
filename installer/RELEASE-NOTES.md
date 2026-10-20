@@ -1,3 +1,19 @@
+# HEM-Elite-Rack 0.21.0
+
+**The maximizers, rebuilt: seven plug-ins, each with its full set of controls** (in the rack and as VST3):
+- **BIG SHOT** — one band: threshold, ceiling, auto release
+- **LAST WORD** (new) — one band: input left / right with link, release, auto release, and a ceiling
+  that holds the samples (DIGITAL), the peaks between them (TRUE PEAK) or rounds into it (ANALOG)
+- **HIGH STAKES** (new) — five bands, linear phase: crossovers, separation, release type, and per band
+  gain, priority, link, release and solo
+- **TOP DOG** (new) — the five-band limiter run from nine profiles
+- **SWEET SIXTEEN** (new) — sixteen bands with a six-band EQ / priority curve and 22 release characters
+- **FAST MONEY** and **QUICK CASH** (new) — HIGH STAKES and TOP DOG with a 2 ms band split
+
+All seven end with the same word length / dither (TYPE 1, TYPE 2) / noise shaping (MODERATE, NORMAL,
+ULTRA) section. BIG SHOT's old BANDS / PRIORITY / STYLE controls are gone: those jobs now belong to
+HIGH STAKES and SWEET SIXTEEN, which do them in full.
+
 # HEM-Elite-Rack 0.20.0
 
 **WIDE LOAD gets three new knobs**: SHUFFLE (wider lows and low mids), ROTATION (turn the whole

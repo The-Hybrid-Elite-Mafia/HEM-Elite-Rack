@@ -39,6 +39,7 @@ int main(int argc, char** argv) {
     testToneShop();
     testHideout();
     testStreets();
+    testMaximizers();
     testFaces();
     testChain();
     testRackSession();

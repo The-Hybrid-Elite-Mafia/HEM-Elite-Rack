@@ -76,7 +76,7 @@ void hitAndTail(const Stereo& s, std::uint32_t lat, double& hitDb, double& tailD
 
 void allRules() {
     for (const char* name : {"SWITCHBLADE", "TERRITORY", "CONSIGLIERE", "HEAVYWEIGHT", "THE DON", "SLOW BURN", "IRON FIST", "KNOCKOUT",
-                             "FULL HOUSE", "WHEELMAN", "BIG SHOT", "SILENCER", "BREATHLESS", "TOMMY GUN"}) {
+                             "FULL HOUSE", "WHEELMAN", "SILENCER", "BREATHLESS", "TOMMY GUN"}) {
         const PluginInfo* info = findPlugin(name);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
@@ -282,22 +282,6 @@ void testLoudness() {
         auto still = make("WHEELMAN", {{Sensitivity, -40}});
         const double under = toneOut(*still, 1000, 0.003f, 2.0);   // -50 dBFS, under SENSITIVITY: left alone
         CHECK(std::fabs(under) < 0.2);
-    }
-    {   using namespace bigshot;
-        for (int bands = 0; bands < 3; ++bands) {
-            auto e = make("BIG SHOT", {{Threshold, -12}, {Ceiling, -1}, {Bands, static_cast<float>(bands)}});
-            Stereo s = noise(2.0, 0.5f, 5);
-            add(s, hits(2.0, 0.6f));
-            run(*e, s);
-            const double pk = peakDb(s, 0), loud = db(rms(s.l, 48000, 48000));
-            std::printf("  BIG SHOT %s, threshold -12, ceiling -1: peak %.2f dBFS, rms %.1f dB\n", bands == 0 ? "1 band" : bands == 1 ? "5 bands" : "16 bands", pk, loud);
-            CHECK(pk <= -0.999 && loud > -12.0);
-        }
-        auto e = make("BIG SHOT");
-        CHECK(e->latency() == kLatency);
-        Stereo s = noise(0.5, 0.2f), ref = s;   // under the ceiling, threshold 0: untouched (late)
-        run(*e, s);
-        CHECK(maxDelayedDiff(s, ref, kLatency, 0) < 1e-5);
     }
 }
 

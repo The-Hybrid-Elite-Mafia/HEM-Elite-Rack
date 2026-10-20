@@ -897,6 +897,76 @@ float specColumn(FaceLayout& L, std::span<const rack::PlateChoice> groups, std::
     return y;
 }
 
+// The multiband plates: band readouts on top, the globals (row1, then the switches) at the band
+// centres with the borders' knobs (crossovers) between them, then a column of controls per band.
+void specBands(FaceLayout& L, const rack::PlateSpec& S) {
+    const rack::PlateBands& B = *S.bands;
+    const int n = std::max(B.count, 1);
+    const float colW = 1226.0f / static_cast<float>(n);
+    auto cx = [&](float c) { return 410.0f + (c + 0.5f) * colW; };
+    static const char* const kNames[] = {"BAND 1", "BAND 2", "BAND 3", "BAND 4", "BAND 5", "BAND 6", "BAND 7", "BAND 8"};
+    L.display = {410, 182, 1226, 68};
+    if (B.meter >= 0)
+        for (int b = 0; b < n && b < 8; ++b)
+            readoutAt(L, {410 + static_cast<float>(b) * colW + 8, 182, colW - 16, 68}, B.meter + b, kNames[b], "dB", "+");
+    // the top row
+    const std::size_t first = L.widgets.size();
+    constexpr float d = 60.0f;
+    const int items = static_cast<int>(S.row1.size() + S.toggles.size());
+    const float pitch = items > n ? static_cast<float>(n) / static_cast<float>(items) : 1.0f;
+    int slot = 0;
+    for (const rack::PlateKnob& k : S.row1) {
+        const float x = 410.0f + (static_cast<float>(slot++) + 0.5f) * pitch * colW;
+        L.widgets.push_back(knob({x - d * 0.5f, 288, d, d}, k.param, k.caption, k.lo, k.hi, true));
+    }
+    for (const rack::PlateToggle& t : S.toggles) {
+        const float x = 410.0f + (static_cast<float>(slot++) + 0.5f) * pitch * colW;
+        L.widgets.push_back(toggle({x - 56, 296, 112, 44}, t.param, t.caption));
+    }
+    for (std::size_t i = 0; i < B.borders.size() && static_cast<int>(i) + 1 < n; ++i) {
+        const float x = 410.0f + static_cast<float>(i + 1) * colW;
+        const rack::PlateKnob& k = B.borders[i];
+        L.widgets.push_back(knob({x - d * 0.5f, 288, d, d}, k.param, k.caption, k.lo, k.hi, true));
+    }
+    L.grooves.push_back({410, 386, 1636, 386});
+    // the band columns
+    const bool pairs = B.knobs.size() > 3;
+    constexpr float bd = 54.0f, rowH = 110.0f;
+    for (int b = 0; b < n; ++b) {
+        const float c = cx(static_cast<float>(b));
+        const int base = B.first + b * B.stride;
+        float y = 420;
+        for (std::size_t i = 0; i < B.knobs.size(); ++i) {
+            const rack::PlateKnob& k = B.knobs[i];
+            float x = c;
+            if (pairs) x = c + (i % 2 == 0 ? -colW * 0.25f : colW * 0.25f);
+            L.widgets.push_back(knob({x - bd * 0.5f, y, bd, bd}, base + k.param, k.caption, k.lo, k.hi, true));
+            if (!pairs || i % 2 == 1 || i + 1 == B.knobs.size()) y += rowH;
+        }
+        for (const rack::PlateChoice& st : B.steppers) {   // the value says what it is (no caption: no room beside it)
+            Widget w;
+            w.kind = WKind::Stepper;
+            w.param = base + st.param;
+            w.r = {c - 85, y, 170, 40};
+            L.widgets.push_back(w);
+            L.recesses.push_back({w.r.inset(-4), 9, 4, false, false});
+            y += 52;
+        }
+        // the switches: side by side in wide columns, one above the other in narrow ones
+        const int nt = static_cast<int>(B.toggles.size());
+        const bool side = colW >= 230.0f;
+        const float tw = side ? (colW - 12.0f - 8.0f * static_cast<float>(nt - 1)) / static_cast<float>(std::max(nt, 1)) : colW - 12.0f;
+        for (int t = 0; t < nt; ++t) {
+            const rack::PlateToggle& tg = B.toggles[static_cast<std::size_t>(t)];
+            const Rect r = side ? Rect{c - colW * 0.5f + 6 + static_cast<float>(t) * (tw + 8), y + 4, tw, 44}
+                                : Rect{c - colW * 0.5f + 6, y + 4 + static_cast<float>(t) * 52, tw, 44};
+            L.widgets.push_back(toggle(r, base + tg.param, tg.caption));
+        }
+        if (b > 0) L.grooves.push_back({410 + static_cast<float>(b) * colW, 396, 410 + static_cast<float>(b) * colW, 808});
+    }
+    seatKnobs(L, first, 8);
+}
+
 FaceLayout specFace(const rack::PluginInfo& info) {
     using rack::Screen;
     const rack::PlateSpec& S = *info.plate;
@@ -904,12 +974,14 @@ FaceLayout specFace(const rack::PluginInfo& info) {
     common(L, info);
     L.leftNotes = {S.note1, S.note2};
     L.title = {60, 190, 330, 110};
-    const bool screen = S.screen != Screen::None;
+    const bool screen = S.screen != Screen::None && !S.bands;
     const bool twoRows = !S.row2.empty();
     // what sits beside the screen
     const bool needleReadouts = S.screen == Screen::Needle && !S.readouts.empty();
     const bool column = screen && (!S.choices.empty() || !S.toggles.empty() || needleReadouts);
-    if (screen) {
+    if (S.bands) {
+        specBands(L, S);
+    } else if (screen) {
         const float sh = twoRows ? 250.0f : 330.0f;
         const Rect scr{410, 182, column ? 700.0f : 1226.0f, sh};
         L.display = scr;
@@ -1012,7 +1084,7 @@ FaceLayout specFace(const rack::PluginInfo& info) {
         y += static_cast<float>(count) * 46 + 44;
     }
     std::vector<rack::PlateToggle> lt(S.leftToggles.begin(), S.leftToggles.end());
-    if (!screen) lt.insert(lt.end(), S.toggles.begin(), S.toggles.end());
+    if (!screen && !S.bands) lt.insert(lt.end(), S.toggles.begin(), S.toggles.end());
     if (!S.left.empty()) y -= 30;
     for (const rack::PlateChoice& c : S.steppers) {
         Widget st;
