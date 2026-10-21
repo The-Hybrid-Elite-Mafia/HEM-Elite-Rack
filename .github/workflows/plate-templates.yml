@@ -1,0 +1,63 @@
+name: Faceplate templates
+
+# Manual only. Renders every plug-in's faceplate at 4K, one folder per category, with the rules for
+# the new art, and puts them on the "plate-templates" release as HEM-Plate-Templates.zip.
+on:
+  workflow_dispatch:
+
+jobs:
+  templates:
+    name: Render the 4K faceplate templates
+    runs-on: windows-2022
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+
+      - name: Steinberg ASIO SDK (from Steinberg, SHA-512 checked; never committed)
+        run: |
+          tools\ci\run-and-report.ps1 -Title "asio sdk" -Exe pwsh -ArgList '-NoProfile','-File','external\HybridCore\tools\fetch-asio-sdk.ps1'
+
+      - name: Configure
+        run: |
+          tools\ci\run-and-report.ps1 -Title "configure" -Exe cmake -ArgList '--preset','rack'
+
+      - name: Build the snapshot tool
+        run: |
+          tools\ci\run-and-report.ps1 -Title "build" -Exe cmake -ArgList '--build','--preset','rack-release','--target','hem_rack_snapshot'
+
+      - name: Software OpenGL (Mesa llvmpipe, CI only)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tools\ci\run-and-report.ps1 -Title "fetch mesa" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\fetch-mesa.ps1','-TargetDirs','build\rack\tools\rack_snapshot\Release'
+
+      - name: Render every faceplate at 4K
+        env:
+          GALLIUM_DRIVER: llvmpipe
+        run: |
+          tools\ci\run-and-report.ps1 -Title "templates: render" -Exe .\build\rack\tools\rack_snapshot\Release\hem_rack_snapshot.exe -ArgList '--out','HEM-Plate-Templates','--width','3840','--groups'
+
+      - name: Zip and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Copy-Item tools\ci\plate-templates-README.txt HEM-Plate-Templates\README.txt
+          $count = (Get-ChildItem HEM-Plate-Templates -Recurse -Filter *.png).Count
+          Get-ChildItem HEM-Plate-Templates -Directory | ForEach-Object { "{0}: {1}" -f $_.Name, (Get-ChildItem $_.FullName -Filter *.png).Count }
+          Compress-Archive -Path HEM-Plate-Templates -DestinationPath HEM-Plate-Templates.zip -Force
+          $mb = [Math]::Round((Get-Item HEM-Plate-Templates.zip).Length / 1MB, 1)
+          Write-Host "templates: $count pictures, zip $mb MB"
+          $notes = "Every HEM-Elite-Rack faceplate at 4K ($count pictures, one folder per category), with README.txt: the rules for the new faceplate art. Built from $env:GITHUB_SHA."
+          gh release view plate-templates 2>$null | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create plate-templates HEM-Plate-Templates.zip --title "Faceplate templates (4K)" --notes $notes --target $env:GITHUB_SHA --prerelease
+          } else {
+            gh release upload plate-templates HEM-Plate-Templates.zip --clobber
+            gh release edit plate-templates --notes $notes
+          }
+          Write-Host "::notice title=templates::$count pictures, zip $mb MB, published to the plate-templates release"

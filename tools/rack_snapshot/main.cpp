@@ -1,7 +1,9 @@
 // hem_rack_snapshot — renders every HEM-Elite-Rack faceplate off-screen with the real faceplate
 // code (hem::ui::FaceWindow, OpenGL) after running the plug-in on a few seconds of test audio, so
 // the spectrum, noise curve and EQ curve are live. Saves one PNG per plug-in.
-//   hem_rack_snapshot [--out <folder>] [--scale 0.75]
+//   hem_rack_snapshot [--out <folder>] [--scale 0.75 | --width <pixels>] [--groups]
+//   --width: the picture's width in pixels (the plate is 1672 x 941 design units; 3840 = 4K).
+//   --groups: one folder per category (EQ, DYNAMICS, ...), as the art templates are kept.
 // Exit 3 when a faceplate fails to open or comes out blank.
 #include "hem/rack/BusGlue.hpp"
 #include "hem/rack/Tape.hpp"
@@ -105,10 +107,13 @@ int main(int argc, char** argv) {
     ::SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     std::filesystem::path out = "rack-snapshots";
     float scale = 0.75f;
+    bool groups = false;
     for (int i = 1; i < argc; ++i) {
         const std::string k = argv[i];
         if (k == "--out" && i + 1 < argc) out = argv[++i];
         else if (k == "--scale" && i + 1 < argc) scale = std::strtof(argv[++i], nullptr);
+        else if (k == "--width" && i + 1 < argc) scale = std::strtof(argv[++i], nullptr) / hem::ui::kPlateW;
+        else if (k == "--groups") groups = true;
     }
     std::error_code ec;
     std::filesystem::create_directories(out, ec);
@@ -225,7 +230,12 @@ int main(int argc, char** argv) {
         const double sd = lumaStdDev(img);
         std::string file = info.name;
         for (char& c : file) if (c == ' ') c = '_';
-        const auto path = out / ("HEM_" + file + ".png");
+        std::filesystem::path folder = out;
+        if (groups) {
+            folder /= hem::rack::groupName(info.group);
+            std::filesystem::create_directories(folder, ec);
+        }
+        const auto path = folder / ("HEM_" + file + ".png");
         const std::uint32_t glowing = win.glowingParts();   // lights are solid: nothing may glow
         const bool ok = !img.empty() && sd > 8.0 && glowing == 0 && hc::ui::writePng(path, img);
         std::printf("%s %s: %ux%u, luma spread %.1f, glowing parts %u -> %s\n", ok ? "OK  " : "FAIL", info.name, img.width, img.height, sd,
