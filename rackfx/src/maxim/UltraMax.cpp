@@ -10,7 +10,7 @@ namespace {
 using namespace maxim;
 
 const char* const kProfileN[kProfiles] = {"STANDARD", "OLD SCHOOL", "HALF SPLIT", "SINGLE AUTO", "SINGLE FIXED",
-                                          "VELVET", "HEAVY", "STRIPPED", "QUIET LIFT"};
+                                          "VELVET", "STRIPPED", "QUIET LIFT", "HEAVY"};
 struct ProfileDef {
     float xo[4];
     float separation;   // 0..1
@@ -25,9 +25,9 @@ struct ProfileDef {
 //  SINGLE AUTO   every band gives the same (works as one band), adaptive release.
 //  SINGLE FIXED  as SINGLE AUTO with fixed releases.
 //  VELVET        lows and low mids keep more, highs give more, slow release: smooth and warm.
-//  HEAVY         fast, hard release and full separation: the loudest, with the most movement.
 //  STRIPPED      lows give more, presence keeps more, short releases adaptive in the highs: lean.
 //  QUIET LIFT    long, adaptive releases: brings quiet parts up with little pumping.
+//  HEAVY         fast, hard release and full separation: the loudest, with the most movement.
 const ProfileDef kProfile[kProfiles] = {
     {{80, 320, 1278, 5113}, 1.0f, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {598, 503, 402, 298, 200}, Auto},
     {{100, 400, 1600, 6000}, 0.6f, {0, 0, 0, 0, 0}, {2, 1, 0, 0, 0}, {950, 800, 650, 480, 320}, AutoLows},
@@ -35,9 +35,9 @@ const ProfileDef kProfile[kProfiles] = {
     {{80, 320, 1278, 5113}, 0.0f, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {300, 300, 300, 300, 300}, Auto},
     {{80, 320, 1278, 5113}, 0.0f, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {300, 300, 300, 300, 300}, Manual},
     {{80, 320, 1278, 5113}, 0.8f, {0, 0, 0, 0, 0}, {2, 1, 0, -1, -2}, {840, 700, 560, 420, 280}, AutoLows},
-    {{80, 320, 1278, 5113}, 1.0f, {0, 0, 0, 0, 0}, {1, 0, 0, 0, 1}, {360, 300, 240, 180, 120}, Hard},
     {{80, 320, 1278, 5113}, 1.0f, {0, 0, 0, 0, 0}, {-1, 0, 1, 1, 0}, {300, 250, 200, 150, 100}, AutoHighs},
     {{80, 320, 1278, 5113}, 1.0f, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {1200, 1000, 800, 600, 400}, Auto},
+    {{80, 320, 1278, 5113}, 1.0f, {0, 0, 0, 0, 0}, {1, 0, 0, 0, 1}, {360, 300, 240, 180, 120}, Hard},
 };
 
 const ParamInfo kParams[kCount] = {

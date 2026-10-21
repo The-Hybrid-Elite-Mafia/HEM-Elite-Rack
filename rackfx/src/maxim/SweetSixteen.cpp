@@ -18,7 +18,7 @@ using namespace maxim;
 
 const char* const kCharN[kCharacters] = {"DEFAULT", "WARM TAPE", "ORCHESTRA", "ALL PUNCH", "KICK SNARE", "VOCAL UP 1", "VOCAL UP 2", "BASS UP 1",
                                          "BASS UP 2", "HARSH DOWN 1", "HARSH DOWN 2", "MUD DOWN", "SUB DOWN", "STANDARD", "OLD SCHOOL",
-                                         "HALF SPLIT", "SINGLE AUTO", "SINGLE FIXED", "VELVET", "HEAVY", "STRIPPED", "QUIET LIFT"};
+                                         "HALF SPLIT", "SINGLE AUTO", "SINGLE FIXED", "VELVET", "STRIPPED", "QUIET LIFT", "HEAVY"};
 // a release character: the lowest band's and the highest band's release (the ones between on a log
 // curve), how program-dependent, and one region whose releases are scaled (shorter = that region
 // comes back up quicker and sounds more forward; longer = it stays down longer and sits back)
@@ -32,8 +32,8 @@ const CharDef kChar[kCharacters] = {
     {250, 100, Hard, 40, 300, 0.5f},    {600, 150, Auto, 250, 4000, 0.6f}, {600, 150, Auto, 250, 4000, 0.35f}, {600, 150, Auto, 40, 250, 0.6f},
     {600, 150, Auto, 40, 250, 0.35f},   {600, 150, Auto, 2000, 6000, 1.8f}, {600, 150, Auto, 2000, 6000, 3.0f}, {600, 150, Auto, 200, 600, 2.0f},
     {600, 150, Auto, 20, 80, 2.5f},     {598, 200, Auto, 0, 0, 1},       {950, 320, AutoLows, 0, 0, 1},    {598, 200, Auto, 0, 0, 1},
-    {300, 300, Auto, 0, 0, 1},          {300, 300, Manual, 0, 0, 1},     {840, 280, AutoLows, 0, 0, 1},    {360, 120, Hard, 0, 0, 1},
-    {300, 100, AutoHighs, 0, 0, 1},     {1200, 400, Auto, 0, 0, 1},
+    {300, 300, Auto, 0, 0, 1},          {300, 300, Manual, 0, 0, 1},     {840, 280, AutoLows, 0, 0, 1},    {300, 100, AutoHighs, 0, 0, 1},
+    {1200, 400, Auto, 0, 0, 1},         {360, 120, Hard, 0, 0, 1},
 };
 const char* const kSepN[] = {"LOW", "MEDIUM", "HIGH"};
 constexpr std::uint32_t kSepTaps[] = {1023, 2047, 4095};

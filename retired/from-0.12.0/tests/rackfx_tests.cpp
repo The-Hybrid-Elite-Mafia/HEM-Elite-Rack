@@ -1519,7 +1519,7 @@ void testClassicEqs() {
 
 } // namespace hem::test
 
-// ---- WAVE 7: ENFORCER, HEAVY HAND, MUSCLE, UNDERBOSS, BOUNCER, TRIAD ---------------------------
+// ---- WAVE 7: ENFORCER, HEAVY HAND, MUSCLE, CAPO, BOUNCER, TRIAD ---------------------------
 namespace hem::test {
 namespace {
 // Steady 1 kHz tone level change (dB) after `seconds`, measured over the last 0.25 s.
@@ -1530,8 +1530,8 @@ double steadyChange(const char* name, std::initializer_list<std::pair<int, float
 } // namespace
 
 void testMoreDynamics() {
-    std::printf("[dynamics 2] ENFORCER, HEAVY HAND, MUSCLE, UNDERBOSS, BOUNCER, TRIAD\n");
-    for (const char* n : {"ENFORCER", "HEAVY HAND", "MUSCLE", "UNDERBOSS", "BOUNCER", "TRIAD"}) {
+    std::printf("[dynamics 2] ENFORCER, HEAVY HAND, MUSCLE, CAPO, BOUNCER, TRIAD\n");
+    for (const char* n : {"ENFORCER", "HEAVY HAND", "MUSCLE", "CAPO", "BOUNCER", "TRIAD"}) {
         const PluginInfo* info = findPlugin(n);
         CHECK(info != nullptr);
         if (info) commonRules(*info);
@@ -1590,18 +1590,18 @@ void testMoreDynamics() {
         std::printf("  60 Hz at -6 dBFS: LOW FOCUS FLAT %.2f dB, MUCH LESS %.2f dB\n", norm, loud);
         CHECK(loud > norm + 4.0);
     }
-    {   // UNDERBOSS: compresses; the LIMIT section holds the level; AUTO recovers faster after a short hit
+    {   // CAPO: compresses; the LIMIT section holds the level; AUTO recovers faster after a short hit
         using namespace diodebus;
-        const double c = steadyChange("UNDERBOSS", {{Threshold, -20}, {Ratio, 3}, {Drive, 0}}, 0.5f);
-        const double lim = steadyChange("UNDERBOSS", {{Threshold, 0}, {Limit, 1}, {LimitLevel, -10}, {Drive, 0}}, 0.5f);
-        std::printf("  UNDERBOSS 4:1 at -20: -6 dBFS tone %.2f dB; LIMIT at -10: %.2f dB (wants -4.0)\n", c, lim);
+        const double c = steadyChange("CAPO", {{Threshold, -20}, {Ratio, 3}, {Drive, 0}}, 0.5f);
+        const double lim = steadyChange("CAPO", {{Threshold, 0}, {Limit, 1}, {LimitLevel, -10}, {Drive, 0}}, 0.5f);
+        std::printf("  CAPO 4:1 at -20: -6 dBFS tone %.2f dB; LIMIT at -10: %.2f dB (wants -4.0)\n", c, lim);
         CHECK(c < -7.0 && c > -12.0);
         CHECK(std::fabs(lim + 4.0) < 0.6);
-        auto e = fresh("UNDERBOSS", {{Drive, 0}, {Mix, 100}});
+        auto e = fresh("CAPO", {{Drive, 0}, {Mix, 100}});
         Stereo s = noise(1.0, 0.05f), ref = s;
         run(*e, s);
         const double d = maxDelayedDiff(s, ref, e->latency(), 4800);
-        std::printf("  UNDERBOSS under the threshold, no iron: latency %u, max difference %.2e\n", e->latency(), d);
+        std::printf("  CAPO under the threshold, no iron: latency %u, max difference %.2e\n", e->latency(), d);
         CHECK(d < 1e-3);
     }
     {   // BOUNCER: closes by RANGE on quiet, opens on loud, holds; EXPAND drops 2 dB per dB under
@@ -1629,7 +1629,7 @@ void testMoreDynamics() {
         std::printf("  TRIAD low band at -30, 4:1: 60 Hz %.2f dB, 1 kHz %.2f dB, meters %.1f / %.1f / %.1f\n", lo, mid, e->meter(0), e->meter(1), e->meter(2));
         CHECK(lo < -10.0 && std::fabs(mid) < 0.2 && e->meter(0) < -10.0f && e->meter(1) > -0.1f);
     }
-    for (const char* n : {"ENFORCER", "HEAVY HAND", "MUSCLE", "UNDERBOSS", "BOUNCER", "TRIAD"}) {
+    for (const char* n : {"ENFORCER", "HEAVY HAND", "MUSCLE", "CAPO", "BOUNCER", "TRIAD"}) {
         Stereo in = hotMix(1.0);
         const double d = blockSizeDifference(*findPlugin(n), [](hc::fx::Effect&) {}, in);
         std::printf("  %s block size 1 vs 512: max difference %.2e\n", n, d);

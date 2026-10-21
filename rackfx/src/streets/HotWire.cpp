@@ -15,7 +15,7 @@ using namespace amps;
 
 const char* const kAmpN[] = {"CLASSIC", "CROWN", "STEEL", "BLAZE", "BEAST"};
 const char* const kChN[] = {"CLEAN", "DRIVE", "LEAD"};
-const char* const kCabN[] = {"1X12 OPEN", "2X12 OPEN", "4X10 OPEN", "2X12 CLOSED", "4X12 VINTAGE", "4X12 MODERN"};
+const char* const kCabN[] = {"1X12 OPEN", "2X12 OPEN", "4X10 OPEN", "2X12 CLOSED", "4X12 OLD", "4X12 NEW"};
 const char* const kPushN[] = {"A", "B"};
 const ParamInfo kParams[kCount] = {
     {"input", "Input", "dB", -12.0f, 12.0f, 0.0f},

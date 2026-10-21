@@ -259,8 +259,8 @@ HIGH STAKES / FAST MONEY
 
 TOP DOG / QUICK CASH
   The five-band limiter driven by a PROFILE: STANDARD, OLD SCHOOL (thick, soft), HALF SPLIT,
-  SINGLE AUTO / SINGLE FIXED (works as one band), VELVET (smooth, warm), HEAVY (loudest), STRIPPED
-  (lean), QUIET LIFT (brings quiet parts up). THRESHOLD, CEILING, LINK, RELEASE. QUICK CASH = 2 ms late.
+  SINGLE AUTO / SINGLE FIXED (works as one band), VELVET (smooth, warm), STRIPPED (lean), QUIET
+  LIFT (brings quiet parts up), HEAVY (loudest). THRESHOLD, CEILING, LINK, RELEASE. QUICK CASH = 2 ms late.
 
 SWEET SIXTEEN
   Sixteen bands. Six EQ / priority columns: GAIN is an EQ before the limiter, WEIGHT uses the same
@@ -576,8 +576,8 @@ SAFE HOUSE
   own head. MUTE L / MUTE R switch a speaker off. It is for listening only: switch it off before you export.
 
 TORCH
-  A guitar amp and two miked cabinets. TYPE picks the amp (DIRECT and CLEAN up to HOT, LEAD and
-  MODERN); DRIVE is how hard it's driven; BASS / MID / TREBLE and PRESENCE shape it; MASTER is its
+  A guitar amp and two miked cabinets. TYPE picks the amp (STRAIGHT IN and PURE up to FIRE, LEAD and
+  VENOM); DRIVE is how hard it's driven; BASS / MID / TREBLE and PRESENCE shape it; MASTER is its
   volume (all 0..10, 5 = the middle). AMP off = only the cabinets. Each cabinet path (A, B) has its CAB
   (NONE = no cabinet and no mic), MIC (dynamic, condenser or ribbon, on or off the speaker's centre),
   VOLUME (0 = off) and PAN; PHASE B flips B (try it when the two sound thin together). ROUTING DUAL
@@ -636,7 +636,7 @@ WISEGUYS
   4 = major third, 7 = fifth, 12 = octave, minus = below; fractions = cents), FORMANT (moves the
   voice's character: up = smaller, younger; down = bigger), GAIN, PAN and DELAY. DIRECT is the original
   singer (ON, GAIN, DELAY). ANIMATE lets the voices drift apart in time so they don't land together.
-  LINK makes the formant follow the pitch (FREE = not at all, LINEAR = fully, INVERTED = the other way;
+  LINK makes the formant follow the pitch (OFF = not at all, FULL = fully, OPPOSITE = the other way;
   the others are in between). MODE and MIN / MAX PITCH tell it what kind of voice it is reading. It
   works on one voice or one instrument line, not chords. It delays the sound by 85 ms (DAWs make up).
 

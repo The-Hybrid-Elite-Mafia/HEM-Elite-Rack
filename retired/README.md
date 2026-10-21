@@ -23,7 +23,7 @@ The plug-in names and permanent VST3 IDs are in `rackfx/src/Plugins.cpp` of that
 | SUCKER PUNCH | transient shaper | `rackfx/src/Tools.cpp` (`trn`) | `transientFace` |
 | HEAVY HAND | RMS compressor | `rackfx/src/MoreDynamics.cpp` (`pu`) | `punchFace` |
 | MUSCLE | bus compressor with low focus | `rackfx/src/MoreDynamics.cpp` (`th`) | `focusFace` |
-| UNDERBOSS | diode-bridge bus compressor + limiter | `rackfx/src/MoreDynamics.cpp` (`bb`) | `diodeBusFace` |
+| CAPO | diode-bridge bus compressor + limiter | `rackfx/src/MoreDynamics.cpp` (`bb`) | `diodeBusFace` |
 | BOUNCER | gate / expander | `rackfx/src/MoreDynamics.cpp` (`ga`) | `gateFace` |
 | TRIAD | three-band compressor | `rackfx/src/MoreDynamics.cpp` (`mb`) | `multibandFace` |
 | CHOKEHOLD | low-end tightener | `rackfx/src/Specialty.cpp` (`bt`) | `tightenerFace` |

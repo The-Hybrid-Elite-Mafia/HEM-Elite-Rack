@@ -2,8 +2,8 @@
 // =============================================================================
 //  The HEM streets: guitar, pitch, meters and test tones (our own designs, our own names).
 //
-//  TORCH         guitar amp with two cabinets: AMP on / off, TYPE (ten amps of our own, from DIRECT and CLEAN up
-//                to HOT, LEAD and MODERN), DRIVE, BASS, MID, TREBLE, PRESENCE and MASTER (all 0..10, 5 = middle),
+//  TORCH         guitar amp with two cabinets: AMP on / off, TYPE (ten amps of our own, from STRAIGHT IN and PURE
+//                up to FIRE, LEAD and VENOM), DRIVE, BASS, MID, TREBLE, PRESENCE and MASTER (all 0..10, 5 = middle),
 //                INPUT and OUTPUT ±12 dB; two cabinet paths A and B, each its CABINET (NONE or one of eight), MIC
 //                (dynamic, condenser or ribbon, on or off axis), VOLUME 0..10 (0 = off) and PAN; B has a PHASE
 //                flip; ROUTING DUAL (both paths hear the amp) or STEREO (left through A, right through B).
@@ -44,9 +44,9 @@
 //  WISEGUYS      voice harmonizer: six added voices, each ON, PITCH (-12..+12 semitones, cents allowed), FORMANT
 //                (-12..+12 semitones), GAIN (0..-24 dB), PAN (±45 degrees) and DELAY (0..100 ms); the DIRECT voice
 //                (the original) ON, GAIN and DELAY; ANIMATE 0..100 ms (each voice drifts that far in time, so they
-//                don't land together), LINK (FREE / VOICE / SONG / BRASS / WOODS / STRINGS / LINEAR / INVERTED: how
+//                don't land together), LINK (OFF / SPEECH / SINGING / HORNS / REEDS / BOWED / FULL / OPPOSITE: how
 //                far each voice's formant follows its pitch, our own amounts), MODE (how the pitch is read: DEFAULT,
-//                VOICE STEADY, VOICE JUMPY, OPERA, MUSIC STEADY, CLEAR TONES, BASS), MIN PITCH and MAX PITCH.
+//                STEADY SINGER, LIVELY SINGER, BIG VIBRATO, STEADY PLAYER, PURE TONES, LOW END), MIN PITCH and MAX PITCH.
 //                PSOLA voices (formants kept unless moved); latency 4096 samples.
 //  MADE MAN      pitch correction for one voice: ROOT and SCALE (twenty of ours, or MY NOTES: the twelve switches
 //                say which notes are allowed), SPEED (how fast the voice is pulled onto the note: 0 = hard), NOTE
@@ -79,7 +79,7 @@ namespace hem::rack {
 namespace torch {
 enum P : int { AmpOn, Type, Drive, Bass, Mid, Treble, Presence, Master, Input, Output,
                CabA, MicA, VolA, PanA, CabB, MicB, VolB, PanB, PhaseB, Routing, kCount };
-enum Amp : int { Direct, Clean, Sparkle, Edge, DriveAmp, Crunch, Brit, Hot, Lead, Modern, kAmps };
+enum Amp : int { StraightIn, Pure, Sparkle, Bite, PushAmp, Grit, Stack, Fire, Lead, Venom, kAmps };
 inline constexpr int kCabs = 9;   // NONE + eight
 } // namespace torch
 

@@ -1,7 +1,18 @@
+# HEM-Elite-Rack 0.42.0
+
+Label check, part two (names and menu order only; no sound changes):
+- **TORCH** — amp types renamed to our own: STRAIGHT IN, PURE, SPARKLE, BITE, PUSH, GRIT, STACK, FIRE, LEAD, VENOM. The 4x12
+  cabinets are now 4X12 OLD and 4X12 NEW (also on HOT WIRE).
+- **WISEGUYS** — MODE: ALL ROUND, STEADY SINGER, LIVELY SINGER, BIG VIBRATO, STEADY PLAYER, PURE TONES, LOW END. LINK: OFF,
+  SPEECH, SINGING, HORNS, REEDS, BOWED, FULL, OPPOSITE.
+- **TOP DOG / QUICK CASH / SWEET SIXTEEN** — the last three profiles now come in the order of the original's menu: STRIPPED,
+  QUIET LIFT, HEAVY.
+
 # HEM-Elite-Rack 0.41.0
 
 Label check (names only; no sound changes):
-- **THE CHAIRMAN** — the British-console channel's new name (it was THE BOSS). Same plug-in, same settings, same VST3 IDs.
+- **THE CHAIRMAN** — the British-console channel's new name (its old name borrowed another company's trademark). Same plug-in,
+  same settings, same VST3 IDs.
 - **CHAUFFEUR** — now described as a bass level rider.
 - **MADE MAN** — NOTE TRANSITION is now NOTE GLIDE.
 - **THE AUDITOR** — METHOD is now EBU / AVERAGE / DIALOGUE.
@@ -471,7 +482,7 @@ and in your DAW's plug-in list are new.
 
 - **EQ:** SURGEON, BOARDROOM, VELVET, FOUNDRY, KNUCKLES, MIDTOWN, PENTHOUSE, BLUEPRINT, LEVERAGE
 - **DYNAMICS:** THE FAMILY, SMOKE, LANTERN, TRIGGER, LOCKDOWN, HUSH MONEY, RAZOR, SUCKER PUNCH,
-  ENFORCER, HEAVY HAND, MUSCLE, UNDERBOSS, BOUNCER, TRIAD, CHOKEHOLD
+  ENFORCER, HEAVY HAND, MUSCLE, CAPO, BOUNCER, TRIAD, CHOKEHOLD
 - **COLOR:** ARCHIVE, SPARK, FURNACE, FRONT MAN, MIXTAPE, CRATE DIGGER, SHREDDER, ANVIL
 - **SPACE:** CATHEDRAL, BACKROOM, CHROME, COIL, WIRETAP, REPEAT OFFENDER
 - **MOVEMENT:** THE CREW, GETAWAY, SMOKESCREEN, SHAKEDOWN, CYCLONE, SHAPESHIFTER
@@ -533,7 +544,7 @@ before and after, so you can see what it adds:
 - **SHREDDER** — bits and downsampling, mix.
 - **ANVIL** — output iron: the lows saturate far more than the highs, weight, nickel / steel.
 
-**Faceplate fixes:** UNDERBOSS recovery buttons fit their text; TRIAD and ENFORCER labels no
+**Faceplate fixes:** CAPO recovery buttons fit their text; TRIAD and ENFORCER labels no
 longer overlap.
 
 # HEM-Elite-Rack 0.7.0
@@ -545,7 +556,7 @@ longer overlap.
   faster the harder it's hit, lets go at a steady ~120 dB per second.
 - **MUSCLE** — punchy bus compressor: LOW FOCUS keeps the bass from pumping it, knee, MODERN
   (feed-forward) or VINTAGE (feedback) style, stereo link.
-- **UNDERBOSS** — Diode-bridge bus compressor with a limiter after it, AUTO recovery,
+- **CAPO** — Diode-bridge bus compressor with a limiter after it, AUTO recovery,
   iron drive.
 - **BOUNCER** — gate or expander with range, hold, hysteresis, detector filters, listen.
 - **TRIAD** — three-band compressor; with nothing compressing the bands add back up flat

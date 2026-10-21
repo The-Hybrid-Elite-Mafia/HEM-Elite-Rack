@@ -10,7 +10,7 @@
 #include "../arsenal/Vintage.hpp"
 
 namespace hem::rack {
-namespace boss {
+namespace chairman {
 namespace {
 using namespace arsenal;
 using eqkit::Shape;
@@ -164,8 +164,8 @@ private:
 };
 
 } // namespace
-} // namespace boss
+} // namespace chairman
 
-std::unique_ptr<hc::fx::Effect> makeTheBoss() { return std::make_unique<boss::Impl>(); }
+std::unique_ptr<hc::fx::Effect> makeChairman() { return std::make_unique<chairman::Impl>(); }
 
 } // namespace hem::rack

@@ -348,8 +348,8 @@ void testSmoothTalker() {
     }
 }
 
-void testTheBoss() {
-    using namespace boss;
+void testChairman() {
+    using namespace chairman;
     // flat at rest: a quiet tone goes through untouched (the preamp's colour only shows when it's driven)
     {
         auto e = make("THE CHAIRMAN", {{Analog, 0}});
@@ -1430,7 +1430,7 @@ void testToneShop() {
     testSmoothTalker();
     testInsideMan();
     testBassMakers();
-    testTheBoss();
+    testChairman();
     testKingpin();
     testGoldChain();
     testIvories();

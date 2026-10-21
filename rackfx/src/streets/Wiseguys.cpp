@@ -12,8 +12,8 @@ namespace wiseguys {
 namespace {
 using namespace streets;
 
-const char* const kLinkN[] = {"FREE", "VOICE", "SONG", "BRASS", "WOODS", "STRINGS", "LINEAR", "INVERTED"};
-const char* const kModeN[] = {"DEFAULT", "VOICE STEADY", "VOICE JUMPY", "OPERA", "MUSIC STEADY", "CLEAR TONES", "BASS"};
+const char* const kLinkN[] = {"OFF", "SPEECH", "SINGING", "HORNS", "REEDS", "BOWED", "FULL", "OPPOSITE"};
+const char* const kModeN[] = {"ALL ROUND", "STEADY SINGER", "LIVELY SINGER", "BIG VIBRATO", "STEADY PLAYER", "PURE TONES", "LOW END"};
 #define HEM_VOICE(n, pitch, pan)                                                                \
     {"on" #n, "Voice " #n " On", "", 0, 1, 0, Taper::Toggle, kOnOff},                           \
     {"pitch" #n, "Voice " #n " Pitch", "st", -12.0f, 12.0f, pitch},                             \

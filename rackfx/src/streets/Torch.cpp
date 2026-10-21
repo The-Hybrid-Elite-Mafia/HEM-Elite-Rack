@@ -13,13 +13,13 @@ namespace torch {
 namespace {
 using namespace amps;
 
-const char* const kTypeN[] = {"DIRECT", "CLEAN", "SPARKLE", "EDGE", "DRIVE", "CRUNCH", "BRIT", "HOT", "LEAD", "MODERN"};
-const char* const kCabN[] = {"NONE", "1X12 OPEN", "2X12 OPEN", "4X10 OPEN", "2X12 CLOSED", "4X12 VINTAGE", "4X12 MODERN", "1X15", "8X10"};
+const char* const kTypeN[] = {"STRAIGHT IN", "PURE", "SPARKLE", "BITE", "PUSH", "GRIT", "STACK", "FIRE", "LEAD", "VENOM"};
+const char* const kCabN[] = {"NONE", "1X12 OPEN", "2X12 OPEN", "4X10 OPEN", "2X12 CLOSED", "4X12 OLD", "4X12 NEW", "1X15", "8X10"};
 const char* const kMicN[] = {"DYNAMIC ON", "DYNAMIC OFF", "CONDENSER ON", "CONDENSER OFF", "RIBBON ON", "RIBBON OFF"};
 const char* const kRouteN[] = {"DUAL", "STEREO"};
 const ParamInfo kParams[kCount] = {
     {"amp", "Amp", "", 0, 1, 1, Taper::Toggle, kOnOff},
-    {"type", "Type", "", 0, kAmps - 1, Clean, Taper::Choice, kTypeN},
+    {"type", "Type", "", 0, kAmps - 1, Pure, Taper::Choice, kTypeN},
     {"drive", "Drive", "", 0.0f, 10.0f, 5.0f},
     {"bass", "Bass", "", 0.0f, 10.0f, 5.0f},
     {"mid", "Mid", "", 0.0f, 10.0f, 5.0f},
@@ -42,24 +42,24 @@ const ParamInfo kParams[kCount] = {
 // The amps: voicing, gain range across DRIVE 0..10 (dB), where MID sits, where TREBLE and PRESENCE work.
 struct AmpModel { Voice v; float gainLo, gainHi; double midHz, trebleHz, presHz; };
 constexpr AmpModel kModels[kAmps] = {
-    {{20.0, 1000.0, 0.0, 0.0f, 1}, -6.0f, 6.0f, 700.0, 3000.0, 5000.0},       // DIRECT: almost a clean line
-    {{60.0, 800.0, 0.0, 0.05f, 1}, 0.0f, 18.0f, 600.0, 2800.0, 4500.0},      // CLEAN
+    {{20.0, 1000.0, 0.0, 0.0f, 1}, -6.0f, 6.0f, 700.0, 3000.0, 5000.0},       // STRAIGHT IN: almost a clean line
+    {{60.0, 800.0, 0.0, 0.05f, 1}, 0.0f, 18.0f, 600.0, 2800.0, 4500.0},      // PURE
     {{80.0, 2500.0, 3.0, 0.04f, 1}, 0.0f, 20.0f, 700.0, 3500.0, 5500.0},     // SPARKLE: a bright clean
-    {{90.0, 1200.0, 2.0, 0.10f, 2}, 4.0f, 28.0f, 650.0, 3000.0, 4500.0},     // EDGE
-    {{90.0, 900.0, 3.0, 0.12f, 2}, 8.0f, 32.0f, 650.0, 2800.0, 4500.0},      // DRIVE
-    {{100.0, 900.0, 4.0, 0.12f, 2}, 10.0f, 36.0f, 700.0, 2800.0, 4500.0},    // CRUNCH
-    {{100.0, 1000.0, 5.0, 0.14f, 3}, 10.0f, 38.0f, 800.0, 3000.0, 5000.0},   // BRIT
-    {{110.0, 800.0, 6.0, 0.15f, 3}, 14.0f, 44.0f, 800.0, 3000.0, 4500.0},    // HOT
+    {{90.0, 1200.0, 2.0, 0.10f, 2}, 4.0f, 28.0f, 650.0, 3000.0, 4500.0},     // BITE
+    {{90.0, 900.0, 3.0, 0.12f, 2}, 8.0f, 32.0f, 650.0, 2800.0, 4500.0},      // PUSH
+    {{100.0, 900.0, 4.0, 0.12f, 2}, 10.0f, 36.0f, 700.0, 2800.0, 4500.0},    // GRIT
+    {{100.0, 1000.0, 5.0, 0.14f, 3}, 10.0f, 38.0f, 800.0, 3000.0, 5000.0},   // STACK
+    {{110.0, 800.0, 6.0, 0.15f, 3}, 14.0f, 44.0f, 800.0, 3000.0, 4500.0},    // FIRE
     {{110.0, 900.0, 6.0, 0.15f, 3}, 16.0f, 48.0f, 900.0, 3200.0, 5000.0},    // LEAD
-    {{120.0, 700.0, 4.0, 0.10f, 3}, 18.0f, 50.0f, 500.0, 3500.0, 5500.0},    // MODERN: tight lows, scooped
+    {{120.0, 700.0, 4.0, 0.10f, 3}, 18.0f, 50.0f, 500.0, 3500.0, 5500.0},    // VENOM: tight lows, scooped
 };
 constexpr CabSpec kCabSpecs[kCabs - 1] = {
     {75.0, 1.0, 120.0, 2.0, 2400.0, 3.0, 4000.0, -5.0, 5500.0},     // 1X12 OPEN
     {70.0, 1.0, 110.0, 2.5, 2200.0, 3.0, 3800.0, -4.0, 5200.0},     // 2X12 OPEN
     {80.0, 0.9, 140.0, 2.0, 2600.0, 4.0, 4200.0, -4.0, 6000.0},     // 4X10 OPEN
     {70.0, 1.2, 100.0, 3.0, 2000.0, 2.5, 3400.0, -4.0, 5000.0},     // 2X12 CLOSED
-    {65.0, 1.2, 95.0, 3.5, 1800.0, 2.0, 3200.0, -5.0, 4600.0},      // 4X12 VINTAGE
-    {60.0, 1.3, 90.0, 4.0, 2500.0, 3.0, 3600.0, -3.0, 5400.0},      // 4X12 MODERN
+    {65.0, 1.2, 95.0, 3.5, 1800.0, 2.0, 3200.0, -5.0, 4600.0},      // 4X12 OLD
+    {60.0, 1.3, 90.0, 4.0, 2500.0, 3.0, 3600.0, -3.0, 5400.0},      // 4X12 NEW
     {45.0, 0.9, 80.0, 3.0, 1500.0, 2.0, 2800.0, -4.0, 4000.0},      // 1X15
     {40.0, 0.9, 70.0, 3.0, 800.0, -3.0, 2200.0, -3.0, 3500.0},      // 8X10
 };
@@ -188,7 +188,7 @@ private:
     std::array<std::array<hc::fx::Biquad, 4>, 2> stack_{};
     CabPath a_, b_;
     bool cabA_ = true, cabB_ = true;
-    int type_ = Clean;
+    int type_ = Pure;
     std::array<float, 9> key_{};
     float dc_[2]{}, ampMix_ = 1.0f, fade_ = 0.001f;
     hc::fx::Smoothed inG_, outG_, master_, volA_, volB_, panA_, panB_;

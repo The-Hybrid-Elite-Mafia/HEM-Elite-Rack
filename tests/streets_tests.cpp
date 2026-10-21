@@ -70,19 +70,19 @@ void testTorch() {
     double lv[3], h3[3];
     const float drives[3] = {0, 5, 10};
     for (int k = 0; k < 3; ++k) {
-        auto e = make("TORCH", {{Type, Crunch}, {Drive, drives[k]}, {CabA, 0}});
+        auto e = make("TORCH", {{Type, Grit}, {Drive, drives[k]}, {CabA, 0}});
         lv[k] = componentDb(*e, 200, 0.1f, 200);
         h3[k] = componentDb(*e, 200, 0.1f, 600) - lv[k];
     }
-    std::printf("  TORCH crunch, a -20 dBFS 200 Hz note, drive 0 / 5 / 10: level %.1f / %.1f / %.1f dB, 3rd harmonic %.1f / %.1f / %.1f dB under it\n",
+    std::printf("  TORCH GRIT, a -20 dBFS 200 Hz note, drive 0 / 5 / 10: level %.1f / %.1f / %.1f dB, 3rd harmonic %.1f / %.1f / %.1f dB under it\n",
                 lv[0], lv[1], lv[2], h3[0], h3[1], h3[2]);
     CHECK(lv[0] > -30 && lv[2] < 6 && lv[1] > -30 && h3[2] > h3[0] + 6.0);
     // a cabinet takes the fizz off: 8 kHz well under 1 kHz through the 4x12; with NONE it isn't
-    auto c = make("TORCH", {{Type, Clean}, {Drive, 0}, {CabA, 5}, {Presence, 0}});
-    auto o = make("TORCH", {{Type, Clean}, {Drive, 0}, {CabA, 0}, {Presence, 0}});
+    auto c = make("TORCH", {{Type, Pure}, {Drive, 0}, {CabA, 5}, {Presence, 0}});
+    auto o = make("TORCH", {{Type, Pure}, {Drive, 0}, {CabA, 0}, {Presence, 0}});
     const double k1 = componentDb(*c, 1000, 0.01f, 1000), k8 = componentDb(*c, 8000, 0.01f, 8000);
     const double n1 = componentDb(*o, 1000, 0.01f, 1000), n8 = componentDb(*o, 8000, 0.01f, 8000);
-    std::printf("  TORCH clean, 4x12 vintage: 1 kHz %.1f, 8 kHz %.1f dB; no cabinet: %.1f, %.1f dB\n", k1, k8, n1, n8);
+    std::printf("  TORCH PURE, 4X12 OLD: 1 kHz %.1f, 8 kHz %.1f dB; no cabinet: %.1f, %.1f dB\n", k1, k8, n1, n8);
     CHECK(k8 < k1 - 15.0 && n8 > n1 - 10.0);
     // AMP off: the input through the cabinet only; VOLUME 0 = silent path; PAN hard left = only left; PHASE B flips B
     auto off = make("TORCH", {{AmpOn, 0}, {CabA, 0}});

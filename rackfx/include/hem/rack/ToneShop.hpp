@@ -195,7 +195,7 @@ enum P : int { Link = 2 * kSide, Spectrum, Output, Trim, kCount };
 extern const CurveInfo kCurve;
 } // namespace smoothtalker
 
-namespace boss {
+namespace chairman {
 enum P : int { Source, Preamp, Input, High, MidGain, MidFreq, MidMode, LowFreq, LowGain, LowCut, EqIn, Analog, Noise, Phase,
                Output, Trim, Meter, VuCal, kCount };
 inline constexpr float kHighDb[] = {-16, -12, -8, -4, 0, 4, 8, 12};
@@ -203,7 +203,7 @@ inline constexpr float kMidHz[] = {700, 1000, 1400, 2000, 2800, 3500, 4500, 6000
 inline constexpr float kLowHz[] = {0, 60, 120, 250, 400};
 inline constexpr float kCutDb[] = {0, -3, -6, -9, -12, -15};
 inline constexpr std::uint32_t kLatency = 23;
-} // namespace boss
+} // namespace chairman
 
 namespace insideman {
 inline constexpr int kBands = 4;
@@ -312,7 +312,7 @@ extern const CurveInfo kCurve;
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeLowProfile();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeTunnelVision();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeTheSetup();
-[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeTheBoss();
+[[nodiscard]] std::unique_ptr<hc::fx::Effect> makeChairman();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeKingpin();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeGoldChain();
 [[nodiscard]] std::unique_ptr<hc::fx::Effect> makeIvories();

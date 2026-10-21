@@ -113,7 +113,7 @@ constexpr PlateToggle leftT[] = {{On, "POWER"}};
 
 const PlateSpec kTorch{.note1 = "LIGHT IT UP", .note2 = "AMP AND TWO CABINETS", .screen = Screen::None, .toggles = to::toggles,
                        .row1 = to::row1, .row2 = to::row2, .steppers = to::steppers,
-                       .demo = [](hc::fx::Effect& e) { using namespace torch; e.set(Type, Crunch); e.set(Drive, 7); e.set(VolB, 4); }};
+                       .demo = [](hc::fx::Effect& e) { using namespace torch; e.set(Type, Grit); e.set(Drive, 7); e.set(VolB, 4); }};
 const PlateSpec kHotWire{.note1 = "THE HEAD", .note2 = "AND THE BOX", .screen = Screen::Readouts, .readouts = hw::readouts, .toggles = hw::toggles,
                          .row1 = hw::row1, .row2 = hw::row2, .steppers = hw::steppers,
                          .demo = [](hc::fx::Effect& e) { e.set(hotwire::Gain, 7); e.set(hotwire::Room, 30); }};

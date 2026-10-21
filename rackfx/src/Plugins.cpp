@@ -321,7 +321,7 @@ const PluginInfo kPlugins[] = {
     {"THE CHAIRMAN", "BRITISH CONSOLE CHANNEL", "RUN WHAT MATTERS", "Fx|EQ",
      "British-console channel: mic / line preamp, stepped high shelf, mid boost / cut, low shelf, 50 Hz cut, hum and hiss, VU",
      {0x82D3954Bu, 0x486C4D59u, 0x93C55EDDu, 0xCC9D71C9u}, {0x146B2456u, 0xF3A44803u, 0xA5C4439Bu, 0x6E01E0E6u},
-     Face::Spec, Group::Tools, &makeTheBoss, nullptr, &plates::kTheBoss},
+     Face::Spec, Group::Tools, &makeChairman, nullptr, &plates::kChairman},
     {"REEL MONEY", "TUBE TAPE MACHINE", "ROLL WHAT MATTERS", "Fx|Distortion",
      "Tube tape machine: speed, monitor, bias, into / off tape with link, tape level, wobble, hiss, the tape echo, VU",
      {0x623CFD24u, 0xF59841CEu, 0x81D4E5EDu, 0x976B0EC7u}, {0x43D827E5u, 0x828E48DFu, 0x952D4CF9u, 0x8302EAA9u},

@@ -106,7 +106,7 @@ constexpr PlateKnob lRow1[] = {{l::Frequency, "FREQUENCY", "32", "256"}, {l::Int
 
 // ---- THE CHAIRMAN: the needle, order / low cut / limit beside it, dynamics over EQ
 namespace bo {
-using namespace boss;
+using namespace chairman;
 constexpr PlateChoice choices[] = {{Meter, "METER"}, {MidMode, "MID"}};
 constexpr PlateToggle toggles[] = {{EqIn, "EQ"}, {Phase, "PHASE"}};
 constexpr PlateChoice left[] = {{Source, "SOURCE"}};
@@ -343,10 +343,10 @@ const PlateSpec kDeepPockets{.note1 = "BASS ON SMALL SPEAKERS", .note2 = "HEARD,
 const PlateSpec kLowProfile{.note1 = "BASS THAT CARRIES", .note2 = "ONE MOVE", .screen = Screen::Readouts, .readouts = lo::lReadouts,
                             .toggles = lo::lToggles, .row1 = lo::lRow1,
                             .demo = [](hc::fx::Effect& e) { e.set(lowprofile::Intensity, 6); }};
-const PlateSpec kTheBoss{.note1 = "THE BRITISH DESK", .note2 = "ONE CHANNEL", .screen = Screen::Needle, .choices = bo::choices, .toggles = bo::toggles,
-                         .row1 = bo::row1, .row2 = bo::row2, .left = bo::left, .leftToggles = bo::leftToggles, .meterSelect = boss::Meter, .vuMeter = 0,
+const PlateSpec kChairman{.note1 = "THE BRITISH DESK", .note2 = "ONE CHANNEL", .screen = Screen::Needle, .choices = bo::choices, .toggles = bo::toggles,
+                         .row1 = bo::row1, .row2 = bo::row2, .left = bo::left, .leftToggles = bo::leftToggles, .meterSelect = chairman::Meter, .vuMeter = 0,
                          .demo = [](hc::fx::Effect& e) {
-                             using namespace boss;
+                             using namespace chairman;
                              e.set(Preamp, 3); e.set(High, 5); e.set(MidGain, 4); e.set(MidFreq, 4); e.set(LowFreq, 2); e.set(LowGain, 3);
                          }};
 const PlateSpec kKingpin{.note1 = "DRUMS RUN THE BLOCK", .note2 = "PICK THE DRUM", .screen = Screen::Needle, .choices = kp::choices,
