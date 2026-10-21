@@ -1,7 +1,7 @@
 HEM-ELITE-RACK - FACEPLATE TEMPLATES
 ====================================
 
-One picture per plug-in, 3840 x 2161 (4K), in a folder per category: EQ, DYNAMICS, COLOR, SPACE,
+One picture per plug-in, 2560 x 1441, in a folder per category: EQ, DYNAMICS, COLOR, SPACE,
 MOVEMENT, TOOLS, KEYS. Each picture is the plug-in's faceplate exactly as the app draws it today,
 with every knob, button, switch, screen and meter in its real place.
 
