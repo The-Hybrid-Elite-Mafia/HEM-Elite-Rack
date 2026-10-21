@@ -3,7 +3,8 @@
 //  RackView — the HEM-Elite-Rack window around the faceplate: top bar (OPEN SONG, EXPORT WAV,
 //  audio device), transport (play / stop, song overview you can click to jump, LIVE INPUT with MONITOR,
 //  RECORD and its meter, A / B, MATCH LOUDNESS, LOOP, output meter), the chain (8 slots: select, ON, move, remove, + ADD) and the
-//  plug-in picker. The selected plug-in's faceplate is drawn by hem::ui::FaceView in faceArea().
+//  plug-in picker. The selected plug-in's faceplate is drawn by hem::ui::FaceView in faceArea(), with an X CLOSE
+//  button in the strip above its top-right corner (closing hides the plate only; the plug-in keeps running).
 //  Design units: kW × kH, letterboxed into the window. Draws through the Renderer only and
 //  reads a plain view state, so it never touches audio objects.
 // =============================================================================
@@ -46,6 +47,7 @@ struct RackViewState {
     // chain
     std::array<SlotView, 8> slots{};
     int  selected = -1;
+    bool faceOpen = false;                   // a plate is showing (it has its CLOSE button)
     bool picker = false;
     struct PickerItem { std::string name, blurb; int group = 0; int plugin = 0; };
     std::vector<PickerItem> pickerItems;     // every plug-in; the picker shows the chosen tab's
@@ -59,7 +61,7 @@ struct RackViewState {
 
 enum class Action : std::uint8_t {
     None, OpenSong, Export, Device, Play, Stop, Seek, PlayA, PlayB, Match, Loop, Input, Monitor, Record,
-    SlotSelect, SlotOn, SlotUp, SlotDown, SlotRemove, AddOpen, AddPlugin, PickerClose, PickerTab, Face,
+    SlotSelect, SlotOn, SlotUp, SlotDown, SlotRemove, AddOpen, AddPlugin, PickerClose, PickerTab, Face, FaceClose,
 };
 struct Hit {
     Action action = Action::None;
@@ -75,6 +77,8 @@ public:
     static constexpr float kW = 2000.0f, kH = 1250.0f;
 
     [[nodiscard]] static Rect faceArea() noexcept { return {420, 262, 1560, 968}; }
+    // The plate's X CLOSE button: in the strip between faceArea()'s top and the plate's top edge.
+    [[nodiscard]] static Rect faceClose() noexcept;
     // Where the 1672 × 941 faceplate sits inside faceArea(), and its zoom.
     static void facePlacement(float& originX, float& originY, float& zoom) noexcept;
 

@@ -1,3 +1,9 @@
+# HEM-Elite-Rack 0.43.0
+
+- **Close a plate without removing the plug-in** — X CLOSE above every plate's top-right corner, or the ESC key. The plug-in
+  keeps running in the chain with its settings; click its name in the CHAIN to open the plate again. With no plate open the
+  middle shows the empty screen. ESC closes the plug-in picker too (it has an X CLOSE button as well).
+
 # HEM-Elite-Rack 0.42.0
 
 Label check, part two (names and menu order only; no sound changes):

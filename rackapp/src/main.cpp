@@ -84,12 +84,13 @@ fs::path documentsDir() {
     return out;
 }
 
-// Command line (CI and support): --exit-after <s> --screenshot <png> --device offline --demo | --demo2 --select <slot 1..8> [song]
+// Command line (CI and support): --exit-after <s> --screenshot <png> --device offline --demo | --demo2 --select <slot 1..8> --closed (no plate open) [song]
 struct Options {
     double   exitAfter = 0.0;
     fs::path screenshot, song;
     bool     offline = false, demo = false, demo2 = false;   // --demo2: the vintage chain (ARCHIVE .. LOCKDOWN)
     int      select = 0;
+    bool     closed = false;
 };
 Options parseOptions() {
     Options o;
@@ -102,6 +103,7 @@ Options parseOptions() {
         else if (k == L"--device" && i + 1 < argc) o.offline = std::wstring(argv[++i]) == L"offline";
         else if (k == L"--demo") o.demo = true;
         else if (k == L"--demo2") o.demo = o.demo2 = true;
+        else if (k == L"--closed") o.closed = true;
         else if (k == L"--select" && i + 1 < argc) o.select = static_cast<int>(std::wcstol(argv[++i], nullptr, 10));
         else if (!k.empty() && k[0] != L'-') o.song = k;
     }
@@ -353,6 +355,13 @@ struct App {
     void select(int slot) {
         selected = slot;
         rebuildFace();
+    }
+    // Hides the plate only: the plug-in keeps running in its slot with its settings (its name in the chain opens it again).
+    void closeFace() {
+        if (selected < 0) return;
+        const std::string name = rack().effect(selected) ? pluginName(*rack().effect(selected)) : "";
+        select(-1);
+        if (!name.empty()) say(name + " closed - still running in the chain. Click its name to open it again");
     }
 
     // ---- chain ----
@@ -688,7 +697,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
             a.addPlugin("THE FAMILY", 3);
             if (auto* e = a.rack().effect(3)) { e->set(rack::glue::Threshold, -22); e->set(rack::glue::Makeup, 2); }
         }
-        a.select(std::clamp(opts.select > 0 ? opts.select - 1 : 1, 0, kMaxSlots - 1));
+        a.select(opts.closed ? -1 : std::clamp(opts.select > 0 ? opts.select - 1 : 1, 0, kMaxSlots - 1));
     } else {
         a.restoreChain(a.settings.sectionText("chain"));
         const int sel = std::atoi(a.settings.get("app", "selected", "-1").c_str());
@@ -807,6 +816,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
             probe.pickerItems = pickerItems;
             probe.pickerTabs = pickerTabs;
             probe.pickerTab = a.pickerTab;
+            probe.selected = a.selected;
             for (int s = 0; s < kMaxSlots; ++s) probe.slots[static_cast<std::size_t>(s)].used = a.rack().effect(s) != nullptr;
             switch (e.type) {
             case hc::ui::InputEvent::Type::MouseDown: {
@@ -861,6 +871,12 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
                     break;
                 case Action::PickerClose: a.picker = false; break;
                 case Action::PickerTab: a.pickerTab = hh.index; break;
+                case Action::FaceClose:
+                    if (faceDrag && a.face.controller) a.face.controller->mouseUp();
+                    faceDrag = false;
+                    a.closeFace();
+                    hover = {};
+                    break;
                 case Action::Face:
                     if (a.face.controller) {
                         float px, py;
@@ -914,7 +930,10 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
                     a.rack().seek(static_cast<std::uint64_t>(to));
                 } else if (e.key == 'A' && !e.ctrl) a.rack().setOriginal(false);
                 else if (e.key == 'B' && !e.ctrl) a.rack().setOriginal(true);
-                else if (e.key == VK_ESCAPE) a.picker = false;
+                else if (e.key == VK_ESCAPE) {   // the picker first, then the plate
+                    if (a.picker) a.picker = false;
+                    else if (!faceDrag) { a.closeFace(); hover = {}; }
+                }
                 break;
             case hc::ui::InputEvent::Type::Drop:
             case hc::ui::InputEvent::Type::OpenFile:
@@ -1003,6 +1022,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
         vs.pickerItems = pickerItems;
         vs.pickerTabs = pickerTabs;
         vs.pickerTab = a.pickerTab;
+        vs.faceOpen = a.face.view != nullptr;
         vs.device = a.host.running() ? a.host.deviceName() : std::string("none - click to choose");
         vs.input = a.inputLabel();
         vs.inputOn = a.rack().inputFirst() >= 0;

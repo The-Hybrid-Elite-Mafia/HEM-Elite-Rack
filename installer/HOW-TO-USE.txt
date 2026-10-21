@@ -5,6 +5,8 @@ HEM-ELITE-RACK — HOW TO USE
    Songs at other sample rates are converted to 48 kHz when they load.
 3. + ADD PLUG-IN (left) — pick any plug-in (tabs: EQ, DYNAMICS, COLOR, SPACE, MOVEMENT, TOOLS, KEYS). Up to 8 plug-ins, top to bottom.
    Each slot: ON / OFF, UP / DOWN (order), DEL (remove). Click a slot to show its faceplate.
+   X CLOSE (above the plate's top-right corner) or the ESC key hides the plate: the plug-in keeps running
+   in the chain with its settings. Click its name in the CHAIN to open it again. ESC also closes the picker.
 4. PLAY (or the SPACE bar). Click the song strip to jump; LEFT / RIGHT arrows jump 5 s.
 5. A PROCESSED / B ORIGINAL (or the A and B keys) — compare with and without the chain.
    MATCH LOUDNESS (on by default) brings B to the same loudness as A, so you judge the

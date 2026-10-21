@@ -3,13 +3,15 @@
   a made-up demo song and a two-plug-in chain, lets it play, saves a screenshot of its window
   and checks it exited cleanly and drew something.
 #>
-param([Parameter(Mandatory = $true)][string]$Exe, [Parameter(Mandatory = $true)][string]$Shot, [int]$Select = 2, [double]$Seconds = 6, [switch]$Vintage)
+param([Parameter(Mandatory = $true)][string]$Exe, [Parameter(Mandatory = $true)][string]$Shot, [int]$Select = 2, [double]$Seconds = 6, [switch]$Vintage, [switch]$Closed)
 $ErrorActionPreference = 'Stop'
 $shotPath = [IO.Path]::GetFullPath($Shot)
 New-Item -ItemType Directory -Force -Path (Split-Path $shotPath) | Out-Null
 Remove-Item $shotPath -ErrorAction SilentlyContinue
 $demo = if ($Vintage) { '--demo2' } else { '--demo' }
-$p = Start-Process -FilePath $Exe -ArgumentList $demo,'--device','offline','--select',"$Select",'--exit-after',"$Seconds",'--screenshot',"`"$shotPath`"" -PassThru
+$args2 = @($demo,'--device','offline','--select',"$Select",'--exit-after',"$Seconds",'--screenshot',"`"$shotPath`"")
+if ($Closed) { $args2 += '--closed' }
+$p = Start-Process -FilePath $Exe -ArgumentList $args2 -PassThru
 if (-not $p.WaitForExit(120000)) { $p.Kill(); throw 'HEMEliteRack.exe did not exit within 120 s' }
 Write-Host "exit code: $($p.ExitCode)"
 if ($p.ExitCode -ne 0) { throw "HEMEliteRack.exe exited with $($p.ExitCode)" }

@@ -109,6 +109,14 @@ void RackView::facePlacement(float& ox, float& oy, float& zoom) noexcept {
     oy = a.y + (a.h - hem::ui::kPlateH * zoom) * 0.5f;
 }
 
+Rect RackView::faceClose() noexcept {
+    float ox, oy, z;
+    facePlacement(ox, oy, z);
+    const Rect a = faceArea();
+    const float h = std::clamp(oy - a.y - 8.0f, 26.0f, 40.0f);   // the strip above the plate (45 units at this layout)
+    return {ox + hem::ui::kPlateW * z - 170.0f, a.y + 4.0f, 170.0f, h};
+}
+
 Hit RackView::hit(float x, float y, const RackViewState& s) const noexcept {
     if (s.picker) {
         if (pickerClose().contains(x, y)) return {Action::PickerClose};
@@ -149,6 +157,7 @@ Hit RackView::hit(float x, float y, const RackViewState& s) const noexcept {
         return {Action::SlotSelect, i};
     }
     if (kAdd.contains(x, y)) return {Action::AddOpen, -1};
+    if (s.faceOpen && faceClose().contains(x, y)) return {Action::FaceClose};
     if (faceArea().contains(x, y)) return {Action::Face};
     return {};
 }
@@ -314,11 +323,17 @@ void RackView::drawBack(Renderer& r, const RackViewState& s, const Hit& hv) cons
     }
     button(r, kAdd, "+  ADD PLUG-IN", false, hv.action == Action::AddOpen && hv.index < 0);
 
-    // Empty face area.
-    if (s.selected < 0 || !s.slots[static_cast<std::size_t>(std::clamp(s.selected, 0, 7))].used) {
+    // Empty face area (nothing in the chain yet, or its plate closed).
+    if (!s.faceOpen) {
         const Rect a = faceArea();
-        r.text(TextStyle::Panel, "NO PLUG-IN SELECTED", a.cx(), a.cy() - 20, kTh.label, Align::Center, TextFx::Shadowed);
-        r.text(TextStyle::Label, "PRESS  + ADD PLUG-IN  ON THE LEFT", a.cx(), a.cy() + 36, kTh.teal, Align::Center, TextFx::Shadowed);
+        bool any = false;
+        for (const SlotView& sv : s.slots) any = any || sv.used;
+        const char* line1 = any ? "NO PLATE OPEN" : "NO PLUG-INS YET";
+        const char* line2 = any ? "CLICK A NAME IN THE CHAIN TO OPEN ITS PLATE"
+                          : s.songName.empty() ? "OPEN A SONG, THEN ADD PLUG-INS ON THE LEFT" : "PRESS  + ADD PLUG-IN  ON THE LEFT";
+        r.text(TextStyle::Panel, line1, a.cx(), a.cy() - 20, kTh.label, Align::Center, TextFx::Shadowed);
+        r.text(TextStyle::Label, line2, a.cx(), a.cy() + 36, kTh.teal, Align::Center, TextFx::Shadowed);
+        if (any) r.text(TextStyle::Caption, "CLOSED PLUG-INS KEEP RUNNING WITH THEIR SETTINGS", a.cx(), a.cy() + 80, kTh.dim, Align::Center, TextFx::Shadowed);
     }
 
     // Status line.
@@ -343,13 +358,14 @@ void RackView::drawBack(Renderer& r, const RackViewState& s, const Hit& hv) cons
 }
 
 void RackView::drawFront(Renderer& r, const RackViewState& s, const Hit& hv) const {
+    if (s.faceOpen && !s.picker) button(r, faceClose(), "X   CLOSE", false, hv.action == Action::FaceClose);
     if (!s.picker) return;
     const Rect a = faceArea();
     r.fillRound(a, 16, rgb8(0x000000, 0.72f), Blend::Over);
     const Rect p = pickerPanel();
     r.fillRound(p, 16, kPanel, Blend::Over);
     r.text(TextStyle::Panel, "ADD A PLUG-IN", p.x + 40, p.y + 70, kTh.teal, Align::Left, TextFx::Shadowed);
-    button(r, pickerClose(), "CLOSE", false, hv.action == Action::PickerClose);
+    button(r, pickerClose(), "X   CLOSE", false, hv.action == Action::PickerClose);
     const int tabs = static_cast<int>(s.pickerTabs.size());
     for (int t = 0; t < tabs; ++t) {
         int count = 0;
