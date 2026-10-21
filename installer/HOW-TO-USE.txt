@@ -33,6 +33,10 @@ SURGEON
   under the graph. DYNAMIC: the band only moves (up to RANGE) when that part of the song
   goes over THRESHOLD. CHARACTER: CLEAN, CONSOLE or TUBE colour, with DRIVE.
   AUTO GAIN keeps the loudness where it was so louder never fools you.
+  The graph: every band has its own colour and its own thin line (what that band does alone);
+  the bright teal line is all the bands added together. Each band moves on its own: when two
+  bands overlap, the teal line moves over both, but the other band's dot and settings stay put.
+  A letter beside a dot = that band works on M(id), S(ide), L(eft) or R(ight) only.
 
 THE CLEANER
   NOISE REDUCTION: how hard. FOCUS: lean on the lows (hum, rumble) or the highs (hiss).

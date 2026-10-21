@@ -38,13 +38,22 @@ std::string fmt(const char* f, double v) {
 }
 std::string hzText(float hz) { return hz >= 1000.0f ? fmt(hz >= 10000.0f ? "%.0fk" : "%.1fk", hz / 1000.0) : fmt("%.0f", hz); }
 
-Rgba stereoColour(const Theme& th, int stereo) {
-    switch (static_cast<rack::eq::Stereo>(stereo)) {
-    case rack::eq::Stereo::Mid:  return th.gold;
-    case rack::eq::Stereo::Side: return th.violet;
-    case rack::eq::Stereo::Left:
-    case rack::eq::Stereo::Right: return th.red;
-    default: return th.teal;
+// SURGEON: every band its own colour, so each band's own line can be told apart on the graph (its dot,
+// its line and its band button share it). Solid colours, no glow.
+Rgba bandColour(int band) {
+    static const Rgba k[16] = {rgb8(0x22D8DD), rgb8(0xE7B54A), rgb8(0xA87BFF), rgb8(0xFF5A5A), rgb8(0x5BE36B), rgb8(0x4C8DFF),
+                               rgb8(0xFF6FC4), rgb8(0xF4E04D), rgb8(0x9FF0F2), rgb8(0xB6E35B), rgb8(0xE05BE6), rgb8(0x7FC4FF),
+                               rgb8(0xFF9466), rgb8(0x6FE8B8), rgb8(0xC9B3FF), rgb8(0xFFB830)};
+    return k[((band % 16) + 16) % 16];
+}
+// The band's stereo setting as a letter beside its dot (nothing for STEREO).
+const char* stereoTag(rack::eq::Stereo s) {
+    switch (s) {
+    case rack::eq::Stereo::Mid:   return "M";
+    case rack::eq::Stereo::Side:  return "S";
+    case rack::eq::Stereo::Left:  return "L";
+    case rack::eq::Stereo::Right: return "R";
+    default: return "";
     }
 }
 
@@ -471,13 +480,23 @@ void FaceView::eqGraph(const Ctx& c, const Widget& w) const {
         total[i] = yOf(t);
         liveY[i] = yOf(lv);
     }
-    // The selected band's own shape, filled from 0 dB.
+    // Every band's own line, in its own colour (the bright teal line is all of them added together).
+    for (int b = 0; b < kBands; ++b) {
+        if (!bands[static_cast<std::size_t>(b)].on || b == sel) continue;
+        float own[kN];
+        for (int i = 0; i < kN; ++i)
+            own[i] = yOf(magnitudeDb(secs[static_cast<std::size_t>(b)], fs, xToFreq(plot, plot.x + plot.w * static_cast<float>(i) / static_cast<float>(kN - 1))));
+        r.polyline(xs, own, kN, 1.6f * z, bandColour(b).withAlpha(0.8f), Blend::Over, false);
+    }
+    // The selected band's own shape: filled from 0 dB, its line drawn stronger.
     if (sb.on) {
-        const Rgba col = stereoColour(th_, static_cast<int>(sb.stereo));
+        const Rgba col = bandColour(sel);
+        float own[kN];
         float prevY = 0;
         for (int i = 0; i < kN; ++i) {
             const double hz = xToFreq(plot, plot.x + plot.w * static_cast<float>(i) / static_cast<float>(kN - 1));
             const float y = yOf(magnitudeDb(secs[static_cast<std::size_t>(sel)], fs, hz));
+            own[i] = y;
             if (i > 0) {
                 const float qx[4] = {xs[i - 1], xs[i], xs[i], xs[i - 1]}, qy[4] = {prevY, y, p.cy(), p.cy()};
                 const Rgba a = col.withAlpha(0.22f), b2 = col.withAlpha(0.05f);
@@ -486,6 +505,7 @@ void FaceView::eqGraph(const Ctx& c, const Widget& w) const {
             }
             prevY = y;
         }
+        r.polyline(xs, own, kN, 2.2f * z, col, Blend::Over, false);
     }
     if (anyOn) {
         r.polyline(xs, total, kN, 2.8f * z, th_.teal, Blend::Over, false);
@@ -502,7 +522,7 @@ void FaceView::eqGraph(const Ctx& c, const Widget& w) const {
     for (int b = 0; b < kBands; ++b) {
         const Band& bd = bands[static_cast<std::size_t>(b)];
         if (!bd.on) continue;
-        const Rgba col = stereoColour(th_, static_cast<int>(bd.stereo));
+        const Rgba col = bandColour(b);
         const float x = c.X(freqToX(plot, static_cast<float>(bd.freq)));
         const float y = typeHasGain(bd.type) ? yOf(bd.gainDb) : p.cy();
         const bool selected = b == sel, hot = c.st.hoverNode == b || c.st.dragNode == b;
@@ -518,6 +538,8 @@ void FaceView::eqGraph(const Ctx& c, const Widget& w) const {
         if (selected || hot) r.arc(x, y, rad + 4 * z, 2.0f * z, -kPi, kPi, selected ? th_.silver : th_.silver.withAlpha(0.6f), false);   // a ring, no glow
         const std::string t = std::to_string(b + 1);
         r.text(ns, t, x, y + r.capHeight(ns) * 0.5f, kInk, Align::Center, TextFx::Plain);
+        if (const char* tag = stereoTag(bd.stereo); *tag)   // MID / SIDE / LEFT / RIGHT band: its letter beside the dot
+            r.text(ns, tag, x + rad + 6 * z, y - rad * 0.4f, col, Align::Left, TextFx::Shadowed);
     }
     // AUTO GAIN readout.
     if (plain(c.host, Global::AutoGain) >= 0.5f) {
@@ -1054,7 +1076,7 @@ void FaceView::draw(Renderer& r, const PanelHost& host, const FaceFeed& feed, co
         case WKind::BandButton: {
             using namespace rack::eq;
             const bool on = plain(host, bandParam(w.choice, On)) >= 0.5f;
-            const Rgba col = stereoColour(th_, static_cast<int>(std::lround(plain(host, bandParam(w.choice, StereoC)))));
+            const Rgba col = bandColour(w.choice);
             const Rect b = c.T(w.r);
             button(c, b, std::to_string(w.choice + 1), on, hot, false, col);
             if (st.selectedBand == w.choice) {

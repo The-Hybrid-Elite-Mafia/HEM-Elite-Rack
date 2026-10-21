@@ -1,3 +1,10 @@
+# HEM-Elite-Rack 0.44.0
+
+- **SURGEON: every band its own line** — each band now has its own colour (its dot, its band button and its own thin line on
+  the graph, showing what that band does by itself). The bright teal line is still all the bands added together, so you
+  can see which band is doing what where they overlap. A band set to MID / SIDE / LEFT / RIGHT shows M, S, L or R beside
+  its dot (the colours used to mean that).
+
 # HEM-Elite-Rack 0.43.0
 
 - **Close a plate without removing the plug-in** — X CLOSE above every plate's top-right corner, or the ESC key. The plug-in
