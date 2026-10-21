@@ -2077,7 +2077,8 @@ FaceLayout specFace(const rack::PluginInfo& info) {
 
 } // namespace
 
-FaceLayout faceLayout(const rack::PluginInfo& info) {
+namespace {
+FaceLayout faceLayoutRaw(const rack::PluginInfo& info) {
     switch (info.face) {
     case rack::Face::EliteEq: return eliteEq(info);
     case rack::Face::BusGlue: return busGlue(info);
@@ -2117,6 +2118,44 @@ FaceLayout faceLayout(const rack::PluginInfo& info) {
     case rack::Face::Restorer: break;
     }
     return restorer(info);
+}
+
+// Every control sits in its own pocket: after a plate is laid out, any control that no pocket holds yet gets
+// one (knobs and the ON button a round seat, buttons / choosers / tabs a milled slot, screens a glass window).
+// Controls inside a screen (its range buttons) are held by the screen's window and get none.
+void seatEveryControl(FaceLayout& L) {
+    auto held = [&](const Rect& r) {
+        for (const Recess& rc : L.recesses)
+            if (rc.r.x <= r.x + 0.5f && rc.r.y <= r.y + 0.5f && rc.r.right() >= r.right() - 0.5f && rc.r.bottom() >= r.bottom() - 0.5f) return true;
+        return false;
+    };
+    for (const Widget& w : L.widgets) {
+        if (w.r.w <= 0.0f || w.r.h <= 0.0f || held(w.r)) continue;
+        switch (w.kind) {
+        case WKind::Knob: {
+            const float rim = w.r.w >= 90.0f ? 16.0f : 12.0f;
+            L.recesses.push_back({w.r.inset(-rim), w.r.w * 0.5f + rim, 3, true, false});
+            break;
+        }
+        case WKind::Bypass: L.recesses.push_back({w.r.inset(-8), w.r.w * 0.5f + 8, 4, true, false}); break;
+        case WKind::Toggle:
+        case WKind::ChoiceButton:
+        case WKind::Stepper:
+        case WKind::BandButton:
+        case WKind::PageTab:
+        case WKind::GraphRange: L.recesses.push_back({w.r.inset(-4), 9, 4, false, false}); break;
+        case WKind::Keyboard:
+        case WKind::RangeSlider: L.recesses.push_back({w.r.inset(-6), 10, 4, false, false}); break;
+        default: L.recesses.push_back({w.r, 12, 8, false, true}); break;   // screens, meters, readouts: a glass window
+        }
+    }
+}
+} // namespace
+
+FaceLayout faceLayout(const rack::PluginInfo& info) {
+    FaceLayout L = faceLayoutRaw(info);
+    seatEveryControl(L);
+    return L;
 }
 
 int widgetParam(const Widget& w, const FaceState& st) noexcept {

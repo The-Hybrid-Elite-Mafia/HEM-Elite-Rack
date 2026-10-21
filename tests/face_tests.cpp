@@ -79,6 +79,17 @@ void layoutRules(const rack::PluginInfo& info) {
     CHECK(inside);
     CHECK(paramsOk);
     CHECK(noOverlap);
+    // Every control sits in a pocket cut in the plate (so new faceplate art can leave a hole for each one).
+    {
+        int loose = 0;
+        for (const Widget& w : L.widgets) {
+            bool held = false;
+            for (const Recess& rc : L.recesses)
+                held = held || (rc.r.x <= w.r.x + 0.5f && rc.r.y <= w.r.y + 0.5f && rc.r.right() >= w.r.right() - 0.5f && rc.r.bottom() >= w.r.bottom() - 0.5f);
+            if (!held) { ++loose; std::printf("  no pocket: %s %s\n", info.name, w.caption.c_str()); }
+        }
+        CHECK(loose == 0);
+    }
     // ...and no caption, value, note or section name runs into a control or into other text.
     CHECK(textroom::clashes(L, info.name) == 0);
     CHECK(textroom::crampedButtons(L, fx->params(), info.name) == 0);

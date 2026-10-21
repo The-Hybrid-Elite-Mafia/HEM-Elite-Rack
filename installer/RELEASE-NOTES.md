@@ -1,3 +1,9 @@
+# HEM-Elite-Rack 0.45.0
+
+- **Every control has its own pocket in the plate** — some buttons sat flat on the metal with no slot cut for them (SURGEON's
+  AUTO GAIN and its 16 band buttons, and others like them). Now every knob, button, chooser, keyboard and screen on all 120
+  plates sits in its own seat, slot or window, and a test checks it on every plate.
+
 # HEM-Elite-Rack 0.44.0
 
 - **SURGEON: every band its own line** — each band now has its own colour (its dot, its band button and its own thin line on
