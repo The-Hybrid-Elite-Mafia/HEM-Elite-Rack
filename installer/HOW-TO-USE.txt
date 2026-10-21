@@ -337,7 +337,7 @@ THE SETUP
   side later), STYLE WARM bends the pitch when the time moves, ROUTE IN FEEDBACK puts the filter
   inside the echoes.
 
-THE BOSS
+THE CHAIRMAN
   A British console channel. SOURCE MIC or LINE; on MIC the PREAMP knob (20-70) drives the input
   stage harder for more colour (the level stays put). HIGH is a 10 kHz shelf in 4 dB steps, MID boosts
   or cuts (the MID button) at MID FREQ, LOW lifts at LOW FREQ, LOW CUT takes 50 Hz down. EQ switches the
@@ -643,7 +643,7 @@ WISEGUYS
 MADE MAN
   Pitch correction for one voice. Set ROOT and SCALE (CHROMATIC = every note; MY NOTES = only the notes
   switched on below). SPEED all the way down = the hard, robotic snap; up = gentle and natural. NOTE
-  TRANSITION is how fast it moves from one note to the next. RATIO sets how far it pulls (100 = all
+  GLIDE is how fast it moves from one note to the next. RATIO sets how far it pulls (100 = all
   the way). FORMANT CORRECTED keeps the voice's character; OFF lets it change with the pitch. SHIFT
   moves everything (-12 = an octave drop). REFERENCE A for songs tuned off 440. MIN / MAX PITCH: the
   range of the voice. SUNG shows the note, PULL how far it moved it. It delays the sound by 85 ms (DAWs
@@ -660,8 +660,8 @@ THE AUDITOR
   A loudness meter for delivering to a standard. The windows: SHORT TERM, LONG TERM (everything since
   RESET), MOMENTARY, RANGE, TRUE PEAK and LIMITER (the most each reached; PEAKS clears them), TRIM (how
   much GAIN would land LONG TERM on TARGET), TIMER, and UNDERS / OVERS (how many times SHORT TERM went
-  under SHORT MIN or over SHORT MAX). METHOD EBU (the broadcast standard; short time always 3 s), LM1
-  (no relative gate) or DIAL (counts only where speech carries the sound - our simple version).
+  under SHORT MIN or over SHORT MAX). METHOD EBU (the broadcast standard; short time always 3 s), AVERAGE
+  (no relative gate) or DIALOGUE (counts only where speech carries the sound - our simple version).
   WEIGHTING: BS.1770 for loudness, or the LEQ curves. SCALE: LU reads 0 at -23 LUFS. LOW-PASS /
   HIGH-PASS filter only what is measured. GAIN changes the sound itself; LIMITER keeps true peaks under
   TRUE PEAK MAX (no make-up). MEASURE PAUSE stops the counting. The original's TRIM button sets the gain

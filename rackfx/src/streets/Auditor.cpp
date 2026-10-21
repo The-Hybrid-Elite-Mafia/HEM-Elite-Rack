@@ -4,7 +4,7 @@
 // true peak is read 4x oversampled one millisecond ahead, the gain eases down before a peak arrives and lets
 // go over 100 ms. What comes out is measured: each side through the WEIGHTING and the optional pre-filters,
 // squared and added up per 100 ms. Momentary = the last 400 ms, short term = the last SHORT TIME, long term =
-// everything since RESET (EBU: gated at -70 LUFS and 10 LU under the gated mean; LM1: no relative gate; DIAL:
+// everything since RESET (EBU: gated at -70 LUFS and 10 LU under the gated mean; AVERAGE: no relative gate; DIALOGUE:
 // only the 100 ms pieces where the speech band carries most of the sound), range = EBU Tech 3342 on the
 // 3-second short-term values.
 #include "hem/rack/Garage.hpp"
@@ -24,7 +24,7 @@ using namespace arsenal;
 using weights::onePole;
 using weights::r468;
 
-const char* const kMethodN[] = {"EBU", "LM1", "DIAL"};
+const char* const kMethodN[] = {"EBU", "AVERAGE", "DIALOGUE"};
 const char* const kChanN[] = {"BOTH", "LEFT", "RIGHT"};
 const char* const kWeightN[] = {"BS.1770", "LEQ(A)", "LEQ(B)", "LEQ(C)", "LEQ(M)", "NONE"};
 const char* const kShortN[] = {"400 MS", "1 S", "2 S", "3 S", "10 S", "30 S", "1 MIN", "2 MIN"};
@@ -273,7 +273,7 @@ private:
                                                         : C::make(T::LowPass, fs_, std::min<double>(p(LpfFreq), top), 0.7071);
         const C hpC = !hpOn ? C{} : p(HpfSlope) >= 0.5f ? onePole(fs_, p(HpfFreq), true) : C::make(T::HighPass, fs_, p(HpfFreq), 0.7071);
         for (auto& ch : pre_) { ch[0].c = lpC; ch[1].c = hpC; }
-        // DIAL: the speech band
+        // DIALOGUE: the speech band
         const C sb = C::make(T::BandPass, fs_, 1000.0, 0.55);
         for (auto& s : speech_) s.c = sb;
     }

@@ -50,7 +50,7 @@
 //                PSOLA voices (formants kept unless moved); latency 4096 samples.
 //  MADE MAN      pitch correction for one voice: ROOT and SCALE (twenty of ours, or MY NOTES: the twelve switches
 //                say which notes are allowed), SPEED (how fast the voice is pulled onto the note: 0 = hard), NOTE
-//                TRANSITION (how fast the target moves from one note to the next), RATIO (how much of the way: 100 =
+//                GLIDE (how fast the target moves from one note to the next), RATIO (how much of the way: 100 =
 //                all), FORMANT CORRECTED (the voice's character stays) / OFF, SHIFT -12..+12 semitones (moves it all,
 //                for octave drops), REFERENCE A 400..480 Hz, MIN / MAX PITCH (the range it listens in). PSOLA; latency
 //                4096 samples. Meters: 0 the sung note, 1 how far it was pulled (cents).

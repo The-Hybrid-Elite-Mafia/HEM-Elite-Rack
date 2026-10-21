@@ -41,7 +41,7 @@ C++23 audio framework, as a library.
 | **BACKBONE** | Two-fader loudness: quiet up lifts the quiet parts, loud down holds the loud ones, output |
 | **FULL HOUSE** | Loudness without squash: evener (strong / gentle), gate, low (threshold, gain), high (threshold, ceiling), each switchable |
 | **WHEELMAN** | Vocal rider: target, voice pickup, attack, lowest / highest ride, rest point, stage bleed floor, output |
-| **CHAUFFEUR** | Bass rider: target, note pickup, speed, ignore bleed, ignore clicks, lowest / highest ride, rest point, output |
+| **CHAUFFEUR** | Bass level rider: target, note pickup, speed, ignore bleed, ignore clicks, lowest / highest ride, rest point, output |
 | **BIG SHOT** | One-band maximizer: threshold, ceiling, auto release; bit depth, dither and noise shape |
 | **LAST WORD** | One-band peak limiter: input left / right with link, release, auto release, sample / smoothed / true-peak ceiling; bit depth, dither, noise shape |
 | **HIGH STAKES** | Five-band linear-phase maximizer: four crossovers, band freedom, release type, gain / weight / link / release / solo per band; bit depth, dither, noise shape |
@@ -62,7 +62,7 @@ C++23 audio framework, as a library.
 | **CUTTHROAT** | High-pass + low-pass, 18 dB / oct, separate left / right sets with link |
 | **TUNNEL VISION** | One-knob filter: a low-pass closing from wide open, resonance in four steps |
 | **THE SETUP** | A filter played by an LFO, a 16-step sequencer and a follower: low / high / band pass, notch, comb, level; drive, crush, spread, delay |
-| **THE BOSS** | British-console channel: mic / line preamp, stepped 10 kHz shelf, mid boost / cut, low shelf, 50 Hz cut, hum and hiss, VU |
+| **THE CHAIRMAN** | British-console channel: mic / line preamp, stepped 10 kHz shelf, mid boost / cut, low shelf, 50 Hz cut, hum and hiss, VU |
 | **INSIDE MAN** | Channel strip: gate / expander and compressor with key filters, four-band EQ, order, phase, output, place, clip guard |
 | **HEAVY HITTER** | Drum enhancer: pick the drum (kick, snare top / under, hats, toms, overheads, room), then sensitivity, thump, treble, snap, output; meter in or out |
 | **KINGPIN** | Drum channel: pick the drum (kick … room), then pickup, compress, gate, ambience, bass, treble |
@@ -104,9 +104,9 @@ C++23 audio framework, as a library.
 | **THE SNITCH** | Tuner: chromatic, guitar and six other tunings or your own notes (twelve switches); reference A ±6 cents; note, cents and frequency |
 | **PROMOTION** | Pitch shifter: by transpose (semitones as intervals, cents) or by frequency (from / to Hz); sync, smooth, transient or punchy |
 | **WISEGUYS** | Voice harmonizer: six voices (on, pitch, formant, gain, pan, delay) and the direct voice (on, gain, delay); animate, link, mode, min / max pitch |
-| **MADE MAN** | Pitch correction for one voice: root, twenty scales or your own notes, speed, note transition, ratio, formant corrected, shift, reference A, min / max pitch |
+| **MADE MAN** | Pitch correction for one voice: root, twenty scales or your own notes, speed, note glide, ratio, formant corrected, shift, reference A, min / max pitch |
 | **THE DETECTIVE** | Key finder: the key, two alternatives and the song's tuning; detect / stop, your own key (root, scale), sharps or flats |
-| **THE AUDITOR** | Loudness meter (its own plate): EBU / LM1 / DIAL, six weightings, short time, short max / min with overs and unders, true peak max, target and trim, LU or LUFS, pre-filters; gain and a true-peak limiter |
+| **THE AUDITOR** | Loudness meter (its own plate): EBU / AVERAGE / DIALOGUE, six weightings, short time, short max / min with overs and unders, true peak max, target and trim, LU or LUFS, pre-filters; gain and a true-peak limiter |
 | **STAKEOUT** | Analyzer (its own plate): frequency bands with LF resolution, peak or RMS, response, L / R or sum, weighting, freeze, max line; stereo position; peak and sum meters with holds, clip lights |
 | **THE WITNESS** | VU meters for left and right: headroom, display delay, clip lights with clear |
 | **LIVE WIRE** | Signal generator: pink, white or sine; frequency and gain with quick settings; send L / R / both; flip |

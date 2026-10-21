@@ -1,4 +1,4 @@
-// THE BOSS — British-console channel: preamp, three-band EQ with a low cut, analog noise (see ToneShop.hpp).
+// THE CHAIRMAN — British-console channel: preamp, three-band EQ with a low cut, analog noise (see ToneShop.hpp).
 //
 // In order: INPUT and PHASE, the preamp stage (4x oversampled; how hard it is driven comes from SOURCE
 // and PREAMP, the level is made up, so it only adds colour), the EQ (eqkit::IirBands: switching a band

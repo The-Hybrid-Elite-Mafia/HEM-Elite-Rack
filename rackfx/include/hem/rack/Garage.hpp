@@ -45,7 +45,7 @@
 //                TYPE OFF / FAT / TIGHT / SHARP, DRIVE TONE, DRIVE GAIN, DRIVE MIX (0..10); VOICE 1 / 2 / 3 (a mid
 //                lift from narrow to wide); GAIN, BASS, MID, HI MID, HIGH (0..10); CAB TONE, ROOM, CAB OFF, OUTPUT;
 //                the output limiter and readouts as on HOT WIRE. 4x oversampled; latency 23.
-//  THE AUDITOR   loudness meter with gain and a true-peak limiter (its own plate). Settings: METHOD EBU / LM1 / DIAL,
+//  THE AUDITOR   loudness meter with gain and a true-peak limiter (its own plate). Settings: METHOD EBU / AVERAGE / DIALOGUE,
 //                CHANNELS BOTH / LEFT / RIGHT, WEIGHTING BS.1770 / LEQ(A) / LEQ(B) / LEQ(C) / LEQ(M) / NONE, SHORT TIME
 //                400 ms .. 2 min (EBU: always 3 s), SHORT MAX (OFF, -36..-12) and SHORT MIN (OFF, -90..-12): the
 //                OVERS / UNDERS counters, TRUE PEAK MAX -25..0 dBTP (also the limiter's ceiling), TARGET (OFF,
@@ -56,7 +56,7 @@
 //                SHORT TERM, LONG TERM, RANGE, MOMENTARY, TRUE PEAK (held), LIMITER (held), UNDERS, OVERS, TIMER,
 //                TRIM (what GAIN would need to land LONG TERM on TARGET: up to +12). The original's TRIM button
 //                moves its gain for you, its CSV logs and its follow-transport need a host link this rack doesn't
-//                have: here TRIM is shown and you set GAIN. DIAL measures the speech band only (our simple
+//                have: here TRIM is shown and you set GAIN. DIALOGUE measures the speech band only (our simple
 //                stand-in for the original's dialogue detection). Latency kAuditorLatency.
 //  HOTHEAD       one-knob overdrive: DRIVE 0..10 (0 = untouched; up from there a mid push, the clipping and a
 //                warmth filter that closes as it goes, the level kept about the same). The original's guide

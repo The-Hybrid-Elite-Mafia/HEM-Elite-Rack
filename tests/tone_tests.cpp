@@ -58,7 +58,7 @@ double peakIn(const std::vector<float>& x, std::size_t from, std::size_t to) {
 }
 
 void allRules() {
-    for (const char* name : {"STRAIGHT SHOOTER", "BOTTOM LINE", "TEN TOES", "FOUR CORNERS", "SMOOTH TALKER", "INSIDE MAN", "LOW RIDER", "UNDERTOW", "DEEP POCKETS", "LOW PROFILE", "THE BOSS", "KINGPIN", "GOLD CHAIN", "IVORIES", "HIGH ROLLER", "THE MIDDLEMAN", "DOUBLE CROSS",
+    for (const char* name : {"STRAIGHT SHOOTER", "BOTTOM LINE", "TEN TOES", "FOUR CORNERS", "SMOOTH TALKER", "INSIDE MAN", "LOW RIDER", "UNDERTOW", "DEEP POCKETS", "LOW PROFILE", "THE CHAIRMAN", "KINGPIN", "GOLD CHAIN", "IVORIES", "HIGH ROLLER", "THE MIDDLEMAN", "DOUBLE CROSS",
                              "CUTTHROAT", "TUNNEL VISION", "THE SETUP", "FOUNDRY", "BOARDROOM", "MIDTOWN", "HEAVY HITTER", "REEL MONEY", "HOTHEAD", "THE MOLD", "THE FORGER"}) {
         const PluginInfo* info = findPlugin(name);
         CHECK(info != nullptr);
@@ -352,78 +352,78 @@ void testTheBoss() {
     using namespace boss;
     // flat at rest: a quiet tone goes through untouched (the preamp's colour only shows when it's driven)
     {
-        auto e = make("THE BOSS", {{Analog, 0}});
+        auto e = make("THE CHAIRMAN", {{Analog, 0}});
         CHECK(e->latency() == kLatency);
         const double g = toneGain(*e, 1000, 0.01f), lo = toneGain(*e, 40, 0.01f), hi = toneGain(*e, 15000, 0.01f);
         const double top = toneGain(*e, 20000, 0.01f);
-        std::printf("  THE BOSS at rest, -40 dBFS: 40 Hz %+.2f, 1 kHz %+.2f, 15 kHz %+.2f, 20 kHz %+.2f dB\n", lo, g, hi, top);
+        std::printf("  THE CHAIRMAN at rest, -40 dBFS: 40 Hz %+.2f, 1 kHz %+.2f, 15 kHz %+.2f, 20 kHz %+.2f dB\n", lo, g, hi, top);
         CHECK(std::fabs(top) < 0.2);   // the colour stage never dulls the top octave
         CHECK(std::fabs(g) < 0.1 && std::fabs(lo) < 0.2 && std::fabs(hi) < 0.2);
     }
     // the EQ
     {
-        auto e = make("THE BOSS", {{Analog, 0}, {High, 6}, {MidGain, 10}, {MidFreq, 3}, {LowFreq, 3}, {LowGain, 12}});
+        auto e = make("THE CHAIRMAN", {{Analog, 0}, {High, 6}, {MidGain, 10}, {MidFreq, 3}, {LowFreq, 3}, {LowGain, 12}});
         const double hi = toneGain(*e, 18000, 0.01f), mid = toneGain(*e, 2000, 0.01f), lo = toneGain(*e, 40, 0.01f, false, 2.0);
         e->set(MidMode, 1);
         const double cut = toneGain(*e, 2000, 0.01f);
         e->set(EqIn, 0);
         const double off = toneGain(*e, 2000, 0.01f);
-        std::printf("  THE BOSS EQ: HIGH +8 -> 18 kHz %+.1f; MID 10 at 2 kHz: boost %+.1f, cut %+.1f; LOW 12 at 250 -> 40 Hz %+.1f; EQ out %+.2f dB\n", hi, mid,
+        std::printf("  THE CHAIRMAN EQ: HIGH +8 -> 18 kHz %+.1f; MID 10 at 2 kHz: boost %+.1f, cut %+.1f; LOW 12 at 250 -> 40 Hz %+.1f; EQ out %+.2f dB\n", hi, mid,
                     cut, lo, off);
         CHECK(hi > 6.5 && hi < 8.3 && std::fabs(mid - 10) < 0.3 && std::fabs(cut + 10) < 0.3 && lo > 11.0 && lo < 12.3 && std::fabs(off) < 0.1);
     }
     {
-        auto e = make("THE BOSS", {{Analog, 0}, {LowCut, 5}});
+        auto e = make("THE CHAIRMAN", {{Analog, 0}, {LowCut, 5}});
         const double lo = toneGain(*e, 20, 0.01f, false, 2.0), keep = toneGain(*e, 1000, 0.01f);
-        std::printf("  THE BOSS LOW CUT -15: 20 Hz %+.1f dB, 1 kHz %+.2f dB\n", lo, keep);
+        std::printf("  THE CHAIRMAN LOW CUT -15: 20 Hz %+.1f dB, 1 kHz %+.2f dB\n", lo, keep);
         CHECK(lo < -11.0 && std::fabs(keep) < 0.1);
     }
     // the preamp: harder = more harmonics on a loud tone, the level stays about the same
     {
-        auto soft = make("THE BOSS", {{Analog, 0}, {Preamp, 0}}), hard = make("THE BOSS", {{Analog, 0}, {Preamp, 5}});
+        auto soft = make("THE CHAIRMAN", {{Analog, 0}, {Preamp, 0}}), hard = make("THE CHAIRMAN", {{Analog, 0}, {Preamp, 5}});
         const double h3s = harmonicDb(*soft, 200, 3, 0.7f), h3h = harmonicDb(*hard, 200, 3, 0.7f);
         const double gs = toneGain(*soft, 200, 0.05f), gh = toneGain(*hard, 200, 0.05f);
-        std::printf("  THE BOSS PREAMP 20 vs 70, a -3 dBFS tone: 3rd harmonic %.1f vs %.1f dB; level at -26 dBFS %+.2f vs %+.2f dB\n", h3s, h3h, gs, gh);
+        std::printf("  THE CHAIRMAN PREAMP 20 vs 70, a -3 dBFS tone: 3rd harmonic %.1f vs %.1f dB; level at -26 dBFS %+.2f vs %+.2f dB\n", h3s, h3h, gs, gh);
         CHECK(h3h > h3s + 10.0 && std::fabs(gs) < 0.3 && std::fabs(gh) < 1.0);
     }
     // PHASE flips; the VU reads 0 for a -18 dBFS RMS tone with VU CAL 18; TRIM
     {
-        auto e = make("THE BOSS", {{Analog, 0}, {Phase, 1}});
+        auto e = make("THE CHAIRMAN", {{Analog, 0}, {Phase, 1}});
         Stereo s = sine(1000, 0.5, 0.25f, kFs);
         Stereo in = s;
         run(*e, s);
         double corr = 0;
         for (std::size_t i = 12000; i < s.size(); ++i) corr += s.l[i] * in.l[i - kLatency];
-        auto v = make("THE BOSS", {{Analog, 0}});
+        auto v = make("THE CHAIRMAN", {{Analog, 0}});
         Stereo t = sine(1000, 1.0, static_cast<float>(std::sqrt(2.0) * std::pow(10.0, -18.0 / 20.0)), kFs);
         run(*v, t);
         const float vu = v->meter(0);
-        std::printf("  THE BOSS PHASE: %s; VU for a -18 dBFS RMS tone: %+.2f\n", corr < 0 ? "flipped" : "not flipped", vu);
+        std::printf("  THE CHAIRMAN PHASE: %s; VU for a -18 dBFS RMS tone: %+.2f\n", corr < 0 ? "flipped" : "not flipped", vu);
         CHECK(corr < 0 && std::fabs(vu) < 0.2f);
     }
     {
-        auto e = make("THE BOSS", {{Analog, 0}});
+        auto e = make("THE CHAIRMAN", {{Analog, 0}});
         Stereo s = sine(1000, 0.5, 0.063f, kFs);
         run(*e, s);
         e->set(Trim, 1);
         Stereo blk(512);
         run(*e, blk);
         const double g = toneGain(*e, 1000, 0.01f);
-        std::printf("  THE BOSS TRIM after a -24 dBFS tone: %+.2f dB (most it gives: +12)\n", g);
+        std::printf("  THE CHAIRMAN TRIM after a -24 dBFS tone: %+.2f dB (most it gives: +12)\n", g);
         CHECK(std::fabs(g - 12.0) < 0.2);
     }
     // ANALOG: the hum sits far under the music
     {
-        auto e = make("THE BOSS", {{Analog, 2}});
+        auto e = make("THE CHAIRMAN", {{Analog, 2}});
         Stereo s = sine(1000, 1.5, 0.25f, kFs);
         run(*e, s);
         const double hum = db(toneAmp(s.l, 60, s.size() - 24000, 24000) / 0.25);
-        std::printf("  THE BOSS ANALOG 60 Hz: hum %.1f dB under the music\n", -hum);
+        std::printf("  THE CHAIRMAN ANALOG 60 Hz: hum %.1f dB under the music\n", -hum);
         CHECK(hum < -55.0 && hum > -80.0);
     }
-    const double d = blockSizeDifference(*findPlugin("THE BOSS"), [](hc::fx::Effect& x) { x.set(Analog, 0); x.set(MidGain, 8); x.set(Preamp, 4); },
+    const double d = blockSizeDifference(*findPlugin("THE CHAIRMAN"), [](hc::fx::Effect& x) { x.set(Analog, 0); x.set(MidGain, 8); x.set(Preamp, 4); },
                                          noise(1.0, 0.8f));
-    std::printf("  THE BOSS block size 512 vs 1: %.2e\n", d);
+    std::printf("  THE CHAIRMAN block size 512 vs 1: %.2e\n", d);
     CHECK(d < 1e-5);
 }
 

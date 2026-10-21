@@ -2,7 +2,7 @@
 //
 // The sung pitch at the moment being heard (the PSOLA input's pitch track, kLatency behind the input) is
 // compared with the allowed notes: the nearest one is the target. The target glides to a new note over NOTE
-// TRANSITION; the correction (RATIO of the way from the sung pitch to the target) glides over SPEED; SHIFT is
+// GLIDE; the correction (RATIO of the way from the sung pitch to the target) glides over SPEED; SHIFT is
 // added on top. When nothing is sung the correction lets go. The PSOLA voice applies it; FORMANT CORRECTED
 // keeps the formants where they were, OFF lets them move with the pitch.
 #include "hem/rack/Streets.hpp"
@@ -24,7 +24,7 @@ const ParamInfo kParams[kCount] = {
     {"key", "Root", "", 0, 11, 0, Taper::Choice, kKeyN},
     {"scale", "Scale", "", 0, kScales - 1, 0, Taper::Choice, kScaleN},
     {"speed", "Speed", "ms", 0.0f, 400.0f, 20.0f},
-    {"transition", "Note Transition", "ms", 0.0f, 400.0f, 60.0f},
+    {"transition", "Note Glide", "ms", 0.0f, 400.0f, 60.0f},
     {"ratio", "Ratio", "%", 0.0f, 100.0f, 100.0f},
     {"formant", "Formant", "", 0, 1, 0, Taper::Choice, kFormantN},
     {"shift", "Shift", "st", -12.0f, 12.0f, 0.0f},

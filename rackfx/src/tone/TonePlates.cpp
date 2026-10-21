@@ -104,7 +104,7 @@ constexpr PlateToggle lToggles[] = {{l::OriginalIn, "REAL BASS"}};
 constexpr PlateKnob lRow1[] = {{l::Frequency, "FREQUENCY", "32", "256"}, {l::Intensity, "AMOUNT", "-24", "+24", K::Big}, {l::Gain, "GAIN", "OFF", "0"}};
 } // namespace lo
 
-// ---- THE BOSS: the needle, order / low cut / limit beside it, dynamics over EQ
+// ---- THE CHAIRMAN: the needle, order / low cut / limit beside it, dynamics over EQ
 namespace bo {
 using namespace boss;
 constexpr PlateChoice choices[] = {{Meter, "METER"}, {MidMode, "MID"}};

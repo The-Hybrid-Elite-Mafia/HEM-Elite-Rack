@@ -77,7 +77,7 @@ namespace mm2 {
 using namespace mademan;
 constexpr PlateReadout readouts[] = {{0, "SUNG", "", "note"}, {1, "PULL", "CENTS", "+"}};
 constexpr PlateChoice steppers[] = {{Key, "ROOT"}, {Scale, "SCALE"}, {Formant, "FORMANT"}};
-constexpr PlateKnob row1[] = {{Speed, "SPEED", "HARD", "400", K::Big}, {Transition, "NOTE TRANSITION", "0", "400"}, {Ratio, "RATIO", "0", "100"},
+constexpr PlateKnob row1[] = {{Speed, "SPEED", "HARD", "400", K::Big}, {Transition, "NOTE GLIDE", "0", "400"}, {Ratio, "RATIO", "0", "100"},
                               {Shift, "SHIFT", "-12", "+12"}, {Reference, "REFERENCE A", "400", "480"}, {MinPitch, "MIN PITCH", "50", "500"},
                               {MaxPitch, "MAX PITCH", "200", "2K"}};
 constexpr PlateToggle noteToggles[] = {{0, "ON"}};

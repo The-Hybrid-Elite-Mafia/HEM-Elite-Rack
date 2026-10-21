@@ -34,7 +34,7 @@
 //                    ON, GAIN ±18, FREQ 16 Hz–21.4 kHz, Q (bells 0.26–6.5; shelves and cuts 0.71–1.41).
 //                    LINK, LEFT / RIGHT tabs, SPECTRUM (the music behind the curve on / off), OUTPUT
 //                    (off..+12), TRIM (a push). Zero latency.
-//  THE BOSS          British-console channel: SOURCE (MIC / LINE), PREAMP (MIC: 20–70 dB in 10 dB steps;
+//  THE CHAIRMAN          British-console channel: SOURCE (MIC / LINE), PREAMP (MIC: 20–70 dB in 10 dB steps;
 //                    more = the input stage driven harder, the level made up, so only the colour
 //                    grows), INPUT ±18, the EQ: HIGH (a 10 kHz shelf, -16..+12 in 4 dB steps), MID
 //                    (0–15 dB at 700 Hz–6 kHz, BOOST or CUT), LOW (a shelf at 60 / 120 / 250 / 400 Hz,

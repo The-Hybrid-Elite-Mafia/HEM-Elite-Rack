@@ -1,3 +1,11 @@
+# HEM-Elite-Rack 0.41.0
+
+Label check (names only; no sound changes):
+- **THE CHAIRMAN** — the British-console channel's new name (it was THE BOSS). Same plug-in, same settings, same VST3 IDs.
+- **CHAUFFEUR** — now described as a bass level rider.
+- **MADE MAN** — NOTE TRANSITION is now NOTE GLIDE.
+- **THE AUDITOR** — METHOD is now EBU / AVERAGE / DIALOGUE.
+
 # HEM-Elite-Rack 0.40.0
 
 - **THE MOLD** and **THE FORGER** (new) — the EQ cloner, with their originals' full control sets. THE MOLD measures a hardware EQ in a
@@ -48,7 +56,7 @@
 **Wave 5 — pitch and meters.** Rebuilt to their originals' full control sets:
 - **WISEGUYS** — six voices (on, pitch, formant, gain, pan, delay), the direct voice (on, gain, delay), animate, link, mode,
   min / max pitch. New voice engine (PSOLA): a voice's formants stay put unless you move them.
-- **MADE MAN** — root, twenty scales or your own notes, speed, note transition, ratio, formant corrected / off, shift (octave
+- **MADE MAN** — root, twenty scales or your own notes, speed, note glide, ratio, formant corrected / off, shift (octave
   drops), reference A, min / max pitch. Same new engine.
 - **PROMOTION** — transpose (intervals and cents) or frequency (from / to Hz), modes sync / smooth / transient / punchy. (The
   original's time stretching works on whole files, not a live stream.)
@@ -94,7 +102,7 @@
 - On FOUNDRY and BOARDROOM the original's one-click "set the output so the peak hits the top" can't save with a session in
   the rack, so the TO TOP window shows how far to turn OUTPUT instead.
 
-**Fixed:** THE BOSS, GOLD CHAIN and STRAPPED lost about 4 dB at 20 kHz even with nothing turned (their colour stage ran the
+**Fixed:** THE CHAIRMAN, GOLD CHAIN and STRAPPED lost about 4 dB at 20 kHz even with nothing turned (their colour stage ran the
 whole sound through the oversampler's filters). Now only the added harmonics go through it: flat to 20 kHz.
 
 # HEM-Elite-Rack 0.31.0
@@ -199,11 +207,11 @@ INSIDE MAN's captions are shorter so nothing touches.
 # HEM-Elite-Rack 0.26.0
 
 **Channel strips, drums and tone, wave 2 part 2** — one plug-in per original, every control:
-- **THE BOSS** — rebuilt as a British-console channel: MIC / LINE, PREAMP 20-70, INPUT, stepped HIGH shelf, MID
+- **THE CHAIRMAN** — rebuilt as a British-console channel: MIC / LINE, PREAMP 20-70, INPUT, stepped HIGH shelf, MID
   boost / cut at eight frequencies, LOW shelf at four, LOW CUT at 50 Hz, EQ in / out, ANALOG hum, NOISE, PHASE,
   OUTPUT, TRIM, VU meter IN / OUT and VU calibration
 - **INSIDE MAN** (new) — channel strip: gate / expander and compressor, each with its own key filter, four-band
-  EQ, order, phase, output, rotate, clip guard (the gate and compressor of THE BOSS's old version live on here)
+  EQ, order, phase, output, rotate, clip guard (the gate and compressor of THE CHAIRMAN's old version live on here)
 - **KINGPIN** — rebuilt as a drum channel: TYPE (kick, snare, hats, toms, overhead, room), SENS, COMPRESS, GATE,
   FX, BASS, TREBLE, OUTPUT, VU meter, ANALOG
 - **GOLD CHAIN** — input and output now ±18, MIX made way for ANALOG
@@ -341,7 +349,7 @@ THE MIDDLEMAN's balances and IVORIES' TONE show as percentages.
 **Nine new plug-ins: EQ, channel strips, tone and stereo** (in the rack and as VST3), our own designs:
 - **STRAIGHT SHOOTER** — linear-phase EQ (no phase shift; 96 ms delay that DAWs make up for)
 - **CUTTHROAT** — sweep filter: high-pass + low-pass, one-knob sweep, resonance, drive
-- **THE BOSS** — channel strip: gate, compressor, four-band EQ, low cut, limiter
+- **THE CHAIRMAN** — channel strip: gate, compressor, four-band EQ, low cut, limiter
 - **KINGPIN** — drum channel: gate, thump, snap, punch, crush, drive
 - **GOLD CHAIN** — one-knob tone: warmth, density and sheen together
 - **IVORIES** — piano tone: tone, body, compression, slap delay, doubler, width
