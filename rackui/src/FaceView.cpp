@@ -191,12 +191,13 @@ void FaceView::knob(const Ctx& c, const Widget& w, int wi) const {
     r.spriteRotated(Sprite::KnobIndicator, cx + std::sin(ang) * mid, cy - std::cos(ang) * mid, iw, ih, ang,
                     {0.55f + 0.45f * th_.teal.r, 0.55f + 0.45f * th_.teal.g, 0.55f + 0.45f * th_.teal.b, 1.0f}, Blend::Over, false);
     r.sprite(Sprite::KnobLight, {cx - bd / 2, cy - bd / 2, bd, bd});
-    if (!on) r.fillRound(dial.inset(dial.w * 0.04f), dial.w * 0.46f, rgb8(0x000000, 0.6f), Blend::Over);
+    // A knob its section's switch has turned off stays a whole knob, pointer and value showing: only its lights go
+    // out (scale and tip unlit, caption and value dim). The switch's own light says the section is off.
 
     // Caption above, value under, scale ends at the arc's ends.
     const TextStyle cap = c.fit(w.small ? TextStyle::Caption : TextStyle::Label, w.caption, dial.w + (w.small ? 26 : 70) * z);
     r.text(cap, w.caption, cx, dial.y - (w.small ? 12 : 16) * z, on ? th_.label : th_.dim, Align::Center, TextFx::Shadowed);
-    const std::string v = on ? c.host.text(param) : std::string("--");
+    const std::string v = c.host.text(param);
     const TextStyle vs = c.fit(w.small ? TextStyle::Value : TextStyle::Title, v, dial.w + (w.small ? 26 : 50) * z);
     r.text(vs, v, cx, dial.bottom() + (w.small ? 26 : 32) * z, on ? (hot ? th_.silver : th_.teal) : th_.dim, Align::Center,
            on ? TextFx::Shadowed : TextFx::Shadowed);

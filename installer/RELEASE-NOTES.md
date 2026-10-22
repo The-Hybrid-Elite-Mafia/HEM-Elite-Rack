@@ -1,3 +1,9 @@
+# HEM-Elite-Rack 0.47.0
+
+- **No more black holes on switched-off knobs** — a knob whose section is turned off (DYNAMIC OFF, a band set to a cut, a
+  release in HOST mode, and so on) now stays a whole knob with its pointer and value showing; only its lights go out (scale
+  dark, name and value dimmed). The section's own switch light says whether it is on.
+
 # HEM-Elite-Rack 0.46.0
 
 - **New faceplates on all 120 plug-ins** — every plug-in now wears its own rendered 3D faceplate (brushed gunmetal, machined
