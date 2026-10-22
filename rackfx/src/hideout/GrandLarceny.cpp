@@ -232,10 +232,16 @@ public:
         while (e < nEvents_) handle(events_[static_cast<std::size_t>(e++)]);   // past the block's end: now
         nEvents_ = 0;
         post(L, R, n);
+        // OUT L / R: everything that leaves the plug-in (the piano and the sound passing through)
+        float pkL = 0.0f, pkR = 0.0f;
         for (std::uint32_t i = 0; i < n; ++i) {
             L[i] += thru_[0].process(in_[0][i], kLatency);
             R[i] += thru_[1].process(in_[1][i], kLatency);
+            pkL = std::max(pkL, std::fabs(L[i]));
+            pkR = std::max(pkR, std::fabs(R[i]));
         }
+        publishMeter(OutL, std::max(-100.0f, dbOfF(pkL)));
+        publishMeter(OutR, std::max(-100.0f, dbOfF(pkR)));
     }
 
 private:
@@ -410,7 +416,6 @@ private:
         const bool limit = p(Limit) >= 0.5f;
         const float wVol = volumeGain();
         const float piOverFs = static_cast<float>(std::numbers::pi / fs_);
-        float pkL = 0.0f, pkR = 0.0f;
         for (std::uint32_t i = 0; i < n; ++i) {
             float x[2] = {L[i], R[i]};
             for (int c = 0; c < 2; ++c) {
@@ -488,11 +493,7 @@ private:
             }
             L[i] = y[0];
             R[i] = y[1];
-            pkL = std::max(pkL, std::fabs(y[0]));
-            pkR = std::max(pkR, std::fabs(y[1]));
         }
-        publishMeter(OutL, std::max(-100.0f, dbOfF(pkL)));
-        publishMeter(OutR, std::max(-100.0f, dbOfF(pkR)));
     }
     static double wrap(double v) noexcept { return v >= 1.0 ? v - std::floor(v) : v; }
     double rate(int sync, int note, int hz) const noexcept {

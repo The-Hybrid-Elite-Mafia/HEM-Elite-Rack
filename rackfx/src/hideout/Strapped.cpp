@@ -5,6 +5,7 @@
 #include "hem/rack/Hideout.hpp"
 
 #include "SpaceKit.hpp"
+#include "../maxim/LimitKit.hpp"
 #include "../tone/ToneCommon.hpp"
 
 namespace hem::rack {
@@ -86,7 +87,8 @@ public:
         in_.prepare(fs_, 20, hc::fx::dbToGain(p(Sensitivity)));
         out_.prepare(fs_, 20, hc::fx::dbToGain(p(Output)));
         bal_.prepare(fs_, 20, p(Balance));
-        pkIn_ = pkOut_ = 0.0f;
+        holdIn_.clear();
+        holdOut_.clear();
         publishMeter(0, -100.0f);
         publishMeter(1, -100.0f);
         publishReduction(0.0f);
@@ -171,10 +173,8 @@ public:
             pout = std::max({pout, std::fabs(yl), std::fabs(yr)});
         }
         if (gr_ > -1e-6f) gr_ = 0.0f;
-        pkIn_ = std::max(pin, pkIn_ * 0.9f);
-        pkOut_ = std::max(pout, pkOut_ * 0.9f);
-        publishMeter(0, std::max(dbOf(pkIn_), -100.0f));
-        publishMeter(1, std::max(dbOf(pkOut_), -100.0f));
+        publishMeter(0, holdIn_.push(std::max(dbOf(pin), -100.0f), n, fs_));
+        publishMeter(1, holdOut_.push(std::max(dbOf(pout), -100.0f), n, fs_));
         publishReduction(most);
     }
 
@@ -218,7 +218,8 @@ private:
     PitchShift spread_[2];
     Fdn8 room_;
     std::array<float, 8> key_{};
-    float env_ = 0.0f, gr_ = 0.0f, fb_[2]{}, pkIn_ = 0.0f, pkOut_ = 0.0f;
+    float env_ = 0.0f, gr_ = 0.0f, fb_[2]{};
+    maxim::PeakHold holdIn_, holdOut_;
     hc::fx::Smoothed wet_[kFaders], time_, in_, out_, bal_;
 };
 

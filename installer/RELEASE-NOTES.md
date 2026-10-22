@@ -1,3 +1,14 @@
+# HEM-Elite-Rack 0.49.0
+
+- **Meters checked against a real song** — Steven's "Built from the Static" was played through all 120 plug-ins and every
+  meter was compared with an independent measurement of the same audio (peak, VU, true peak, loudness, correlation,
+  gain reduction). Fixed what it found:
+  - STRAPPED, STREET TEAM, THE INFORMANT, DEAD DROP, HOT WIRE and BOTTOM FEEDER peak meters fell at a speed that depended on
+    the host's buffer size; now they hold 1.5 s then fall 20 dB/s at any buffer size.
+  - THE MIDDLEMAN CENTER readout smoothing no longer depends on the buffer size (30 ms).
+  - GRAND LARCENY OUT meters now read the real final output (they missed the dry signal).
+  - LOCKDOWN short-term loudness is now an exact 3-second window.
+
 # HEM-Elite-Rack 0.48.0
 
 - **Controls start at zero where zero means "not doing anything yet"** — HITMAN INPUT / OUTPUT 1 and 2 (were +6 / -4 dB),

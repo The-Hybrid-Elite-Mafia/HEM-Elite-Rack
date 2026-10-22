@@ -3,6 +3,7 @@
 #include "hem/rack/Plugins.hpp"
 
 #include "SpaceKit.hpp"
+#include "../maxim/LimitKit.hpp"
 #include "../tone/EqKit.hpp"
 
 namespace hem::rack {
@@ -269,7 +270,8 @@ public:
         env_ = cgr_ = ggr_ = 0.0f;
         in_.prepare(fs_, 20, inGain());
         out_.prepare(fs_, 20, hc::fx::dbToGain(p(Output)));
-        pkE_ = pkO_ = 0.0f;
+        holdE_.clear();
+        holdO_.clear();
         publishMeter(0, -100.0f);
         publishMeter(1, 0.0f);
         publishMeter(2, 0.0f);
@@ -311,12 +313,10 @@ public:
             worstG = std::min(worstG, ggr_);
             mostC = std::min(mostC, cgr_);
         }
-        pkE_ = std::max(pe, pkE_ * 0.9f);
-        pkO_ = std::max(po, pkO_ * 0.9f);
-        publishMeter(0, std::max(dbOf(pkE_), -100.0f));
+        publishMeter(0, holdE_.push(std::max(dbOf(pe), -100.0f), n, fs_));
         publishMeter(1, worstC);
         publishMeter(2, worstG);
-        publishMeter(3, std::max(dbOf(pkO_), -100.0f));
+        publishMeter(3, holdO_.push(std::max(dbOf(po), -100.0f), n, fs_));
         publishReduction(std::min(mostC, 0.0f));
     }
 
@@ -325,7 +325,8 @@ private:
 
     double fs_ = 48000.0;
     eqkit::IirBands<kBands> eq_;
-    float env_ = 0.0f, cgr_ = 0.0f, ggr_ = 0.0f, pkE_ = 0.0f, pkO_ = 0.0f;
+    float env_ = 0.0f, cgr_ = 0.0f, ggr_ = 0.0f;
+    maxim::PeakHold holdE_, holdO_;
     hc::fx::Smoothed in_, out_;
 };
 } // namespace

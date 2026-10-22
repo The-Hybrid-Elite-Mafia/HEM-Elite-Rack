@@ -4,6 +4,8 @@
 #include "ToneCommon.hpp"
 #include "../maxim/LimitKit.hpp"
 
+#include <cmath>
+
 namespace hem::rack {
 namespace middleman {
 namespace {
@@ -83,8 +85,9 @@ public:
             pr = std::max(pr, std::fabs(R[i]));
         }
         const double k = 1.0 / std::max<std::uint32_t>(n, 1);
-        mLevel_ += (mSum * k - mLevel_) * 0.3;
-        sLevel_ += (sSum * k - sLevel_) * 0.3;
+        const double a = 1.0 - std::exp(-static_cast<double>(n) / (fs_ * kCenterTau));   // same smoothing at any block size
+        mLevel_ += (mSum * k - mLevel_) * a;
+        sLevel_ += (sSum * k - sLevel_) * a;
         const double total = mLevel_ + sLevel_;
         publishMeter(0, total > 1e-12 ? static_cast<float>(100.0 * mLevel_ / total) : 0.0f);
         publishMeter(1, pkL_.push(dbOf(pl), n, fs_));
@@ -95,6 +98,7 @@ private:
     double fs_ = 48000.0;
     Crossover<3> xo_[2];
     float fast_ = 0, slow_ = 0;
+    static constexpr double kCenterTau = 0.030;   // 30 ms CENTER readout smoothing
     double mLevel_ = 0, sLevel_ = 0;
     hc::fx::Smoothed center_, sides_, low_, high_, out_;
     maxim::PeakHold pkL_, pkR_;

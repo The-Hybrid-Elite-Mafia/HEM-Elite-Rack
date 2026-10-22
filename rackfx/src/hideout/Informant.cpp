@@ -7,6 +7,7 @@
 #include "hem/rack/Hideout.hpp"
 
 #include "SpaceKit.hpp"
+#include "../maxim/LimitKit.hpp"
 
 namespace hem::rack {
 namespace informant {
@@ -138,7 +139,8 @@ public:
         key_.fill(-1e9f);
         design();
         for (int q = 0; q < kPaths; ++q) lvl_[q].prepare(fs_, 20, pathGain(q));
-        pk_[0] = pk_[1] = 0.0f;
+        meterHold_[0].clear();
+        meterHold_[1].clear();
         publishMeter(0, -100.0f);
         publishMeter(1, -100.0f);
     }
@@ -271,10 +273,8 @@ public:
             pkL = std::max(pkL, std::fabs(oL));
             pkR = std::max(pkR, std::fabs(oR));
         }
-        pk_[0] = std::max(pkL, pk_[0] * 0.9f);
-        pk_[1] = std::max(pkR, pk_[1] * 0.9f);
-        publishMeter(0, std::max(dbOf(pk_[0]), -100.0f));
-        publishMeter(1, std::max(dbOf(pk_[1]), -100.0f));
+        publishMeter(0, meterHold_[0].push(std::max(dbOf(pkL), -100.0f), n, fs_));
+        publishMeter(1, meterHold_[1].push(std::max(dbOf(pkR), -100.0f), n, fs_));
     }
 
 private:
@@ -378,7 +378,8 @@ private:
     float env_[kBands]{}, loudEnv_[kBands]{}, cenv_[3][kBands]{};
     Voice voice_[kVoices];
     std::array<int, kKeys> keyVoice_{};
-    float pressEnv_ = 0.0f, modEnv_ = 0.0f, pk_[2]{};
+    float pressEnv_ = 0.0f, modEnv_ = 0.0f;
+    maxim::PeakHold meterHold_[2];
     std::uint32_t quiet_ = 0, noise_ = 22222u;
     std::array<float, 32> key_{};
     hc::fx::Smoothed lvl_[kPaths];

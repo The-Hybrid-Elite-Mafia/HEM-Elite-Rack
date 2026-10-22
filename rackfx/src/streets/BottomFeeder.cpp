@@ -8,6 +8,7 @@
 #include "hem/rack/Garage.hpp"
 
 #include "AmpKit.hpp"
+#include "../maxim/LimitKit.hpp"
 
 namespace hem::rack {
 namespace bottomfeeder {
@@ -101,6 +102,8 @@ public:
         roomAmt_.prepare(fs_, 30, p(Room) * 0.01f);
         push_ = p(Clear);
         pkIn_ = pkOut_ = clips_ = 0.0f;
+        holdIn_.clear();
+        holdOut_.clear();
         publishMeter(0, -100.0f);
         publishMeter(1, -100.0f);
         publishMeter(2, 0.0f);
@@ -110,9 +113,10 @@ public:
             push_ = p(Clear);
             clips_ = 0.0f;
         }
+        pkIn_ = pkOut_ = 0.0f;
         for (std::uint32_t off = 0; off < n; off += kChunk) chunk(L + off, R + off, std::min(kChunk, n - off));
-        publishMeter(0, std::max(dbOf(pkIn_), -100.0f));
-        publishMeter(1, std::max(dbOf(pkOut_), -100.0f));
+        publishMeter(0, holdIn_.push(std::max(dbOf(pkIn_), -100.0f), n, fs_));
+        publishMeter(1, holdOut_.push(std::max(dbOf(pkOut_), -100.0f), n, fs_));
         publishMeter(2, clips_);
     }
 
@@ -153,7 +157,7 @@ private:
                 (c == 0 ? L[i] : R[i]) = x;
             }
         }
-        pkIn_ = std::max(pi, pkIn_ * 0.97f);
+        pkIn_ = std::max(pkIn_, pi);
         pre_.run(L, R, n, a.v, g, makeup);
         const bool cabOn = p(CabOff) < 0.5f;
         const float wBlend = p(Blend) * 0.1f, wDi = diLevel(), wCab = p(CabTone) * 0.01f, wRoom = p(Room) * 0.01f, wOut = hc::fx::dbToGain(p(Output));
@@ -175,7 +179,7 @@ private:
         if (lim_.run(L, R, n)) clips_ += 1.0f;
         float po = 0.0f;
         for (std::uint32_t i = 0; i < n; ++i) po = std::max({po, std::fabs(L[i]), std::fabs(R[i])});
-        pkOut_ = std::max(po, pkOut_ * 0.97f);
+        pkOut_ = std::max(pkOut_, po);
     }
 
     void design() noexcept {
@@ -224,6 +228,7 @@ private:
     std::array<float, 10> key_{};
     int amp_ = 0;
     float dc_[2]{}, push_ = 0.0f, pkIn_ = 0.0f, pkOut_ = 0.0f, clips_ = 0.0f;
+    maxim::PeakHold holdIn_, holdOut_;
     hc::fx::Smoothed inG_, outG_, blend_, diLv_, dMix_, cabMix_, roomAmt_;
 };
 

@@ -7,6 +7,7 @@
 #include "hem/rack/Hideout.hpp"
 
 #include "SpaceKit.hpp"
+#include "../maxim/LimitKit.hpp"
 
 namespace hem::rack {
 namespace deaddrop {
@@ -89,7 +90,7 @@ public:
         tapKey_ = {p(Sync), p(Time), p(Note), p(Bpm)};
         mix_.prepare(fs_, 20, p(Mix) * 0.01f);
         out_.prepare(fs_, 20, hc::fx::dbToGain(p(Output)));
-        pk_ = 0.0f;
+        meterHold_.clear();
         publishMeter(0, -100.0f);
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
@@ -182,8 +183,7 @@ public:
             R[i] = (xr + m * (wr - xr)) * o;
             pk = std::max({pk, std::fabs(L[i]), std::fabs(R[i])});
         }
-        pk_ = std::max(pk, pk_ * 0.9f);
-        publishMeter(0, std::max(dbOf(pk_), -100.0f));
+        publishMeter(0, meterHold_.push(std::max(dbOf(pk), -100.0f), n, fs_));
     }
 
 private:
@@ -210,7 +210,8 @@ private:
     hc::fx::Biquad hp_[2], lp_[2], dark_[2];
     std::array<float, 4> key_{}, tapKey_{};
     bool hpOn_ = false, lpOn_ = false;
-    float dly_[2]{-1.0f, -1.0f}, hold_[2]{}, push_ = 0.0f, pk_ = 0.0f;
+    float dly_[2]{-1.0f, -1.0f}, hold_[2]{}, push_ = 0.0f;
+    maxim::PeakHold meterHold_;
     int holdN_ = 0;
     std::uint32_t rng_ = 0x51ED270Bu;
     hc::fx::Smoothed mix_, out_;

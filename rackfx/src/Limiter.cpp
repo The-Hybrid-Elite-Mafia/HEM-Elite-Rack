@@ -47,6 +47,7 @@ public:
         for (auto& b : box_) b.assign(kWin, 1.0f);
         peak_[0].assign(mb, 0.0f);
         peak_[1].assign(mb, 0.0f);
+        lufsRing_.assign(static_cast<std::size_t>(std::lround(fs * 3.0)), 0.0f);   // the last 3 s, as BS.1770 short-term
         {   // the loudness meter: exactly BS.1770 (KWeight.hpp)
             hc::fx::BiquadCoefs sh, hp;
             kWeighting(fs, sh, hp);
@@ -71,6 +72,9 @@ public:
         kHp_.clear();
         ms_ = 0.0;
         metered_ = 0;
+        std::fill(lufsRing_.begin(), lufsRing_.end(), 0.0f);
+        ringPos_ = ringFill_ = 0;
+        ringSum_ = 0.0;
         tpHold_ = -100.0f;
         tpAge_ = 0.0;
         in_.prepare(fs_, 30, hc::fx::dbToGain(p(Input)));
@@ -150,15 +154,23 @@ public:
 private:
     // Output loudness (K-weighted, 3 s) and true peak (held 1 s, then falling 20 dB / s).
     void meters(const float* L, const float* R, std::uint32_t n) noexcept {
-        double s = 0;
-        for (std::uint32_t i = 0; i < n; ++i) {
+        // Short-term loudness exactly as BS.1770 defines it: the mean K-weighted power of the last 3 s (a sliding
+        // window); before 3 s have played, of what has played so far.
+        const std::size_t len = lufsRing_.size();
+        for (std::uint32_t i = 0; i < n && len; ++i) {
             const float l = kHp_.l.tick(kShelf_.l.tick(L[i])), r = kHp_.r.tick(kShelf_.r.tick(R[i]));
-            s += static_cast<double>(l) * l + static_cast<double>(r) * r;
+            const float e = l * l + r * r;
+            ringSum_ += static_cast<double>(e) - lufsRing_[ringPos_];
+            lufsRing_[ringPos_] = e;
+            if (++ringPos_ == len) {   // once per lap, re-add from scratch so rounding never builds up
+                ringPos_ = 0;
+                ringSum_ = 0.0;
+                for (const float v : lufsRing_) ringSum_ += v;
+            }
+            ringFill_ = std::min(ringFill_ + 1, len);
         }
-        // The first 3 s: the plain average so far (so it reads right from the start); then a 3 s window.
         metered_ += n;
-        const double k = std::max(1.0 - std::exp(-static_cast<double>(n) / (fs_ * 3.0)), static_cast<double>(n) / static_cast<double>(metered_));
-        ms_ += (s / std::max(n, 1u) - ms_) * k;
+        ms_ = ringFill_ ? std::max(ringSum_, 0.0) / static_cast<double>(ringFill_) : 0.0;
         publishMeter(0, static_cast<float>(ms_ > 1e-12 ? -0.691 + 10.0 * std::log10(ms_) : -100.0));
         float tp = 0.0f;
         const float* io[2] = {L, R};
@@ -184,6 +196,9 @@ private:
     float memory_ = 0.0f, tpHold_ = -100.0f;
     double tpAge_ = 0.0, ms_ = 0.0;
     std::uint64_t metered_ = 0;
+    std::vector<float> lufsRing_;          // K-weighted power, sample by sample, of the last 3 s
+    std::size_t ringPos_ = 0, ringFill_ = 0;
+    double ringSum_ = 0.0;
     hc::fx::Biquad2 kShelf_, kHp_;
     hc::fx::Smoothed in_, ceil_;
 };
