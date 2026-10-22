@@ -44,6 +44,7 @@ function(hem_copy_assets target)
         COMMAND ${CMAKE_COMMAND} -E copy_directory "${HEM_HC_DIR}/assets/fonts" "$<TARGET_FILE_DIR:${target}>/assets/fonts"
         COMMAND ${CMAKE_COMMAND} -E copy_directory "${HEM_HC_DIR}/assets/faceplates" "$<TARGET_FILE_DIR:${target}>/assets/faceplates"
         COMMAND ${CMAKE_COMMAND} -E copy_directory "${PROJECT_SOURCE_DIR}/assets/brand" "$<TARGET_FILE_DIR:${target}>/assets/brand"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${PROJECT_SOURCE_DIR}/assets/plates" "$<TARGET_FILE_DIR:${target}>/assets/plates"
         VERBATIM)
 endfunction()
 

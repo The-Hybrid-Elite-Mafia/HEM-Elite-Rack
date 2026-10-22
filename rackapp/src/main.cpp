@@ -768,7 +768,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     hc::ui::Canvas canvas;
     int fbW = 0, fbH = 0;
     float bakedScale = 0.0f;
-    std::map<std::pair<int, int>, hc::ui::TextureLevels> plates;   // (face, ppu × 1000) -> plate texture
+    std::map<std::pair<int, int>, hc::ui::TextureLevels> plates;   // (plug-in, ppu × 1000) -> plate texture (the open plug-in only)
     std::pair<int, int> plateKey{-1, -1}, wantPlateKey{-1, -1};
     auto plateChangedAt = std::chrono::steady_clock::now();
     Hit hover;
@@ -954,15 +954,18 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
             float ox, oy, z;
             RackView::facePlacement(ox, oy, z);
             const float ppu = std::min({canvas.scale * z, 4096.0f / ui::kPlateW, 4096.0f / ui::kPlateH});
-            const std::pair<int, int> key{static_cast<int>(a.face.info->face), static_cast<int>(std::lround(ppu * 1000.0f))};
+            // keyed by the plug-in itself: many plug-ins share a plate type but each has its own plate
+            const int plugIndex = static_cast<int>(a.face.info - rack::plugins().data());
+            const std::pair<int, int> key{plugIndex, static_cast<int>(std::lround(ppu * 1000.0f))};
             if (key != wantPlateKey) { wantPlateKey = key; plateChangedAt = std::chrono::steady_clock::now(); }
             // While the window is being resized, wait until it settles (a plate takes a moment to render).
             const bool settled = std::chrono::steady_clock::now() - plateChangedAt > std::chrono::milliseconds(250) || plateKey.first != key.first;
             if (key != plateKey && settled) {
                 auto it = plates.find(key);
                 if (it == plates.end()) {
-                    for (auto i = plates.begin(); i != plates.end();) i = i->first.first == key.first ? plates.erase(i) : std::next(i);
-                    it = plates.emplace(key, hc::ui::buildMips(hc::ui::premultiply(ui::renderRackPlate(*a.face.layout, art->brand, ppu)))).first;
+                    plates.clear();   // only the open plug-in's plate is kept (each one is several MB)
+                    const std::optional<hc::ui::Image> pic = ui::loadPlateArt(assets, a.face.info->name);
+                    it = plates.emplace(key, hc::ui::buildMips(hc::ui::premultiply(ui::renderRackPlate(*a.face.layout, art->brand, ppu, pic ? &*pic : nullptr)))).first;
                 }
                 if (renderer.setPanel(it->second, &err)) plateKey = key;
                 else a.say("GPU: " + err, true);
@@ -1044,7 +1047,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
         // ---- draw ----
         renderer.beginFrame(canvas);
         view.drawBack(renderer, vs, hover);
-        if (a.face.view && plateKey.first == static_cast<int>(a.face.info->face)) {
+        if (a.face.view && plateKey.first == static_cast<int>(a.face.info - rack::plugins().data())) {
             float ox, oy, z;
             RackView::facePlacement(ox, oy, z);
             a.face.view->draw(renderer, *a.face.host, *a.face.feed, a.face.state, ox, oy, z, true);

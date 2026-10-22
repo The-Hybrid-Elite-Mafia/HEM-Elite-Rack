@@ -125,8 +125,45 @@ std::optional<BrandArt> BrandArt::load(const std::filesystem::path& dir, std::st
     return a;
 }
 
-hc::ui::Image renderRackPlate(const FaceLayout& L, const BrandArt& art, float ppu) {
+std::filesystem::path plateArtFile(const std::filesystem::path& assetDir, std::string_view pluginName) {
+    std::string file = "HEM_";
+    for (const char c : pluginName) file += c == ' ' ? '_' : c;
+    return assetDir / "plates" / (file + ".jpg");
+}
+
+std::optional<hc::ui::Image> loadPlateArt(const std::filesystem::path& assetDir, std::string_view pluginName, std::string* error) {
+    const std::filesystem::path file = plateArtFile(assetDir, pluginName);
+    std::error_code ec;
+    if (!std::filesystem::exists(file, ec)) {
+        if (error) *error = "no faceplate picture " + file.filename().string();
+        return std::nullopt;
+    }
+    return hc::ui::loadImageFile(file, error);
+}
+
+hc::ui::Image renderRackPlate(const FaceLayout& L, const BrandArt& art, float ppu, const hc::ui::Image* plateArt) {
     const int W = std::max(1, static_cast<int>(std::lround(kPlateW * ppu))), H = std::max(1, static_cast<int>(std::lround(kPlateH * ppu)));
+    if (plateArt && !plateArt->empty()) {
+        // The picture is the plate: scaled to the size asked for (in linear light), the real crown and ghost on top
+        // (no extra shadow: the picture has its own), opaque.
+        const hc::ui::Image pic = hc::ui::resizeSrgb(*plateArt, static_cast<std::uint32_t>(W), static_cast<std::uint32_t>(H));
+        std::vector<V3> lin(static_cast<std::size_t>(W) * static_cast<std::size_t>(H));
+        for (std::size_t i = 0; i < lin.size(); ++i)
+            lin[i] = {hc::ui::srgb8ToLinear(pic.rgba[i * 4 + 0]), hc::ui::srgb8ToLinear(pic.rgba[i * 4 + 1]), hc::ui::srgb8ToLinear(pic.rgba[i * 4 + 2])};
+        composite(lin, W, H, ppu, art.crown, L.crown, 0.0f, nullptr, 0.0f);
+        composite(lin, W, H, ppu, art.ghost, L.ghost, 0.0f, nullptr, 0.0f);
+        hc::ui::Image img;
+        img.width = static_cast<std::uint32_t>(W);
+        img.height = static_cast<std::uint32_t>(H);
+        img.rgba.resize(static_cast<std::size_t>(W) * static_cast<std::size_t>(H) * 4);
+        for (std::size_t i = 0; i < lin.size(); ++i) {
+            img.rgba[i * 4 + 0] = hc::ui::linearToSrgb8(lin[i].x);
+            img.rgba[i * 4 + 1] = hc::ui::linearToSrgb8(lin[i].y);
+            img.rgba[i * 4 + 2] = hc::ui::linearToSrgb8(lin[i].z);
+            img.rgba[i * 4 + 3] = 255;
+        }
+        return img;
+    }
     const Rect plate{4, 4, kPlateW - 8, L.footer.y - 10};
     const Rect footer = L.footer;
     const float bevel = 9.0f;

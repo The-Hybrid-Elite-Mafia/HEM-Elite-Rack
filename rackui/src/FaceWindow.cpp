@@ -70,7 +70,9 @@ bool FaceWindow::setUp(const rack::PluginInfo& info, ParamTable params, PanelHos
     if (!renderer_.setFont(font_, error)) return false;
     // The gunmetal plate at the window's own pixel density (capped at the 4096 px texture limit).
     const float ppu = std::min({canvas_.scale, 4096.0f / kPlateW, 4096.0f / kPlateH});
-    if (!renderer_.setPanel(hc::ui::buildMips(hc::ui::premultiply(renderRackPlate(*layout_, art->brand, ppu))), error)) return false;
+    const std::optional<hc::ui::Image> pic = loadPlateArt(assetDir, info.name);   // the plug-in's own faceplate picture, when it has one
+    if (!renderer_.setPanel(hc::ui::buildMips(hc::ui::premultiply(renderRackPlate(*layout_, art->brand, ppu, pic ? &*pic : nullptr))), error))
+        return false;
     if (!renderer_.setTargetSize(w_, h_, error)) return false;
     renderer_.beginStatic(canvas_);
     renderer_.panel({0, 0, kPlateW, kPlateH});

@@ -403,6 +403,36 @@ void plateRules() {
             }
         CHECK(warm > 50);
     }
+    // Every plug-in has its own faceplate picture, the plate's shape, and it becomes the plate (crown on top).
+    // The installed self-test finds the pictures in the app's assets folder next to its own.
+    std::filesystem::path assets = exeDir() / "assets";
+    if (!std::filesystem::exists(plateArtFile(assets, rack::plugins()[0].name))) assets = exeDir().parent_path() / "assets";
+    int pictures = 0, wrongShape = 0;
+    for (const auto& info : rack::plugins()) {
+        const auto pic = loadPlateArt(assets, info.name, &err);
+        if (!pic) { std::printf("  no faceplate picture for %s: %s\n", info.name, err.c_str()); continue; }
+        ++pictures;
+        const double ratio = static_cast<double>(pic->width) / pic->height;
+        if (std::fabs(ratio - static_cast<double>(kPlateW) / kPlateH) > 0.005 || pic->width < 1672) {
+            ++wrongShape;
+            std::printf("  %s: picture %ux%u is not the plate's shape\n", info.name, pic->width, pic->height);
+        }
+        const FaceLayout L = faceLayout(info);
+        const hc::ui::Image a = renderRackPlate(L, *art, 0.25f, &*pic), b = renderRackPlate(L, *art, 0.25f, &*pic);
+        CHECK(a.width == static_cast<std::uint32_t>(std::lround(kPlateW * 0.25f)));
+        CHECK(a.height == static_cast<std::uint32_t>(std::lround(kPlateH * 0.25f)));
+        CHECK(a.rgba == b.rgba);
+        int warm = 0;   // the real crown is laid on the picture
+        for (std::uint32_t y = static_cast<std::uint32_t>(L.crown.y * 0.25f); y < static_cast<std::uint32_t>(L.crown.bottom() * 0.25f); ++y)
+            for (std::uint32_t x = static_cast<std::uint32_t>(L.crown.x * 0.25f); x < static_cast<std::uint32_t>(L.crown.right() * 0.25f); ++x) {
+                const std::uint8_t* p = a.at(x, y);
+                if (p[0] > p[2] + 40 && p[0] > 90) ++warm;
+            }
+        CHECK(warm > 50);
+    }
+    std::printf("  faceplate pictures: %d of %zu plug-ins, %d the wrong shape\n", pictures, rack::plugins().size(), wrongShape);
+    CHECK(pictures == static_cast<int>(rack::plugins().size()));
+    CHECK(wrongShape == 0);
 }
 
 } // namespace

@@ -1,3 +1,12 @@
+# HEM-Elite-Rack 0.46.0
+
+- **New faceplates on all 120 plug-ins** — every plug-in now wears its own rendered 3D faceplate (brushed gunmetal, machined
+  wells, slots and screen windows), made to the plug-in's exact layout. The live knobs, buttons, screens, meters and words
+  sit in their pockets on top, working as before; the real crown and ghost are laid on each plate. Same in the rack app
+  and in the VST3 plug-ins.
+- **Fix:** the rack app could show the previous plug-in's plate under the next one's controls when both use the same kind of
+  plate (the plate is now kept per plug-in).
+
 # HEM-Elite-Rack 0.45.0
 
 - **Every control has its own pocket in the plate** — some buttons sat flat on the metal with no slot cut for them (SURGEON's

@@ -188,7 +188,16 @@ struct BrandArt {
     [[nodiscard]] static std::optional<BrandArt> load(const std::filesystem::path& assetDir, std::string* error);
 };
 // Opaque straight sRGB, (kPlateW × zoom × pixelsPerUnit) wide. Deterministic.
-[[nodiscard]] hc::ui::Image renderRackPlate(const FaceLayout& layout, const BrandArt& art, float pixelsPerUnit);
+// `plateArt` (optional): the plug-in's own faceplate picture (assets/plates/HEM_<NAME>.jpg, the plate's 1672 x 941
+// proportions, every control's pocket left empty). When given, it is the plate (scaled to the size asked for) and the
+// real crown and ghost are laid on top; without it the plate is drawn here from the layout.
+[[nodiscard]] hc::ui::Image renderRackPlate(const FaceLayout& layout, const BrandArt& art, float pixelsPerUnit,
+                                           const hc::ui::Image* plateArt = nullptr);
+// The plug-in's faceplate picture: <assetDir>/plates/HEM_<NAME>.jpg (spaces in the name become '_').
+[[nodiscard]] std::filesystem::path plateArtFile(const std::filesystem::path& assetDir, std::string_view pluginName);
+// Loads it; nullopt when the plug-in has none (its plate is then drawn from the layout).
+[[nodiscard]] std::optional<hc::ui::Image> loadPlateArt(const std::filesystem::path& assetDir, std::string_view pluginName,
+                                                        std::string* error = nullptr);
 
 // ---- interaction ---------------------------------------------------------------------------
 struct FaceState {

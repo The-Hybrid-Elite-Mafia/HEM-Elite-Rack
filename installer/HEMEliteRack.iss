@@ -49,7 +49,8 @@ Source: "{#BinDir}\rackapp\Release\HEMEliteRack.exe";                   DestDir:
 Source: "{#BinDir}\rackapp\Release\assets\*";                          DestDir: "{app}\assets"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#BinDir}\tests\Release\hem_rack_tests.exe";                   DestDir: "{app}\bin"; Flags: ignoreversion
 Source: "{#BinDir}\tools\rack_snapshot\Release\hem_rack_snapshot.exe";  DestDir: "{app}\bin"; Flags: ignoreversion
-Source: "{#BinDir}\tests\Release\assets\*";                            DestDir: "{app}\bin\assets"; Flags: ignoreversion recursesubdirs createallsubdirs
+; the self-test reads the faceplate pictures from the app's own assets folder (no second copy)
+Source: "{#BinDir}\tests\Release\assets\*";                            DestDir: "{app}\bin\assets"; Excludes: "plates\*"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "HOW-TO-USE.txt";                                                DestDir: "{app}"; Flags: ignoreversion
 Source: "THIRD-PARTY-NOTICES.txt";                                       DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE";                                                    DestDir: "{app}"; DestName: "LICENSE.txt"; Flags: ignoreversion
