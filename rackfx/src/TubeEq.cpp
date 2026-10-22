@@ -29,7 +29,7 @@ const ParamInfo kParams[kCount] = {
     {"bandwidth", "Bandwidth", "/10", 1.0f, 10.0f, 5.0f},
     {"highatten", "High Atten", "/10", 0.0f, 10.0f, 0.0f},
     {"attensel", "Atten Select", "", 0, 2, 1, Taper::Choice, kAttenN},
-    {"drive", "Tube Drive", "%", 0.0f, 100.0f, 20.0f},
+    {"drive", "Tube Drive", "%", 0.0f, 100.0f, 0.0f},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
     {"eqin", "EQ", "", 0, 1, 1, Taper::Toggle, kInOutN},
     {"analog", "Hum", "", 0, 2, 0, Taper::Choice, arsenal::kMainsN},

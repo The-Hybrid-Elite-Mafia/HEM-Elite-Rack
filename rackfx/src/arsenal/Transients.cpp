@@ -38,7 +38,7 @@ struct Shaper {
 namespace hm {
 using namespace haymaker;
 const ParamInfo kParams[kCount] = {
-    {"range", "Range", "dB", -24.0f, 18.0f, 6.0f},
+    {"range", "Range", "dB", -24.0f, 18.0f, 0.0f},
     {"sens", "Pickup", "", -10.0f, 10.0f, 0.0f},
     {"duration", "Length", "ms", 0.01f, 500.0f, 4.1f, Taper::Log},
     {"release", "Release", "ms", 0.5f, 500.0f, 10.0f, Taper::Log},
@@ -97,7 +97,7 @@ private:
 namespace fk {
 using namespace fourkings;
 #define HEM_BAND(n)                                                                                   \
-    {"range" #n, "Band " #n " Range", "dB", -24.0f, 18.0f, 6.0f},                                     \
+    {"range" #n, "Band " #n " Range", "dB", -24.0f, 18.0f, 0.0f},                                     \
     {"sens" #n, "Band " #n " Pickup", "", -10.0f, 10.0f, 0.0f},                                         \
     {"on" #n, "Band " #n " On", "", 0, 1, 1, Taper::Toggle, kOnOff}
 const ParamInfo kParams[kCount] = {

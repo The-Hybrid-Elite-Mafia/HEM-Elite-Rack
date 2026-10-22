@@ -221,6 +221,82 @@ void keyboardGestures() {
     std::printf("  THE INFORMANT keyboard: hold, glide, latch and let go all reach the key switches\n");
 }
 
+// SURGEON: every band is its own; dragging one band's dot (left, right, up, down) moves that band only. No other band's
+// settings change and no other band's own line moves - also for two bands right next to each other.
+void surgeonBandsIndependent() {
+    using namespace rack::eq;
+    const rack::PluginInfo* info = rack::findPlugin("SURGEON");
+    auto fx = info->create();
+    const FaceLayout L = faceLayout(*info);
+    TestHost host(*fx);
+    FaceFeed feed;
+    FaceState st;
+    FaceController c(L, fx->params(), host, feed, st);
+    const Rect plot = plotArea(L.display);
+    const float range = kGraphRanges[static_cast<std::size_t>(st.graphRange)];
+    auto yOf = [&](float db) { return plot.cy() - db / range * plot.h * 0.5f; };
+    // 16 bells, spread out; bands 2 and 3 only a third apart (1 kHz and 1.26 kHz).
+    double hz[kBands];
+    for (int b = 0; b < kBands; ++b) hz[b] = 35.0 * std::pow(2.0, b * 0.58);
+    hz[1] = 1000.0;
+    hz[2] = 1260.0;
+    for (int b = 0; b < kBands; ++b) {
+        fx->set(bandParam(b, On), 1.0f);
+        fx->set(bandParam(b, TypeC), static_cast<float>(static_cast<int>(Type::Bell)));
+        fx->set(bandParam(b, Freq), static_cast<float>(hz[b]));
+        fx->set(bandParam(b, Gain), b % 2 ? -3.0f : 3.0f);
+        fx->set(bandParam(b, Q), 1.4f);
+    }
+    auto bandOf = [&](int b) {
+        Band bd;
+        bd.on = true;
+        bd.type = Type::Bell;
+        bd.freq = plain(*fx, bandParam(b, Freq));
+        bd.gainDb = plain(*fx, bandParam(b, Gain));
+        bd.q = plain(*fx, bandParam(b, Q));
+        return bd;
+    };
+    auto ownLine = [&](int b) {   // the band's own line: its response at 40 points, 20 Hz .. 20 kHz
+        std::vector<double> v;
+        const Sections s = design(bandOf(b), 48000.0);
+        for (int i = 0; i < 40; ++i) v.push_back(magnitudeDb(s, 48000.0, 20.0 * std::pow(1000.0, i / 39.0)));
+        return v;
+    };
+    int moves = 0, otherChanged = 0, ownStuck = 0, wrongPick = 0;
+    for (int b = 0; b < kBands; ++b) {
+        // right, left, up, down - each from where the dot is now
+        const struct { double fMul; float dDb; } steps[4] = {{1.25, 0.0f}, {0.8, 0.0f}, {1.0, 4.0f}, {1.0, -4.0f}};
+        for (const auto& stp : steps) {
+            std::vector<float> before(fx->params().size());
+            for (std::size_t i = 0; i < before.size(); ++i) before[i] = fx->get(static_cast<int>(i));
+            std::vector<std::vector<double>> lines;
+            for (int o = 0; o < kBands; ++o) lines.push_back(ownLine(o));
+            const float f0 = plain(*fx, bandParam(b, Freq)), g0 = plain(*fx, bandParam(b, Gain));
+            c.mouseDown(freqToX(plot, f0), yOf(g0), false, false);
+            if (st.selectedBand != b) ++wrongPick;
+            c.mouseMove(freqToX(plot, static_cast<float>(f0 * stp.fMul)), yOf(g0 + stp.dDb), false);
+            c.mouseUp();
+            ++moves;
+            const float f1 = plain(*fx, bandParam(b, Freq)), g1 = plain(*fx, bandParam(b, Gain));
+            if (std::fabs(f1 / f0 - stp.fMul) > 0.03 || std::fabs(g1 - g0 - stp.dDb) > 0.15f) ++ownStuck;
+            for (std::size_t i = 0; i < before.size(); ++i) {
+                const int band = static_cast<int>(i) / kPerBand;
+                if (band == b && static_cast<int>(i) < kBands * kPerBand) continue;
+                if (fx->get(static_cast<int>(i)) != before[i]) ++otherChanged;
+            }
+            for (int o = 0; o < kBands; ++o)
+                if (o != b && ownLine(o) != lines[static_cast<std::size_t>(o)]) ++otherChanged;
+        }
+    }
+    std::printf("  SURGEON: %d drags (16 bands x left/right/up/down): moved as asked %d, other bands changed %d, wrong dot picked %d\n",
+                moves, moves - ownStuck, otherChanged, wrongPick);
+    CHECK(moves == kBands * 4);
+    CHECK(ownStuck == 0);
+    CHECK(otherChanged == 0);
+    CHECK(wrongPick == 0);
+    CHECK(host.open() == 0);
+}
+
 void eqGestures() {
     using namespace rack::eq;
     const rack::PluginInfo* info = rack::findPlugin("SURGEON");
@@ -443,6 +519,7 @@ void testFaces() {
     restorerGestures();
     keyboardGestures();
     eqGestures();
+    surgeonBandsIndependent();
     for (const auto& info : rack::plugins()) everyControl(info);
     plateRules();
 }

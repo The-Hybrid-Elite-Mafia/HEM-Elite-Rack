@@ -57,7 +57,7 @@ struct Table {
         addG(Output, "output", "Output", "dB", -24.0f, 24.0f, 0.0f);
         addG(AutoGain, "autogain", "Auto Gain", "", 0, 1, 0, Taper::Toggle, kOnOff);
         addG(Character, "character", "Character", "", 0, 2, 0, Taper::Choice, kCharN);
-        addG(Drive, "drive", "Drive", "%", 0.0f, 100.0f, 30.0f);
+        addG(Drive, "drive", "Drive", "%", 0.0f, 100.0f, 0.0f);
     }
 };
 const Table& table() {

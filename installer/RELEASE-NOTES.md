@@ -1,3 +1,12 @@
+# HEM-Elite-Rack 0.48.0
+
+- **Controls start at zero where zero means "not doing anything yet"** — HITMAN INPUT / OUTPUT 1 and 2 (were +6 / -4 dB),
+  HAYMAKER RANGE and FOUR KINGS BAND 1-4 RANGE (were +6 dB), SURGEON DRIVE (was 30 %) and VELVET TUBE DRIVE (was 20 %) now
+  start at 0. Every other control was checked (all 2,376): the rest already start at zero, centred, or where they have to
+  be to work (thresholds, ceilings, MIX 100 %, WIDTH 100 %, volumes, times). Saved sessions keep their own settings.
+- **SURGEON test:** all 16 bands dragged left, right, up and down (64 drags) - each band moves only itself; no other band's
+  settings or line change, also for two bands right next to each other.
+
 # HEM-Elite-Rack 0.47.0
 
 - **No more black holes on switched-off knobs** — a knob whose section is turned off (DYNAMIC OFF, a band set to a cut, a
