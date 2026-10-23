@@ -92,8 +92,14 @@ Export-PfxCertificate -Cert $cert -FilePath $pfx -Password $pw | Out-Null
 $cer = Join-Path $out 'test.cer'
 Export-Certificate -Cert $cert -FilePath $cer | Out-Null
 Import-Certificate -FilePath $cer -CertStoreLocation 'Cert:\LocalMachine\TrustedPeople' | Out-Null
-& $signtool sign /fd SHA256 /f $pfx /p ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($pw))) $tmsix | Out-Host
+$plain = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($pw))
+& $signtool sign /fd SHA256 /f $pfx /p $plain $tmsix | Out-Host
 if ($LASTEXITCODE) { throw "signtool (test copy) failed ($LASTEXITCODE)" }
+# The certification kit checks an exact copy of the Store package (no Mesa), signed the same throw-away way.
+$cmsix = Join-Path $out 'cert-check.msix'
+Copy-Item $msix $cmsix
+& $signtool sign /fd SHA256 /f $pfx /p $plain $cmsix | Out-Host
+if ($LASTEXITCODE) { throw "signtool (certification copy) failed ($LASTEXITCODE)" }
 
 # The Appx cmdlets live in Windows PowerShell 5.1; PowerShell 7 reaches them through its compatibility session.
 Import-Module Appx -UseWindowsPowerShell -WarningAction SilentlyContinue
@@ -140,7 +146,7 @@ $appcert = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\App Certification
 if (Test-Path $appcert) {
   $report = Join-Path $out 'wack-report.xml'
   & $appcert reset | Out-Null
-  & $appcert test -appxpackagepath $tmsix -reportoutputpath $report | Out-Host
+  & $appcert test -appxpackagepath $cmsix -reportoutputpath $report | Out-Host
   if (Test-Path $report) {
     [xml]$r = Get-Content $report
     $overall = $r.REPORT.OVERALL_RESULT
@@ -151,6 +157,6 @@ if (Test-Path $appcert) {
   Write-Host '::notice title=certification kit::not on this runner (skipped)'
 }
 
-Remove-Item $pfx, $cer -ErrorAction SilentlyContinue
+Remove-Item $pfx, $cer, $cmsix -ErrorAction SilentlyContinue
 if ($failures) { throw "$failures store package check(s) failed" }
 Write-Host "::notice title=store package::installed from the package, started inside it with the picker open, removed again: OK"
