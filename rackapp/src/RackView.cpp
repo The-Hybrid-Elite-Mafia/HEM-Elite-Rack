@@ -99,6 +99,13 @@ TextStyle fit(const Renderer& r, TextStyle base, std::string_view t, float width
     return ladder[i];
 }
 
+// Where a style sits on fit()'s ladder (0 = the narrowest).
+int styleRank(TextStyle t) {
+    constexpr TextStyle ladder[] = {TextStyle::Caption, TextStyle::Value, TextStyle::Label, TextStyle::Title, TextStyle::Tab, TextStyle::Panel, TextStyle::Heading};
+    for (int k = 0; k < 7; ++k) if (ladder[k] == t) return k;
+    return 0;
+}
+
 // The text itself, shortened with "..." when even the smallest style is too wide.
 std::string clip(const Renderer& r, TextStyle s, std::string t, float width) {
     if (r.textWidth(s, t) <= width) return t;
@@ -464,13 +471,13 @@ std::vector<float> makeOverview(const std::vector<float>& left, const std::vecto
 
 void RackView::drawCards(Renderer& r, const RackViewState& s, const Hit& hv) const {
     const int ms = maxScroll(s), scroll = std::clamp(s.pickerScroll, 0, ms), top = scroll * kCardCols;
-    // one name size for the whole tab: the biggest that fits every name (a very long one is shortened instead)
+    // one name size for the whole tab: the biggest that fits every name in full
     const float nameW = cardCell(0).w - 8;
     TextStyle ns = TextStyle::Title;
     for (const auto& item : s.pickerItems)
         if (item.group == s.pickerTab) {
             const TextStyle f = fit(r, TextStyle::Title, item.name, nameW);
-            if (f != TextStyle::Caption && r.capHeight(f) < r.capHeight(ns)) ns = f;
+            if (styleRank(f) < styleRank(ns)) ns = f;   // the smallest any name needs, so none is cut off
         }
     int k = 0;
     for (const auto& item : s.pickerItems) {

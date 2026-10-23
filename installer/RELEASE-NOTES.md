@@ -1,3 +1,7 @@
+# HEM-Elite-Rack 0.51.2
+
+- Picker cards: the names are all one size and every name shows in full (0.51.1 cut a few long ones short).
+
 # HEM-Elite-Rack 0.51.1
 
 - Picker cards: every name on a tab is the same size.
