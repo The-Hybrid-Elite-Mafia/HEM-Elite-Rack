@@ -1,4 +1,4 @@
-// The rack app's audio side without a sound card: the chain, ON / BYPASS, A / B with matched
+// The rack app's audio side without a sound card: the chain, POWER (on / bypassed), A / B with matched
 // loudness, the transport, the WAV-export render and the saved chain text.
 #include "Harness.hpp"
 #include "Signals.hpp"
@@ -116,7 +116,7 @@ void testChain() {
         CHECK(lat == 2048 + 23);
         CHECK(d < 1e-5);
     }
-    // 2. ON / BYPASS: a switched-off slot plays its input delayed by its latency — the song itself here.
+    // 2. POWER (on / bypassed): a switched-off slot plays its input delayed by its latency — the song itself here.
     {
         RackProcessor rack;
         (void)rack.submitSong(song);

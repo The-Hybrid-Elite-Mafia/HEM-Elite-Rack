@@ -104,11 +104,11 @@ FaceLayout restorer(const rack::PluginInfo& info) {
     // Left column under the name: what is being taken out, ADAPT, LISTEN.
     L.widgets.push_back(toggle({70, 600, 270, 56}, Adapt, "ADAPT"));
     L.widgets.push_back(toggle({70, 690, 270, 56}, Listen, "LISTEN"));
-    // Right column: ON / BYPASS.
+    // Right column: POWER.
     Widget byp;
     byp.kind = WKind::Bypass;
     byp.r = {1495, 660, 100, 100};
-    byp.caption = "ON / BYPASS";
+    byp.caption = "POWER";
     L.widgets.push_back(byp);
     L.recesses.push_back({byp.r.inset(-12), 62, 4, true, false});
     L.grooves.push_back({1450, 580, 1450, 800});
@@ -182,7 +182,7 @@ FaceLayout eliteEq(const rack::PluginInfo& info) {
         L.widgets.push_back(bandKnob({1050 + static_cast<float>(i) * dynPitch + (dynPitch - kd) * 0.5f, ky, kd, kd}, dynCtl[i], dynCap[i]));
     L.grooves.push_back({1022, 630, 1022, 806});
     L.grooves.push_back({670, 630, 670, 806});
-    // Left column: CHARACTER, DRIVE, OUTPUT, AUTO GAIN, ON / BYPASS.
+    // Left column: CHARACTER, DRIVE, OUTPUT, AUTO GAIN, POWER.
     for (int c = 0; c < 3; ++c) {
         Widget w;
         w.kind = WKind::ChoiceButton;
@@ -257,13 +257,13 @@ FaceLayout busGlue(const rack::PluginInfo& info) {
     Widget byp;
     byp.kind = WKind::Bypass;
     byp.r = {160, 640, 90, 90};
-    byp.caption = "ON / BYPASS";
+    byp.caption = "POWER";
     L.widgets.push_back(byp);
     L.recesses.push_back({byp.r.inset(-10), 55, 4, true, false});
     return L;
 }
 
-void bypassAt(FaceLayout& L, Rect r, std::string caption = "ON / BYPASS") {
+void bypassAt(FaceLayout& L, Rect r, std::string caption = "POWER") {
     Widget byp;
     byp.kind = WKind::Bypass;
     byp.r = r;

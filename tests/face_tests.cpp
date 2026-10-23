@@ -168,7 +168,7 @@ void restorerGestures() {
     c.mouseMove(freqToX(plot, 15000.0f), rs.r.cy(), false);
     c.mouseUp();
     CHECK(plain(*fx, LowHz) < plain(*fx, HighHz));
-    // ON / BYPASS
+    // POWER (on / bypassed)
     const Widget& by = L.widgets[static_cast<std::size_t>(find(L, WKind::Bypass))];
     c.mouseDown(by.r.cx(), by.r.cy(), false, false);
     c.mouseUp();

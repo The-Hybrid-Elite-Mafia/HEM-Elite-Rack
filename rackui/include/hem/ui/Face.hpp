@@ -126,7 +126,7 @@ enum class WKind : std::uint8_t {
     ChoiceButton,  // one option of a choice parameter (lit when selected)
     Stepper,       // ◀ value ▶ for a choice parameter
     RangeSlider,   // two handles (param = low, param2 = high), log frequency
-    Bypass,        // the round ON / BYPASS button (host bypass)
+    Bypass,        // the round POWER button (lit: on; dark: bypassed)
     Spectrum,      // before / after spectrum (+ noise curve when the feed has one)
     EqGraph,       // ELITE EQ: spectrum + curve + draggable band nodes
     GraphRange,    // ELITE EQ: ±3 / ±6 / ±12 / ±30 dB buttons (choice = index)

@@ -1,3 +1,11 @@
+# HEM-Elite-Rack 0.50.0
+
+- **POWER button, like a DAW** — the round button on every plate is now POWER: lit (ON) = the plug-in is working on the
+  sound, dark (OFF) = bypassed, you hear the sound untouched. It used to say BYPASS while it was off, which read backwards.
+- **Screens and needles go dark when a plug-in is off** — they show OFF instead of the sound you are not hearing.
+- **Knob drags never run out of room** — when the mouse reaches the edge of the screen mid-drag it jumps to the other side
+  and the knob keeps going, so every knob can reach its top and bottom (e.g. THE MIDDLEMAN ALL, -24 to +6 dB).
+
 # HEM-Elite-Rack 0.49.0
 
 - **Meters checked against a real song** — Steven's "Built from the Static" was played through all 120 plug-ins and every

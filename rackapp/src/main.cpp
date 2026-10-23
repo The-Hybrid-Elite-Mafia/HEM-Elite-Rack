@@ -162,7 +162,7 @@ fs::path askSaveWav(HWND owner, const fs::path& suggested) {
     return out;
 }
 
-// The faceplate's view of one slot: knobs turn the live plug-in's atomics; ON / BYPASS is the slot's ON.
+// The faceplate's view of one slot: knobs turn the live plug-in's atomics; POWER (on / bypassed) is the slot's ON.
 class SlotHost final : public hc::ui::PanelHost {
 public:
     SlotHost(hc::fx::Effect& e, RackProcessor& rack, int slot) : e_(e), rack_(rack), slot_(slot) {}

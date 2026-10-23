@@ -297,6 +297,15 @@ void FaceView::rangeSlider(const Ctx& c, const Widget& w, int wi) const {
     r.text(s, text, t.cx(), t.bottom() + 24 * z, th_.label, Align::Center, TextFx::Shadowed);
 }
 
+// widgets that only show the sound (no control on them)
+static bool isDisplay(WKind k) noexcept {
+    switch (k) {
+    case WKind::Spectrum: case WKind::CurveDisplay: case WKind::GrMeter: case WKind::VuMeter: case WKind::Readout:
+    case WKind::History: case WKind::Rta: case WKind::Polar: return true;
+    default: return false;
+    }
+}
+
 void FaceView::bypass(const Ctx& c, const Widget& w, int wi) const {
     Renderer& r = c.r;
     const float z = c.z;
@@ -309,7 +318,7 @@ void FaceView::bypass(const Ctx& c, const Widget& w, int wi) const {
         r.fillRound(b.inset(3 * z), b.w * 0.5f - 3 * z, kGlass, Blend::Over);
         r.arc(b.cx(), b.cy(), b.w * 0.44f, 2.5f * z, -kPi, kPi, th_.teal.withAlpha(hot ? 0.7f : 0.3f), false);
     }
-    const char* t = on ? "ON" : "BYPASS";
+    const char* t = on ? "ON" : "OFF";   // a DAW power button: lit = working on the sound, dark = bypassed
     const TextStyle s = c.fit(TextStyle::Label, t, b.w * 0.8f);
     r.text(s, t, b.cx(), c.mid(b, s), on ? kInk : th_.label, Align::Center, on ? TextFx::Plain : TextFx::Shadowed);
     if (!w.caption.empty()) {
@@ -1086,6 +1095,13 @@ void FaceView::draw(Renderer& r, const PanelHost& host, const FaceFeed& feed, co
             }
             break;
         }
+        }
+        // switched off: the screens and needles go dark and say so (they would otherwise show a sound you are not hearing)
+        if (host.bypassed() && isDisplay(w.kind)) {
+            const Rect b = c.T(w.r);
+            r.fillRound(b, 6 * zoom, {0.0f, 0.0f, 0.0f, 0.72f}, Blend::Over, false);
+            const TextStyle s = c.fit(TextStyle::Label, "OFF", b.w * 0.8f);
+            r.text(s, "OFF", b.cx(), c.mid(b, s), th_.label, Align::Center, TextFx::Shadowed);
         }
     }
 }

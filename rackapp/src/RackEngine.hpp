@@ -5,7 +5,7 @@
 //
 //  Signal per block:
 //    song (or silence) → slot 1 → … → slot 8 → A/B → output
-//    Each slot can be switched off (ON / BYPASS): the plug-in keeps running and its output
+//    Each slot can be switched off (POWER (on / bypassed)): the plug-in keeps running and its output
 //    fades over 10 ms to its input delayed by the plug-in's latency, so nothing clicks or
 //    moves in time. B (ORIGINAL) is the song delayed by the whole chain's latency, so A and B
 //    line up exactly. MATCH LOUDNESS turns B up or down to the loudness of A (K-weighted,
