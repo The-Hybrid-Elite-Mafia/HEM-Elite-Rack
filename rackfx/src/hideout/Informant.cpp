@@ -240,7 +240,7 @@ public:
                     env_[k] = a + (a > env_[k] ? att : rel) * (env_[k] - a);
                     loudEnv_[k] = std::max(env_[k], loudEnv_[k] * keep);   // the recent shape a pause will hold
                 } else {
-                    ana_[k][1].tick(ana_[k][0].tick(x));   // keep the filters running
+                    (void)ana_[k][1].tick(ana_[k][0].tick(x));   // keep the filters running
                     env_[k] = loudEnv_[k];
                 }
                 const float sL = syn_[0][k][1].tick(syn_[0][k][0].tick(cL));

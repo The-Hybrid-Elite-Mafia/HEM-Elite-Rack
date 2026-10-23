@@ -464,6 +464,14 @@ std::vector<float> makeOverview(const std::vector<float>& left, const std::vecto
 
 void RackView::drawCards(Renderer& r, const RackViewState& s, const Hit& hv) const {
     const int ms = maxScroll(s), scroll = std::clamp(s.pickerScroll, 0, ms), top = scroll * kCardCols;
+    // one name size for the whole tab: the biggest that fits every name (a very long one is shortened instead)
+    const float nameW = cardCell(0).w - 8;
+    TextStyle ns = TextStyle::Title;
+    for (const auto& item : s.pickerItems)
+        if (item.group == s.pickerTab) {
+            const TextStyle f = fit(r, TextStyle::Title, item.name, nameW);
+            if (f != TextStyle::Caption && r.capHeight(f) < r.capHeight(ns)) ns = f;
+        }
     int k = 0;
     for (const auto& item : s.pickerItems) {
         if (item.group != s.pickerTab) continue;
@@ -481,8 +489,7 @@ void RackView::drawCards(Renderer& r, const RackViewState& s, const Hit& hv) con
             r.fillRound(pic, 8, rgb8(0x0D1113), Blend::Over);   // no picture: the name still shows below
         }
         const float nameY = pic.bottom() + 6, nameH = cell.bottom() - nameY;
-        const TextStyle ns = fit(r, TextStyle::Title, item.name, cell.w - 8);
-        r.text(ns, clip(r, ns, item.name, cell.w - 8), cell.cx(), nameY + nameH * 0.5f + r.capHeight(ns) * 0.5f, hot ? kTh.teal : kTh.silver,
+        r.text(ns, clip(r, ns, item.name, nameW), cell.cx(), nameY + nameH * 0.5f + r.capHeight(ns) * 0.5f, hot ? kTh.teal : kTh.silver,
                Align::Center, TextFx::Shadowed);
     }
     if (ms > 0) {   // more rows than fit: arrows, and where you are between them

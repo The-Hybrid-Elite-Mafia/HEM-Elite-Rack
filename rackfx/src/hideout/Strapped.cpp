@@ -146,7 +146,7 @@ public:
                 yl += w * a;
                 yr += w * b;
             } else {
-                wet_[PitchF].next(0.0f);
+                (void)wet_[PitchF].next(0.0f);
             }
             // DELAY: a note of the tempo, a little feedback, bouncing
             const float t = time_.next(tWant);
