@@ -3,3 +3,4 @@ out/
 installer/output/
 *.user
 .vs/
+store/out/

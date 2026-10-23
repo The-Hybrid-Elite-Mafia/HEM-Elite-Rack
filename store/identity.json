@@ -1,0 +1,7 @@
+{
+  "_about": "The Store package's identity. Partner Center gives the real Name, Publisher and PublisherDisplayName when the app name is reserved (Product identity page). Until then these are TEST values: the package installs and runs for testing, but Partner Center will refuse it until they are replaced.",
+  "Name": "HybridEliteMafia.HEMEliteRack.Test",
+  "Publisher": "CN=HEM Store Test",
+  "PublisherDisplayName": "Hybrid Elite Mafia",
+  "IsTest": true
+}

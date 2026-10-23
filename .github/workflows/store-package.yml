@@ -1,0 +1,54 @@
+name: Store package
+
+# Manual. Builds the Microsoft Store package (MSIX) of the HEM-Elite-Rack app, installs a test copy, starts it
+# inside its package, runs the App Certification Kit when the runner has it, and puts the unsigned .msix (for
+# Partner Center) and the screenshot on the "store-package" pre-release.
+on:
+  workflow_dispatch:
+
+jobs:
+  store:
+    name: Build and test the Store package
+    runs-on: windows-2022
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+
+      - name: Steinberg ASIO SDK (from Steinberg, SHA-512 checked; never committed)
+        run: |
+          tools\ci\run-and-report.ps1 -Title "asio sdk" -Exe pwsh -ArgList '-NoProfile','-File','external\HybridCore\tools\fetch-asio-sdk.ps1'
+
+      - name: Configure
+        run: |
+          tools\ci\run-and-report.ps1 -Title "configure" -Exe cmake -ArgList '--preset','rack'
+
+      - name: Build the app
+        run: |
+          tools\ci\run-and-report.ps1 -Title "build" -Exe cmake -ArgList '--build','--preset','rack-release','--target','HEMEliteRack'
+
+      - name: Package, install, start, check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tools\ci\run-and-report.ps1 -Title "store package" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\build-store-package.ps1'
+
+      - name: Publish to the store-package pre-release
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $files = @(Get-ChildItem store\out -Filter *.msix | Where-Object Name -ne 'test.msix') + @(Get-ChildItem store\out -Filter *.png) + @(Get-ChildItem store\out -Filter wack-report.xml)
+          $files = $files | Where-Object { $_ } | ForEach-Object { $_.FullName }
+          if (-not $files) { Write-Host 'nothing to publish'; exit 0 }
+          $notes = "Microsoft Store package of HEM-Elite-Rack (MSIX, unsigned: Partner Center signs it). Built from $env:GITHUB_SHA. Test identity until store/identity.json has the Partner Center values."
+          gh release view store-package 2>$null | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create store-package @files --title "Store package (MSIX)" --notes $notes --target $env:GITHUB_SHA --prerelease
+          } else {
+            gh release upload store-package @files --clobber
+            gh release edit store-package --notes $notes
+          }
