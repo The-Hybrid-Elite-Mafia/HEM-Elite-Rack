@@ -46,6 +46,7 @@ mixing, mastering, audio plugins, EQ, compressor, limiter, reverb, music product
 Windows 10 (version 2004) or Windows 11, 64-bit. A processor with AVX2 (most Intel and AMD processors from 2013–2015 on).
 
 ## Screenshots
-Use the pictures in "HEM Promo Screenshots" (in the app: SURGEON, THE FAMILY, VELVET, the picker), at least one per
-Store requirement (1366 x 768 or larger; the rack-app shots are 942 x 588 and are too small — use the store build's
-screenshot and the 2560-wide faceplates).
+The Store wants PNG files, desktop 1366 x 768 or larger, up to 10 (one is required; 4 or more suggested).
+Ready: "HEM Store Kit\Screenshots" — 8 faceplates at 2560 x 1441 (SURGEON, THE FAMILY, LOCKDOWN, ARCHIVE, VELVET,
+CATHEDRAL, STAKEOUT, GRAND LARCENY). The pictures of the whole rack app window are 942 x 588 (too small for the
+Store), so they are not in the kit.
