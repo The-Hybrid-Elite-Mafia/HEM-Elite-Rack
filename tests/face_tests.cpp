@@ -460,6 +460,39 @@ void everyControl(const rack::PluginInfo& info) {
     CHECK(host.open() == 0);
 }
 
+// Every plug-in has its picker card (384 x 216), and the card sheet holds them all within the 4096 px cap,
+// at the sizes the picker asks for (1080p up to 4K) and at the half sizes it falls back to.
+void cardRules() {
+    std::filesystem::path assets = exeDir() / "assets";
+    if (!std::filesystem::exists(cardFile(assets, rack::plugins()[0].name))) assets = exeDir().parent_path() / "assets";
+    std::vector<std::string> names;
+    int cards = 0, wrongSize = 0;
+    for (const auto& info : rack::plugins()) {
+        names.emplace_back(info.name);
+        const auto pic = std::filesystem::exists(cardFile(assets, info.name)) ? hc::ui::loadImageFile(cardFile(assets, info.name)) : std::nullopt;
+        if (!pic) { std::printf("  no picker card for %s\n", info.name); continue; }
+        ++cards;
+        if (pic->width != static_cast<std::uint32_t>(kCardFileW) || pic->height != static_cast<std::uint32_t>(kCardFileH)) ++wrongSize;
+    }
+    std::printf("  picker cards: %d of %zu plug-ins, %d the wrong size\n", cards, names.size(), wrongSize);
+    CHECK(cards == static_cast<int>(names.size()));
+    CHECK(wrongSize == 0);
+    for (const int w : {178, 205, 356, 384, 89}) {
+        const CardAtlas A = buildCardAtlas(assets, names, w);
+        CHECK(A.missing == 0);
+        CHECK(A.image.width <= hc::ui::kMaxTextureSide && A.image.height <= hc::ui::kMaxTextureSide);
+        CHECK(A.cols * A.rows >= static_cast<int>(names.size()));
+        bool allPlaced = true;
+        for (std::size_t i = 0; i < names.size(); ++i) allPlaced = allPlaced && A.cell[i] == static_cast<int>(i);
+        CHECK(allPlaced);
+        // a card's middle is its picture, not the empty sheet (the plates are mid-grey metal, never pure black)
+        const std::uint8_t* px = A.image.at(static_cast<std::uint32_t>(A.cellW / 2), static_cast<std::uint32_t>(A.cellH / 2));
+        CHECK(px[0] + px[1] + px[2] > 30);
+        std::printf("  card sheet at %d px cards: %d x %d cards, %u x %u px, %.1f MB on the GPU\n", w, A.cols, A.rows, A.image.width, A.image.height,
+                    A.image.rgba.size() / 1048576.0);
+    }
+}
+
 void plateRules() {
     std::string err;
     auto art = BrandArt::load(exeDir() / "assets", &err);
@@ -522,6 +555,7 @@ void testFaces() {
     surgeonBandsIndependent();
     for (const auto& info : rack::plugins()) everyControl(info);
     plateRules();
+    cardRules();
 }
 
 } // namespace hem::test

@@ -49,10 +49,14 @@ struct RackViewState {
     int  selected = -1;
     bool faceOpen = false;                   // a plate is showing (it has its CLOSE button)
     bool picker = false;
-    struct PickerItem { std::string name, blurb; int group = 0; int plugin = 0; };
+    struct PickerItem { std::string name, blurb; int group = 0; int plugin = 0; int card = -1; };   // card: its cell in the card atlas
     std::vector<PickerItem> pickerItems;     // every plug-in; the picker shows the chosen tab's
     std::vector<std::string> pickerTabs;     // "EQ", "DYNAMICS", ...
     int pickerTab = 0;
+    bool pickerCards = true;                 // faceplate cards (false: the name list)
+    int  pickerScroll = 0;                   // cards: the first row shown
+    bool cardsReady = false;                 // the card atlas is on the GPU
+    int  cardCols = 1, cardRows = 1;         // its grid
     // status
     std::string device, status;
     bool  alert = false;
@@ -61,11 +65,11 @@ struct RackViewState {
 
 enum class Action : std::uint8_t {
     None, OpenSong, Export, Device, Play, Stop, Seek, PlayA, PlayB, Match, Loop, Input, Monitor, Record,
-    SlotSelect, SlotOn, SlotUp, SlotDown, SlotRemove, AddOpen, AddPlugin, PickerClose, PickerTab, Face, FaceClose,
+    SlotSelect, SlotOn, SlotUp, SlotDown, SlotRemove, AddOpen, AddPlugin, PickerClose, PickerTab, PickerView, PickerScroll, Face, FaceClose,
 };
 struct Hit {
     Action action = Action::None;
-    int    index = -1;      // slot / plug-in (AddPlugin: index into rack::plugins()) / picker tab
+    int    index = -1;      // slot / plug-in (AddPlugin: index into rack::plugins()) / picker tab / PickerScroll: -1 up, +1 down
     float  value = 0.0f;    // Seek: 0..1
     [[nodiscard]] bool operator==(const Hit& o) const noexcept { return action == o.action && index == o.index; }
 };
@@ -82,6 +86,12 @@ public:
     // Where the 1672 × 941 faceplate sits inside faceArea(), and its zoom.
     static void facePlacement(float& originX, float& originY, float& zoom) noexcept;
 
+    // Faceplate cards: 6 across, 4 rows showing; the picture's width in design units (the atlas is made at
+    // this × the window's scale, so the cards are drawn 1:1) and its height (16:9).
+    static constexpr int kCardCols = 6, kCardRows = 4;
+    [[nodiscard]] static float cardImageWidth() noexcept;
+    [[nodiscard]] static int maxScroll(const RackViewState& s) noexcept;   // rows that are hidden below
+
     [[nodiscard]] Hit hit(float x, float y, const RackViewState& s) const noexcept;
     // Draws everything except the faceplate (drawn between drawBack and drawFront by the caller).
     void drawBack(hc::ui::Renderer& r, const RackViewState& s, const Hit& hover) const;
@@ -89,6 +99,7 @@ public:
 
 private:
     void button(hc::ui::Renderer& r, Rect b, std::string_view text, bool lit, bool hot, bool dim = false) const;
+    void drawCards(hc::ui::Renderer& r, const RackViewState& s, const Hit& hover) const;
 };
 
 [[nodiscard]] std::vector<float> makeOverview(const std::vector<float>& left, const std::vector<float>& right);

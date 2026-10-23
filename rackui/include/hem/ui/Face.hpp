@@ -199,6 +199,20 @@ struct BrandArt {
 [[nodiscard]] std::optional<hc::ui::Image> loadPlateArt(const std::filesystem::path& assetDir, std::string_view pluginName,
                                                         std::string* error = nullptr);
 
+// ---- faceplate cards (the plug-in picker) ---------------------------------------------------
+// A plug-in's card: a small picture of its finished faceplate, <assetDir>/cards/HEM_<NAME>.jpg (384 x 216).
+inline constexpr int kCardFileW = 384, kCardFileH = 216;
+[[nodiscard]] std::filesystem::path cardFile(const std::filesystem::path& assetDir, std::string_view pluginName);
+// Every plug-in's card in one picture (a grid of cellW × cellW·9/16 cells, at most 4096 px a side), for one GPU
+// texture. cell[i] is plug-in i's cell, -1 when it has no card (the picker then shows its name only).
+struct CardAtlas {
+    hc::ui::Image image;          // opaque straight sRGB
+    int cols = 0, rows = 0, cellW = 0, cellH = 0;
+    std::vector<int> cell;
+    int missing = 0;
+};
+[[nodiscard]] CardAtlas buildCardAtlas(const std::filesystem::path& assetDir, const std::vector<std::string>& names, int cellW);
+
 // ---- interaction ---------------------------------------------------------------------------
 struct FaceState {
     int selectedBand = 0;       // ELITE EQ

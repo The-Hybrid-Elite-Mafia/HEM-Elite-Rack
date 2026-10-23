@@ -73,6 +73,21 @@ int tabCount(const RackViewState& s) {
     return n;
 }
 Rect pickerClose() { const Rect p = pickerPanel(); return {p.right() - 200, p.y + 30, 160, 50}; }
+Rect pickerViewButton() { const Rect p = pickerPanel(); return {p.right() - 420, p.y + 30, 200, 50}; }
+
+// Faceplate cards: the picture with the name under it, 6 across and 4 rows at a time; the rows scroll
+// (mouse wheel or the arrows on the right), a whole row at a time.
+Rect cardArea() { const Rect p = pickerPanel(); return {p.x + 40, p.y + 160, p.w - 80 - 60, p.bottom() - 24 - (p.y + 160)}; }
+constexpr float kCardGap = 14;
+Rect cardCell(int visible) {
+    const Rect a = cardArea();
+    const float w = (a.w - kCardGap * (RackView::kCardCols - 1)) / RackView::kCardCols, pitch = a.h / RackView::kCardRows;
+    const int row = visible / RackView::kCardCols, col = visible % RackView::kCardCols;
+    return {a.x + static_cast<float>(col) * (w + kCardGap), a.y + static_cast<float>(row) * pitch, w, pitch - kCardGap};
+}
+Rect cardPicture(const Rect& cell) { return {cell.x, cell.y, cell.w, cell.w * 9.0f / 16.0f}; }
+Rect scrollUp() { const Rect a = cardArea(); return {a.right() + 12, a.y, 48, 120}; }
+Rect scrollDown() { const Rect a = cardArea(); return {a.right() + 12, a.bottom() - 120 - kCardGap, 48, 120}; }
 
 float mid(const Renderer& r, Rect a, TextStyle s) { return a.cy() + r.capHeight(s) * 0.5f; }
 
@@ -117,16 +132,37 @@ Rect RackView::faceClose() noexcept {
     return {ox + hem::ui::kPlateW * z - 170.0f, a.y + 4.0f, 170.0f, h};
 }
 
+float RackView::cardImageWidth() noexcept { return cardCell(0).w; }
+
+int RackView::maxScroll(const RackViewState& s) noexcept {
+    const int rows = (tabCount(s) + kCardCols - 1) / kCardCols;
+    return std::max(0, rows - kCardRows);
+}
+
 Hit RackView::hit(float x, float y, const RackViewState& s) const noexcept {
     if (s.picker) {
         if (pickerClose().contains(x, y)) return {Action::PickerClose};
+        if (pickerViewButton().contains(x, y)) return {Action::PickerView};
         const int tabs = static_cast<int>(s.pickerTabs.size());
         for (int t = 0; t < tabs; ++t)
             if (pickerTabRect(t, tabs).contains(x, y)) return {Action::PickerTab, t};
-        int k = 0;
-        for (const auto& it : s.pickerItems) {
-            if (it.group != s.pickerTab) continue;
-            if (pickerItem(k++, tabCount(s)).contains(x, y)) return {Action::AddPlugin, it.plugin};
+        if (s.pickerCards) {
+            const int top = std::clamp(s.pickerScroll, 0, maxScroll(s)) * kCardCols;
+            if (maxScroll(s) > 0 && scrollUp().contains(x, y)) return {Action::PickerScroll, -1};
+            if (maxScroll(s) > 0 && scrollDown().contains(x, y)) return {Action::PickerScroll, +1};
+            int k = 0;
+            for (const auto& it : s.pickerItems) {
+                if (it.group != s.pickerTab) continue;
+                const int v = k++ - top;
+                if (v < 0 || v >= kCardCols * kCardRows) continue;
+                if (cardCell(v).contains(x, y)) return {Action::AddPlugin, it.plugin};
+            }
+        } else {
+            int k = 0;
+            for (const auto& it : s.pickerItems) {
+                if (it.group != s.pickerTab) continue;
+                if (pickerItem(k++, tabCount(s)).contains(x, y)) return {Action::AddPlugin, it.plugin};
+            }
         }
         if (faceArea().contains(x, y)) return {Action::None};
     }
@@ -366,12 +402,17 @@ void RackView::drawFront(Renderer& r, const RackViewState& s, const Hit& hv) con
     r.fillRound(p, 16, kPanel, Blend::Over);
     r.text(TextStyle::Panel, "ADD A PLUG-IN", p.x + 40, p.y + 70, kTh.teal, Align::Left, TextFx::Shadowed);
     button(r, pickerClose(), "X   CLOSE", false, hv.action == Action::PickerClose);
+    button(r, pickerViewButton(), s.pickerCards ? "LIST VIEW" : "CARD VIEW", false, hv.action == Action::PickerView);
     const int tabs = static_cast<int>(s.pickerTabs.size());
     for (int t = 0; t < tabs; ++t) {
         int count = 0;
         for (const auto& it : s.pickerItems) count += it.group == t ? 1 : 0;
         const std::string label = s.pickerTabs[static_cast<std::size_t>(t)] + "  " + std::to_string(count);
         button(r, pickerTabRect(t, tabs), label, t == s.pickerTab, hv.action == Action::PickerTab && hv.index == t);
+    }
+    if (s.pickerCards) {
+        drawCards(r, s, hv);
+        return;
     }
     int k = 0;
     for (const auto& item : s.pickerItems) {
@@ -419,6 +460,41 @@ std::vector<float> makeOverview(const std::vector<float>& left, const std::vecto
     }
     for (float& v : out) v /= peak;   // fill the strip whatever the level
     return out;
+}
+
+void RackView::drawCards(Renderer& r, const RackViewState& s, const Hit& hv) const {
+    const int ms = maxScroll(s), scroll = std::clamp(s.pickerScroll, 0, ms), top = scroll * kCardCols;
+    int k = 0;
+    for (const auto& item : s.pickerItems) {
+        if (item.group != s.pickerTab) continue;
+        const int v = k++ - top;
+        if (v < 0 || v >= kCardCols * kCardRows) continue;
+        const Rect cell = cardCell(v), pic = cardPicture(cell);
+        const bool hot = hv.action == Action::AddPlugin && hv.index == item.plugin;
+        // a teal frame on hover (flat, no glow), the picture, the name under it
+        r.fillRound(pic.inset(-4), 10, hot ? kTh.teal : kEdge, Blend::Over);
+        if (s.cardsReady && item.card >= 0) {
+            const float cw = 1.0f / static_cast<float>(s.cardCols), ch = 1.0f / static_cast<float>(s.cardRows);
+            const Rect uv{static_cast<float>(item.card % s.cardCols) * cw, static_cast<float>(item.card / s.cardCols) * ch, cw, ch};
+            r.atlas(uv, pic);
+        } else {
+            r.fillRound(pic, 8, rgb8(0x0D1113), Blend::Over);   // no picture: the name still shows below
+        }
+        const float nameY = pic.bottom() + 6, nameH = cell.bottom() - nameY;
+        const TextStyle ns = fit(r, TextStyle::Title, item.name, cell.w - 8);
+        r.text(ns, clip(r, ns, item.name, cell.w - 8), cell.cx(), nameY + nameH * 0.5f + r.capHeight(ns) * 0.5f, hot ? kTh.teal : kTh.silver,
+               Align::Center, TextFx::Shadowed);
+    }
+    if (ms > 0) {   // more rows than fit: arrows, and where you are between them
+        button(r, scrollUp(), "^", false, hv.action == Action::PickerScroll && hv.index < 0, scroll == 0);
+        button(r, scrollDown(), "v", false, hv.action == Action::PickerScroll && hv.index > 0, scroll == ms);
+        const Rect u = scrollUp(), d = scrollDown();
+        const Rect track{u.x + 20, u.bottom() + 12, 8, d.y - 12 - (u.bottom() + 12)};
+        r.fillRound(track, 4, kEdge, Blend::Over);
+        const float shown = static_cast<float>(kCardRows) / static_cast<float>(kCardRows + ms);
+        const float th = std::max(24.0f, track.h * shown), ty = track.y + (track.h - th) * static_cast<float>(scroll) / static_cast<float>(ms);
+        r.fillRound({track.x, ty, track.w, th}, 4, kTh.teal, Blend::Over);
+    }
 }
 
 } // namespace hem::app

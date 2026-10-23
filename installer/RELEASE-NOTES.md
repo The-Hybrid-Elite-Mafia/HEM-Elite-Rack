@@ -1,3 +1,11 @@
+# HEM-Elite-Rack 0.51.0
+
+- **Faceplate cards in + ADD PLUG-IN** — the picker now shows each plug-in as a small picture of its real faceplate with
+  its name under it, 6 across, sorted by the category tabs. Scroll with the mouse wheel or the arrows on the right when
+  a tab has more (DYNAMICS has 39). LIST VIEW switches back to the name list (the app remembers which you like).
+- The cards are made at the size they are shown, so they are sharp on any screen, and they only use graphics memory
+  while the picker is open.
+
 # HEM-Elite-Rack 0.50.0
 
 - **POWER button, like a DAW** — the round button on every plate is now POWER: lit (ON) = the plug-in is working on the

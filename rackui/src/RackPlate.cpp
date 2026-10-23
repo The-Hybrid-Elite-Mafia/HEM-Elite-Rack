@@ -141,6 +141,53 @@ std::optional<hc::ui::Image> loadPlateArt(const std::filesystem::path& assetDir,
     return hc::ui::loadImageFile(file, error);
 }
 
+std::filesystem::path cardFile(const std::filesystem::path& assetDir, std::string_view pluginName) {
+    std::string file = "HEM_";
+    for (const char c : pluginName) file += c == ' ' ? '_' : c;
+    return assetDir / "cards" / (file + ".jpg");
+}
+
+CardAtlas buildCardAtlas(const std::filesystem::path& assetDir, const std::vector<std::string>& names, int cellW) {
+    CardAtlas A;
+    const int n = static_cast<int>(names.size());
+    A.cell.assign(names.size(), -1);
+    if (n == 0) return A;
+    A.cellW = std::clamp(cellW, 16, kCardFileW);
+    A.cellH = std::max(9, static_cast<int>(std::lround(A.cellW * 9.0 / 16.0)));
+    const int maxCols = std::max(1, static_cast<int>(hc::ui::kMaxTextureSide) / A.cellW);
+    // close to square, so neither side runs into the 4096 px cap
+    A.cols = std::clamp(static_cast<int>(std::ceil(std::sqrt(n * static_cast<double>(A.cellH) / A.cellW))), 1, maxCols);
+    A.rows = (n + A.cols - 1) / A.cols;
+    if (A.rows * A.cellH > static_cast<int>(hc::ui::kMaxTextureSide)) {   // cannot happen at <= 384 px cells and 120 cards
+        A.cols = maxCols;
+        A.rows = (n + A.cols - 1) / A.cols;
+    }
+    A.image.width = static_cast<std::uint32_t>(A.cols * A.cellW);
+    A.image.height = static_cast<std::uint32_t>(A.rows * A.cellH);
+    A.image.rgba.assign(static_cast<std::size_t>(A.image.width) * A.image.height * 4, 0);
+    for (std::size_t p = 3; p < A.image.rgba.size(); p += 4) A.image.rgba[p] = 255;
+    for (int i = 0; i < n; ++i) {
+        std::error_code ec;
+        const std::filesystem::path f = cardFile(assetDir, names[static_cast<std::size_t>(i)]);
+        std::optional<hc::ui::Image> pic = std::filesystem::exists(f, ec) ? hc::ui::loadImageFile(f) : std::nullopt;
+        if (!pic || pic->empty()) { ++A.missing; continue; }
+        const hc::ui::Image small = hc::ui::resizeSrgb(*pic, static_cast<std::uint32_t>(A.cellW), static_cast<std::uint32_t>(A.cellH));
+        const int x0 = (i % A.cols) * A.cellW, y0 = (i / A.cols) * A.cellH;
+        for (int y = 0; y < A.cellH; ++y) {
+            std::uint8_t* dst = &A.image.rgba[((static_cast<std::size_t>(y0 + y) * A.image.width) + static_cast<std::size_t>(x0)) * 4];
+            const std::uint8_t* src = &small.rgba[static_cast<std::size_t>(y) * small.width * 4];
+            for (int x = 0; x < A.cellW; ++x) {
+                dst[x * 4 + 0] = src[x * 4 + 0];
+                dst[x * 4 + 1] = src[x * 4 + 1];
+                dst[x * 4 + 2] = src[x * 4 + 2];
+                dst[x * 4 + 3] = 255;   // cards are opaque
+            }
+        }
+        A.cell[static_cast<std::size_t>(i)] = i;
+    }
+    return A;
+}
+
 hc::ui::Image renderRackPlate(const FaceLayout& L, const BrandArt& art, float ppu, const hc::ui::Image* plateArt) {
     const int W = std::max(1, static_cast<int>(std::lround(kPlateW * ppu))), H = std::max(1, static_cast<int>(std::lround(kPlateH * ppu)));
     if (plateArt && !plateArt->empty()) {

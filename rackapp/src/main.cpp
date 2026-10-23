@@ -40,6 +40,7 @@
 #include <cstdio>
 #include <filesystem>
 #include <map>
+#include <optional>
 #include <mutex>
 #include <numbers>
 #include <thread>
@@ -84,13 +85,14 @@ fs::path documentsDir() {
     return out;
 }
 
-// Command line (CI and support): --exit-after <s> --screenshot <png> --device offline --demo | --demo2 --select <slot 1..8> --closed (no plate open) [song]
+// Command line (CI and support): --exit-after <s> --screenshot <png> --device offline --demo | --demo2 --select <slot 1..8> --closed (no plate open) --picker <tab 1..7> (the plug-in picker open on that tab) [song]
 struct Options {
     double   exitAfter = 0.0;
     fs::path screenshot, song;
     bool     offline = false, demo = false, demo2 = false;   // --demo2: the vintage chain (ARCHIVE .. LOCKDOWN)
     int      select = 0;
     bool     closed = false;
+    int      picker = 0;   // > 0: open the picker on that tab
 };
 Options parseOptions() {
     Options o;
@@ -104,6 +106,7 @@ Options parseOptions() {
         else if (k == L"--demo") o.demo = true;
         else if (k == L"--demo2") o.demo = o.demo2 = true;
         else if (k == L"--closed") o.closed = true;
+        else if (k == L"--picker" && i + 1 < argc) o.picker = static_cast<int>(std::wcstol(argv[++i], nullptr, 10));
         else if (k == L"--select" && i + 1 < argc) o.select = static_cast<int>(std::wcstol(argv[++i], nullptr, 10));
         else if (!k.empty() && k[0] != L'-') o.song = k;
     }
@@ -310,6 +313,8 @@ struct App {
     bool picker = false;
     int pickerAt = -1;
     int pickerTab = 0;
+    bool pickerCards = true;   // faceplate cards, or the name list
+    int pickerScroll = 0;
     FaceUi face;
     std::string savedChain;
 
@@ -627,6 +632,7 @@ struct App {
         settings.setSectionText("chain", savedChain);
         settings.set("app", "match", rack().match() ? "1" : "0");
         settings.set("app", "loop", rack().loop() ? "1" : "0");
+        settings.set("app", "pickercards", pickerCards ? "1" : "0");
         settings.set("app", "selected", std::to_string(selected));
         (void)settings.save(settingsFile);
     }
@@ -651,6 +657,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     a.settings.load(a.settingsFile);
     a.rack().setMatch(a.settings.get("app", "match", "1") != "0");
     a.rack().setLoop(a.settings.get("app", "loop", "0") == "1");
+    a.pickerCards = a.settings.get("app", "pickercards", "1") != "0";
 
     if (opts.demo) {   // CI / showing it off: a made-up song and a chain with something to look at
         a.setSong(demoSong(), {}, "made-up test audio - 20 s");
@@ -698,6 +705,12 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
             if (auto* e = a.rack().effect(3)) { e->set(rack::glue::Threshold, -22); e->set(rack::glue::Makeup, 2); }
         }
         a.select(opts.closed ? -1 : std::clamp(opts.select > 0 ? opts.select - 1 : 1, 0, kMaxSlots - 1));
+        if (opts.picker > 0) {
+            a.picker = true;
+            a.pickerAt = -1;
+            a.pickerTab = std::clamp(opts.picker - 1, 0, static_cast<int>(rack::Group::kCount) - 1);
+            a.pickerCards = true;
+        }
     } else {
         a.restoreChain(a.settings.sectionText("chain"));
         const int sel = std::atoi(a.settings.get("app", "selected", "-1").c_str());
@@ -758,6 +771,33 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 
     std::vector<RackViewState::PickerItem> pickerItems;
     std::vector<std::string> pickerTabs;
+    std::vector<std::string> pluginNames;
+    for (const auto& p : rack::plugins()) pluginNames.emplace_back(p.name);
+    // The picker's faceplate cards: one picture of all of them, made at the size they are drawn (1:1) when
+    // the picker first opens, on the GPU only while it is open (the plate is let go meanwhile).
+    std::optional<ui::CardAtlas> cards;
+    bool cardsReady = false;
+    auto prepareCards = [&](float scale) {
+        const int want = std::clamp(static_cast<int>(std::ceil(RackView::cardImageWidth() * scale)), 16, ui::kCardFileW);
+        if (cardsReady && cards && cards->cellW == want) return;
+        for (int w = want; w >= 16; w /= 2) {   // too big for the texture budget: half the size, then the list
+            if (!cards || cards->cellW != w) cards = ui::buildCardAtlas(assets, pluginNames, w);
+            hc::ui::TextureLevels t;
+            t.width = cards->image.width;
+            t.height = cards->image.height;
+            t.levels.push_back(cards->image.rgba);   // opaque: straight = premultiplied; drawn 1:1, no mips needed
+            std::string e;
+            if (renderer.setAtlas(t, &e)) {
+                cardsReady = true;
+                if (cards->missing > 0) a.say(std::to_string(cards->missing) + " plug-in cards are missing - please reinstall", true);
+                for (auto& it : pickerItems) it.card = cards->cell[static_cast<std::size_t>(it.plugin)];
+                return;
+            }
+        }
+        cardsReady = false;
+        a.pickerCards = false;
+        a.say("Not enough graphics memory for the plug-in cards - showing the list", true);
+    };
     for (int g = 0; g < static_cast<int>(rack::Group::kCount); ++g) pickerTabs.emplace_back(rack::groupName(static_cast<rack::Group>(g)));
     {
         const auto list = rack::plugins();
@@ -816,6 +856,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
             probe.pickerItems = pickerItems;
             probe.pickerTabs = pickerTabs;
             probe.pickerTab = a.pickerTab;
+            probe.pickerCards = a.pickerCards;
+            probe.pickerScroll = a.pickerScroll;
             probe.selected = a.selected;
             for (int s = 0; s < kMaxSlots; ++s) probe.slots[static_cast<std::size_t>(s)].used = a.rack().effect(s) != nullptr;
             switch (e.type) {
@@ -864,13 +906,15 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
                 case Action::SlotUp: a.moveSlot(hh.index, -1); break;
                 case Action::SlotDown: a.moveSlot(hh.index, +1); break;
                 case Action::SlotRemove: a.removeSlot(hh.index); break;
-                case Action::AddOpen: a.picker = true; a.pickerAt = hh.index; break;
+                case Action::AddOpen: a.picker = true; a.pickerAt = hh.index; a.pickerScroll = 0; break;
                 case Action::AddPlugin:
                     a.picker = false;
                     a.addPlugin(rack::plugins()[static_cast<std::size_t>(hh.index)].name, a.pickerAt);
                     break;
                 case Action::PickerClose: a.picker = false; break;
-                case Action::PickerTab: a.pickerTab = hh.index; break;
+                case Action::PickerTab: a.pickerTab = hh.index; a.pickerScroll = 0; break;
+                case Action::PickerView: a.pickerCards = !a.pickerCards; a.saveSettings(); break;
+                case Action::PickerScroll: a.pickerScroll = std::clamp(a.pickerScroll + hh.index, 0, RackView::maxScroll(probe)); break;
                 case Action::FaceClose:
                     if (faceDrag && a.face.controller) a.face.controller->mouseUp();
                     faceDrag = false;
@@ -914,7 +958,10 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
                 seekDrag = false;
                 break;
             case hc::ui::InputEvent::Type::Wheel:
-                if (a.face.controller && view.hit(x, y, probe).action == Action::Face) {
+                if (a.picker) {   // the cards scroll a row per notch
+                    if (a.pickerCards && e.wheel != 0.0f)
+                        a.pickerScroll = std::clamp(a.pickerScroll + (e.wheel > 0.0f ? -1 : 1), 0, RackView::maxScroll(probe));
+                } else if (a.face.controller && view.hit(x, y, probe).action == Action::Face) {
                     float px, py;
                     toPlate(x, y, px, py);
                     a.face.controller->wheel(px, py, e.wheel, e.fine);
@@ -950,7 +997,15 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
         if (a.face.slot >= 0 && a.rack().effect(a.face.slot) != a.face.fx) a.rebuildFace();   // chain changed under it
 
         // ---- the selected plug-in's metal plate, rendered at the screen's pixel density ----
-        if (a.face.info) {
+        // ---- the picker's cards on the GPU only while it is open (and the plate let go meanwhile) ----
+        if (a.picker && a.pickerCards) {
+            if (plateKey.first >= 0) { renderer.clearPanel(); plateKey = {-1, -1}; }
+            prepareCards(canvas.scale);
+        } else if (cardsReady || renderer.hasAtlas()) {
+            renderer.clearAtlas();
+            cardsReady = false;
+        }
+        if (a.face.info && !(a.picker && a.pickerCards)) {
             float ox, oy, z;
             RackView::facePlacement(ox, oy, z);
             const float ppu = std::min({canvas.scale * z, 4096.0f / ui::kPlateW, 4096.0f / ui::kPlateH});
@@ -1025,6 +1080,11 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
         vs.pickerItems = pickerItems;
         vs.pickerTabs = pickerTabs;
         vs.pickerTab = a.pickerTab;
+        vs.pickerCards = a.pickerCards;
+        vs.pickerScroll = a.pickerScroll;
+        vs.cardsReady = cardsReady;
+        vs.cardCols = cards ? std::max(1, cards->cols) : 1;
+        vs.cardRows = cards ? std::max(1, cards->rows) : 1;
         vs.faceOpen = a.face.view != nullptr;
         vs.device = a.host.running() ? a.host.deviceName() : std::string("none - click to choose");
         vs.input = a.inputLabel();

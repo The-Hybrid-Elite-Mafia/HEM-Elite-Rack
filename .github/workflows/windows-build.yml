@@ -71,6 +71,10 @@ jobs:
           tools\ci\run-and-report.ps1 -Title "app: vintage chain, LOCKDOWN selected" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_lockdown.png','-Select','6','-Vintage'
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           tools\ci\run-and-report.ps1 -Title "app: plate closed, chain still running" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_plate_closed.png','-Closed'
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          tools\ci\run-and-report.ps1 -Title "app: picker cards, DYNAMICS" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_picker_dynamics.png','-Picker','2'
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          tools\ci\run-and-report.ps1 -Title "app: picker cards, EQ" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_picker_eq.png','-Picker','1'
 
       - name: Publish screenshots to the ci-screenshots branch
         if: github.ref == 'refs/heads/main'
