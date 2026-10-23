@@ -1,0 +1,63 @@
+name: Promo screenshots
+
+# Manual only. Renders every plug-in's finished faceplate (plate art + live controls, after playing test audio
+# so screens and meters show sound) at 2560 x 1441, one folder per category, and puts them on the
+# "promo-screenshots" release as HEM-Promo-Screenshots.zip — pictures for adverts and the free-trial page.
+on:
+  workflow_dispatch:
+
+jobs:
+  promo:
+    name: Render the promo faceplates
+    runs-on: windows-2022
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+
+      - name: Steinberg ASIO SDK (from Steinberg, SHA-512 checked; never committed)
+        run: |
+          tools\ci\run-and-report.ps1 -Title "asio sdk" -Exe pwsh -ArgList '-NoProfile','-File','external\HybridCore\tools\fetch-asio-sdk.ps1'
+
+      - name: Configure
+        run: |
+          tools\ci\run-and-report.ps1 -Title "configure" -Exe cmake -ArgList '--preset','rack'
+
+      - name: Build the snapshot tool
+        run: |
+          tools\ci\run-and-report.ps1 -Title "build" -Exe cmake -ArgList '--build','--preset','rack-release','--target','hem_rack_snapshot'
+
+      - name: Software OpenGL (Mesa llvmpipe, CI only)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tools\ci\run-and-report.ps1 -Title "fetch mesa" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\fetch-mesa.ps1','-TargetDirs','build\rack\tools\rack_snapshot\Release'
+
+      - name: Render every finished faceplate at 2560 x 1441
+        env:
+          GALLIUM_DRIVER: llvmpipe
+        run: |
+          tools\ci\run-and-report.ps1 -Title "promo: render" -Exe .\build\rack\tools\rack_snapshot\Release\hem_rack_snapshot.exe -ArgList '--out','HEM-Promo-Screenshots','--width','2560','--groups'
+
+      - name: Zip and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $count = (Get-ChildItem HEM-Promo-Screenshots -Recurse -Filter *.png).Count
+          Get-ChildItem HEM-Promo-Screenshots -Directory | ForEach-Object { "{0}: {1}" -f $_.Name, (Get-ChildItem $_.FullName -Filter *.png).Count }
+          Compress-Archive -Path HEM-Promo-Screenshots -DestinationPath HEM-Promo-Screenshots.zip -Force
+          $mb = [Math]::Round((Get-Item HEM-Promo-Screenshots.zip).Length / 1MB, 1)
+          Write-Host "promo: $count pictures, zip $mb MB"
+          $notes = "Every HEM-Elite-Rack faceplate at 2560 x 1441 ($count pictures, one folder per category), for adverts. Built from $env:GITHUB_SHA."
+          gh release view promo-screenshots 2>$null | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create promo-screenshots HEM-Promo-Screenshots.zip --title "Promo screenshots (2560 x 1441)" --notes $notes --target $env:GITHUB_SHA --prerelease
+          } else {
+            gh release upload promo-screenshots HEM-Promo-Screenshots.zip --clobber
+            gh release edit promo-screenshots --notes $notes
+          }
+          Write-Host "::notice title=promo::$count pictures, zip $mb MB, published to the promo-screenshots release"
