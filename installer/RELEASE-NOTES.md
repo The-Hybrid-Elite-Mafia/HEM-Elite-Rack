@@ -1,3 +1,8 @@
+# HEM-Elite-Rack 0.51.3
+
+- Picker cards: a long name that doesn't fit on one line goes onto two (STRAIGHT / SHOOTER) instead of being cut short,
+  so every name reads in full in a small window too (remote desktop, a laptop screen).
+
 # HEM-Elite-Rack 0.51.2
 
 - Picker cards: the names are all one size and every name shows in full (0.51.1 cut a few long ones short).

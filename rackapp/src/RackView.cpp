@@ -99,6 +99,21 @@ TextStyle fit(const Renderer& r, TextStyle base, std::string_view t, float width
     return ladder[i];
 }
 
+// A card name in full: on one line (b empty), or split at the space that fits best onto two. False when
+// neither fits at this style.
+bool splitName(const Renderer& r, TextStyle st, const std::string& name, float w, std::string& a, std::string& b) {
+    a = name; b.clear();
+    if (r.textWidth(st, name) <= w) return true;
+    float best = 1e9f;
+    bool found = false;
+    for (std::size_t p = name.find(' '); p != std::string::npos; p = name.find(' ', p + 1)) {
+        const std::string x = name.substr(0, p), y = name.substr(p + 1);
+        const float m = std::max(r.textWidth(st, x), r.textWidth(st, y));
+        if (m <= w && m < best) { best = m; a = x; b = y; found = true; }
+    }
+    return found;
+}
+
 // Where a style sits on fit()'s ladder (0 = the narrowest).
 int styleRank(TextStyle t) {
     constexpr TextStyle ladder[] = {TextStyle::Caption, TextStyle::Value, TextStyle::Label, TextStyle::Title, TextStyle::Tab, TextStyle::Panel, TextStyle::Heading};
@@ -471,14 +486,22 @@ std::vector<float> makeOverview(const std::vector<float>& left, const std::vecto
 
 void RackView::drawCards(Renderer& r, const RackViewState& s, const Hit& hv) const {
     const int ms = maxScroll(s), scroll = std::clamp(s.pickerScroll, 0, ms), top = scroll * kCardCols;
-    // one name size for the whole tab: the biggest that fits every name in full
+    // One name size for the whole tab: the biggest at which every name shows in full, on one line or, for a long
+    // one, split onto two at a space (STRAIGHT / SHOOTER).
     const float nameW = cardCell(0).w - 8;
-    TextStyle ns = TextStyle::Title;
-    for (const auto& item : s.pickerItems)
-        if (item.group == s.pickerTab) {
-            const TextStyle f = fit(r, TextStyle::Title, item.name, nameW);
-            if (styleRank(f) < styleRank(ns)) ns = f;   // the smallest any name needs, so none is cut off
-        }
+    const float nameRoom = cardCell(0).bottom() - cardPicture(cardCell(0)).bottom() - 6;
+    auto fitsAt = [&](TextStyle st) {
+        if (2.6f * r.capHeight(st) > nameRoom) return false;   // two lines must fit under the picture
+        for (const auto& item : s.pickerItems)
+            if (item.group == s.pickerTab) {
+                std::string a, b;
+                if (!splitName(r, st, item.name, nameW, a, b)) return false;
+            }
+        return true;
+    };
+    TextStyle ns = TextStyle::Caption;
+    for (const TextStyle st : {TextStyle::Title, TextStyle::Label, TextStyle::Value})
+        if (fitsAt(st)) { ns = st; break; }
     int k = 0;
     for (const auto& item : s.pickerItems) {
         if (item.group != s.pickerTab) continue;
@@ -496,8 +519,15 @@ void RackView::drawCards(Renderer& r, const RackViewState& s, const Hit& hv) con
             r.fillRound(pic, 8, rgb8(0x0D1113), Blend::Over);   // no picture: the name still shows below
         }
         const float nameY = pic.bottom() + 6, nameH = cell.bottom() - nameY;
-        r.text(ns, clip(r, ns, item.name, nameW), cell.cx(), nameY + nameH * 0.5f + r.capHeight(ns) * 0.5f, hot ? kTh.teal : kTh.silver,
-               Align::Center, TextFx::Shadowed);
+        std::string l1, l2;
+        if (!splitName(r, ns, item.name, nameW, l1, l2)) { l1 = clip(r, ns, item.name, nameW); l2.clear(); }
+        const float cap = r.capHeight(ns), mid = nameY + nameH * 0.5f;
+        const Rgba nc = hot ? kTh.teal : kTh.silver;
+        if (l2.empty()) r.text(ns, l1, cell.cx(), mid + cap * 0.5f, nc, Align::Center, TextFx::Shadowed);
+        else {
+            r.text(ns, l1, cell.cx(), mid - cap * 0.3f, nc, Align::Center, TextFx::Shadowed);
+            r.text(ns, l2, cell.cx(), mid + cap * 1.3f, nc, Align::Center, TextFx::Shadowed);
+        }
     }
     if (ms > 0) {   // more rows than fit: arrows, and where you are between them
         button(r, scrollUp(), "^", false, hv.action == Action::PickerScroll && hv.index < 0, scroll == 0);
