@@ -66,13 +66,13 @@ Set-Content (Join-Path $stage 'AppxManifest.xml') $manifest -Encoding UTF8
 
 # resources.pri: lets Windows pick the scale-100 / scale-200 / target-size images
 $pricfg = Join-Path $out 'priconfig.xml'
-& $makepri createconfig /cf $pricfg /dq en-US /pv 10.0.0 /o | Out-Host
+& $makepri createconfig /cf $pricfg /dq en-US /pv 10.0.0 /o | Out-Null
 if ($LASTEXITCODE) { throw "makepri createconfig failed ($LASTEXITCODE)" }
-& $makepri new /pr $stage /cf $pricfg /mn (Join-Path $stage 'AppxManifest.xml') /of (Join-Path $stage 'resources.pri') /o | Out-Host
+& $makepri new /pr $stage /cf $pricfg /mn (Join-Path $stage 'AppxManifest.xml') /of (Join-Path $stage 'resources.pri') /o | Out-Null
 if ($LASTEXITCODE) { throw "makepri new failed ($LASTEXITCODE)" }
 
 $msix = Join-Path $out "HEM-Elite-Rack-$ver.msix"
-& $makeappx pack /d $stage /p $msix /o | Out-Host
+& $makeappx pack /d $stage /p $msix /o | Out-Null
 if ($LASTEXITCODE) { throw "makeappx pack failed ($LASTEXITCODE)" }
 $mb = [Math]::Round((Get-Item $msix).Length / 1MB, 1)
 Write-Host "::notice title=store package::HEM-Elite-Rack-$ver.msix, $mb MB (unsigned, for Partner Center)"
@@ -95,6 +95,8 @@ Import-Certificate -FilePath $cer -CertStoreLocation 'Cert:\LocalMachine\Trusted
 & $signtool sign /fd SHA256 /f $pfx /p ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($pw))) $tmsix | Out-Host
 if ($LASTEXITCODE) { throw "signtool (test copy) failed ($LASTEXITCODE)" }
 
+# The Appx cmdlets live in Windows PowerShell 5.1; PowerShell 7 reaches them through its compatibility session.
+Import-Module Appx -UseWindowsPowerShell -WarningAction SilentlyContinue
 Add-AppxPackage -Path $tmsix
 $pkg = Get-AppxPackage -Name $id.Name
 if (-not $pkg) { throw 'the package did not install' }
