@@ -1,9 +1,13 @@
+# HEM-Elite-Rack 0.51.1
+
+- Picker cards: every name on a tab is the same size.
+- Two harmless compiler warnings (THE INFORMANT, STRAPPED) cleared.
+
 # HEM-Elite-Rack 0.51.0
 
 - **Faceplate cards in + ADD PLUG-IN** — the picker now shows each plug-in as a small picture of its real faceplate with
   its name under it, 6 across, sorted by the category tabs. Scroll with the mouse wheel or the arrows on the right when
   a tab has more (DYNAMICS has 39). LIST VIEW switches back to the name list (the app remembers which you like).
-- Every name on a tab is the same size.
 - The cards are made at the size they are shown, so they are sharp on any screen, and they only use graphics memory
   while the picker is open.
 
