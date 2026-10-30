@@ -43,6 +43,8 @@ void testMaximizers();
 void testSpectrum();
 void testFaces();
 void testChain();
+void testBypassEveryPlugin();
+void testRackSidechain();
 void testRackSession();
 void testLiveRack();
 

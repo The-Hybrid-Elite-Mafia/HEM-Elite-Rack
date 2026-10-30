@@ -12,6 +12,7 @@
 #include "hem/rack/Restorer.hpp"
 #include "hem/rack/Streets.hpp"
 #include "hem/rack/Holdouts.hpp"
+#include "hem/rack/Hitman.hpp"
 #include "hybrid/media/AudioFile.hpp"
 
 #include <cmath>
@@ -210,6 +211,118 @@ void testChain() {
         CHECK(rack.usedSlots() == 1);
         CHECK(rack.latency() == 23);
     }
+}
+
+// POWER (bypassed) and A / B for EVERY plug-in: a switched-off slot must play exactly its input delayed by the
+// plug-in's own latency, and B (ORIGINAL) must be the song delayed by the same amount, so switching never moves
+// the music in time. Also: no plug-in, at 44.1 / 48 / 96 kHz, reports more latency than the rack can follow.
+void testBypassEveryPlugin() {
+    std::printf("[POWER and A / B on every plug-in]\n");
+    // the latency survey: what the bypass delay must hold
+    std::uint32_t most = 0;
+    const char* mostName = "";
+    for (double fs : {44100.0, 48000.0, 96000.0}) {
+        std::uint32_t top = 0;
+        const char* topName = "";
+        for (const auto& info : rack::plugins()) {
+            auto e = info.create();
+            e->prepare(fs, kChunk);
+            const std::uint32_t lat = e->latency();
+            if (lat > top) { top = lat; topName = info.name; }
+            if (lat >= kMaxSlotDelay) std::printf("  %s at %.0f Hz: latency %u samples, the rack follows at most %u\n", info.name, fs, lat, kMaxSlotDelay - 1);
+            CHECK(lat < kMaxSlotDelay);
+        }
+        std::printf("  largest latency at %.0f Hz: %u samples (%s); the rack follows up to %u\n", fs, top, topName, kMaxSlotDelay - 1);
+        if (top > most) { most = top; mostName = topName; }
+    }
+    (void)mostName;
+
+    // a song: an impulse (to read the delay off) and a noise burst (to compare every sample)
+    auto song = std::make_shared<Song>();
+    const std::size_t n = 96000, kImp = 24000;
+    song->left.assign(n, 0.0f);
+    song->right.assign(n, 0.0f);
+    song->left[kImp] = 0.5f;
+    song->right[kImp] = -0.25f;
+    std::uint32_t rng = 7;
+    for (std::size_t i = 36000; i < 60000; ++i) {
+        rng = rng * 1664525u + 1013904223u;
+        song->left[i] = 0.2f * (static_cast<float>(rng >> 8) / 8388608.0f - 1.0f);
+        rng = rng * 1664525u + 1013904223u;
+        song->right[i] = 0.2f * (static_cast<float>(rng >> 8) / 8388608.0f - 1.0f);
+    }
+    song->name = "impulse + noise";
+    const auto delayOf = [&](const std::vector<float>& v) {   // where the impulse came out (the loudest sample before the noise)
+        std::size_t at = kImp;
+        for (std::size_t i = kImp; i < 36000; ++i) if (std::fabs(v[i]) > std::fabs(v[at])) at = i;
+        return std::fabs(v[at]) > 0.4f ? static_cast<long>(at - kImp) : -1L;
+    };
+    const auto exactDiff = [&](const Stereo& out, std::uint32_t lat, std::size_t from) {
+        double m = 0;
+        for (std::size_t i = from; i < n; ++i) {
+            const float wl = i >= lat ? song->left[i - lat] : 0.0f, wr = i >= lat ? song->right[i - lat] : 0.0f;
+            m = std::max({m, std::fabs(static_cast<double>(out.l[i]) - wl), std::fabs(static_cast<double>(out.r[i]) - wr)});
+        }
+        return m;
+    };
+    int plugins = 0, bypassBad = 0, abBad = 0;
+    for (const auto& info : rack::plugins()) {
+        ++plugins;
+        auto fx = makePlugin(info.name);
+        const std::uint32_t lat = fx->latency();
+        // POWER off
+        long bypassOff = 0;
+        {
+            RackProcessor rack;
+            (void)rack.submitSong(song);
+            (void)rack.setSlot(0, makePlugin(info.name));
+            rack.setSlotOn(0, false);
+            rack.setMatch(false);
+            const Stereo out = play(rack, n, 480);
+            const long d = delayOf(out.l);
+            bypassOff = d < 0 ? 99999 : d - static_cast<long>(lat);
+            const double diff = exactDiff(out, lat, 960);   // after the 10 ms switch-off fade
+            const bool ok = bypassOff == 0 && diff < 1e-6;
+            if (!ok || std::string(info.name) == "BOTTOM LINE")
+                std::printf("  %-18s latency %5u: bypassed output is %ld samples off, largest difference from the delayed input %.2e\n",
+                            info.name, lat, bypassOff, diff);
+            if (!ok) ++bypassBad;
+            CHECK(ok);
+        }
+        // A / B: B (ORIGINAL) lines up with A (the plug-in, `lat` late)
+        {
+            RackProcessor rack;
+            (void)rack.submitSong(song);
+            (void)rack.setSlot(0, makePlugin(info.name));
+            rack.setMatch(false);
+            rack.setOriginal(true);
+            const Stereo out = play(rack, n, 512);
+            const long d = delayOf(out.l);
+            const long abOff = d < 0 ? 99999 : d - static_cast<long>(lat);
+            const double diff = exactDiff(out, lat, 2000);   // after the 20 ms A / B crossfade
+            const bool ok = abOff == 0 && diff < 1e-6 && rack.latency() == lat;
+            if (!ok || std::string(info.name) == "BOTTOM LINE")
+                std::printf("  %-18s latency %5u: B is %ld samples off A, rack reports %u, largest difference %.2e\n",
+                            info.name, lat, abOff, rack.latency(), diff);
+            if (!ok) ++abBad;
+            CHECK(ok);
+        }
+    }
+    std::printf("  %d plug-ins: bypass wrong on %d, A / B misaligned on %d\n", plugins, bypassBad, abBad);
+}
+
+// The rack app has no external sidechain input: a HITMAN restored with SC SOURCE = EXT (an old saved chain) comes
+// back as INT, so the plate never shows a choice that does nothing (the plate greys EXT: face tests).
+void testRackSidechain() {
+    std::printf("[HITMAN sidechain source in the rack app]\n");
+    SlotState st;
+    st.name = "HITMAN";
+    st.values.emplace_back("scsource", 1.0f);
+    auto e = makePlugin(st);
+    CHECK(e != nullptr);
+    if (!e) return;
+    std::printf("  restored SC SOURCE = EXT -> %s\n", e->get(rack::hitman::ScSource) >= 0.5f ? "EXT" : "INT");
+    CHECK(e->get(rack::hitman::ScSource) == 0.0f);
 }
 
 // LIVE INPUT, the takes, the take file, and MIDI to an instrument in the chain.

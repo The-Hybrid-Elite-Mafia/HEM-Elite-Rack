@@ -43,7 +43,11 @@ namespace hem::app {
 inline constexpr int           kMaxSlots      = 8;
 inline constexpr double        kRate          = 48000.0;
 inline constexpr std::uint32_t kChunk         = 1024;      // the chain runs in chunks of at most this
-inline constexpr std::uint32_t kMaxSlotDelay  = 8192;      // per plug-in latency the bypass path can follow
+// Per plug-in latency the bypass path (and B) can follow: up to kMaxSlotDelay - 1 samples. The largest any plug-in
+// reports is BOTTOM LINE's 8,703 samples (the same at 44.1 / 48 / 96 kHz); 16,384 leaves about 1.9x headroom. The
+// test "POWER and A / B on every plug-in" fails if a plug-in ever reports more. Fixed size: allocated once, never
+// on the audio thread (8 slots x 2 x 16,384 floats = 1 MB, the B delay another 1 MB).
+inline constexpr std::uint32_t kMaxSlotDelay  = 16384;
 inline constexpr std::uint32_t kMaxChainDelay = kMaxSlots * kMaxSlotDelay;
 
 struct Song {

@@ -42,6 +42,8 @@ int main(int argc, char** argv) {
     testMaximizers();
     testFaces();
     testChain();
+    testBypassEveryPlugin();
+    testRackSidechain();
     testRackSession();
     testLiveRack();
     std::printf("\nhem_rack_tests: %d checks, %d failed\n", gChecks, gFails);
