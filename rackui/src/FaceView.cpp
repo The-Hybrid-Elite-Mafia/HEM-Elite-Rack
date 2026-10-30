@@ -1033,6 +1033,7 @@ void FaceView::draw(Renderer& r, const PanelHost& host, const FaceFeed& feed, co
     const Ctx c{r, host, feed, st, ox, oy, zoom};
     if (plate) r.panel({ox, oy, kPlateW * zoom, kPlateH * zoom});
     header(c);
+    int tip = -1;   // a greyed control under the mouse: says why, on top of everything
     for (std::size_t i = 0; i < L_.widgets.size(); ++i) {
         const Widget& w = L_.widgets[i];
         if (!widgetShown(w, params_, host)) continue;
@@ -1055,8 +1056,10 @@ void FaceView::draw(Renderer& r, const PanelHost& host, const FaceFeed& feed, co
         }
         case WKind::ChoiceButton: {
             const hc::fx::ParamInfo& pi = params_[static_cast<std::size_t>(w.param)];
-            const bool lit = static_cast<int>(std::lround(plain(host, w.param))) == w.choice;
-            button(c, c.T(w.r), pi.choices ? pi.choices[w.choice] : "", lit, hot, false, th_.teal);
+            const bool usable = widgetAvailable(w, feed);
+            const bool lit = usable && static_cast<int>(std::lround(plain(host, w.param))) == w.choice;
+            button(c, c.T(w.r), pi.choices ? pi.choices[w.choice] : "", lit, hot && usable, !usable, th_.teal);
+            if (!usable && hot) tip = wi;
             if (!w.caption.empty()) {
                 const TextStyle cs = c.ts(TextStyle::Label);
                 r.text(cs, w.caption, c.X(w.r.x + 2), c.Y(w.r.y - 14), th_.label, Align::Left, TextFx::Shadowed);
@@ -1103,6 +1106,14 @@ void FaceView::draw(Renderer& r, const PanelHost& host, const FaceFeed& feed, co
             const TextStyle s = c.fit(TextStyle::Label, "OFF", b.w * 0.8f);
             r.text(s, "OFF", b.cx(), c.mid(b, s), th_.label, Align::Center, TextFx::Shadowed);
         }
+    }
+    if (tip >= 0) {   // the hover tip of a greyed control (EXT sidechain in the rack app)
+        const Rect b = c.T(L_.widgets[static_cast<std::size_t>(tip)].r);
+        const TextStyle s = c.ts(TextStyle::Label);
+        const float w = r.textWidth(s, kSidechainTip) + 24 * zoom, h = b.h;
+        const Rect box{std::min(b.x, (ox + kPlateW * zoom) - w - 8 * zoom), b.bottom() + 6 * zoom, w, h};
+        r.fillRound(box, 8 * zoom, {0.02f, 0.03f, 0.04f, 0.94f}, Blend::Over, false);
+        r.text(s, kSidechainTip, box.cx(), c.mid(box, s), th_.silver, Align::Center, TextFx::Plain);
     }
 }
 

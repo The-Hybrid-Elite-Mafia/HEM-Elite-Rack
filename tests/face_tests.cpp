@@ -5,6 +5,8 @@
 
 #include "hem/rack/EliteEq.hpp"
 #include "hem/rack/Hideout.hpp"
+#include "hem/rack/Hitman.hpp"
+#include "hem/rack/Sidechain.hpp"
 #include "hem/rack/Plugins.hpp"
 #include "hem/rack/Restorer.hpp"
 #include "hem/ui/Face.hpp"
@@ -444,9 +446,12 @@ void everyControl(const rack::PluginInfo& info) {
             if (!up || !def) { ++bad; std::printf("  %s: knob %s did not reach max / default\n", info.name, w.caption.c_str()); }
         } else if (w.kind == WKind::ChoiceButton) {
             ++buttons;
+            const float v0 = fx->get(p);
             c.mouseDown(w.r.cx(), w.r.cy(), false, false);
             c.mouseUp();
-            if (static_cast<int>(std::lround(fx->get(p))) != w.choice) { ++bad; std::printf("  %s: button %d of %s not selected\n", info.name, w.choice, pi.id); }
+            if (!widgetAvailable(w, feed)) {   // greyed here (EXT sidechain with no sidechain input): the click must do nothing
+                if (fx->get(p) != v0) { ++bad; std::printf("  %s: greyed button %d of %s changed it\n", info.name, w.choice, pi.id); }
+            } else if (static_cast<int>(std::lround(fx->get(p))) != w.choice) { ++bad; std::printf("  %s: button %d of %s not selected\n", info.name, w.choice, pi.id); }
         } else if (w.kind == WKind::Toggle) {
             ++toggles;
             const float v0 = fx->get(p);
@@ -458,6 +463,65 @@ void everyControl(const rack::PluginInfo& info) {
     std::printf("  %s: %d knobs, %d buttons, %d switches - all respond\n", info.name, knobs, buttons, toggles);
     CHECK(bad == 0);
     CHECK(host.open() == 0);
+}
+
+// HITMAN's SC SOURCE = EXT: the rack app has no external sidechain input, so there EXT is greyed and a click on it
+// changes nothing; the VST3 (a feed whose host has a sidechain bus) can pick it. Only sidechain plug-ins carry such a
+// button.
+void sidechainChoice() {
+    const rack::PluginInfo* info = rack::findPlugin("HITMAN");
+    CHECK(info != nullptr);
+    if (!info) return;
+    using namespace rack::hitman;
+    auto fx = info->create();
+    fx->prepare(48000.0, 512);
+    const FaceLayout L = faceLayout(*info);
+    const int ext = find(L, WKind::ChoiceButton, ScSource, -1, 1), in = find(L, WKind::ChoiceButton, ScSource, -1, 0);
+    CHECK(ext >= 0 && in >= 0);
+    if (ext < 0 || in < 0) return;
+    const Widget& we = L.widgets[static_cast<std::size_t>(ext)];
+    CHECK(we.needsSidechain);
+    CHECK(!L.widgets[static_cast<std::size_t>(in)].needsSidechain);
+    struct VstFeed final : FaceFeed { bool hasSidechainInput() const override { return true; } };
+    {   // the rack app: its feed (EffectFeed) has no sidechain input
+        EffectFeed feed(*fx);
+        CHECK(!feed.hasSidechainInput());
+        CHECK(!widgetAvailable(we, feed));
+        TestHost host(*fx);
+        FaceState st;
+        FaceController c(L, fx->params(), host, feed, st);
+        fx->set(ScSource, 0.0f);
+        c.mouseDown(we.r.cx(), we.r.cy(), false, false);
+        c.mouseUp();
+        std::printf("  rack app: click on EXT -> SC SOURCE %s, %d edits sent\n", fx->get(ScSource) >= 0.5f ? "EXT" : "INT", host.begins);
+        CHECK(fx->get(ScSource) == 0.0f);
+        CHECK(host.begins == 0 && host.sets == 0);
+    }
+    {   // the VST3: the plug-in has a sidechain bus
+        VstFeed feed;
+        CHECK(widgetAvailable(we, feed));
+        TestHost host(*fx);
+        FaceState st;
+        FaceController c(L, fx->params(), host, feed, st);
+        fx->set(ScSource, 0.0f);
+        c.mouseDown(we.r.cx(), we.r.cy(), false, false);
+        c.mouseUp();
+        std::printf("  VST3: click on EXT -> SC SOURCE %s\n", fx->get(ScSource) >= 0.5f ? "EXT" : "INT");
+        CHECK(fx->get(ScSource) == 1.0f);
+        CHECK(host.open() == 0);
+    }
+    // only plug-ins that take a sidechain have a sidechain-only button
+    int flagged = 0;
+    for (const auto& pi : rack::plugins()) {
+        const FaceLayout l = faceLayout(pi);
+        for (const Widget& w : l.widgets) {
+            if (!w.needsSidechain) continue;
+            ++flagged;
+            auto e = pi.create();
+            CHECK(dynamic_cast<rack::SidechainSink*>(e.get()) != nullptr);
+        }
+    }
+    CHECK(flagged == 1);
 }
 
 // Every plug-in has its picker card (384 x 216), and the card sheet holds them all within the 4096 px cap,
@@ -554,6 +618,7 @@ void testFaces() {
     eqGestures();
     surgeonBandsIndependent();
     for (const auto& info : rack::plugins()) everyControl(info);
+    sidechainChoice();
     plateRules();
     cardRules();
 }

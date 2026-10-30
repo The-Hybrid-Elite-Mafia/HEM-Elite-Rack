@@ -445,7 +445,8 @@ class ControllerFeed final : public ui::FaceFeed {
 public:
     ControllerFeed(Vst::EditController& c, const rack::PluginInfo& info, const hc::fx::Effect& fx)
         : c_(c), fx_(fx), restorer_(info.face == rack::Face::Restorer), spectrum_(dynamic_cast<const rack::SpectrumSource*>(&fx) != nullptr),
-          analyzer_(dynamic_cast<const rack::AnalyzerSource*>(&fx) != nullptr), clone_(dynamic_cast<const rack::CloneSource*>(&fx) != nullptr) {}
+          analyzer_(dynamic_cast<const rack::AnalyzerSource*>(&fx) != nullptr), clone_(dynamic_cast<const rack::CloneSource*>(&fx) != nullptr),
+          sidechain_(dynamic_cast<const rack::SidechainSink*>(&fx) != nullptr) {}
     float meterDb(int m) const override {
         const auto ms = fx_.meters();
         if (m < 0 || m >= static_cast<int>(ms.size())) return -100.0f;
@@ -458,6 +459,7 @@ public:
     bool hasNoiseFloor() const override { return restorer_; }
     bool hasAnalyzer() const override { return analyzer_; }
     bool hasClone() const override { return clone_; }
+    bool hasSidechainInput() const override { return sidechain_; }   // the plug-in has a sidechain bus (HITMAN)
     float cloneDb(int i) const override {
         if (i < 0 || i >= rack::clone::kPoints) return 0.0f;
         return normToDb(c_.getParamNormalized(kCloneBase + static_cast<Vst::ParamID>(i)), -rack::clone::kCurveDb, rack::clone::kCurveDb);
@@ -495,7 +497,7 @@ private:
     }
     Vst::EditController& c_;
     const hc::fx::Effect& fx_;
-    bool restorer_, spectrum_, analyzer_, clone_;
+    bool restorer_, spectrum_, analyzer_, clone_, sidechain_;
 };
 
 class FaceView final : public CPluginView {

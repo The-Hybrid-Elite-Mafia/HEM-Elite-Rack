@@ -12,7 +12,7 @@
 //      whatever it is set to (2 ms + the oversampler), so changing it never shifts the timing.
 //    SC LINK 0..100 %: how much the two channels' detectors follow each other.
 //    SIDECHAIN: SOURCE internal or external (the VST3 has a sidechain input; the rack app has no
-//      second input, so EXT falls back to internal there), SC EQ (high-pass, bell, low-pass on what
+//      second input, so there EXT is greyed and cannot be picked: "External sidechain: VST3 only"), SC EQ (high-pass, bell, low-pass on what
 //      the detector hears), LISTEN (hear the detector).
 //    SATURATION after the compressor and OUTPUT (so OUTPUT drives it), 4x oversampled: DRY, CLIP
 //      (soft ceiling at 0 dBFS), WARM, TRIODE (even harmonics), TAPE (odd harmonics, softened top).

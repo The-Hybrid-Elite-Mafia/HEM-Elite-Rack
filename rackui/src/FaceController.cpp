@@ -208,6 +208,7 @@ void FaceController::mouseDown(float x, float y, bool doubleClick, bool fine) {
         return;
     }
     case WKind::ChoiceButton: {
+        if (!widgetAvailable(w, feed_)) return;   // EXT sidechain without a sidechain input (the rack app): greyed, does nothing
         const auto& pi = params_[static_cast<std::size_t>(param)];
         host_.beginEdit(param);
         setPlain(param, static_cast<float>(w.choice));

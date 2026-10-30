@@ -778,6 +778,7 @@ FaceLayout hitmanFace(const rack::PluginInfo& info) {
     L.widgets.push_back(toggle({410, 516, 150, 40}, ScListen, "LISTEN"));
     L.widgets.push_back(choiceButton({575, 462, 150, 40}, ScSource, 0, ""));
     L.widgets.push_back(choiceButton({575, 516, 150, 40}, ScSource, 1, ""));
+    L.widgets.back().needsSidechain = true;   // EXT: only where there is a sidechain input (the VST3)
     {
         const std::size_t first = L.widgets.size();
         const struct { int p; const char* cap; } sk[6] = {{ScHpf, "SC HPF"}, {ScBellFreq, "BELL FREQ"}, {ScBellGain, "BELL GAIN"},

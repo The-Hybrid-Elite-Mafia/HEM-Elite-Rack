@@ -82,6 +82,9 @@ public:
     [[nodiscard]] virtual bool  hasClone() const { return false; }
     [[nodiscard]] virtual float cloneDb(int) const { return 0.0f; }
     [[nodiscard]] virtual double sampleRate() const { return 48000.0; }
+    // Whether the host hands the plug-in an external sidechain input. The VST3 has one (a sidechain bus the DAW can
+    // route); the rack app has none, so a sidechain SOURCE = EXT choice is greyed and cannot be picked there.
+    [[nodiscard]] virtual bool hasSidechainInput() const { return false; }
 };
 
 // FaceFeed straight onto a running hem::rack effect (the rack app, snapshots, tests).
@@ -158,7 +161,14 @@ struct Widget {
     int         pageStride = 0;    // > 0: the control edits param + page * pageStride (the plate's page tabs pick the page)
     int         showParam = -1;    // >= 0: the control is there only while choice parameter showParam is showValue
     int         showValue = 0;     // (THE RACKET: each pedal's controls share the same seats)
+    bool        needsSidechain = false;   // an external-sidechain choice: greyed and not selectable unless
+                                          // FaceFeed::hasSidechainInput() (hover tip: kSidechainTip)
 };
+inline constexpr const char* kSidechainTip = "External sidechain: VST3 only";
+// Whether a widget can be used with this feed (false: an EXT sidechain choice where the host has no sidechain input).
+[[nodiscard]] inline bool widgetAvailable(const Widget& w, const FaceFeed& feed) noexcept {
+    return !w.needsSidechain || feed.hasSidechainInput();
+}
 // Two controls that are never on the plate at the same time (they may share a place).
 [[nodiscard]] inline bool exclusive(const Widget& a, const Widget& b) noexcept {
     return a.showParam >= 0 && a.showParam == b.showParam && a.showValue != b.showValue;

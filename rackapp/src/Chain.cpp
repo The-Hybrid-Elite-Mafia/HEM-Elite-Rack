@@ -1,5 +1,6 @@
 #include "Chain.hpp"
 
+#include "hem/rack/Hitman.hpp"
 #include "hem/rack/Plugins.hpp"
 
 #include <algorithm>
@@ -102,6 +103,9 @@ std::unique_ptr<hc::fx::Effect> makePlugin(const SlotState& state) {
     for (const auto& [id, v] : state.values)
         for (std::size_t i = 0; i < ps.size(); ++i)
             if (id == ps[i].id) { e->set(static_cast<int>(i), v); break; }
+    // The rack app has no external sidechain input (only the VST3 has a sidechain bus): HITMAN's SC SOURCE stays
+    // INT here, whatever a saved chain says; its EXT button is greyed with the tip "External sidechain: VST3 only".
+    if (state.name == "HITMAN") e->set(rack::hitman::ScSource, 0.0f);
     e->reset();   // start from the restored settings, not from a glide toward them
     return e;
 }
