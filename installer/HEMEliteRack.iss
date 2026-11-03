@@ -61,7 +61,7 @@ Source: "..\external\HybridCore\assets\fonts\OFL.txt";                  DestDir:
 Source: "..\external\HybridCore\external\stb\LICENSE";                  DestDir: "{app}\licenses"; DestName: "stb-LICENSE.txt"; Flags: ignoreversion
 Source: "..\external\HybridCore\external\dr_libs\LICENSE";              DestDir: "{app}\licenses"; DestName: "dr_libs-LICENSE.txt"; Flags: ignoreversion
 #ifdef Vst3Bundle
-Source: "{#Vst3Bundle}\*";  DestDir: "{commoncf64}\VST3\HEM-Elite-Rack.vst3"; Flags: ignoreversion recursesubdirs createallsubdirs; Tasks: vst3
+Source: "{#Vst3Bundle}\*";  DestDir: "{commoncf64}\VST3\HEM-Elite-Rack.vst3"; Flags: ignoreversion recursesubdirs createallsubdirs sharedfile uninsnosharedfileprompt; Tasks: vst3
 Source: "{#Vst3License}";   DestDir: "{app}\licenses"; DestName: "Steinberg-VST3-SDK-LICENSE.txt"; Flags: ignoreversion
 #endif
 

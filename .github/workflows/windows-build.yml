@@ -91,6 +91,14 @@ jobs:
         run: |
           tools\ci\run-and-report.ps1 -Title "installer: verify" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\verify-installer.ps1','-Installer',"$env:HEM_INSTALLER"
 
+      - name: Build the plug-ins-only installer (HEM-Elite-Rack VST3)
+        run: |
+          tools\ci\run-and-report.ps1 -Title "vst3 installer: build" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\build-vst3-installer.ps1'
+
+      - name: Verify the plug-ins-only installer (silent install, upgrade, side by side with the full one, uninstall)
+        run: |
+          tools\ci\run-and-report.ps1 -Title "vst3 installer: verify" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\verify-vst3-installer.ps1','-Installer',"$env:HEM_VST3_INSTALLER",'-FullInstaller',"$env:HEM_INSTALLER"
+
       - name: Source code of this build, as the GPL asks (the rack, The Hybrid Core, the ASIO and VST3 SDK parts)
         run: |
           tools\ci\run-and-report.ps1 -Title "source zip" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\make-source-zip.ps1'
@@ -100,6 +108,30 @@ jobs:
         with:
           name: HEM-Elite-Rack-Setup-${{ env.HEM_VERSION }}
           path: installer/output/*.exe
+
+      - name: Upload plug-ins-only installer artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: HEM-Elite-Rack-VST3-Setup-${{ env.HEM_VERSION }}
+          path: installer/output/HEM-Elite-Rack-VST3-Setup-*.exe
+
+      - name: Publish the plug-ins-only installer at a fixed, versioned address (main only, never overwritten)
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "vst3-v$($env:HEM_VERSION)"
+          gh release view $tag -R $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "::notice::$tag already published - left untouched (a published installer never changes; bump VERSION for a new one)"
+          } else {
+            $sha = (Get-FileHash $env:HEM_VST3_INSTALLER -Algorithm SHA256).Hash.ToLowerInvariant()
+            $name = Split-Path $env:HEM_VST3_INSTALLER -Leaf
+            $notes = "HEM-Elite-Rack VST3 $($env:HEM_VERSION): the plug-ins only, for DAWs. Installs into Common Files\VST3. Silent install: /VERYSILENT /SUPPRESSMSGBOXES /NORESTART.`n`nSHA-256: $sha`nSource: this repository @ $env:GITHUB_SHA (GPLv3)."
+            gh release create $tag $env:HEM_VST3_INSTALLER -R $env:GITHUB_REPOSITORY --title "HEM-Elite-Rack VST3 $($env:HEM_VERSION)" --notes $notes --target $env:GITHUB_SHA
+            if ($LASTEXITCODE -ne 0) { throw "gh release create failed ($LASTEXITCODE)" }
+            Write-Host "::notice::Published $tag : https://github.com/$env:GITHUB_REPOSITORY/releases/download/$tag/$name  SHA-256 $sha"
+          }
 
       - name: Publish GitHub Release (main only)
         if: github.ref == 'refs/heads/main'

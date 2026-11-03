@@ -1,3 +1,10 @@
+# HEM-Elite-Rack 0.51.4
+
+- New: **HEM-Elite-Rack VST3**, a plug-ins-only installer for DAWs (no rack app). Its own entry in Apps, silent
+  install, and it can sit next to the full installer: uninstalling one leaves the plug-ins for the other.
+- BOTTOM LINE: bypass and A/B now line up exactly (they were 512 samples, about 10.7 ms, off).
+- HITMAN: SC SOURCE = EXT is greyed in the rack app ("External sidechain: VST3 only"); it works in the VST3.
+
 # HEM-Elite-Rack 0.51.3
 
 - Picker cards: a long name that doesn't fit on one line goes onto two (STRAIGHT / SHOOTER) instead of being cut short,
