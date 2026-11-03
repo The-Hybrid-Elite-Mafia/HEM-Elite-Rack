@@ -11,6 +11,10 @@
   #define BinDir "..\build\rack"
 #endif
 
+#define MyMark "FullRack"
+#define OtherMark "PluginsOnly"
+#define MyTask "; Tasks: vst3"
+
 [Setup]
 AppId={{8B6CFE21-FA73-4B6D-B7CD-612B8361AD6E}
 AppName=HEM-Elite-Rack
@@ -61,8 +65,14 @@ Source: "..\external\HybridCore\assets\fonts\OFL.txt";                  DestDir:
 Source: "..\external\HybridCore\external\stb\LICENSE";                  DestDir: "{app}\licenses"; DestName: "stb-LICENSE.txt"; Flags: ignoreversion
 Source: "..\external\HybridCore\external\dr_libs\LICENSE";              DestDir: "{app}\licenses"; DestName: "dr_libs-LICENSE.txt"; Flags: ignoreversion
 #ifdef Vst3Bundle
-Source: "{#Vst3Bundle}\*";  DestDir: "{commoncf64}\VST3\HEM-Elite-Rack.vst3"; Flags: ignoreversion recursesubdirs createallsubdirs sharedfile uninsnosharedfileprompt; Tasks: vst3
+Source: "{#Vst3Bundle}\*";  DestDir: "{commoncf64}\VST3\HEM-Elite-Rack.vst3"; Flags: ignoreversion recursesubdirs createallsubdirs uninsneveruninstall; Tasks: vst3
 Source: "{#Vst3License}";   DestDir: "{app}\licenses"; DestName: "Steinberg-VST3-SDK-LICENSE.txt"; Flags: ignoreversion
+#endif
+
+#ifdef Vst3Bundle
+[Registry]
+; Marks that this product put the plug-ins in Common Files\VST3. Removed again on uninstall.
+Root: HKLM; Subkey: "Software\Hybrid Elite Mafia\HEM-Elite-Rack VST3 owners"; ValueType: dword; ValueName: "{#MyMark}"; ValueData: 1; Flags: uninsdeletevalue uninsdeletekeyifempty{#MyTask}
 #endif
 
 [Icons]
@@ -74,3 +84,18 @@ Name: "{group}\Uninstall HEM-Elite-Rack";     Filename: "{uninstallexe}"
 
 [Run]
 Filename: "{app}\HEMEliteRack.exe"; Description: "Start HEM-Elite-Rack"; Flags: postinstall nowait skipifsilent
+
+#ifdef Vst3Bundle
+[Code]
+// The plug-in files are never removed by the normal uninstall step (uninsneveruninstall),
+// because the full HEM-Elite-Rack installer and the plug-ins-only installer share them.
+// After uninstall: if the other product's mark is gone too, delete the plug-in folder.
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if CurUninstallStep = usPostUninstall then
+  begin
+    if not RegValueExists(HKLM, 'Software\Hybrid Elite Mafia\HEM-Elite-Rack VST3 owners', '{#OtherMark}') then
+      DelTree(ExpandConstant('{commoncf64}\VST3\HEM-Elite-Rack.vst3'), True, True, True);
+  end;
+end;
+#endif
