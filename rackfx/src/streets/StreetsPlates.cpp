@@ -95,7 +95,8 @@ constexpr PlateChoice steppers[] = {{Root, "ROOT"}, {P::Scale, "SCALE"}};
 
 namespace wi {
 using namespace witness;
-constexpr PlateReadout readouts[] = {{0, "LEFT", "VU", "+"}, {1, "RIGHT", "VU", "+"}, {2, "CLIP LEFT", "", "0"}, {3, "CLIP RIGHT", "", "0"}};
+constexpr PlateReadout readouts[] = {{0, "LEFT", "VU", "+"}, {1, "RIGHT", "VU", "+"}, {4, "PEAK L", "dBFS", "+"}, {5, "PEAK R", "dBFS", "+"},
+                                     {2, "CLIP L", "", "0"}, {3, "CLIP R", "", "0"}};
 constexpr PlateToggle toggles[] = {{Clear, "CLEAR", true}};
 constexpr PlateKnob row1[] = {{Headroom, "HEADROOM", "4", "26"}, {DisplayDelay, "DISPLAY DELAY", "0", "1000"}};
 } // namespace wi

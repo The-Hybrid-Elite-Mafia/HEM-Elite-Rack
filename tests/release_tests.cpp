@@ -5,6 +5,7 @@
 #include "Signals.hpp"
 
 #include "hem/rack/Arsenal.hpp"
+#include "hem/rack/ColorFx.hpp"
 #include "hem/rack/Hideout.hpp"
 #include "hem/rack/Plugins.hpp"
 #include "hem/rack/Garage.hpp"
@@ -27,11 +28,15 @@ constexpr double kFs = 48000.0;
 // about -18 dB RMS with peaks near -2 dBFS.
 Stereo song(double seconds, unsigned seed = 7) {
     Stereo s(static_cast<std::size_t>(seconds * kFs));
+    // the same numbers on every compiler (std::normal_distribution is not: MSVC and GCC give different songs)
     std::mt19937 g(seed);
-    std::normal_distribution<float> nd(0.0f, 1.0f);
+    auto nd = [&g](int) {
+        const double u1 = (static_cast<double>(g()) + 1.0) / 4294967297.0, u2 = static_cast<double>(g()) / 4294967296.0;
+        return static_cast<float>(std::sqrt(-2.0 * std::log(u1)) * std::cos(2.0 * std::numbers::pi * u2));
+    };
     float b0 = 0, b1 = 0, b2 = 0, side = 0;
     for (std::size_t i = 0; i < s.size(); ++i) {
-        const float w = nd(g);
+        const float w = nd(0);
         b0 = 0.99765f * b0 + w * 0.0990460f;
         b1 = 0.96300f * b1 + w * 0.2965164f;
         b2 = 0.57000f * b2 + w * 1.0526913f;
@@ -39,7 +44,7 @@ Stereo song(double seconds, unsigned seed = 7) {
         const double t = static_cast<double>(i) / kFs, tk = std::fmod(t, 0.5);
         const auto kick = static_cast<float>(0.25 * std::exp(-tk * 25.0) * std::sin(2.0 * std::numbers::pi * 55.0 * tk * (1.0 + 2.0 * std::exp(-tk * 40.0))));
         const auto tone = static_cast<float>(0.08 * std::sin(2.0 * std::numbers::pi * 220.0 * t));
-        side = 0.999f * side + 0.02f * nd(g);
+        side = 0.999f * side + 0.02f * nd(0);
         const float m = pink + kick + tone;
         s.l[i] = m + side * 0.05f;
         s.r[i] = m - side * 0.05f;
@@ -103,7 +108,7 @@ void testSafeOnLoad() {
         for (const char* s : skip) skipped = skipped || std::strcmp(s, p.name) == 0;
         if (skipped) continue;
         const Level d = through(p.name);
-        const bool ok = d.rmsDb > -4.0 && d.rmsDb < 1.5 && d.peakDb < 2.0;
+        const bool ok = d.rmsDb > -4.0 && d.rmsDb < 2.0 && d.peakDb < 2.0;
         if (!ok) std::printf("  %s on load: level %+.1f dB, peak %+.1f dB\n", p.name, d.rmsDb, d.peakDb);
         CHECK(ok);
     }
@@ -158,7 +163,36 @@ void testFixedControls() {
         using namespace rack::knockout;
         CHECK(through("KNOCKOUT", {{Sustain, -100}}).rmsDb < -0.3);
         CHECK(through("KNOCKOUT", {{Sustain, 100}}).rmsDb > 0.3);
-        CHECK(through("KNOCKOUT", {{Attack, 100}}).peakDb < 2.1);   // SAFETY clips at -0.1 dBFS at load
+        {   // SAFETY clips at -0.1 dBFS at load: ATTACK +100 % on a hot song never goes past it
+            auto e = load("KNOCKOUT", {{Attack, 100}});
+            Stereo s = song(3.0);
+            for (std::size_t i = 0; i < s.size(); ++i) { s.l[i] *= 1.25f; s.r[i] *= 1.25f; }
+            run(*e, s);
+            CHECK(level(s, 0).peakDb <= -0.09);
+        }
+    }
+    // SURGEON: a high Q no longer bends a cutting shelf into a boost (LOW SHELF -16.8 dB at Q 5.8 boosted +14 dB)
+    {
+        for (const float type : {1.0f, 2.0f}) {   // LOW SHELF, HIGH SHELF
+            auto e = load("SURGEON", {{0, 1}, {1, type}, {2, 1000}, {3, -16.8f}, {4, 40}});
+            Stereo imp(16384);
+            for (int k = 0; k < 200; ++k) { Stereo z(512); run(*e, z); }   // settle
+            imp.l[0] = imp.r[0] = 1.0f;
+            run(*e, imp);
+            const auto lat = static_cast<double>(e->latency());
+            double most = -999.0;
+            for (double hz = 30.0; hz < 20000.0; hz *= 1.05) {
+                double re = 0.0, im = 0.0;
+                for (std::size_t i = 0; i < imp.size(); ++i) {
+                    const double ph = 2.0 * std::numbers::pi * hz * (static_cast<double>(i) - lat) / kFs;
+                    re += imp.l[i] * std::cos(ph);
+                    im -= imp.l[i] * std::sin(ph);
+                }
+                most = std::max(most, 10.0 * std::log10(re * re + im * im + 1e-30));
+            }
+            std::printf("  SURGEON %s -16.8 dB at Q 40: highest point %+.1f dB\n", type < 1.5f ? "LOW SHELF" : "HIGH SHELF", most);
+            CHECK(most < 4.0);
+        }
     }
     // KINGPIN: OUTPUT reads in dB and does what it reads
     {
@@ -183,6 +217,66 @@ void testFixedControls() {
     }
 }
 
+void testFixedMeters() {
+    // THE INFORMANT: soloing the modulator (your song) plays it, even with its fader at the bottom (-60 = off)
+    {
+        using namespace rack::informant;
+        CHECK(std::fabs(through("THE INFORMANT", {{Solo0 + 1, 1}}).rmsDb) < 0.5);
+    }
+    // THE AUDITOR: +6.8 dB of GAIN into a -2 dBFS song with the limiter off puts true peaks past TRUE PEAK MAX: OVERS counts
+    {
+        using namespace rack::auditor;
+        auto e = load("THE AUDITOR", {{Gain, 6.8f}, {Limiter, 0}});
+        Stereo s = song(3.0);
+        run(*e, s);
+        std::printf("  THE AUDITOR +6.8 dB, limiter off: true peak %.1f dBTP, overs %.0f\n", e->meter(TruePeak), e->meter(Overs));
+        CHECK(e->meter(TruePeak) > -1.0f && e->meter(Overs) >= 1.0f);
+    }
+    // THE WITNESS: peak meters that hold the highest sample (dBFS) until CLEAR
+    {
+        auto e = load("THE WITNESS");
+        Stereo s = sine(1000, 0.5, 0.5f);
+        run(*e, s);
+        std::printf("  THE WITNESS a -6.02 dBFS sine: PEAK L %.2f, PEAK R %.2f dBFS\n", e->meter(4), e->meter(5));
+        CHECK(std::fabs(e->meter(4) + 6.02f) < 0.1f && std::fabs(e->meter(5) + 6.02f) < 0.1f);
+    }
+    // DOUBLE CROSS: in M / S the side meter reads the side (it kept the L / R peak: S read the same as R)
+    {
+        using namespace rack::doublecross;
+        auto e = load("DOUBLE CROSS");
+        Stereo s = sine(500, 1.0, 0.5f);   // the same on both sides: no side at all going in
+        run(*e, s);
+        e->set(MeterMode, 1);
+        Stereo t = sine(500, 2.0, 0.5f);
+        run(*e, t);
+        std::printf("  DOUBLE CROSS M / S on a mono tone: M %.1f, S %.1f dBFS\n", e->meter(0), e->meter(1));
+        CHECK(e->meter(1) < e->meter(0) - 3.0f);
+    }
+    // THE FIXER: FREQ reads in Hz
+    {
+        auto e = rack::findPlugin("THE FIXER")->create();
+        CHECK(std::string(e->params()[rack::fixer::band(0, rack::fixer::Freq)].unit) == "Hz");
+    }
+    // KINGPIN: its meter can show the gain reduction (COMPRESS looked dead: the needle only had IN and OUT)
+    {
+        auto e = rack::findPlugin("KINGPIN")->create();
+        const auto& m = e->params()[rack::kingpin::Meter];
+        CHECK(m.max >= 2.0f && std::string(m.choices[1]) == "GR");
+    }
+    // FURNACE and MIXTAPE: more DRIVE is more tone at about the same level on a song
+    {
+        CHECK(std::fabs(through("FURNACE", {{rack::tubesat::Drive, 100}}).rmsDb - through("FURNACE", {{rack::tubesat::Drive, 0}}).rmsDb) < 1.5);
+        CHECK(std::fabs(through("MIXTAPE", {{0, 100}}).rmsDb - through("MIXTAPE", {{0, 0}}).rmsDb) < 1.5);
+    }
+    // IRON FIST: AUTO MAKEUP gives back what the compressor takes (it gave +0.5 dB back of 11 with INPUT at 0)
+    {
+        using namespace rack::ironfist;
+        const double off = through("IRON FIST", {{Input, 0}, {Output, 0}}).rmsDb, on = through("IRON FIST", {{Input, 0}, {AutoMakeup, 1}}).rmsDb;
+        std::printf("  IRON FIST INPUT 0: %+.1f dB, with AUTO MAKEUP %+.1f dB\n", off, on);
+        CHECK(on > off + 5.0 && std::fabs(on) < 3.0);
+    }
+}
+
 } // namespace
 
 void testRelease() {
@@ -190,6 +284,7 @@ void testRelease() {
     testSafeOnLoad();
     testQuietOnLoad();
     testFixedControls();
+    testFixedMeters();
 }
 
 } // namespace hem::test

@@ -8,13 +8,14 @@ namespace fixer {
 namespace {
 using namespace hideout;
 
-#define HEM_BAND(n, name)                                                                         \
+// FREQ in Hz across each band's own range (it read 0..100, so you could not tell where it was)
+#define HEM_BAND(n, name, lo, hi, mid)                                                            \
     {"amount" #n, name " Amount", "", 0.0f, 100.0f, 0.0f},                                        \
-    {"freq" #n, name " Freq", "", 0.0f, 100.0f, 50.0f},                                           \
+    {"freq" #n, name " Freq", "Hz", lo, hi, mid, Taper::Log},                                     \
     {"listen" #n, name " Listen", "", 0, 1, 0, Taper::Toggle, kOnOff},                            \
     {"bypass" #n, name " Bypass", "", 0, 1, 0, Taper::Toggle, kOnOff}
 const ParamInfo kParams[kCount] = {
-    HEM_BAND(1, "Mud"), HEM_BAND(2, "Harsh"), HEM_BAND(3, "Fizz"),
+    HEM_BAND(1, "Mud", 200.0f, 1000.0f, 447.0f), HEM_BAND(2, "Harsh", 1200.0f, 3000.0f, 1897.0f), HEM_BAND(3, "Fizz", 3500.0f, 12000.0f, 6481.0f),
     {"input", "Input", "dB", -18.0f, 18.0f, 0.0f},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
 };
@@ -23,8 +24,8 @@ const hc::fx::MeterInfo kMeters[] = {{"MUD", "dB", -12.0f, 0.0f}, {"HARSH", "dB"
 constexpr double kQ[kBands] = {1.2, 1.6, 1.0};
 constexpr double kAttMs[kBands] = {10.0, 3.0, 1.0}, kRelMs[kBands] = {150.0, 90.0, 60.0};   // the lows move slower
 
-// FREQ 0..100 -> the band's centre, across its range on a log scale
-float centreHz(int b, float freq) noexcept { return kLowHz[b] * std::pow(kHighHz[b] / kLowHz[b], std::clamp(freq, 0.0f, 100.0f) * 0.01f); }
+// FREQ is the band's centre (Hz), kept inside its range
+float centreHz(int b, float freq) noexcept { return std::clamp(freq, kLowHz[b], kHighHz[b]); }
 
 class Impl final : public hc::fx::Effect {
 public:

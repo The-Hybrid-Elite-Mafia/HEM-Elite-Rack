@@ -1,5 +1,6 @@
 // FaceView: the live parts of a HEM-Elite-Rack faceplate, drawn over the static plate.
 #include "hem/ui/Face.hpp"
+#include "hem/rack/Space.hpp"
 
 #include "hybrid/ui/Parts.hpp"
 
@@ -197,7 +198,18 @@ void FaceView::knob(const Ctx& c, const Widget& w, int wi) const {
     // Caption above, value under, scale ends at the arc's ends.
     const TextStyle cap = c.fit(w.small ? TextStyle::Caption : TextStyle::Label, w.caption, dial.w + (w.small ? 26 : 70) * z);
     r.text(cap, w.caption, cx, dial.y - (w.small ? 12 : 16) * z, on ? th_.label : th_.dim, Align::Center, TextFx::Shadowed);
-    const std::string v = c.host.text(param);
+    std::string v = c.host.text(param);
+    // REPEAT OFFENDER: while it follows a note, its greyed TIME shows the time it really uses (it showed the free time,
+    // 375 ms, for 1/8 at 120 BPM = 250 ms)
+    if (L_.face == rack::Face::DigitalDelay && param == rack::ddelay::Time) {
+        const int div = static_cast<int>(std::lround(plain(c.host, rack::ddelay::Division)));
+        if (div != 0) {
+            char b[32];
+            const float ms = rack::ddelay::delayMs(div, plain(c.host, rack::ddelay::Bpm), plain(c.host, rack::ddelay::Time));
+            std::snprintf(b, sizeof b, ms < 100.0f ? "%.1f ms" : "%.0f ms", static_cast<double>(ms));
+            v = b;
+        }
+    }
     const TextStyle vs = c.fit(w.small ? TextStyle::Value : TextStyle::Title, v, dial.w + (w.small ? 26 : 50) * z);
     r.text(vs, v, cx, dial.bottom() + (w.small ? 26 : 32) * z, on ? (hot ? th_.silver : th_.teal) : th_.dim, Align::Center,
            on ? TextFx::Shadowed : TextFx::Shadowed);

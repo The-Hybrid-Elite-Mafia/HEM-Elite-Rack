@@ -1050,15 +1050,16 @@ void testColorFx() {
         CHECK(info != nullptr);
         if (info) commonRules(*info);
     }
-    {   // FURNACE: quiet passes at the same level; driven, BIAS brings the 2nd harmonic; MIX 0 = dry
+    {   // FURNACE: a song-level tone keeps its level at any DRIVE ("same level, more tone"); driven, BIAS brings the 2nd
+        // harmonic; MIX 0 = dry
         using namespace tubesat;
-        auto quiet = fresh("FURNACE", {{Drive, 100}});
-        const double q = toneOut(*quiet, 1000, 0.003f);
+        auto hot = fresh("FURNACE", {{Drive, 100}}), cold = fresh("FURNACE", {{Drive, 0}});
+        const double q = toneOut(*hot, 1000, 0.2f) - toneOut(*cold, 1000, 0.2f);
         auto h2 = [](float bias) { auto e = fresh("FURNACE", {{Drive, 70}, {Bias, bias}}); return harmonicDb(*e, 200, 2, 0.3f); };
         auto h3 = [] { auto e = fresh("FURNACE", {{Drive, 70}, {Bias, 0}}); return harmonicDb(*e, 200, 3, 0.3f); }();
         const double b0 = h2(0), b100 = h2(100);
-        std::printf("  FURNACE: -50 dBFS at drive 100 %.2f dB; drive 70 at -10 dBFS: 2nd harmonic bias 0 %.1f dB, bias 100 %.1f dB, 3rd %.1f dB\n", q, b0, b100, h3);
-        CHECK(std::fabs(q) < 0.3 && b100 > b0 + 20.0 && b100 > -40.0 && h3 > -40.0);
+        std::printf("  FURNACE: -14 dBFS tone, drive 100 against drive 0: %+.2f dB; drive 70 at -10 dBFS: 2nd harmonic bias 0 %.1f dB, bias 100 %.1f dB, 3rd %.1f dB\n", q, b0, b100, h3);
+        CHECK(std::fabs(q) < 1.5 && b100 > b0 + 20.0 && b100 > -40.0 && h3 > -40.0);
         auto dry = fresh("FURNACE", {{Mix, 0}, {Drive, 100}});
         Stereo s = noise(1.0, 0.5f), ref = s;
         run(*dry, s);

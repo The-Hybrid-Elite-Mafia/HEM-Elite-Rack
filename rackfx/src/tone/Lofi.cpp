@@ -87,7 +87,10 @@ public:
         // the tape: TYPE I saturates earliest, metal latest; DRIVE pushes it
         const float head[3] = {1.6f, 1.25f, 1.0f};
         const float g = head[type] * std::pow(8.0f, p(Drive) * 0.01f);
-        st_.run(L, R, n, true, 1.0f, [g](float x) { const float v = g * x; return soft(v + 0.08f * v * v) / g; });
+        // what the tape takes from a song-level signal (-14 dBFS) is given back, so more DRIVE is more tape, not a quieter song
+        // (DRIVE 82 % took a song 4-5 dB down)
+        const float comp = g * 0.2f / soft(g * 0.2f);
+        st_.run(L, R, n, true, 1.0f, [g, comp](float x) { const float v = g * x; return soft(v + 0.08f * v * v) / g * comp; });
         designFilters(type);
         const double wowInc = kTwoPi * 0.5 / fs_, flInc = kTwoPi * 6.0 / fs_;
         const float wowDepth = static_cast<float>(0.003 * fs_ / (kTwoPi * 0.5)), flDepth = static_cast<float>(0.0015 * fs_ / (kTwoPi * 6.0));

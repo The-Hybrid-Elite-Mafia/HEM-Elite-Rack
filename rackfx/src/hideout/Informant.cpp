@@ -283,13 +283,16 @@ private:
         noise_ = noise_ * 1664525u + 1013904223u;
         return static_cast<float>(static_cast<std::int32_t>(noise_)) * (1.0f / 2147483648.0f);
     }
-    // a path's level: off when muted, or when another path is soloed and this one isn't; -60 dB = off
+    // a path's level: off when muted, or when another path is soloed and this one isn't; -60 dB = off (unless soloed)
     float pathGain(int q) const noexcept {
         bool anySolo = false;
         for (int k = 0; k < kPaths; ++k) anySolo = anySolo || p(Solo0 + k) >= 0.5f;
         if (p(Mute0 + q) >= 0.5f || (anySolo && p(Solo0 + q) < 0.5f)) return 0.0f;
         const float db = p(Level0 + q);
-        return db <= -59.95f ? 0.0f : hc::fx::dbToGain(db);
+        // SOLO is for hearing a part: a soloed part whose fader is all the way down plays at 0 dB (soloing the
+        // modulator, which starts at -60 = off, was silence)
+        if (db <= -59.95f) return p(Solo0 + q) >= 0.5f ? 1.0f : 0.0f;
+        return hc::fx::dbToGain(db);
     }
     void free(int v) noexcept {
         Voice& vo = voice_[v];

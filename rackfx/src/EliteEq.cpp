@@ -80,6 +80,8 @@ bool typeHasGain(Type t) noexcept { return t == Type::Bell || t == Type::LowShel
 bool typeHasSlope(Type t) noexcept { return t == Type::LowCut || t == Type::HighCut; }
 bool typeCanBeDynamic(Type t) noexcept { return typeHasGain(t); }
 
+double shelfQ(double q) noexcept { return std::clamp(0.7071 * std::pow(q / 0.7071, 0.25), 0.3, 1.5); }
+
 Sections design(const Band& b, double fs) noexcept {
     using hc::fx::BiquadCoefs;
     using BT = BiquadCoefs::Type;
@@ -87,8 +89,11 @@ Sections design(const Band& b, double fs) noexcept {
     const double f = std::clamp(b.freq, 10.0, fs * 0.49), q = std::clamp(b.q, 0.05, 40.0);
     switch (b.type) {
     case Type::Bell:      out.s[0] = fromRbj(BiquadCoefs::make(BT::Bell, fs, f, q, b.gainDb)); out.count = 1; break;
-    case Type::LowShelf:  out.s[0] = fromRbj(BiquadCoefs::make(BT::LowShelf, fs, f, q, b.gainDb)); out.count = 1; break;
-    case Type::HighShelf: out.s[0] = fromRbj(BiquadCoefs::make(BT::HighShelf, fs, f, q, b.gainDb)); out.count = 1; break;
+    // Shelves: Q steepens the knee gently (0.71 -> 1.5 over the whole knob). Used straight, a high Q bent a shelf into the
+    // other way: LOW SHELF -16.8 dB at Q 5.8 boosted +14 dB above its corner. Now the bump past the knee is at most about a
+    // fifth of the shelf's gain (+3.3 dB on that -16.8 dB shelf at the top of the knob).
+    case Type::LowShelf:  out.s[0] = fromRbj(BiquadCoefs::make(BT::LowShelf, fs, f, shelfQ(q), b.gainDb)); out.count = 1; break;
+    case Type::HighShelf: out.s[0] = fromRbj(BiquadCoefs::make(BT::HighShelf, fs, f, shelfQ(q), b.gainDb)); out.count = 1; break;
     case Type::Notch:     out.s[0] = fromRbj(BiquadCoefs::make(BT::Notch, fs, f, q)); out.count = 1; break;
     case Type::Tilt: {
         // First-order tilt around f: -gain/2 below, +gain/2 above.

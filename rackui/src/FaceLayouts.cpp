@@ -1,5 +1,7 @@
 #include "hem/ui/Face.hpp"
 
+#include <string_view>
+
 #include "hem/rack/BusGlue.hpp"
 #include "hem/rack/Tape.hpp"
 #include "hem/rack/TubeEq.hpp"
@@ -626,7 +628,11 @@ FaceLayout reverbFace(const rack::PluginInfo& info) {
     FaceLayout L;
     common(L, info);
     const bool plate = info.face == rack::Face::Plate;
-    L.leftNotes = plate ? std::vector<std::string>{"BRIGHT AND DENSE", "VOCALS AND SNARES"} : std::vector<std::string>{"BIG AND LUSH", "CONCERT SPACE"};
+    // CATHEDRAL and BACKROOM share this plate: each gets its own lines (BACKROOM showed CATHEDRAL's "concert space")
+    const bool room = std::string_view(info.name) == "BACKROOM";
+    L.leftNotes = plate  ? std::vector<std::string>{"BRIGHT AND DENSE", "VOCALS AND SNARES"}
+                  : room ? std::vector<std::string>{"REAL ROOMS", "SMALL TO LARGE"}
+                         : std::vector<std::string>{"BIG AND LUSH", "CONCERT SPACE"};
     L.title = {60, 190, 330, 110};
     L.display = {410, 182, 1226, 330};
     knobRow(L, {{PreDelay, "PRE-DELAY", 100, "", "", false}, {Size, "SIZE", 110, "", "", false},
@@ -1841,8 +1847,9 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
     const bool hasBorders = !B.borders.empty() && n > 1;
     const bool borderRow = !eq && hasBorders && 440.0f + gridH <= 800.0f;   // a row of their own
     const bool staggered = !eq && hasBorders && !borderRow;                 // no room: half a row lower than the globals
-    float knobRowH = 72.0f;
-    if (staggered && 372.0f + gridH > 800.0f) knobRowH = 66.0f;
+    constexpr float knobRowH = 72.0f;
+    // staggered, the grid starts 12 lower: its switch rows give the 12 back (TERRITORY and STRAIGHT EDGE end where they did)
+    const float rowH = staggered ? 50.0f - 12.0f / static_cast<float>(std::max<std::size_t>(B.steppers.size() + B.toggles.size(), 1)) : 50.0f;
     auto globals = [&](float top) {
         const std::size_t first = L.widgets.size();
         const int items = static_cast<int>(S.row1.size() + S.toggles.size());
@@ -1875,7 +1882,7 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
     L.grooves.push_back({labelX, gridTop - 8, 1636, gridTop - 8});
     // the grid
     float y = gridTop;
-    constexpr float rowH = 50.0f, kd = 40.0f;
+    constexpr float kd = 40.0f;
     auto stepperRows = [&] {
         for (const rack::PlateChoice& st : B.steppers) {
             L.sections.push_back({{labelX, y + 6, labelW, 30}, st.caption});

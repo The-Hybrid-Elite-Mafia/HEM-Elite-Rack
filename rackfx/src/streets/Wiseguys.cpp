@@ -94,10 +94,13 @@ public:
             want[v] = p(voice(v, On)) >= 0.5f;
         }
         const bool dWant = p(DirectOn) >= 0.5f;
+        // with every voice off (and faded out) the pitch search sleeps: it took ~10 % of the audio time for nothing
+        bool anyVoice = false;
+        for (int v = 0; v < kVoices; ++v) anyVoice = anyVoice || want[v] || on_[v] > 0.0f;
         const float wDg = hc::fx::dbToGain(p(DirectGain)), wDd = static_cast<float>(p(DirectDelay) * 0.001 * fs_);
         for (std::uint32_t i = 0; i < n; ++i) {
             const float l = L[i], r = R[i];
-            in_.push(0.5f * (l + r));
+            in_.push(0.5f * (l + r), anyVoice);
             // ANIMATE: each voice drifts toward a new random offset every 50 ms
             if (++tick_ >= static_cast<std::uint32_t>(0.05 * fs_)) {
                 tick_ = 0;
@@ -107,7 +110,9 @@ public:
             for (int v = 0; v < kVoices; ++v) {
                 on_[v] = want[v] ? std::min(1.0f, on_[v] + step) : std::max(0.0f, on_[v] - step);
                 drift_[v] += (driftT_[v] - drift_[v]) * 2e-4f;
-                const float y = syn_[v].tick(in_, ratio[v], formant[v]);   // always run: switching on is instant and clean
+                // a voice that is off (and faded out) is not worked out at all: six idle voices took ~10 % of the audio
+                // time with every voice off. Switching one on fades it in over 20 ms, which covers it starting up.
+                const float y = want[v] || on_[v] > 0.0f ? syn_[v].tick(in_, ratio[v], formant[v]) : 0.0f;
                 const float d = delay_[v].next(baseDelay[v] + drift_[v] * animate * 0.001f * static_cast<float>(fs_));
                 vd_[v].write(y);
                 const float g = gain_[v].next(wGain[v]) * on_[v];

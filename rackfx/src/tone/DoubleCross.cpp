@@ -95,6 +95,12 @@ public:
         }
         const float pl = p(PolarityL) >= 0.5f ? -1.0f : 1.0f, pr = p(PolarityR) >= 0.5f ? -1.0f : 1.0f;
         const bool swap = p(Swap) >= 0.5f, ms = p(MeterMode) >= 0.5f;
+        // the peak meters start over when they switch L / R <-> M / S (they kept the L / R peaks, so S read the same as R),
+        // and fall 20 dB a second instead of holding the loudest moment forever
+        if (ms != meterMs_) { meterMs_ = ms; held_[0] = held_[1] = 0.0f; }
+        const float fall = std::pow(10.0f, -1.0f * static_cast<float>(n) / static_cast<float>(fs_));
+        held_[0] *= fall;
+        held_[1] *= fall;
         const float wIn = hc::fx::dbToGain(p(Input)), wW = p(Width), wRot = p(Rotation);
         for (std::uint32_t i = 0; i < n; ++i) {
             // the input: gain, polarity, swap, width, rotation
@@ -163,6 +169,7 @@ private:
     std::uint64_t t_ = 0;
     std::array<float, 9> key_{};
     float held_[2]{}, push_ = 0.0f;
+    bool meterMs_ = false;
     hc::fx::Smoothed in_g_, width_, rot_;
 };
 

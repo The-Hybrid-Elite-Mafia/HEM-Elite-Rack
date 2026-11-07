@@ -36,8 +36,9 @@ public:
         conf_ = 0.0f;
         level_ = 0.0f;
     }
-    // one input sample; true when a new estimate is ready
-    bool push(float x) noexcept {
+    // one input sample; true when a new estimate is ready. track = false keeps the window filled but skips the search
+    // (the costly part), for when nothing needs the pitch
+    bool push(float x, bool track = true) noexcept {
         const float y = lp_[1].tick(lp_[0].tick(x));
         odd_ = !odd_;
         if (odd_) return false;
@@ -45,6 +46,7 @@ public:
         w_ = (w_ + 1) % n_;
         if (++sinceHop_ < hop_) return false;
         sinceHop_ = 0;
+        if (!track) return false;
         analyse();
         return true;
     }
@@ -128,10 +130,10 @@ public:
         maxHz_ = maxHz;
         sure_ = sureness;
     }
-    void push(float v) noexcept {
+    void push(float v, bool track = true) noexcept {
         x_[static_cast<std::size_t>(t_ & (kSize - 1))] = v;
         ++t_;
-        if (!yin_.push(v)) return;
+        if (!yin_.push(v, track)) return;
         const float hz = yin_.hz();
         const bool voiced = hz >= minHz_ && hz <= maxHz_ && yin_.confidence() >= sure_;
         hz_ = voiced ? hz : 0.0f;

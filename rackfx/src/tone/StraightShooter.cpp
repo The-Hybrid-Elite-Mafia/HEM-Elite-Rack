@@ -111,7 +111,16 @@ public:
     SpectrumMeter& spectrumBefore() noexcept override { return before_; }
     SpectrumMeter& spectrumAfter() noexcept override { return after_; }
     bool paramActive(int i) const noexcept override {
-        if (i < kGain && i % kStride != On) return p(i - i % kStride + On) >= 0.5f;
+        if (i < kGain && i % kStride != On) {
+            const int b = i / kStride;
+            if (p(b * kStride + On) < 0.5f) return false;
+            // a cut has no gain: its GAIN knob greys (HI CUT BUMP at -11 dB still showed its bump going up)
+            if (i % kStride == Gain) {
+                const Shape s = Cfg::shape(b, static_cast<int>(std::lround(p(b * kStride + Type))));
+                return s != Shape::LowCut && s != Shape::HighCut && s != Shape::VLowCut && s != Shape::VHighCut;
+            }
+            return true;
+        }
         return true;
     }
 

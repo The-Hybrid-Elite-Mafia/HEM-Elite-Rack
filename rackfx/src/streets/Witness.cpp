@@ -18,7 +18,8 @@ const ParamInfo kParams[kCount] = {
     {"displaydelay", "Display Delay", "ms", 0.0f, 1000.0f, 0.0f},
     {"clear", "Clear", "", 0, 1, 0, Taper::Toggle, kPushN},
 };
-const hc::fx::MeterInfo kMeters[] = {{"VU L", "VU", -40.0f, 6.0f}, {"VU R", "VU", -40.0f, 6.0f}, {"CLIP L", "", 0.0f, 1.0f}, {"CLIP R", "", 0.0f, 1.0f}};
+const hc::fx::MeterInfo kMeters[] = {{"VU L", "VU", -40.0f, 6.0f},  {"VU R", "VU", -40.0f, 6.0f},   {"CLIP L", "", 0.0f, 1.0f},
+                                     {"CLIP R", "", 0.0f, 1.0f},    {"PEAK L", "dBFS", -60.0f, 0.0f}, {"PEAK R", "dBFS", -60.0f, 0.0f}};
 constexpr std::uint32_t kStep = 64;
 constexpr std::size_t kHistory = 1024;   // > 1 s of steps at 48 kHz
 constexpr float kClip = 0.99896f;        // -0.009 dBFS
@@ -37,6 +38,7 @@ public:
     void reset() noexcept override {
         avg_[0] = avg_[1] = 0.0f;
         clip_[0] = clip_[1] = 0.0f;
+        peak_[0] = peak_[1] = 0.0f;
         for (auto& h : hist_) h.fill(0.0f);
         head_ = 0;
         clock_ = 0;
@@ -45,12 +47,15 @@ public:
         publishMeter(1, -100.0f);
         publishMeter(2, 0.0f);
         publishMeter(3, 0.0f);
+        publishMeter(4, -100.0f);
+        publishMeter(5, -100.0f);
     }
 
     void process(float* L, float* R, std::uint32_t n) noexcept override {
         if (p(Clear) != push_) {
             push_ = p(Clear);
             clip_[0] = clip_[1] = 0.0f;
+            peak_[0] = peak_[1] = 0.0f;
         }
         const float* io[2] = {L, R};
         for (std::uint32_t i = 0; i < n; ++i) {
@@ -58,6 +63,7 @@ public:
                 const float x = std::fabs(io[c][i]);
                 avg_[c] += (x - avg_[c]) * vuK_;
                 if (x >= kClip) clip_[c] = 1.0f;
+                peak_[c] = std::max(peak_[c], x);   // the highest sample since CLEAR (the plate said peak meters; it had none)
             }
             if (++clock_ == kStep) {
                 clock_ = 0;
@@ -74,12 +80,13 @@ public:
             const float lv = dbOf(a * static_cast<float>(std::numbers::pi) * 0.5f);
             publishMeter(c, lv < -99.0f ? -100.0f : lv + p(Headroom));
             publishMeter(2 + c, clip_[c]);
+            publishMeter(4 + c, peak_[c] > 0.0f ? std::max(dbOf(peak_[c]), -100.0f) : -100.0f);
         }
     }
 
 private:
     double fs_ = 48000.0;
-    float vuK_ = 0.0f, avg_[2]{}, clip_[2]{}, push_ = 0.0f;
+    float vuK_ = 0.0f, avg_[2]{}, clip_[2]{}, peak_[2]{}, push_ = 0.0f;
     std::array<std::array<float, kHistory>, 2> hist_{};
     std::size_t head_ = 0;
     std::uint32_t clock_ = 0;

@@ -43,6 +43,7 @@ public:
     bool paramActive(int i) const noexcept override {
         if (i == LimitLevel || i == LimitAttack || i == LimitRelease) return p(Limiter) >= 0.5f;
         if (i == Ratio || i == Release || i == DeEss) return p(Compress) >= 0.5f;
+        if (i == Output) return p(AutoMakeup) < 0.5f;   // AUTO MAKEUP sets the output itself
         return true;
     }
 
@@ -51,6 +52,7 @@ public:
         const std::uint32_t mb = std::min(std::max<std::uint32_t>(maxBlock, 1), kMaxBlock);
         for (auto& v : up_) v.assign(static_cast<std::size_t>(mb) * OS::kFactor, 0.0f);
         for (auto& v : wet_) v.assign(mb, 0.0f);
+        autoMk_.assign(mb, 0.0f);
         for (auto& v : sat_) v.assign(mb, 0.0f);
         clean_.prepare(OS::latency());
         dry_.prepare(OS::latency());
@@ -59,6 +61,7 @@ public:
         // DE-ESS: the detector only hears the highs (4th-order high-pass at 5 kHz)
         hp_[0][0].c = hp_[0][1].c = hp_[1][0].c = hp_[1][1].c = C::make(T::HighPass, fs, 5000.0, 0.7071);
         hum_.prepare(fs);
+        auto_.prepare(fs);
         vuIn_.prepare(fs);
         vuOut_.prepare(fs);
         reset();
@@ -72,6 +75,7 @@ public:
         gr_ = lim_ = 0.0f;
         mem_.v = limMem_.v = 0.0f;
         hum_.clear();
+        auto_.clear();
         vuIn_.clear();
         vuOut_.clear();
         const int an = std::clamp(static_cast<int>(std::lround(p(Analog))), 0, 3);
@@ -120,6 +124,7 @@ public:
             yl *= gl;
             yr *= gl;
             most = std::min(most, gr_ + lim_);
+            autoMk_[i] = auto_.tick(gr_ + lim_);   // AUTO MAKEUP's share for what the compressor and limiter take
             wet_[0][i] = yl;
             wet_[1][i] = yr;
         }
@@ -139,7 +144,7 @@ public:
         for (std::uint32_t i = 0; i < n; ++i) {
             ironMix_ = amt > 0.0f ? std::min(1.0f, ironMix_ + step) : std::max(0.0f, ironMix_ - step);
             const float cl = clean_.l.process(wet_[0][i], OS::latency()), cr = clean_.r.process(wet_[1][i], OS::latency());
-            const float o = out_.next(hc::fx::dbToGain(outDb()));
+            const float o = out_.next(hc::fx::dbToGain(outDb() + (p(AutoMakeup) >= 0.5f ? autoMk_[i] : 0.0f)));
             float yl = (cl + ironMix_ * (sat_[0][i] - cl)) * o, yr = (cr + ironMix_ * (sat_[1][i] - cr)) * o;
             const float dl = dry_.l.process(L[i], OS::latency()), dr = dry_.r.process(R[i], OS::latency());
             const float m = mix_.next(p(Mix) * 0.01f), t = trim_.next(hc::fx::dbToGain(p(Trim)));
@@ -156,8 +161,10 @@ public:
     }
 
 private:
-    // AUTO MAKEUP: the output comes down as INPUT goes up (and up as it goes down), most of the way
-    float outDb() const noexcept { return p(Output) - (p(AutoMakeup) >= 0.5f ? 0.8f * p(Input) : 0.0f); }
+    // AUTO MAKEUP: the output takes over from OUTPUT (greyed): down by what INPUT pushed in, and back up by what the
+    // compressor and limiter take on average (2 s), so it comes out about as loud as it went in. Before, it only followed
+    // INPUT: with INPUT at 0 it gave +0.5 dB back of 11.
+    float outDb() const noexcept { return p(AutoMakeup) >= 0.5f ? -p(Input) : p(Output); }
 
     double fs_ = 48000.0;
     OS os_[2];
@@ -167,6 +174,8 @@ private:
     float env_ = 0, limEnv_ = 0, gr_ = 0, lim_ = 0, ironMix_ = 0;
     Memory mem_, limMem_;
     Hum hum_;
+    AutoGain auto_;
+    std::vector<float> autoMk_;
     Vu vuIn_, vuOut_;
     hc::fx::Smoothed in_, out_, mix_, trim_;
 };

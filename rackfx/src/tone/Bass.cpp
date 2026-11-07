@@ -149,7 +149,7 @@ const ParamInfo kParams[kCount] = {
     {"rangemin", "Lowest", "Hz", 20.0f, 120.0f, 20.0f},
     {"rangemax", "Highest", "Hz", 40.0f, 240.0f, 150.0f},
     {"sub1on", "Octave Down", "", 0, 1, 1, Taper::Toggle, kOnOff},
-    {"sub1", "Octave Down Level", "dB", -60.0f, 12.0f, 0.0f},
+    {"sub1", "Octave Down Level", "dB", -60.0f, 12.0f, -3.0f},
     {"sub2on", "Two Down", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"sub2", "Two Down Level", "dB", -60.0f, 12.0f, 0.0f},
     {"drive", "Drive", "%", 0.0f, 100.0f, 0.0f},

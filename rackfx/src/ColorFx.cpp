@@ -100,9 +100,12 @@ public:
             const float d = drive_.next(p(Drive) * 0.01f);
             for (std::uint32_t k = 1; k < m; ++k) (void)drive_.next(p(Drive) * 0.01f);
             const float g = std::pow(16.0f, d), b = 0.6f * p(Bias) * 0.01f;
+            // SAME LEVEL, MORE TONE: what the curve takes from a song-level signal (-14 dBFS: measured within 1 dB from DRIVE 0 to 100 on a test song) is given back, so more
+            // DRIVE is more tone at about the same loudness (without this, DRIVE 87 % took a song 6 dB down)
+            const float comp = g * kSongPeak / soft(g * kSongPeak);
             st_.run(L + done, R + done, m, [&](int, float x) {
                 const float v = g * x;
-                return soft(v + b * v * v) / g;   // BIAS tips the curve: even harmonics
+                return soft(v + b * v * v) / g * comp;   // BIAS tips the curve: even harmonics
             });
             setTone();
             for (std::uint32_t i = 0; i < m; ++i) {
@@ -118,6 +121,7 @@ public:
     }
 private:
     static constexpr std::uint32_t kChunk = 256;
+    static constexpr float kSongPeak = 0.2f;
     void setTone() noexcept {
         const float t = p(Tone);
         if (t == toneSet_) return;

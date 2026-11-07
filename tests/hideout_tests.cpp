@@ -67,16 +67,16 @@ void allRules() {
 void testFixer() {
     using namespace fixer;
     // HARSH AMOUNT 60: threshold -40 dBFS, at most 10.8 dB off
-    auto e = make("THE FIXER", {{band(1, Amount), 60}, {band(1, Freq), 100}});
+    auto e = make("THE FIXER", {{band(1, Amount), 60}, {band(1, Freq), 3000}});
     const double loud = toneGain(*e, 3000, 0.5f);
     const float m = e->meter(1);
     const double quiet = toneGain(*e, 3000, 0.003f), other = toneGain(*e, 300, 0.5f);
     std::printf("  THE FIXER harsh band (3 kHz, AMOUNT 60): loud %+.1f dB (meter %.1f), quiet %+.1f, a loud 300 Hz %+.1f dB\n", loud, m, quiet, other);
     CHECK(loud < -9.0 && loud > -11.5 && std::fabs(quiet) < 0.2 && std::fabs(other) < 1.0 && m < -8.0f);
     // AMOUNT 0 and BYPASS do nothing
-    auto z = make("THE FIXER", {{band(1, Amount), 60}, {band(1, Freq), 100}, {band(1, Bypass), 1}});
+    auto z = make("THE FIXER", {{band(1, Amount), 60}, {band(1, Freq), 3000}, {band(1, Bypass), 1}});
     const double byp = toneGain(*z, 3000, 0.5f);
-    auto l = make("THE FIXER", {{band(1, Listen), 1}, {band(1, Freq), 100}});
+    auto l = make("THE FIXER", {{band(1, Listen), 1}, {band(1, Freq), 3000}});
     const double in = toneGain(*l, 3000, 0.003f), out = toneGain(*l, 300, 0.003f);
     std::printf("  THE FIXER BYPASS: %+.2f dB; LISTEN HARSH: 3 kHz %+.1f dB, 300 Hz %+.1f dB\n", byp, in, out);
     CHECK(std::fabs(byp) < 0.05 && std::fabs(in) < 0.5 && out < -15.0);

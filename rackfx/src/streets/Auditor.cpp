@@ -188,6 +188,13 @@ public:
             for (std::uint32_t i = 0; i < n * OS::kFactor; ++i) tpOut = std::max(tpOut, std::fabs(up_[i]));
         }
         tpMax_ = std::max(tpMax_, tpOut);
+        // OVERS also counts each time what comes out goes past TRUE PEAK MAX (a +3.1 dBTP over with the limiter off counted
+        // nothing: OVERS only knew SHORT MAX, which is off at load)
+        {
+            const bool tpOver = tpOut > ceil * 1.0001f;
+            if (p(Measure) >= 0.5f && tpOver && !wasTpOver_) ++overs_;
+            wasTpOver_ = tpOver;
+        }
         // the loudness
         const int chans = std::clamp(static_cast<int>(std::lround(p(Channels))), 0, 2);
         const bool measuring = p(Measure) >= 0.5f;
@@ -285,7 +292,7 @@ private:
         histEnergy_ = 0.0;
         histCount_ = 0;
         unders_ = overs_ = 0;
-        wasOver_ = wasUnder_ = false;
+        wasOver_ = wasUnder_ = wasTpOver_ = false;
         timer_ = 0.0;
         longTerm_ = -100.0f;
         publishMeter(LongTerm, -100.0f);
@@ -407,6 +414,7 @@ private:
     double acc_ = 0.0, spAcc_ = 0.0, rawAcc_ = 0.0, histEnergy_ = 0.0, timer_ = 0.0;
     float g_ = 1.0f, tpMax_ = 0.0f, grMax_ = 0.0f, longTerm_ = -100.0f, resetSeen_ = 0.0f, clearSeen_ = 0.0f;
     int unders_ = 0, overs_ = 0;
+    bool wasTpOver_ = false;
     bool wasOver_ = false, wasUnder_ = false;
     std::array<float, 8> key_{};
     hc::fx::Smoothed gain_;
