@@ -3,8 +3,8 @@
 // The impulse responses are made here, not recorded: for a room, the direct sound, early reflections (a
 // seeded pattern of taps per side) and a tail of noise in seven octave bands, each band dying at its own
 // reverb time after a short build-up; for a plate, the dense tail alone; for a spring, the response of
-// spring loops (as in COIL) to a click. Each response is scaled so its energy is 1 per side (so wet noise
-// comes out as loud as it went in) before START, LENGTH, DECAY, DIRECT and CPU shape it.
+// spring loops (as in COIL) to a click. Each response is scaled so a song comes out of it about as loud as it went
+// in (its energy measured through a pink filter) before START, LENGTH, DECAY, DIRECT and CPU shape it.
 //
 // The convolution: uniformly partitioned, overlap-save, 512-sample blocks (FFT 1024; both sides in one complex
 // FFT), a frequency-domain delay line of the input's spectra and the response's spectra per partition.
@@ -38,7 +38,7 @@ const ParamInfo kParams[kCount] = {
     {"start", "Start", "s", 0.0f, 1.0f, 0.0f},
     {"length", "Length", "s", 0.0f, 6.0f, 6.0f},
     {"decay", "Decay", "x", 0.25f, 1.0f, 1.0f},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 15.0f},
     {"direct", "Direct", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"predelay", "Pre-Delay", "ms", 0.0f, 500.0f, 0.0f},
     {"drydelay", "Dry Delay", "ms", 0.0f, 30.0f, 0.0f},
@@ -213,8 +213,10 @@ public:
             dry_[0].write(l);
             dry_[1].write(r);
             const float m = mix_.next(wMix), g = out_g_.next(wOut);
-            L[i] = g * ((1.0f - m) * dry_[0].read(dd) + m * pre_[0].read(pd));
-            R[i] = g * ((1.0f - m) * dry_[1].read(dd) + m * pre_[1].read(pd));
+            // MIX: the dry song stays at full level up to 50 % while the space comes up to full; past 50 % the dry fades out.
+            const float gd = std::min(1.0f, 2.0f * (1.0f - m)), gw = std::min(1.0f, 2.0f * m);
+            L[i] = g * (gd * dry_[0].read(dd) + gw * pre_[0].read(pd));
+            R[i] = g * (gd * dry_[1].read(dd) + gw * pre_[1].read(pd));
             if (++pos_ == B) {
                 pos_ = 0;
                 block();
@@ -480,11 +482,25 @@ private:
                     }
             }
         }
-        // energy 1 per side
+        // as loud as the dry song per side: the energy is measured through a pink filter (music has far more lows than highs),
+        // so a dark space and a bright one come out at the same loudness on a song. (Energy 1 alone left a spring 10 dB
+        // louder than the dry song and a hall 4 dB louder.)
+        const auto pinkEnergy = [](const float* x, std::size_t n) {
+            double b0 = 0, b1 = 0, b2 = 0, e = 0;
+            for (std::size_t i = 0; i < n + 16384; ++i) {
+                const double w = i < n ? (x ? static_cast<double>(x[i]) : (i == 0 ? 1.0 : 0.0)) : 0.0;
+                b0 = 0.99765 * b0 + w * 0.0990460;
+                b1 = 0.96300 * b1 + w * 0.2965164;
+                b2 = 0.57000 * b2 + w * 1.0526913;
+                const double y = b0 + b1 + b2 + w * 0.1848;
+                e += y * y;
+            }
+            return e;
+        };
+        const double ref = pinkEnergy(nullptr, 1);
         for (auto& v : ir_) {
-            double e = 0.0;
-            for (std::size_t i = 0; i < len; ++i) e += static_cast<double>(v[i]) * v[i];
-            const auto sc = static_cast<float>(e > 0.0 ? 1.0 / std::sqrt(e) : 0.0);
+            const double e = pinkEnergy(v.data(), len);
+            const auto sc = static_cast<float>(e > 0.0 ? std::sqrt(ref / e) : 0.0);
             for (std::size_t i = 0; i < len; ++i) v[i] *= sc;
         }
         return len;

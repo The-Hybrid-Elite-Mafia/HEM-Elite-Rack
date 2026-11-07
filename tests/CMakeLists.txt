@@ -7,6 +7,7 @@ add_executable(hem_rack_tests
     rackfx_tests.cpp
     arsenal_tests.cpp tone_tests.cpp hideout_tests.cpp streets_tests.cpp maxim_tests.cpp
     face_tests.cpp
+    release_tests.cpp
     rackapp_tests.cpp)
 target_include_directories(hem_rack_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(hem_rack_tests PRIVATE hem::rackfx hem::rackui hem_rackapp_core hc::media)

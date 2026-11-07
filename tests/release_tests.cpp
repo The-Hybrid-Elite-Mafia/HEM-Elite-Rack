@@ -1,0 +1,195 @@
+// Release checks: what Steven's control-by-control test of 0.51.3 on his PC found, turned into tests that run on every
+// build. Every plug-in loads at a safe level with no noise of its own, every plug-in is told apart from the others,
+// and each fixed control does what its label says.
+#include "Harness.hpp"
+#include "Signals.hpp"
+
+#include "hem/rack/Arsenal.hpp"
+#include "hem/rack/Hideout.hpp"
+#include "hem/rack/Plugins.hpp"
+#include "hem/rack/Garage.hpp"
+#include "hem/rack/Streets.hpp"
+#include "hem/rack/ToneShop.hpp"
+
+#include <cmath>
+#include <cstdio>
+#include <cstring>
+#include <map>
+#include <random>
+#include <string>
+
+namespace hem::test {
+namespace {
+
+constexpr double kFs = 48000.0;
+
+// A song-like stereo signal: pink noise, a kick every half second and a 220 Hz note, nearly mono,
+// about -18 dB RMS with peaks near -2 dBFS.
+Stereo song(double seconds, unsigned seed = 7) {
+    Stereo s(static_cast<std::size_t>(seconds * kFs));
+    std::mt19937 g(seed);
+    std::normal_distribution<float> nd(0.0f, 1.0f);
+    float b0 = 0, b1 = 0, b2 = 0, side = 0;
+    for (std::size_t i = 0; i < s.size(); ++i) {
+        const float w = nd(g);
+        b0 = 0.99765f * b0 + w * 0.0990460f;
+        b1 = 0.96300f * b1 + w * 0.2965164f;
+        b2 = 0.57000f * b2 + w * 1.0526913f;
+        const float pink = (b0 + b1 + b2 + w * 0.1848f) * 0.035f;
+        const double t = static_cast<double>(i) / kFs, tk = std::fmod(t, 0.5);
+        const auto kick = static_cast<float>(0.25 * std::exp(-tk * 25.0) * std::sin(2.0 * std::numbers::pi * 55.0 * tk * (1.0 + 2.0 * std::exp(-tk * 40.0))));
+        const auto tone = static_cast<float>(0.08 * std::sin(2.0 * std::numbers::pi * 220.0 * t));
+        side = 0.999f * side + 0.02f * nd(g);
+        const float m = pink + kick + tone;
+        s.l[i] = m + side * 0.05f;
+        s.r[i] = m - side * 0.05f;
+    }
+    return s;
+}
+
+struct Level { double rmsDb, peakDb; };
+Level level(const Stereo& s, std::size_t from) {
+    double e = 0.0, pk = 0.0;
+    std::size_t n = 0;
+    for (std::size_t i = from; i < s.size(); ++i, ++n) {
+        e += 0.5 * (static_cast<double>(s.l[i]) * s.l[i] + static_cast<double>(s.r[i]) * s.r[i]);
+        pk = std::max({pk, static_cast<double>(std::fabs(s.l[i])), static_cast<double>(std::fabs(s.r[i]))});
+    }
+    return {10.0 * std::log10(e / static_cast<double>(std::max<std::size_t>(n, 1)) + 1e-30), 20.0 * std::log10(pk + 1e-15)};
+}
+
+std::unique_ptr<hc::fx::Effect> load(const char* name, std::initializer_list<std::pair<int, float>> sets = {}) {
+    const rack::PluginInfo* info = rack::findPlugin(name);
+    if (!info) { std::printf("  no plug-in %s\n", name); return nullptr; }
+    auto e = info->create();
+    e->setDefaults();
+    for (const auto& [i, v] : sets) e->set(i, v);
+    e->prepare(kFs, 512);
+    e->reset();
+    return e;
+}
+
+// level change (dB) of a plug-in on the song, measured over the last two thirds
+Level through(const char* name, std::initializer_list<std::pair<int, float>> sets = {}, double seconds = 6.0) {
+    auto e = load(name, sets);
+    if (!e) return {999.0, 999.0};
+    Stereo s = song(seconds);
+    const Level in = level(s, s.size() / 3);
+    run(*e, s);
+    const Level out = level(s, s.size() / 3);
+    return {out.rmsDb - in.rmsDb, out.peakDb - in.peakDb};
+}
+
+void testEveryPluginIsItsOwn() {
+    // the rack tells a running plug-in by its control table: no two plug-ins may share one (QUICK CASH opened as TOP DOG)
+    std::map<const void*, std::string> seen;
+    int shared = 0;
+    for (const auto& p : rack::plugins()) {
+        auto e = p.create();
+        const auto [it, fresh] = seen.emplace(e->params().data(), p.name);
+        if (!fresh) { std::printf("  %s shares its controls with %s\n", p.name, it->second.c_str()); ++shared; }
+    }
+    CHECK(shared == 0);
+}
+
+void testSafeOnLoad() {
+    // Loading a plug-in never jumps the song up, never drops it a lot and never clips it. Measured on the song above.
+    // Left out, each for its own reason: THE CLEANER takes noise out (this song is mostly noise), DRIVE-BY's sound passes by
+    // (it is meant to come and go), WHEELMAN and CHAUFFEUR ride to their target, THE MOLD is a hardware loop (silent with
+    // nothing plugged in), THE INFORMANT plays only when it gets notes.
+    const char* const skip[] = {"THE CLEANER", "DRIVE-BY", "WHEELMAN", "CHAUFFEUR", "THE MOLD", "THE INFORMANT"};
+    for (const auto& p : rack::plugins()) {
+        bool skipped = false;
+        for (const char* s : skip) skipped = skipped || std::strcmp(s, p.name) == 0;
+        if (skipped) continue;
+        const Level d = through(p.name);
+        const bool ok = d.rmsDb > -4.0 && d.rmsDb < 1.5 && d.peakDb < 2.0;
+        if (!ok) std::printf("  %s on load: level %+.1f dB, peak %+.1f dB\n", p.name, d.rmsDb, d.peakDb);
+        CHECK(ok);
+    }
+}
+
+void testQuietOnLoad() {
+    // No hum, hiss or noise of their own at load: one second of silence in, nothing out (GRAND LARCENY's pedal is only
+    // heard while it plays; LIVE WIRE's tones are off at load).
+    for (const auto& p : rack::plugins()) {
+        auto e = load(p.name);
+        Stereo s(static_cast<std::size_t>(kFs));
+        run(*e, s);
+        const Level out = level(s, 0);
+        const bool ok = out.peakDb < -90.0;
+        if (!ok) std::printf("  %s makes noise on silence: peak %.1f dBFS\n", p.name, out.peakDb);
+        CHECK(ok);
+    }
+}
+
+void testFixedControls() {
+    // SPEAKEASY: it loads 1 m from the sound, so DIRECT alone (early and reverb off) is the dry song and the whole room
+    // is about as loud as the song (at 5 m, the old start, the direct sound alone was 14 dB down: the real room's 1 / distance)
+    {
+        using namespace rack::speakeasy;
+        CHECK(std::fabs(through("SPEAKEASY", {{EarlyOn, 0}, {ReverbOn, 0}}).rmsDb) < 0.5);
+        CHECK(std::fabs(through("SPEAKEASY").rmsDb) < 1.0);
+    }
+    // BACK ALLEY: echo and reverb both off = the dry song
+    {
+        using namespace rack::backalley;
+        CHECK(std::fabs(through("BACK ALLEY", {{EchoOn, 0}, {ReverbOn, 0}}).rmsDb) < 0.5);
+    }
+    // DRIVE-BY: every part switched off = the dry song (summed to one source, as it is a single moving sound)
+    {
+        using namespace rack::driveby;
+        CHECK(std::fabs(through("DRIVE-BY", {{GainOn, 0}, {PanOn, 0}, {PitchOn, 0}, {AirOn, 0}, {ReverbOn, 0}}).rmsDb) < 0.5);
+    }
+    // LOW PROFILE: AMOUNT tops out at +12 dB (one drag took it to +22.7 dB and the song to +16.5 dB)
+    {
+        const rack::PluginInfo* info = rack::findPlugin("LOW PROFILE");
+        auto e = info->create();
+        CHECK(e->params()[rack::lowprofile::Intensity].max <= 12.0f);
+        CHECK(through("LOW PROFILE", {{rack::lowprofile::Intensity, 12}}).rmsDb < 6.0);
+    }
+    // LOW RIDER: its added paths top out at +12 dB too
+    {
+        auto e = rack::findPlugin("LOW RIDER")->create();
+        CHECK(e->params()[rack::lowrider::LowAir].max <= 12.0f && e->params()[rack::lowrider::Lo].max <= 12.0f);
+    }
+    // KNOCKOUT: SUSTAIN at -100 % takes the tails down on a song (it did nothing at the default pickup)
+    {
+        using namespace rack::knockout;
+        CHECK(through("KNOCKOUT", {{Sustain, -100}}).rmsDb < -0.3);
+        CHECK(through("KNOCKOUT", {{Sustain, 100}}).rmsDb > 0.3);
+        CHECK(through("KNOCKOUT", {{Attack, 100}}).peakDb < 2.1);   // SAFETY clips at -0.1 dBFS at load
+    }
+    // KINGPIN: OUTPUT reads in dB and does what it reads
+    {
+        using namespace rack::kingpin;
+        CHECK(std::fabs(through("KINGPIN", {{Output, -6}}).rmsDb + 6.0) < 0.3);
+        CHECK(std::fabs(through("KINGPIN", {{Output, 6}}).rmsDb - 6.0) < 0.3);
+    }
+    // THE RACKET: a drive pedal at LEVEL 50 is as loud as the song (it came out 11-14 dB louder); LEVEL 100 = +12 dB
+    {
+        using namespace rack::racket;
+        for (int ped = 0; ped < 5; ++ped) {
+            const Level d = through("THE RACKET", {{Which, static_cast<float>(ped)}});
+            if (std::fabs(d.rmsDb) >= 1.0) std::printf("  THE RACKET pedal %d: %+.1f dB\n", ped, d.rmsDb);
+            CHECK(std::fabs(d.rmsDb) < 1.0);
+        }
+        CHECK(std::fabs(through("THE RACKET", {{OdLevel, 100}}).rmsDb - 12.0) < 1.0);
+    }
+    // PAWN SHOP: each old device keeps the song's loudness
+    {
+        using namespace rack::pawnshop;
+        for (int dev = 0; dev < 4; ++dev) CHECK(std::fabs(through("PAWN SHOP", {{Device, static_cast<float>(dev)}}).rmsDb) < 1.0);
+    }
+}
+
+} // namespace
+
+void testRelease() {
+    testEveryPluginIsItsOwn();
+    testSafeOnLoad();
+    testQuietOnLoad();
+    testFixedControls();
+}
+
+} // namespace hem::test

@@ -40,7 +40,10 @@ const ProfileDef kProfile[kProfiles] = {
     {{80, 320, 1278, 5113}, 1.0f, {0, 0, 0, 0, 0}, {1, 0, 0, 0, 1}, {360, 300, 240, 180, 120}, Hard},
 };
 
-const ParamInfo kParams[kCount] = {
+// One control table per engine: the rack tells plug-ins apart by their table, so TOP DOG and QUICK CASH
+// must never share one (they did, and QUICK CASH opened as TOP DOG).
+template <bool kLinear> struct Table { static const ParamInfo kParams[kCount]; };
+template <bool kLinear> const ParamInfo Table<kLinear>::kParams[kCount] = {
     {"threshold", "Threshold", "dB", -30.0f, 0.0f, 0.0f},
     {"ceiling", "Ceiling", "dB", -30.0f, 0.0f, 0.0f},
     {"link", "Link", "", 0, 1, 0, Taper::Toggle, kOnOff},
@@ -58,7 +61,7 @@ template <bool kLinear>
 class Impl final : public hc::fx::Effect {
 public:
     Impl() { setDefaults(); }
-    std::span<const ParamInfo> params() const noexcept override { return kParams; }
+    std::span<const ParamInfo> params() const noexcept override { return Table<kLinear>::kParams; }
     std::span<const hc::fx::MeterInfo> meters() const noexcept override { return kMeters; }
     std::uint32_t latency() const noexcept override { return FiveBand<kLinear>::kLatency; }
 

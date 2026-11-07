@@ -22,7 +22,7 @@ const ParamInfo kParams[kCount] = {
     {"sync", "Release Sync", "", 0, 2, 0, Taper::Choice, kSyncN},
     {"note", "Release Note", "", 0, 7, 3, Taper::Choice, kNoteN},
     {"bpm", "BPM", "BPM", 30.0f, 300.0f, 120.0f},
-    {"analog", "Vintage", "", 0, 4, 2, Taper::Choice, kAnalogN},
+    {"analog", "Vintage", "", 0, 4, 0, Taper::Choice, kAnalogN},
     {"limiter", "Limiter", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},

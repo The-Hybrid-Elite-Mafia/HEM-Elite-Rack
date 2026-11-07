@@ -104,7 +104,7 @@ void testTorch() {
 void testHotWire() {
     using namespace hotwire;
     {   // the limiter: never past -0.1 dBFS, and it counts what it caught
-        auto e = make("HOT WIRE", {{Input, 12}, {Output, 12}, {Channel, Lead}, {Gain, 10}});
+        auto e = make("HOT WIRE", {{Input, 12}, {Output, 12}, {Channel, Lead}, {Gain, 10}, {Volume, 10}});
         Stereo s = sine(200, 1.0, 0.8f);
         run(*e, s);
         std::printf("  HOT WIRE flat out: peak %.4f (ceiling 0.9886), clips counted %.0f\n", peak(s), e->meter(2));

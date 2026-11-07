@@ -31,7 +31,7 @@ const char* const kPushN[] = {"A", "B"};   // any change = a push
 namespace c4 {
 using namespace territory;
 const ParamInfo kParams[kCount] = {
-    HEM_BAND(1, -30.0f, 10.0f, 150.0f), HEM_BAND(2, -30.0f, 8.0f, 120.0f), HEM_BAND(3, -30.0f, 5.0f, 90.0f), HEM_BAND(4, -30.0f, 3.0f, 70.0f),
+    HEM_BAND(1, 0.0f, 10.0f, 150.0f), HEM_BAND(2, 0.0f, 8.0f, 120.0f), HEM_BAND(3, 0.0f, 5.0f, 90.0f), HEM_BAND(4, 0.0f, 3.0f, 70.0f),
     HEM_MASTER,
     {"x1", "Crossover 1", "Hz", 40.0f, 350.0f, 100.0f, Taper::Log},
     {"x2", "Crossover 2", "Hz", 150.0f, 3000.0f, 600.0f, Taper::Log},
@@ -47,8 +47,8 @@ const ParamInfo kParams[kCount] = {
 namespace lin {
 using namespace straightedge;
 const ParamInfo kParams[kCount] = {
-    HEM_BAND(1, -30.0f, 10.0f, 150.0f), HEM_BAND(2, -30.0f, 8.0f, 120.0f), HEM_BAND(3, -30.0f, 5.0f, 90.0f), HEM_BAND(4, -30.0f, 3.0f, 70.0f),
-    HEM_BAND(5, -30.0f, 2.0f, 50.0f),
+    HEM_BAND(1, 0.0f, 10.0f, 150.0f), HEM_BAND(2, 0.0f, 8.0f, 120.0f), HEM_BAND(3, 0.0f, 5.0f, 90.0f), HEM_BAND(4, 0.0f, 3.0f, 70.0f),
+    HEM_BAND(5, 0.0f, 2.0f, 50.0f),
     HEM_MASTER,
     {"x1", "Crossover 1", "Hz", 40.0f, 350.0f, 92.0f, Taper::Log},
     {"x2", "Crossover 2", "Hz", 150.0f, 3000.0f, 545.0f, Taper::Log},

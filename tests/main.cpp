@@ -46,6 +46,7 @@ int main(int argc, char** argv) {
     testRackSidechain();
     testRackSession();
     testLiveRack();
+    testRelease();
     std::printf("\nhem_rack_tests: %d checks, %d failed\n", gChecks, gFails);
     return gFails ? 1 : 0;
 }

@@ -20,7 +20,7 @@ const ParamInfo kParams[kCount] = {
     {"sustainsens", "Sustain Pickup", "%", 0.0f, 100.0f, 50.0f},
     {"sustaintime", "Sustain Length", "ms", 30.0f, 1000.0f, 200.0f, Taper::Log},
     {"sustainshape", "Sustain Curve", "", 0, 2, 0, Taper::Choice, kSusShapeN},
-    {"guard", "Safety", "", 0, 2, 0, Taper::Choice, kGuardN},
+    {"guard", "Safety", "", 0, 2, 1, Taper::Choice, kGuardN},   // CLIP at load: a boosted hit never goes past -0.1 dBFS
     {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
     {"output", "Output", "dB", -24.0f, 24.0f, 0.0f},
 };
@@ -58,7 +58,7 @@ public:
 
     void process(float* L, float* R, std::uint32_t n) noexcept override {
         const float atk = p(Attack) * 0.01f, sus = p(Sustain) * 0.01f;
-        const float aThr = 12.0f * (1.0f - p(AttackSens) * 0.01f), sThr = 12.0f * (1.0f - p(SustainSens) * 0.01f);
+        const float aThr = 12.0f * (1.0f - p(AttackSens) * 0.01f), sThr = 4.0f * (1.0f - p(SustainSens) * 0.01f);   // 2 dB into a decay at 50 % (12 dB caught nothing on a full mix)
         const float aT = p(AttackTime), sT = p(SustainTime);
         const int aShape = std::clamp(static_cast<int>(std::lround(p(AttackShape))), 0, 2);
         const int sShape = std::clamp(static_cast<int>(std::lround(p(SustainShape))), 0, 2);

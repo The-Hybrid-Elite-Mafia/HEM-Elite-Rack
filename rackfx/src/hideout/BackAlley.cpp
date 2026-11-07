@@ -22,11 +22,11 @@ const ParamInfo kParams[kCount] = {
     {"note", "Note", "", 0, kNotes - 1, 11, Taper::Choice, kNotesN},
     {"feedback", "Feedback", "%", 0.0f, 100.0f, 35.0f},
     {"pingpong", "Ping Pong", "", 0, 1, 0, Taper::Toggle, kOnOff},
-    {"echolevel", "Echo Level", "dB", -60.0f, 0.0f, -6.0f},
+    {"echolevel", "Echo Level", "dB", -60.0f, 0.0f, -12.0f},
     {"reverbon", "Reverb", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"length", "Reverb Length", "s", 0.5f, 20.0f, 2.0f, Taper::Log},
     {"type", "Reverb Type", "", 0, 1, 0, Taper::Choice, kTypeN},
-    {"reverblevel", "Reverb Level", "dB", -60.0f, 0.0f, -6.0f},
+    {"reverblevel", "Reverb Level", "dB", -60.0f, 0.0f, -12.0f},
     {"highpass", "Hi-Pass", "Hz", 30.0f, 1500.0f, 30.0f, Taper::Log},
     {"lowpass", "Lo-Pass", "Hz", 1500.0f, 21000.0f, 21000.0f, Taper::Log},
     {"mono", "Mono", "", 0.0f, 10.0f, 10.0f},
@@ -109,7 +109,10 @@ public:
             wl = master_[0][1].tick(master_[0][0].tick(wl));
             wr = master_[1][1].tick(master_[1][0].tick(wr));
             const float m = mix_.next(wMix), w = width_.next(wW);
-            const float yl = dl + m * (wl - dl), yr = dr + m * (wr - dr);
+            // MIX: the dry song stays at full level up to 50 % while the effects come up to full; past 50 % the dry fades out.
+            // So 50 % (the start) is the whole song plus the echo and the spring, not the song 6 dB down.
+            const float gd = std::min(1.0f, 2.0f * (1.0f - m)), gw = std::min(1.0f, 2.0f * m);
+            const float yl = gd * dl + gw * wl, yr = gd * dr + gw * wr;
             const float mid = 0.5f * (yl + yr), side = 0.5f * (yl - yr) * w;
             L[i] = mid + side;
             R[i] = mid - side;

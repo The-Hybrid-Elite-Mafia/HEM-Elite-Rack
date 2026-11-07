@@ -16,10 +16,10 @@ const char* const kLimRelN[] = {"100 MS", "200 MS", "800 MS", "AUTO"};
 const char* const kAnalogN[] = {"OFF", "25 %", "50 %", "100 %"};
 constexpr float kAnalogAmt[] = {0.0f, 0.25f, 0.5f, 1.0f};
 const ParamInfo kParams[kCount] = {
-    {"input", "Input", "dB", -24.0f, 18.0f, 0.0f},
-    {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
+    {"input", "Input", "dB", -24.0f, 18.0f, -15.0f},
+    {"output", "Output", "dB", -18.0f, 18.0f, 15.0f},
     {"meter", "Meter", "", 0, 2, 1, Taper::Choice, kMeterN},
-    {"analog", "Vintage", "", 0, 3, 1, Taper::Choice, kAnalogN},
+    {"analog", "Vintage", "", 0, 3, 0, Taper::Choice, kAnalogN},
     {"compress", "Compress", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"ratio", "Ratio", "", 0, 4, 2, Taper::Choice, kRatioN},
     {"release", "Release", "", 0, 3, 3, Taper::Choice, kReleaseN},

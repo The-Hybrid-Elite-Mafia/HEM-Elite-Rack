@@ -966,7 +966,9 @@ void FaceView::grMeter(const Ctx& c, const Widget& w) const {
     const float target = std::clamp(w.choice >= 0 ? c.feed.meterDb(w.choice) : c.feed.reductionDb(), -20.0f, 0.0f);
     float& needle_ = w.choice >= 0 ? needles_[static_cast<std::size_t>(std::clamp(w.choice, 0, 3))] : this->needle_;
     if (needle_ > 0.5f) needle_ = target;    // the first frame shows where it is
-    needle_ += (target - needle_) * 0.35f;   // then it swings like a real needle, ~0.1 s
+    // then it swings like a gain-reduction meter: quick down when it squeezes more, slow back (about 0.4 s), so a
+    // limiter working on the peaks of a song reads what it does instead of flicking back to 0.0 between the hits
+    needle_ += (target - needle_) * (target < needle_ ? 0.5f : 0.08f);
     if (std::fabs(needle_) < 0.01f) needle_ = 0.0f;
     // A small meter (HITMAN's pair) gets a smaller number in a band of its own at the top, and its pivot
     // lifted clear of the caption when the caption reaches the middle; the scale shrinks to fit under
@@ -1024,7 +1026,7 @@ void FaceView::grMeter(const Ctx& c, const Widget& w) const {
     // labels and the number
     r.text(ls, caption, d.x + 20 * z, d.bottom() - 18 * z, th_.label, Align::Left, TextFx::Shadowed);
     char b[32];
-    std::snprintf(b, sizeof b, "%.1f", static_cast<double>(std::fabs(target) < 0.05f ? 0.0f : target));
+    std::snprintf(b, sizeof b, "%.1f", static_cast<double>(std::fabs(needle_) < 0.05f ? 0.0f : needle_));
     r.text(big, b, d.right() - 24 * z, bigBaseline, th_.teal, Align::Right, TextFx::Shadowed);
 }
 

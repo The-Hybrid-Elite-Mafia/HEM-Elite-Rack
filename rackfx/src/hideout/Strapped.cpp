@@ -30,7 +30,7 @@ const ParamInfo kParams[kCount] = {
     {"output", "Output", "dB", -10.0f, 10.0f, 0.0f},
     HEM_FADER("bass", "Bass"), HEM_FADER("treble", "Treble"), HEM_FADER("compress", "Compress"),
     HEM_FADER("reverb", "Reverb"), HEM_FADER("delay", "Delay"), HEM_FADER("pitch", "Pitch"),
-    HEM_COLOR("basscolor", "Bass Style", kBassN), HEM_COLOR("treblecolor", "Treble Style", kTrebleN), HEM_COLOR("compresscolor", "Compress Style", kCompN),
+    HEM_COLOR("basscolor", "Bass Style", kBassN), HEM_COLOR("treblecolor", "Treble Style", kTrebleN), {"compresscolor", "Compress Style", "", 0, 3, 0, Taper::Choice, kCompN},   // OFF at load: no squeeze until you pick one
     HEM_COLOR("reverbcolor", "Reverb Style", kVerbN), HEM_COLOR("delaycolor", "Delay Style", kDelayN), HEM_COLOR("pitchcolor", "Pitch Style", kPitchN),
 };
 #undef HEM_FADER

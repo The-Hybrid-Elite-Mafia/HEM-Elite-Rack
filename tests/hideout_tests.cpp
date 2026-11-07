@@ -759,7 +759,8 @@ void testPawnShop() {
             return toneGain(*e, hz, 0.05f);
         };
         const double deep = lv(2, 50, 3, 6000), flat = lv(3, 50, 3, 6000), dark = lv(1, 0, 3, 5000), bright = lv(1, 100, 3, 5000);
-        const double e50 = lv(3, 50, 0, 9000), e80 = lv(3, 50, 3, 9000);
+        // each decade has its own make-up (the loudness it takes from a song is put back), so its top is read against its own 1 kHz
+        const double e50 = lv(3, 50, 0, 9000) - lv(3, 50, 0, 1000), e80 = lv(3, 50, 3, 9000) - lv(3, 50, 3, 1000);
         std::printf("  PAWN SHOP 6 kHz: DEEP %+.1f, FLAT %+.1f dB; VINTAGE 5 kHz tone 0 %+.1f, 100 %+.1f dB; 9 kHz 50s %+.1f, 80s %+.1f dB\n", deep, flat,
                     dark, bright, e50, e80);
         CHECK(deep < flat - 12.0 && bright > dark + 5.0 && e50 < e80 - 10.0);
@@ -1257,9 +1258,16 @@ void testSafeHouse() {
 // controls that shape them, and a change of space made in the background while it plays.
 void testFingerprint() {
     using namespace fingerprint;
-    auto fp = [](std::initializer_list<std::pair<int, float>> v) { return make("FINGERPRINT", v); };
+    // all wet unless a test says otherwise (it loads at MIX 15 %, the dry song at full level)
+    auto fp = [](std::initializer_list<std::pair<int, float>> v) {
+        auto e = findPlugin("FINGERPRINT")->create();
+        e->set(Mix, 100);
+        for (const auto& [i, x] : v) e->set(i, x);
+        e->prepare(kFs, 512);
+        return e;
+    };
     constexpr std::size_t L = kBlock;
-    // the response to a click (all wet, no direct sound): energy 1 per side, nothing before the latency
+    // the response to a click (all wet, no direct sound): nothing before the latency (its loudness is checked on pink noise below)
     auto e = fp({{Space, 7}, {Length, 0.3f}});
     CHECK(e->latency() == kBlock);
     Stereo imp(48000);
@@ -1285,15 +1293,33 @@ void testFingerprint() {
     }
     std::printf("  FINGERPRINT click: nothing before %zu samples (%.1e), energy L %.3f R %.3f (cut to 0.3 s); noise against a plain sum: "
                 "worst %.2e of %.2f\n", L, before, energyL, energyR, err, mag);
-    CHECK(before < 1e-6 && energyL > 0.3 && energyL < 1.01 && energyR > 0.3 && energyR < 1.01 && err < 1e-4 * std::max(1.0, mag));
-    // the whole response: energy 1; MIX 0 = the dry sound, held back by the latency; DIRECT = 0.3 at the latency
+    CHECK(before < 1e-6 && energyL > 0.1 && energyL < 4.0 && energyR > 0.1 && energyR < 4.0 && err < 1e-4 * std::max(1.0, mag));
+    // the whole response: pink noise comes out as loud as it went in; MIX 0 = the dry sound, held back by the latency; DIRECT = 0.3 at the latency
     {
         auto full = fp({{Space, 2}});
         Stereo c(48000 * 2);
         c.l[0] = c.r[0] = 1.0f;
         run(*full, c);
         double en = 0;
-        for (float v : c.l) en += static_cast<double>(v) * v;
+        {
+            auto pk = fp({{Space, 2}});
+            Stereo pn(48000 * 6);
+            std::mt19937 g(5);
+            std::normal_distribution<float> nd(0.0f, 1.0f);
+            float b0 = 0, b1 = 0, b2 = 0;
+            for (std::size_t i = 0; i < pn.size(); ++i) {
+                const float w = nd(g);
+                b0 = 0.99765f * b0 + w * 0.0990460f;
+                b1 = 0.96300f * b1 + w * 0.2965164f;
+                b2 = 0.57000f * b2 + w * 1.0526913f;
+                pn.l[i] = pn.r[i] = (b0 + b1 + b2 + w * 0.1848f) * 0.03f;
+            }
+            double ei = 0, eo = 0;
+            for (std::size_t i = pn.size() / 2; i < pn.size(); ++i) ei += static_cast<double>(pn.l[i]) * pn.l[i];
+            run(*pk, pn);
+            for (std::size_t i = pn.size() / 2; i < pn.size(); ++i) eo += static_cast<double>(pn.l[i]) * pn.l[i];
+            en = eo / ei;   // 1 = as loud as it went in
+        }
         auto dryOnly = fp({{Mix, 0}});
         Stereo d(4000);
         d.l[10] = 0.7f;
@@ -1302,9 +1328,9 @@ void testFingerprint() {
         Stereo t(2000);
         t.l[0] = 1.0f;
         run(*dir, t);
-        std::printf("  FINGERPRINT LIVE ROOM: energy %.4f; MIX 0: the click at %zu = %.3f; DIRECT: %.3f at the latency\n", en, 10 + L,
+        std::printf("  FINGERPRINT LIVE ROOM: pink noise out / in %.4f; MIX 0: the click at %zu = %.3f; DIRECT: %.3f at the latency\n", en, 10 + L,
                     static_cast<double>(d.l[10 + L]), static_cast<double>(t.l[L]));
-        CHECK(std::fabs(en - 1.0) < 0.01 && std::fabs(d.l[10 + L] - 0.7f) < 1e-6f && std::fabs(t.l[L] - 0.3f) < 0.05f);
+        CHECK(std::fabs(10.0 * std::log10(en)) < 1.0 && std::fabs(d.l[10 + L] - 0.7f) < 1e-6f && std::fabs(t.l[L] - 0.3f) < 0.05f);
     }
     // the reverb times as built, and DECAY
     {

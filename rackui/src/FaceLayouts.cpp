@@ -1824,20 +1824,33 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
         L.widgets.push_back(cv);
         L.recesses.push_back({scr, 14, 9, false, true});
     } else {
-        L.display = {gx, 180, 1636.0f - gx, 64};
+        L.display = {gx, 180, 1636.0f - gx, 52};
         if (B.meter >= 0)
             for (int b = 0; b < n && b < 8; ++b) {
                 const bool master = B.lastIsMaster && b == n - 1;
-                readoutAt(L, {colX(b) + 6, 180, colW - 12, 64}, B.meter + b, master ? "OUTPUT" : kNames[b], master ? "dBFS" : "dB", "+");
+                readoutAt(L, {colX(b) + 6, 180, colW - 12, 52}, B.meter + b, master ? "OUTPUT" : kNames[b], master ? "dBFS" : "dB", "+");
             }
     }
     // the globals: row1, the switches, the borders' knobs (crossovers) between the columns
     constexpr float d = 48.0f;
+    // How tall the grid is, to know whether the crossover knobs (on the column borders) get a row of their own. On one row
+    // with the globals their names ran into each other ("ADAPTIVESPLIT", "BAND FREEDOSPLIT").
+    float gridH = (B.columnNames.empty() ? 0.0f : 30.0f) + 72.0f * static_cast<float>(B.knobs.size()) +
+                  50.0f * static_cast<float>(B.steppers.size() + B.toggles.size());
+    if (S.screen == rack::Screen::Readouts && !S.readouts.empty()) gridH += 140.0f;
+    const bool hasBorders = !B.borders.empty() && n > 1;
+    const bool borderRow = !eq && hasBorders && 440.0f + gridH <= 800.0f;   // a row of their own
+    const bool staggered = !eq && hasBorders && !borderRow;                 // no room: half a row lower than the globals
+    float knobRowH = 72.0f;
+    if (staggered && 372.0f + gridH > 800.0f) knobRowH = 66.0f;
     auto globals = [&](float top) {
         const std::size_t first = L.widgets.size();
         const int items = static_cast<int>(S.row1.size() + S.toggles.size());
-        // EQs spread the globals across the whole width; the multiband plates keep one per column
-        const float pitch = items > n || eq ? static_cast<float>(n) / static_cast<float>(std::max(items, 1)) : 1.0f;
+        // EQs spread the globals across the whole width, and so do plates with fewer globals than columns and no
+        // crossovers (seven knobs packed into seven of MADE MAN's twelve narrow note columns ran their names together);
+        // with crossovers on the borders they keep the middles of the columns, clear of the borders.
+        const bool spread = eq || items > n || (items < n && !hasBorders);
+        const float pitch = spread ? static_cast<float>(n) / static_cast<float>(std::max(items, 1)) : 1.0f;
         int slot = 0;
         for (const rack::PlateKnob& k : S.row1) {
             const float x = gx + (static_cast<float>(slot++) + 0.5f) * pitch * colW;
@@ -1849,19 +1862,20 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
             L.widgets.push_back(toggle({x - tw * 0.5f, top + 4, tw, 44}, t.param, t.caption));
             if (t.press) L.widgets.back().hi = "PRESS";
         }
+        const float bTop = borderRow ? top + 86.0f : staggered ? top + 22.0f : top;
         for (std::size_t i = 0; i < B.borders.size() && static_cast<int>(i) + 1 < n; ++i) {
             const float x = colX(static_cast<int>(i) + 1);
             const rack::PlateKnob& k = B.borders[i];
-            L.widgets.push_back(knob({x - d * 0.5f, top, d, d}, k.param, k.caption, k.lo, k.hi, true));
+            L.widgets.push_back(knob({x - d * 0.5f, bTop, d, d}, k.param, k.caption, k.lo, k.hi, true));
         }
         seatKnobs(L, first, 6);
     };
-    if (!eq) globals(270);
-    const float gridTop = eq ? 356.0f : 360.0f;
+    if (!eq) globals(hasBorders ? 258.0f : 270.0f);
+    const float gridTop = eq ? 356.0f : borderRow ? 440.0f : staggered ? 372.0f : 360.0f;
     L.grooves.push_back({labelX, gridTop - 8, 1636, gridTop - 8});
     // the grid
     float y = gridTop;
-    constexpr float knobRowH = 72.0f, rowH = 50.0f, kd = 40.0f;
+    constexpr float rowH = 50.0f, kd = 40.0f;
     auto stepperRows = [&] {
         for (const rack::PlateChoice& st : B.steppers) {
             L.sections.push_back({{labelX, y + 6, labelW, 30}, st.caption});
@@ -1896,6 +1910,9 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
         y += knobRowH;
     }
     seatKnobs(L, first, 6);
+    // the last column is every band at once: say so under its knobs (it had no name at all)
+    if (B.lastIsMaster && !B.knobs.empty() && (B.columnNames.empty() || static_cast<int>(B.columnNames.size()) < n))
+        L.sections.push_back({{colX(n - 1) + 4, y + 6, colW - 8, 30}, "ALL BANDS"});
     if (!eq) stepperRows();
     for (const rack::PlateToggle& t : B.toggles) {
         L.sections.push_back({{labelX, y + 6, labelW, 30}, t.caption});
@@ -1907,6 +1924,18 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
         y += rowH;
     }
     for (int b = 1; b < n; ++b) L.grooves.push_back({colX(b), gridTop, colX(b), y});
+    // A readouts screen under the grid (THE SNITCH's note, cents and pitch; MADE MAN's): the grid took the screen's place on
+    // top, and the readouts were never drawn at all, so the tuner showed no note.
+    if (!eq && S.screen == rack::Screen::Readouts && !S.readouts.empty()) {
+        const int nr = static_cast<int>(S.readouts.size());
+        const float top = y + 28.0f, gap = 16.0f, w = 1636.0f - labelX;
+        const float rw = (w - gap * static_cast<float>(nr - 1)) / static_cast<float>(nr), h = std::min(170.0f, 770.0f - top);
+        for (int i = 0; i < nr; ++i) {
+            const rack::PlateReadout& ro = S.readouts[static_cast<std::size_t>(i)];
+            readoutAt(L, {labelX + static_cast<float>(i) * (rw + gap), top, rw, h}, ro.meter, ro.caption, ro.unit, ro.fmt);
+        }
+        y = top + h;
+    }
     if (eq) {
         L.grooves.push_back({labelX, y + 8, 1636, y + 8});
         globals(y + 40);

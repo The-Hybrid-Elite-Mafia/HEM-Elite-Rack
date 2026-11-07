@@ -55,7 +55,7 @@ const char* const kScN[] = {"OFF", "60 Hz", "90 Hz", "150 Hz", "250 Hz"};
 const char* const kTailN[] = {"STEADY", "LINGER"};
 const char* const kCharN[] = {"CLEAN", "WARM"};
 const ParamInfo kParams[kCount] = {
-    {"threshold", "Threshold", "dB", -60.0f, 0.0f, -20.0f},
+    {"threshold", "Threshold", "dB", -60.0f, 0.0f, 0.0f},
     {"ratio", "Ratio", ":1", 1.0f, 20.0f, 4.0f, Taper::Log},
     {"knee", "Knee", "dB", 0.0f, 24.0f, 6.0f},
     {"attack", "Attack", "ms", 0.1f, 100.0f, 10.0f, Taper::Log},

@@ -18,6 +18,8 @@ const char* const kAmpN[] = {"CLASSIC", "CROWN", "STEEL", "BLAZE", "BEAST"};
 const char* const kChN[] = {"CLEAN", "DRIVE", "LEAD"};
 const char* const kCabN[] = {"1X12 OPEN", "2X12 OPEN", "4X10 OPEN", "2X12 CLOSED", "4X12 OLD", "4X12 NEW"};
 const char* const kPushN[] = {"A", "B"};
+// each amp's CLEAN / DRIVE / LEAD level on a song-like test signal (-18 dB RMS) at the knobs' starting points, taken back out
+constexpr float kAmpTrimDb[5][3] = {{-3.1f, -2.3f, -1.9f}, {-1.1f, -2.7f, -2.0f}, {0.2f, -2.7f, -2.0f}, {2.4f, -2.8f, -2.2f}, {4.4f, -2.8f, -2.1f}};
 const ParamInfo kParams[kCount] = {
     {"input", "Input", "dB", -12.0f, 12.0f, 0.0f},
     {"amp", "Amp", "", 0, 4, 0, Taper::Choice, kAmpN},
@@ -119,7 +121,12 @@ public:
 
 private:
     static constexpr std::uint32_t kChunk = 64;
-    float volume() const noexcept { return hc::fx::dbToGain(knobDb(p(Volume), 3.6f)); }
+    // VOLUME 5 = the song's own loudness on every amp and channel: each one's level on a song (measured: +3.1 .. -4.4 dB) is
+    // taken back out (kAmpTrimDb)
+    float volume() const noexcept {
+        const int a = std::clamp(static_cast<int>(std::lround(p(Amp))), 0, 4), c = std::clamp(static_cast<int>(std::lround(p(Channel))), 0, 2);
+        return hc::fx::dbToGain(knobDb(p(Volume), 3.6f) + kAmpTrimDb[a][c]);
+    }
 
     void chunk(float* L, float* R, std::uint32_t n) noexcept {
         design();

@@ -396,6 +396,8 @@ private:
 
     void clearPedal() noexcept {
         lat_.clear();
+        pwIn_ = pwOut_ = 0.0f;
+        match_ = 0.25f;
         for (auto& o : os_) o.clear();
         for (auto& ch : f_)
             for (auto& b : ch) b.clear();
@@ -610,6 +612,10 @@ private:
         }
         float* io[2] = {L, R};
         float x4[kChunk * OS::kFactor];
+        // LEVEL 50 = as loud as the song went in: the clipped sound sits near full scale whatever goes in (it came out
+        // 11-14 dB louder than the song), so a slow match (1.5 s, -36 .. +6 dB) sets the pedal's loudness to the input's.
+        float pin[kChunk];
+        for (std::uint32_t i = 0; i < n; ++i) pin[i] = 0.5f * (L[i] * L[i] + R[i] * R[i]);
         for (int c = 0; c < 2; ++c) {
             auto& f = f_[static_cast<std::size_t>(c)];
             for (std::uint32_t i = 0; i < n; ++i) io[c][i] = f[1].tick(f[0].tick(io[c][i])) * g[i];
@@ -637,8 +643,17 @@ private:
                     x = f[5].tick(f[4].tick(f[3].tick(f[2].tick(x))));
                 }
                 dc += (x - dc) * 0.0005f;
-                io[c][i] = (x - dc) * lvl[i];
+                io[c][i] = x - dc;
             }
+        }
+        const float k = static_cast<float>(1.0 / (1.5 * fs_)), km = static_cast<float>(1.0 / (0.05 * fs_));
+        for (std::uint32_t i = 0; i < n; ++i) {   // sample by sample, so the block size never changes the sound
+            pwIn_ += k * (pin[i] - pwIn_);
+            pwOut_ += k * (0.5f * (L[i] * L[i] + R[i] * R[i]) - pwOut_);
+            if (pwIn_ > 1e-7f && pwOut_ > 1e-12f) match_ += km * (std::clamp(std::sqrt(pwIn_ / pwOut_), 0.0158f, 2.0f) - match_);
+            const float g = lvl[i] * match_;
+            L[i] *= g;
+            R[i] *= g;
         }
     }
 
@@ -987,6 +1002,7 @@ private:
     std::array<float, kKey> key_{};
     hc::fx::Smoothed inGain_, sm_[kSm];
     float dc_[2]{};
+    float pwIn_ = 0.0f, pwOut_ = 0.0f, match_ = 0.25f;   // the drive pedals' loudness match
     // modulation
     hc::fx::DelayLine md_[2], th_[2];
     hideout::PitchShift ps_[2], psBass_[2];

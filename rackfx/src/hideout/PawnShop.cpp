@@ -82,6 +82,11 @@ constexpr Era kEra[4] = {
     {30.0f, 16000.0f, 3.0f, 1.0f, 12},
 };
 
+// What each DEVICE (rows) in each DECADE (columns: 40s .. 80s) takes from a song at TONE 50, put back after it, so turning
+// the device on keeps the loudness (VINTAGE in the 60s took the song 6-7 dB down). Measured on a song-like test signal
+// (pink noise, kick, a held note: -18 dB RMS) with these made-up levels at 0.
+constexpr float kDevMakeupDb[4][4] = {{9.5f, 7.3f, 5.6f, 5.2f}, {9.0f, 6.3f, 4.6f, 4.1f}, {9.1f, 5.9f, 3.8f, 3.3f}, {10.9f, 7.0f, 4.1f, 3.2f}};
+
 inline float rnd(std::uint32_t& s) noexcept {
     s = s * 1664525u + 1013904223u;
     return static_cast<float>(s >> 8) / 8388608.0f - 1.0f;
@@ -259,6 +264,7 @@ public:
         design();
         const bool devOn = p(DeviceOn) >= 0.5f, spOn = p(SpaceOn) >= 0.5f, nzOn = p(NoiseOn) >= 0.5f, mcOn = p(MechOn) >= 0.5f;
         const Era& era = kEra[pick(p(Styler), 3)];
+        const float devMk = hc::fx::dbToGain(kDevMakeupDb[pick(p(Device), 3)][pick(p(Styler), 3)]);
         const float wIn = hc::fx::dbToGain(p(Input)), wOut = hc::fx::dbToGain(p(Output)), wDmix = p(DeviceMix) * 0.01f, wSmix = p(SpaceMix) * 0.01f;
         const float wEcho = echoSamples(), wNoise = noiseGain(), wRing = p(Ringer) * 0.01f, wWidth = p(Mono) * 0.1f;
         const float echoLv = p(EchoLevel) * 0.01f, fb = std::min(p(Feedback) * 0.01f, 1.0f), revLv = p(ReverbLevel) * 0.01f;
@@ -319,6 +325,9 @@ public:
                     v = e[1].tick(e[0].tick(v));
                     d[c] = v;
                 }
+                // made up by what this device and decade take from a song (measured on music; see kDevMakeupDb)
+                d[0] *= devMk;
+                d[1] *= devMk;
                 const float m = dmix_.next(wDmix) * devMix_;
                 x[0] += m * (d[0] - x[0]);
                 x[1] += m * (d[1] - x[1]);

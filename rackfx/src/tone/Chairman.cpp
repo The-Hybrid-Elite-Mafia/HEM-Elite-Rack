@@ -37,7 +37,7 @@ const ParamInfo kParams[kCount] = {
     {"lowgain", "Low Gain", "dB", 0.0f, 15.0f, 0.0f},
     {"lowcut", "Low Cut", "", 0, 5, 0, Taper::Choice, kCutN},
     {"eqin", "EQ", "", 0, 1, 1, Taper::Toggle, kOnOff},
-    {"analog", "Hum", "", 0, 2, 2, Taper::Choice, kMainsN},
+    {"analog", "Hum", "", 0, 2, 0, Taper::Choice, kMainsN},
     {"noise", "Hiss", "", 0, 1, 0, Taper::Choice, kNoiseN},
     {"phase", "Phase", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},

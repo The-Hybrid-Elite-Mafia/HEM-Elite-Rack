@@ -21,8 +21,8 @@ using namespace arsenal;
 const char* const kRatioN[] = {"4:1", "8:1", "12:1", "20:1", "STACKED"};
 const char* const kRevN[] = {"EARLY", "LATE"};
 const ParamInfo kParams[kCount] = {
-    {"input", "Input", "dB", -60.0f, 0.0f, -30.0f},
-    {"output", "Output", "dB", -60.0f, 0.0f, -18.0f},
+    {"input", "Input", "dB", -60.0f, 0.0f, -48.0f},
+    {"output", "Output", "dB", -60.0f, 12.0f, 0.0f},
     {"attack", "Attack", "/10", 1.0f, 7.0f, 3.0f},
     {"release", "Release", "/10", 1.0f, 7.0f, 4.0f},
     {"ratio", "Ratio", "", 0, 4, 0, Taper::Choice, kRatioN},

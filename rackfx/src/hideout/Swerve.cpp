@@ -26,7 +26,7 @@ const ParamInfo kParams[kCount] = {
     {"tie", "Tie", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"hold", "Hold", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"stereo", "Stereo", "deg", 0.0f, 180.0f, 0.0f},
-    {"feedback", "Feedback", "%", 0.0f, 100.0f, 50.0f},
+    {"feedback", "Feedback", "%", 0.0f, 100.0f, 30.0f},
     {"loopflip", "Loop Flip", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"mix", "Mix", "%", 0.0f, 100.0f, 50.0f},
     {"wetflip", "Wet Flip", "", 0, 1, 0, Taper::Toggle, kOnOff},

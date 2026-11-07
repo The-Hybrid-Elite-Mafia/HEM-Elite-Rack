@@ -28,7 +28,7 @@ const ParamInfo kParams[kCount] = {
     {"mode", "Mode", "", 0, 1, 0, Taper::Choice, kModeN},
     {"trigger", "Trigger", "", 0, 1, 0, Taper::Choice, kTriggerN},
     {"fire", "Fire", "", 0, 1, 0, Taper::Toggle, kPushN},
-    {"gain", "Gain", "%", 0.0f, 200.0f, 100.0f},
+    {"gain", "Gain", "%", 0.0f, 200.0f, 50.0f},
     {"gainon", "Gain On", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"pan", "Pan", "%", 0.0f, 200.0f, 100.0f},
     {"panon", "Pan On", "", 0, 1, 1, Taper::Toggle, kOnOff},

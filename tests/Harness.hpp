@@ -47,6 +47,7 @@ void testBypassEveryPlugin();
 void testRackSidechain();
 void testRackSession();
 void testLiveRack();
+void testRelease();
 
 void setExePath(const char* argv0);
 [[nodiscard]] std::filesystem::path exeDir();

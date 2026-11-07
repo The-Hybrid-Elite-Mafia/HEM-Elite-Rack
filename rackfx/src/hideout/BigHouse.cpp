@@ -166,7 +166,9 @@ public:
             }
             const float m = mix_.next(wMix), eg = erG_.next(wEr), rg = rvG_.next(wRv), g = gain_.next(wGain);
             const float wl = eg * el + rg * shape * tl, wr = eg * er + rg * shape * tr;
-            const float ol = ((1.0f - m) * dry[0] + m * wl) * g, orr = ((1.0f - m) * dry[1] + m * wr) * g;
+            // MIX: the dry song stays at full level up to 50 % while the space comes up to full; past 50 % the dry fades out.
+            const float gd = std::min(1.0f, 2.0f * (1.0f - m)), gw = std::min(1.0f, 2.0f * m);
+            const float ol = (gd * dry[0] + gw * wl) * g, orr = (gd * dry[1] + gw * wr) * g;
             L[i] = ol;
             R[i] = orr;
             io[0] = std::max(io[0], std::fabs(ol));

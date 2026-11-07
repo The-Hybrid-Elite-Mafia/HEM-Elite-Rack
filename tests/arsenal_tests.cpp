@@ -391,15 +391,15 @@ void testPunchers() {
         CHECK(e->latency() == hc::fx::Oversampler4::latency());
     }
     {   using namespace ironfist;
-        auto a = make("IRON FIST", {{Input, 0}, {Analog, 0}}), b = make("IRON FIST", {{Input, 18}, {Analog, 0}, {Output, -18}});
+        auto a = make("IRON FIST", {{Input, 0}, {Output, 0}, {Analog, 0}}), b = make("IRON FIST", {{Input, 18}, {Analog, 0}, {Output, -18}});
         const double qa = toneOut(*a, 1000, 0.1f), qb = toneOut(*b, 1000, 0.1f);
         std::printf("  IRON FIST -20 dBFS tone: INPUT 0 %.1f dB, INPUT +18 (output -18) %.1f dB\n", qa, qb);
         CHECK(std::fabs(qa) < 1.5 && qb < -6.0);
-        auto am = make("IRON FIST", {{Input, 18}, {Analog, 0}, {AutoMakeup, 1}});
+        auto am = make("IRON FIST", {{Input, 18}, {Output, 0}, {Analog, 0}, {AutoMakeup, 1}});
         const double qm = toneOut(*am, 1000, 0.1f);
         std::printf("  IRON FIST INPUT +18 with AUTO MAKEUP: %.1f dB\n", qm);
         CHECK(qm < qa && qm > qb + 3.0);
-        auto lim = make("IRON FIST", {{Input, 18}, {Compress, 0}, {Limiter, 1}, {LimitLevel, 8}, {LimitAttack, 1}, {Analog, 0}});
+        auto lim = make("IRON FIST", {{Input, 18}, {Output, 0}, {Compress, 0}, {Limiter, 1}, {LimitLevel, 8}, {LimitAttack, 1}, {Analog, 0}});
         Stereo c = noise(1.0, 0.5f);
         run(*lim, c);
         std::printf("  IRON FIST limiter at +8 dBu (-14 dBFS): peaks %.1f dBFS\n", peakDb(c, 9600));

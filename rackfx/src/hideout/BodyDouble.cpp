@@ -26,8 +26,8 @@ const char* const kPushN[] = {"A", "B"};
     {"v" #n "moddepth", "Voice " #n " Mod Depth", "cents", -200.0f, 200.0f, 0.0f},                  \
     {"v" #n "modrate", "Voice " #n " Mod Rate", "Hz", 0.1f, 400.0f, 1.0f, Taper::Log}
 const ParamInfo kParams[kCount] = {
-    HEM_VOICE(1, -6.0f, -45.0f, 9.4f, 8.0f), HEM_VOICE(2, -12.0f, 45.0f, 16.0f, -8.0f), HEM_VOICE(3, -6.0f, 45.0f, 23.7f, 5.0f),
-    HEM_VOICE(4, -12.0f, -45.0f, 21.0f, -5.0f),
+    HEM_VOICE(1, -12.0f, -45.0f, 9.4f, 8.0f), HEM_VOICE(2, -18.0f, 45.0f, 16.0f, -8.0f), HEM_VOICE(3, -12.0f, 45.0f, 23.7f, 5.0f),
+    HEM_VOICE(4, -18.0f, -45.0f, 21.0f, -5.0f),
     {"directon", "Direct", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"directgain", "Direct Gain", "dB", -48.0f, 0.0f, 0.0f},
     {"directpan", "Direct Pan", "deg", -45.0f, 45.0f, 0.0f},

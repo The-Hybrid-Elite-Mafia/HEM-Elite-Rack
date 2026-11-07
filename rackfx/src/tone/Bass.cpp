@@ -57,8 +57,8 @@ namespace lr {
 using namespace lowrider;
 const ParamInfo kParams[kCount] = {
     {"range", "Range", "Hz", 20.0f, 120.0f, 80.0f},
-    {"lowair", "New Octave", "dB", -60.0f, 30.0f, 3.0f},
-    {"lo", "Lows", "dB", -60.0f, 30.0f, 3.0f},
+    {"lowair", "New Octave", "dB", -60.0f, 12.0f, -6.0f},
+    {"lo", "Lows", "dB", -60.0f, 12.0f, -60.0f},
     {"direct", "Direct", "dB", -60.0f, 0.0f, 0.0f},
     {"output", "Output", "dB", -60.0f, 0.0f, 0.0f},
     {"trim", "Trim", "dB", -12.0f, 12.0f, 0.0f},
@@ -418,7 +418,7 @@ using namespace lowprofile;
 const ParamInfo kParams[kCount] = {
     {"frequency", "Frequency", "Hz", 32.0f, 256.0f, 90.0f, Taper::Log},
     {"originalin", "Real Bass", "", 0, 1, 1, Taper::Toggle, kOnOff},
-    {"intensity", "Amount", "dB", -24.0f, 24.0f, 0.0f},
+    {"intensity", "Amount", "dB", -24.0f, 12.0f, 0.0f},
     {"gain", "Gain", "dB", -60.0f, 0.0f, 0.0f},
 };
 const hc::fx::MeterInfo kMeters[] = {{"OUTPUT", "dBFS", -60.0f, 3.0f}};

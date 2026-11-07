@@ -18,7 +18,7 @@ const char* const kPushN[] = {"A", "B"};   // any change = a push
 const ParamInfo kParams[kCount] = {
     {"dimension", "Room Shape", "", 1.0f, 3.99f, 3.0f},
     {"roomsize", "Room Size", "m3", 50.0f, 20000.0f, 8000.0f, Taper::Log},
-    {"distance", "Distance", "m", 0.5f, 50.0f, 5.0f, Taper::Log},
+    {"distance", "Distance", "m", 0.5f, 50.0f, 1.0f, Taper::Log},   // 1 m at load: the song at its own level, the room around it
     {"link", "Real Room", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"balance", "Balance", "dB", -18.0f, 18.0f, 0.0f},
     {"decay", "Decay", "s", 0.1f, 20.0f, 2.0f, Taper::Log},

@@ -19,7 +19,7 @@ using namespace arsenal;
 using eqkit::Shape;
 
 const char* const kTypeN[] = {"KICK", "SNARE", "HATS", "TOMS", "OVERHEAD", "ROOM"};
-const char* const kMeterIoN[] = {"IN", "OUT"};
+const char* const kMeterIoN[] = {"IN", "GR", "OUT"};
 const ParamInfo kParams[kCount] = {
     {"type", "Type", "", 0, kDrums - 1, 0, Taper::Choice, kTypeN},
     {"sens", "Pickup", "", -50.0f, 50.0f, 0.0f},
@@ -28,9 +28,9 @@ const ParamInfo kParams[kCount] = {
     {"fx", "Ambience", "%", 0.0f, 100.0f, 0.0f},
     {"bass", "Bass", "", 0.0f, 5.0f, 0.0f},
     {"treble", "Treble", "", 0.0f, 5.0f, 0.0f},
-    {"output", "Output", "", -50.0f, 50.0f, 0.0f},
-    {"meter", "Meter", "", 0, 1, 1, Taper::Choice, kMeterIoN},
-    {"analog", "Hum", "", 0, 1, 1, Taper::Toggle, kOnOff},
+    {"output", "Output", "dB", -10.0f, 10.0f, 0.0f},
+    {"meter", "Meter", "", 0, 2, 1, Taper::Choice, kMeterIoN},   // GR at load: shows what COMPRESS does
+    {"analog", "Hum", "", 0, 1, 0, Taper::Toggle, kOnOff},
 };
 const hc::fx::MeterInfo kMeters[] = {{"INPUT", "VU", -20.0f, 3.0f}, {"OUTPUT", "VU", -20.0f, 3.0f}};
 constexpr float kAttackMs[kDrums] = {10, 4, 1, 8, 15, 25};
@@ -202,7 +202,7 @@ public:
 private:
     int type() const noexcept { return std::clamp(static_cast<int>(std::lround(p(Type))), 0, kDrums - 1); }
     float fxAmount() const noexcept { return hasFx(type()) ? p(Fx) * 0.01f : 0.0f; }
-    float outGain() const noexcept { return hc::fx::dbToGain(0.2f * p(Output)); }
+    float outGain() const noexcept { return hc::fx::dbToGain(p(Output)); }   // OUTPUT reads in dB (it read -28 for -5.6 dB)
     void load() noexcept {
         const int t = type();
         eqkit::BandSet b[2];

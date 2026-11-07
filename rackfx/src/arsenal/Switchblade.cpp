@@ -18,7 +18,7 @@ const ParamInfo kParams[kCount] = {
     {"compon", "Comp On", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"levelref", "Level Ref", "", 0, 1, 0, Taper::Choice, kRefN},
     {"makeup", "Makeup", "dB", -40.0f, 40.0f, 0.0f},
-    {"threshold", "Threshold", "dB", -100.0f, 0.0f, -18.0f},
+    {"threshold", "Threshold", "dB", -100.0f, 0.0f, 0.0f},
     {"ratio", "Ratio", ":1", 0.5f, 50.0f, 3.0f, Taper::Log},
     {"cancel", "Cancel", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"attack", "Attack", "ms", 0.01f, 1000.0f, 5.0f, Taper::Log},

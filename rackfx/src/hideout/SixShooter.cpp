@@ -34,8 +34,8 @@ const char* const kPushN[] = {"A", "B"};
     {"tap" #n "eqfreq", "Tap " #n " EQ Freq", "Hz", 100.0f, 20000.0f, 2000.0f, Taper::Log},       \
     {"tap" #n "eqgain", "Tap " #n " EQ Gain", "dB", -18.0f, 18.0f, 0.0f}
 const ParamInfo kParams[kCount] = {
-    HEM_TAP(1, 125.0f, -6.0f, -30.0f), HEM_TAP(2, 250.0f, -8.0f, 30.0f), HEM_TAP(3, 375.0f, -10.0f, -20.0f),
-    HEM_TAP(4, 500.0f, -12.0f, 20.0f), HEM_TAP(5, 625.0f, -15.0f, -10.0f), HEM_TAP(6, 750.0f, -18.0f, 10.0f),
+    HEM_TAP(1, 125.0f, -12.0f, -30.0f), HEM_TAP(2, 250.0f, -14.0f, 30.0f), HEM_TAP(3, 375.0f, -16.0f, -20.0f),
+    HEM_TAP(4, 500.0f, -18.0f, 20.0f), HEM_TAP(5, 625.0f, -21.0f, -10.0f), HEM_TAP(6, 750.0f, -24.0f, 10.0f),
     {"directon", "Dry", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"directgain", "Dry Gain", "dB", -24.0f, 0.0f, 0.0f},
     {"directrotate", "Direct Place", "deg", -45.0f, 45.0f, 0.0f},
