@@ -1862,7 +1862,9 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
     const bool hasBorders = !B.borders.empty() && n > 1;
     const bool borderRow = !eq && hasBorders && 452.0f + gridH <= 800.0f;   // a row of their own
     const bool staggered = !eq && hasBorders && !borderRow;                 // no room: half a row lower than the globals
-    constexpr float knobRowH = 72.0f;
+    // staggered: the crossovers sit half a row (22) under the globals so their names clear the globals' names; the
+    // grid then starts at 385 (its groove under their value windows, which end at 379) and its knob rows give 3 each
+    const float knobRowH = staggered ? 69.0f : 72.0f;
     // staggered, the grid starts 12 lower: its switch rows give the 12 back (TERRITORY and STRAIGHT EDGE end where they did)
     const float rowH = staggered ? 50.0f - 12.0f / static_cast<float>(std::max<std::size_t>(B.steppers.size() + B.toggles.size(), 1)) : 50.0f;
     auto globals = [&](float top) {
@@ -1893,8 +1895,7 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
             L.widgets.push_back(toggle({x - tw * 0.5f, y + 4, tw, 44}, t.param, t.caption));
             if (t.press) L.widgets.back().hi = "PRESS";
         }
-        // staggered: 6 lower than the globals, so their value windows (ending at 358) clear the grid's groove at 364
-        const float bTop = borderRow ? top + 86.0f : staggered ? top + 6.0f : top;
+        const float bTop = borderRow ? top + 86.0f : staggered ? top + 22.0f : top;
         for (std::size_t i = 0; i < B.borders.size() && static_cast<int>(i) + 1 < n; ++i) {
             const float x = colX(static_cast<int>(i) + 1);
             const rack::PlateKnob& k = B.borders[i];
@@ -1904,7 +1905,7 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
     };
     if (!eq) globals(270.0f);
     // with a crossover row the grid's groove sits under that row's value windows (they end at 438), not along them
-    const float gridTop = eq ? (eqTwo ? 286.0f : 356.0f) : borderRow ? 452.0f : staggered ? 372.0f : 360.0f;
+    const float gridTop = eq ? (eqTwo ? 286.0f : 356.0f) : borderRow ? 452.0f : staggered ? 385.0f : 360.0f;
     L.grooves.push_back({labelX, gridTop - 8, 1636, gridTop - 8});
     // the grid
     float y = gridTop;

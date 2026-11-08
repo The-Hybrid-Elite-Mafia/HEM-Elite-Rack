@@ -213,7 +213,8 @@ def compose(name, old, new, plates, outdir, pool):
     cov = np.zeros((H, W), np.float32)   # how much of each pixel is pocket
     goneG = [g for g in o['G'] if g not in n['G']]
     # pockets
-    for r in n['R']:
+    # knob pieces first, then the rectangles: a rectangle's sharp bevel reads better on top of a seat's soft halo
+    for r in sorted(n['R'], key=lambda q: 0 if q[5] == 2 else 1):
         if r[1] + r[3] < TOP or r[1] > BOTTOM:
             continue
         mx = MARGIN + 6
