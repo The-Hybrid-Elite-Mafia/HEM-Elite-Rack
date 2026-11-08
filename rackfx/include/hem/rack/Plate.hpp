@@ -74,6 +74,8 @@ struct PlateBands {
     int pageStride = 0;
     std::span<const char* const> pageNames{};
     std::span<const char* const> columnNames{};   // a name over each column (optional)
+    std::span<const char* const> meterNames{};    // the columns' readouts' names, when not "BAND 1" ... (optional)
+    int linkParam = -1;                         // paged: while this switch is ON the pages are one (the RIGHT page shows LEFT)
 };
 
 struct PlateSpec {

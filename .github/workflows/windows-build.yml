@@ -84,12 +84,11 @@ jobs:
           path: shots/*.png
           if-no-files-found: ignore
 
-      - name: Publish screenshots to the ci-screenshots branch
-        if: github.ref == 'refs/heads/main'
+      - name: Publish screenshots to the ci-screenshots branch (other branches - ci-screenshots-dev)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          tools\ci\run-and-report.ps1 -Title "publish screenshots" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\publish-screenshots.ps1','-Folder','shots'
+          tools\ci\run-and-report.ps1 -Title "publish screenshots" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\publish-screenshots.ps1','-Folder','shots','-Branch','${{ github.ref == 'refs/heads/main' && 'ci-screenshots' || 'ci-screenshots-dev' }}'
 
       - name: Build installer (refuses ASIO code)
         run: |

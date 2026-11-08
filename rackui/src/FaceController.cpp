@@ -173,7 +173,7 @@ void FaceController::mouseDown(float x, float y, bool doubleClick, bool fine) {
     st_.active = -1;
     if (i < 0) return;
     const Widget& w = L_.widgets[static_cast<std::size_t>(i)];
-    const int param = widgetParam(w, st_);
+    const int param = widgetParam(w, st_, host_);
     switch (w.kind) {
     case WKind::Knob:
         if (param < 0) return;
@@ -264,8 +264,15 @@ void FaceController::mouseMove(float x, float y, bool fine) {
         const Widget& w = L_.widgets[static_cast<std::size_t>(st_.active)];
         const float k = fine ? 0.15f : 1.0f;
         if (w.kind == WKind::Knob) {
-            const int param = widgetParam(w, st_);
-            dragValue_ = std::clamp(dragValue_ + (lastY_ - y) / kDragForFullRange * k, 0.0f, 1.0f);
+            const int param = widgetParam(w, st_, host_);
+            // a stepped knob moves one step per 40 units of drag (VELVET's three-step ATTEN SELECT needed a 120-unit drag
+            // per step and looked stuck); smooth knobs keep the full range over 360
+            float range = kDragForFullRange;
+            if (param >= 0 && param < static_cast<int>(params_.size())) {
+                const auto& pi = params_[static_cast<std::size_t>(param)];
+                if (pi.taper == hc::fx::Taper::Choice) range = std::clamp(40.0f * pi.max, 60.0f, kDragForFullRange);
+            }
+            dragValue_ = std::clamp(dragValue_ + (lastY_ - y) / range * k, 0.0f, 1.0f);
             setNorm(param, dragValue_);
         } else if (w.kind == WKind::RangeSlider) {
             const Rect p = plot();
@@ -297,7 +304,7 @@ void FaceController::mouseMove(float x, float y, bool fine) {
 void FaceController::mouseUp() {
     if (st_.active >= 0) {
         const Widget& w = L_.widgets[static_cast<std::size_t>(st_.active)];
-        if (w.kind == WKind::Knob) host_.endEdit(widgetParam(w, st_));
+        if (w.kind == WKind::Knob) host_.endEdit(widgetParam(w, st_, host_));
         else if (w.kind == WKind::RangeSlider) host_.endEdit(dragHandle_ == 1 ? w.param : w.param2);
         else if (w.kind == WKind::Keyboard) {
             const bool sustain = w.param2 >= 0 && plain(w.param2) >= 0.5f;
@@ -320,11 +327,11 @@ void FaceController::wheel(float x, float y, float notches, bool fine) {
     const Widget& w = L_.widgets[static_cast<std::size_t>(i)];
     const float k = fine ? 0.2f : 1.0f;
     if (w.kind == WKind::Knob) {
-        const int param = widgetParam(w, st_);
+        const int param = widgetParam(w, st_, host_);
         if (param < 0) return;
         edit(param, host_.normalized(param) + notches * 0.02f * k);
     } else if (w.kind == WKind::Stepper) {
-        step(widgetParam(w, st_), notches > 0 ? 1 : -1);
+        step(widgetParam(w, st_, host_), notches > 0 ? 1 : -1);
     } else if (w.kind == WKind::EqGraph) {
         const int node = nodeAt(x, y);
         if (node < 0) return;

@@ -955,7 +955,8 @@ FaceLayout channelFace(const rack::PluginInfo& info) {
         const float kp = w / static_cast<float>(ks.size());
         for (std::size_t k = 0; k < ks.size(); ++k) {
             const float cx = x0 + (static_cast<float>(k) + 0.5f) * kp;
-            L.widgets.push_back(knob({cx - 24, 408, 48, 48}, ks[k].p, ks[k].cap, "", "", true));
+            // 40 wide at 400: the values end above the switches' names (at 48 / 408 they sat on "GATE MODE KEY")
+            L.widgets.push_back(knob({cx - 20, 400, 40, 40}, ks[k].p, ks[k].cap, "", "", true));
         }
         seatKnobs(L, first, 6);
         const float sp = w / static_cast<float>(ss.size());
@@ -1141,47 +1142,50 @@ FaceLayout tapsFace(const rack::PluginInfo& info) {
         }
         seatKnobs(L, first, 4);
     };
-    // the taps
+    // the taps: two knobs side by side per row (three in a 204-wide column ran their names and values together:
+    // "DELAYGAINPLACE", "125 ms-6.0-30.00 deg"), the EQ switch and its shape beside PLACE
     static const char* const kTapN[kTaps] = {"TAP 1", "TAP 2", "TAP 3", "TAP 4", "TAP 5", "TAP 6"};
     const float cw = 1226.0f / kTaps;
     for (int t = 0; t < kTaps; ++t) {
         const float x0 = 410 + static_cast<float>(t) * cw;
-        L.sections.push_back({{x0 + 4, 180, cw * 0.5f - 8, 26}, kTapN[t]});
-        L.widgets.push_back(toggle({x0 + cw * 0.5f + 2, 180, cw * 0.5f - 10, 30}, tap(t, On), ""));
-        knobs(x0, cw, 236, 32, {{tap(t, Delay), "DELAY"}, {tap(t, Gain), "GAIN"}, {tap(t, Rotate), "PLACE"}});
-        L.widgets.push_back(toggle({x0 + 6, 312, 88, 30}, tap(t, EqOn), "EQ"));
-        stepper({x0 + 100, 312, cw - 108, 30}, tap(t, EqType));
-        knobs(x0, cw, 376, 32, {{tap(t, EqFreq), "EQ FREQ"}, {tap(t, EqGain), "EQ GAIN"}});
-        if (t > 0) L.grooves.push_back({x0, 184, x0, 446});
+        L.sections.push_back({{x0 + 4, 180, cw * 0.5f - 8, 24}, kTapN[t]});
+        L.widgets.push_back(toggle({x0 + cw * 0.5f + 2, 178, cw * 0.5f - 10, 28}, tap(t, On), ""));
+        knobs(x0, cw, 232, 30, {{tap(t, Delay), "DELAY"}, {tap(t, Gain), "GAIN"}});
+        knobs(x0, cw * 0.5f, 316, 30, {{tap(t, Rotate), "PLACE"}});
+        L.widgets.push_back(toggle({x0 + cw * 0.5f + 2, 300, cw * 0.5f - 10, 28}, tap(t, EqOn), "EQ"));
+        stepper({x0 + cw * 0.5f + 2, 336, cw * 0.5f - 10, 28}, tap(t, EqType));
+        knobs(x0, cw, 400, 30, {{tap(t, EqFreq), "EQ FREQ"}, {tap(t, EqGain), "EQ GAIN"}});
+        if (t > 0) L.grooves.push_back({x0, 184, x0, 458});
     }
-    L.grooves.push_back({410, 454, 1636, 454});
-    // direct, tempo, modulator
-    L.sections.push_back({{410, 460, 230, 22}, "DRY"});
-    L.sections.push_back({{648, 460, 420, 22}, "TEMPO"});
-    L.sections.push_back({{1076, 460, 560, 22}, "WOBBLE"});
-    L.widgets.push_back(toggle({414, 490, 80, 32}, DirectOn, ""));
-    knobs(494, 146, 512, 32, {{DirectGain, "GAIN"}, {DirectRotate, "PLACE"}});
-    stepper({652, 490, 130, 32}, Sync);
-    knobs(782, 100, 512, 32, {{Bpm, "BPM"}});
-    stepper({886, 490, 120, 32}, Grid);
-    L.widgets.push_back(toggle({886, 530, 120, 32}, Snap, "LOCK"));
-    L.widgets.push_back(toggle({652, 530, 130, 32}, Tap, "TAP"));
+    L.grooves.push_back({410, 466, 1636, 466});
+    // direct, tempo, modulator (all 12 lower than before, to give the taps their third row)
+    constexpr float dy = 12.0f;
+    L.sections.push_back({{410, 460 + dy, 230, 22}, "DRY"});
+    L.sections.push_back({{648, 460 + dy, 420, 22}, "TEMPO"});
+    L.sections.push_back({{1076, 460 + dy, 560, 22}, "WOBBLE"});
+    L.widgets.push_back(toggle({414, 490 + dy, 80, 32}, DirectOn, ""));
+    knobs(494, 146, 512 + dy, 32, {{DirectGain, "GAIN"}, {DirectRotate, "PLACE"}});
+    stepper({652, 490 + dy, 130, 32}, Sync);
+    knobs(782, 100, 512 + dy, 32, {{Bpm, "BPM"}});
+    stepper({886, 490 + dy, 120, 32}, Grid);
+    L.widgets.push_back(toggle({886, 530 + dy, 120, 32}, Snap, "LOCK"));
+    L.widgets.push_back(toggle({652, 530 + dy, 130, 32}, Tap, "TAP"));
     L.widgets.back().hi = "PRESS";
-    L.widgets.push_back(toggle({1080, 490, 110, 32}, ModOn, ""));
-    stepper({1080, 530, 110, 32}, ModSync);
-    knobs(1196, 210, 512, 32, {{ModRate, "RATE"}, {ModDepth, "DEPTH"}});
-    stepper({1416, 510, 210, 32}, ModNote, "");
-    L.grooves.push_back({644, 462, 644, 584});
-    L.grooves.push_back({1072, 462, 1072, 584});
-    L.grooves.push_back({410, 592, 1636, 592});
+    L.widgets.push_back(toggle({1080, 490 + dy, 110, 32}, ModOn, ""));
+    stepper({1080, 530 + dy, 110, 32}, ModSync);
+    knobs(1196, 210, 512 + dy, 32, {{ModRate, "RATE"}, {ModDepth, "DEPTH"}});
+    stepper({1416, 510 + dy, 210, 32}, ModNote, "");
+    L.grooves.push_back({644, 462 + dy, 644, 584 + dy});
+    L.grooves.push_back({1072, 462 + dy, 1072, 584 + dy});
+    L.grooves.push_back({410, 592 + dy, 1636, 592 + dy});
     // the feedback
-    L.sections.push_back({{410, 598, 1226, 22}, "FEEDBACK"});
-    L.widgets.push_back(toggle({414, 632, 90, 32}, FbOn, ""));
-    stepper({414, 676, 90, 32}, FbMode);
-    knobs(510, 450, 640, 32, {{FbGain, "GAIN"}, {FbDelay, "DELAY"}, {FbRotate, "PLACE"}});
-    stepper({966, 654, 150, 32}, FbFilter);
-    knobs(1120, 300, 640, 32, {{FbFreq, "FREQ"}, {FbFilterGain, "GAIN"}});
-    knobs(1430, 206, 632, 44, {{Output, "OUTPUT"}});
+    L.sections.push_back({{410, 598 + dy, 1226, 22}, "FEEDBACK"});
+    L.widgets.push_back(toggle({414, 632 + dy, 90, 32}, FbOn, ""));
+    stepper({414, 676 + dy, 90, 32}, FbMode);
+    knobs(510, 450, 640 + dy, 32, {{FbGain, "GAIN"}, {FbDelay, "DELAY"}, {FbRotate, "PLACE"}});
+    stepper({966, 654 + dy, 150, 32}, FbFilter);
+    knobs(1120, 300, 640 + dy, 32, {{FbFreq, "FREQ"}, {FbFilterGain, "GAIN"}});
+    knobs(1430, 206, 632 + dy, 44, {{Output, "OUTPUT"}});
     // the left column: the peaks
     readoutAt(L, {70, 404, 270, 64}, 0, "PEAK L", "dBFS", "+");
     readoutAt(L, {70, 478, 270, 64}, 1, "PEAK R", "dBFS", "+");
@@ -1220,39 +1224,44 @@ FaceLayout voicesFace(const rack::PluginInfo& info) {
         }
         seatKnobs(L, first, 4);
     };
+    // the voices: two knobs side by side per row, four rows (four in a 306-wide column ran their names and values
+    // together: "DELAYDETUNE", "-45.00 de16.0 m-8.00 cen")
     static const char* const kVoiceN[kVoices] = {"VOICE 1", "VOICE 2", "VOICE 3", "VOICE 4"};
     const float cw = 1226.0f / kVoices;
     for (int v = 0; v < kVoices; ++v) {
         const float x0 = 410 + static_cast<float>(v) * cw;
-        L.sections.push_back({{x0 + 4, 180, 110, 28}, kVoiceN[v]});
-        L.widgets.push_back(toggle({x0 + 112, 180, 76, 30}, voice(v, On), ""));
-        L.widgets.push_back(toggle({x0 + 194, 180, cw - 200, 30}, voice(v, Octave), "OCT"));
-        knobs(x0, cw, 240, 34, {{voice(v, Gain), "GAIN"}, {voice(v, Pan), "PAN"}, {voice(v, Delay), "DELAY"}, {voice(v, Detune), "DETUNE"}});
-        knobs(x0, cw, 336, 34, {{voice(v, Feedback), "FEEDBACK"}, {voice(v, ModDepth), "MOD DEPTH"}, {voice(v, ModRate), "MOD RATE"}});
-        if (v > 0) L.grooves.push_back({x0, 184, x0, 410});
+        L.sections.push_back({{x0 + 4, 180, cw * 0.5f - 8, 28}, kVoiceN[v]});
+        L.widgets.push_back(toggle({x0 + cw * 0.5f + 2, 178, cw * 0.5f - 10, 30}, voice(v, On), ""));
+        knobs(x0, cw, 234, 30, {{voice(v, Gain), "GAIN"}, {voice(v, Pan), "PAN"}});
+        knobs(x0, cw, 314, 30, {{voice(v, Delay), "DELAY"}, {voice(v, Detune), "DETUNE"}});
+        knobs(x0, cw, 394, 30, {{voice(v, Feedback), "FEEDBACK"}, {voice(v, ModDepth), "MOD DEPTH"}});
+        knobs(x0, cw * 0.5f, 474, 30, {{voice(v, ModRate), "MOD RATE"}});
+        L.widgets.push_back(toggle({x0 + cw * 0.5f + 12, 476, cw * 0.5f - 30, 30}, voice(v, Octave), "OCT"));
+        if (v > 0) L.grooves.push_back({x0, 184, x0, 532});
     }
-    L.grooves.push_back({410, 420, 1636, 420});
+    constexpr float dy = 120.0f;   // everything under the voices moved down by their two extra rows
+    L.grooves.push_back({410, 420 + dy, 1636, 420 + dy});
     // the direct and the shared settings
-    L.sections.push_back({{410, 426, 400, 22}, "DRY"});
-    L.widgets.push_back(toggle({414, 456, 130, 32}, DirectOn, ""));
-    knobs(560, 250, 474, 32, {{DirectGain, "GAIN"}, {DirectPan, "PAN"}});
-    L.widgets.push_back(toggle({414, 500, 130, 32}, AlignDirect, "IN TIME"));
-    L.sections.push_back({{820, 426, 816, 22}, "ALL VOICES"});
-    stepper({920, 456, 150, 32}, Range, "LOWEST");
-    stepper({920, 500, 150, 32}, Routing, "FEED");
-    L.widgets.push_back(toggle({1084, 456, 170, 32}, ModReset, "MOD RESET"));
+    L.sections.push_back({{410, 426 + dy, 400, 22}, "DRY"});
+    L.widgets.push_back(toggle({414, 456 + dy, 130, 32}, DirectOn, ""));
+    knobs(560, 250, 474 + dy, 32, {{DirectGain, "GAIN"}, {DirectPan, "PAN"}});
+    L.widgets.push_back(toggle({414, 500 + dy, 130, 32}, AlignDirect, "IN TIME"));
+    L.sections.push_back({{820, 426 + dy, 816, 22}, "ALL VOICES"});
+    stepper({920, 456 + dy, 150, 32}, Range, "LOWEST");
+    stepper({920, 500 + dy, 150, 32}, Routing, "FEED");
+    L.widgets.push_back(toggle({1084, 456 + dy, 170, 32}, ModReset, "MOD RESET"));
     L.widgets.back().hi = "PRESS";
-    knobs(1260, 376, 466, 32, {{FbHighPass, "FB HI-PASS"}, {Output, "OUTPUT"}});
-    L.grooves.push_back({814, 428, 814, 552});
-    L.grooves.push_back({410, 560, 1636, 560});
+    knobs(1260, 376, 466 + dy, 32, {{FbHighPass, "FB HI-PASS"}, {Output, "OUTPUT"}});
+    L.grooves.push_back({814, 428 + dy, 814, 552 + dy});
+    L.grooves.push_back({410, 560 + dy, 1636, 560 + dy});
     // the voices' EQ
-    L.sections.push_back({{410, 566, 600, 22}, "LOW SHELF"});
-    L.sections.push_back({{1036, 566, 600, 22}, "HIGH SHELF"});
-    L.widgets.push_back(toggle({420, 600, 110, 32}, LowOn, ""));
-    knobs(540, 470, 614, 34, {{LowGain, "GAIN"}, {LowFreq, "FREQ"}});
-    L.widgets.push_back(toggle({1046, 600, 110, 32}, HighOn, ""));
-    knobs(1166, 470, 614, 34, {{HighGain, "GAIN"}, {HighFreq, "FREQ"}});
-    L.grooves.push_back({1023, 568, 1023, 690});
+    L.sections.push_back({{410, 566 + dy, 600, 22}, "LOW SHELF"});
+    L.sections.push_back({{1036, 566 + dy, 600, 22}, "HIGH SHELF"});
+    L.widgets.push_back(toggle({420, 600 + dy, 110, 32}, LowOn, ""));
+    knobs(540, 470, 614 + dy, 30, {{LowGain, "GAIN"}, {LowFreq, "FREQ"}});
+    L.widgets.push_back(toggle({1046, 600 + dy, 110, 32}, HighOn, ""));
+    knobs(1166, 470, 614 + dy, 30, {{HighGain, "GAIN"}, {HighFreq, "FREQ"}});
+    L.grooves.push_back({1023, 568 + dy, 1023, 690 + dy});
     // the left column: the peaks
     readoutAt(L, {70, 404, 270, 64}, 0, "PEAK L", "dBFS", "+");
     readoutAt(L, {70, 478, 270, 64}, 1, "PEAK R", "dBFS", "+");
@@ -1730,16 +1739,18 @@ FaceLayout stakeoutFace(const rack::PluginInfo& info) {
     readoutAt(L, {1226, 580, 200, 64}, HoldPeakR, "HOLD R", "dBFS", "+");
     readoutAt(L, {1432, 580, 204, 64}, HoldSumM, "HOLD SUM", "dB", "+");
     // the settings
-    stepper({410, 700, 130, 32}, Resolution, "LF RESOLUTION");
-    stepper({550, 700, 110, 32}, Mode, "MODE");
-    stepper({670, 700, 120, 32}, Channels, "CHANNELS");
-    stepper({800, 700, 110, 32}, Weighting, "WEIGHTING");
-    stepper({920, 700, 110, 32}, MeterMode, "SUM METER");
-    L.widgets.push_back(toggle({1040, 700, 140, 32}, Freeze, "FREEZE"));
-    L.widgets.push_back(toggle({1190, 700, 160, 32}, ShowMax, "MAX LINE"));
+    // the settings: each name over its own button, 170 apart (they were packed 110-140 apart and the names ran
+    // together: "LF RESOLUTIONMODE", "CHANNELSWEIGHTINGSUM METER")
+    stepper({410, 700, 160, 32}, Resolution, "LOW BANDS");
+    stepper({580, 700, 160, 32}, Mode, "MODE");
+    stepper({750, 700, 160, 32}, Channels, "CHANNELS");
+    stepper({920, 700, 160, 32}, Weighting, "WEIGHTING");
+    stepper({1090, 700, 160, 32}, MeterMode, "SUM METER");
+    L.widgets.push_back(toggle({1262, 700, 128, 32}, Freeze, "FREEZE"));
+    L.widgets.push_back(toggle({1400, 700, 150, 32}, ShowMax, "MAX LINE"));
     {
         const std::size_t first = L.widgets.size();
-        L.widgets.push_back(knob({1460, 688, 38, 38}, Response, "RESPONSE", "", "", true));
+        L.widgets.push_back(knob({1578, 688, 38, 38}, Response, "RESPONSE", "", "", true));
         seatKnobs(L, first, 4);
     }
     // the left column: the resets
@@ -1821,8 +1832,11 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
     static const char* const kNames[] = {"BAND 1", "BAND 2", "BAND 3", "BAND 4", "BAND 5", "BAND 6", "BAND 7", "BAND 8"};
     // EQs (screen Curve): the curve on top, the grid (type first) under it, the globals at the bottom
     const bool eq = S.screen == rack::Screen::Curve;
+    // an EQ with more than 8 globals puts them on two rows (STREET TEAM's ten ran "G ATTACK G RELEASE" together); the
+    // curve gives up 50 for it
+    const bool eqTwo = eq && S.row1.size() + S.toggles.size() > 8;
     if (eq) {
-        const Rect scr{labelX, 180, 1226, 160};
+        const Rect scr{labelX, 180, 1226, eqTwo ? 90.0f : 160.0f};
         L.display = scr;
         Widget cv;
         cv.kind = WKind::CurveDisplay;
@@ -1834,7 +1848,8 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
         if (B.meter >= 0)
             for (int b = 0; b < n && b < 8; ++b) {
                 const bool master = B.lastIsMaster && b == n - 1;
-                readoutAt(L, {colX(b) + 6, 180, colW - 12, 52}, B.meter + b, master ? "OUTPUT" : kNames[b], master ? "dBFS" : "dB", "+");
+                const char* nm = b < static_cast<int>(B.meterNames.size()) ? B.meterNames[static_cast<std::size_t>(b)] : kNames[b];
+                readoutAt(L, {colX(b) + 6, 180, colW - 12, 52}, B.meter + b, master ? "OUTPUT" : nm, master ? "dBFS" : "dB", "+");
             }
     }
     // the globals: row1, the switches, the borders' knobs (crossovers) between the columns
@@ -1857,16 +1872,25 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
         // crossovers (seven knobs packed into seven of MADE MAN's twelve narrow note columns ran their names together);
         // with crossovers on the borders they keep the middles of the columns, clear of the borders.
         const bool spread = eq || items > n || (items < n && !hasBorders);
-        const float pitch = spread ? static_cast<float>(n) / static_cast<float>(std::max(items, 1)) : 1.0f;
+        const int perRow = eqTwo ? (items + 1) / 2 : items;
+        const float pitch = spread ? static_cast<float>(n) / static_cast<float>(std::max(perRow, 1)) : 1.0f;
         int slot = 0;
+        auto at = [&](float& x, float& y) {
+            const int row = perRow > 0 ? slot / perRow : 0, col = perRow > 0 ? slot % perRow : slot;
+            ++slot;
+            x = gx + (static_cast<float>(col) + 0.5f) * pitch * colW;
+            y = top + (d + 54.0f) * static_cast<float>(row);   // the next row's names clear this row's values
+        };
         for (const rack::PlateKnob& k : S.row1) {
-            const float x = gx + (static_cast<float>(slot++) + 0.5f) * pitch * colW;
-            L.widgets.push_back(knob({x - d * 0.5f, top, d, d}, k.param, k.caption, k.lo, k.hi, true));
+            float x, y;
+            at(x, y);
+            L.widgets.push_back(knob({x - d * 0.5f, y, d, d}, k.param, k.caption, k.lo, k.hi, true));
         }
         for (const rack::PlateToggle& t : S.toggles) {
-            const float x = gx + (static_cast<float>(slot++) + 0.5f) * pitch * colW;
+            float x, y;
+            at(x, y);
             const float tw = std::max(112.0f, switchWordsW(t.caption) + 18.0f);
-            L.widgets.push_back(toggle({x - tw * 0.5f, top + 4, tw, 44}, t.param, t.caption));
+            L.widgets.push_back(toggle({x - tw * 0.5f, y + 4, tw, 44}, t.param, t.caption));
             if (t.press) L.widgets.back().hi = "PRESS";
         }
         const float bTop = borderRow ? top + 86.0f : staggered ? top + 22.0f : top;
@@ -1878,7 +1902,7 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
         seatKnobs(L, first, 6);
     };
     if (!eq) globals(hasBorders ? 258.0f : 270.0f);
-    const float gridTop = eq ? 356.0f : borderRow ? 440.0f : staggered ? 372.0f : 360.0f;
+    const float gridTop = eq ? (eqTwo ? 286.0f : 356.0f) : borderRow ? 440.0f : staggered ? 372.0f : 360.0f;
     L.grooves.push_back({labelX, gridTop - 8, 1636, gridTop - 8});
     // the grid
     float y = gridTop;
@@ -1893,7 +1917,7 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
                 w.param = B.first + b * B.stride + st.param;
                 const float sw = std::min(colW - 12.0f, 200.0f);
                 w.r = {cx(static_cast<float>(b)) - sw * 0.5f, y + 4, sw, 40};
-                if (B.pages > 1) w.pageStride = B.pageStride;
+                if (B.pages > 1) { w.pageStride = B.pageStride; w.pageLink = B.linkParam; }
                 L.widgets.push_back(w);
                 L.recesses.push_back({w.r.inset(-4), 9, 4, false, false});
             }
@@ -1912,7 +1936,7 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
         for (int b = 0; b < n; ++b) {
             const float c = cx(static_cast<float>(b));
             L.widgets.push_back(knob({c - kd * 0.5f, y + 2, kd, kd}, B.first + b * B.stride + k.param, "", k.lo, k.hi, true));
-            if (B.pages > 1) L.widgets.back().pageStride = B.pageStride;
+            if (B.pages > 1) { L.widgets.back().pageStride = B.pageStride; L.widgets.back().pageLink = B.linkParam; }
         }
         y += knobRowH;
     }
@@ -1926,7 +1950,7 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
         for (int b = 0; b < n; ++b) {
             if (B.lastIsMaster && b == n - 1) continue;
             L.widgets.push_back(toggle({colX(b) + 10, y + 4, colW - 20, 42}, B.first + b * B.stride + t.param, ""));
-            if (B.pages > 1) L.widgets.back().pageStride = B.pageStride;
+            if (B.pages > 1) { L.widgets.back().pageStride = B.pageStride; L.widgets.back().pageLink = B.linkParam; }
         }
         y += rowH;
     }
@@ -1945,7 +1969,7 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
     }
     if (eq) {
         L.grooves.push_back({labelX, y + 8, 1636, y + 8});
-        globals(y + 40);
+        globals(y + (eqTwo ? 30.0f : 40.0f));
     }
     // the page tabs (which set the grid edits), in the left column under the name
     if (B.pages > 1) {
@@ -1977,7 +2001,10 @@ FaceLayout specFace(const rack::PluginInfo& info) {
     if (S.bands) {
         specBands(L, S);
     } else if (screen) {
-        const float sh = twoRows ? 250.0f : 330.0f;
+        // a second row of more than 8 knobs is split in two (SPEAKEASY's 11 ran their names together); the screen gives up
+        // the room for it
+        const bool splitRow2 = twoRows && S.row2.size() > 8;
+        const float sh = splitRow2 ? 150.0f : twoRows ? 250.0f : 330.0f;
         const Rect scr{410, 182, column ? 700.0f : 1226.0f, sh};
         L.display = scr;
         switch (S.screen) {
@@ -2048,7 +2075,12 @@ FaceLayout specFace(const rack::PluginInfo& info) {
         }
         const float groove = scr.bottom() + 12;
         L.grooves.push_back({410, groove, 1636, groove});
-        if (twoRows) {
+        if (splitRow2) {
+            const std::size_t half = (S.row2.size() + 1) / 2;
+            specRow(L, S.row1, 372, 90);
+            specRow(L, S.row2.subspan(0, half), 548, 64);
+            specRow(L, S.row2.subspan(half), 680, 64);
+        } else if (twoRows) {
             specRow(L, S.row1, 470, 100);
             specRow(L, S.row2, 660, 76);
         } else {
@@ -2097,7 +2129,8 @@ FaceLayout specFace(const rack::PluginInfo& info) {
         st.kind = WKind::Stepper;
         st.param = c.param;
         st.caption = c.caption;
-        st.r = {170, y, 170, 40};
+        // 196 in from the edge: room for a two-word name on its left ("BAND FREEDOM", "NOISE SHAPE" ran off the plate)
+        st.r = {196, y, 144, 40};
         L.widgets.push_back(st);
         L.recesses.push_back({st.r.inset(-4), 9, 4, false, false});
         y += 50;
@@ -2199,6 +2232,11 @@ int widgetParam(const Widget& w, const FaceState& st) noexcept {
     if (w.control >= 0) return rack::eq::bandParam(std::clamp(st.selectedBand, 0, rack::eq::kBands - 1), w.control);
     if (w.pageStride > 0 && w.param >= 0) return w.param + std::max(st.page, 0) * w.pageStride;
     return w.param;
+}
+
+int widgetParam(const Widget& w, const FaceState& st, const PanelHost& host) noexcept {
+    if (w.pageStride > 0 && w.param >= 0 && w.pageLink >= 0 && host.normalized(w.pageLink) >= 0.5f) return w.param;
+    return widgetParam(w, st);
 }
 
 bool widgetShown(const Widget& w, std::span<const hc::fx::ParamInfo> params, const PanelHost& host) noexcept {

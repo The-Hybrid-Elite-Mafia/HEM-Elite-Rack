@@ -60,11 +60,11 @@ constexpr PlateKnob bandKnobs[] = {{Freq, "FREQ"}, {Gain, "GAIN"}, {Q, "Q"}};
 constexpr PlateToggle bandToggles[] = {{On, "BAND"}};
 constexpr PlateToggle filterToggles[] = {{On, "FILTER"}};
 constexpr PlateBands ttBands{.count = tentoes::kBands, .first = 0, .stride = kStride, .knobs = bandKnobs, .steppers = bandSteppers,
-                             .toggles = bandToggles, .pages = 2, .pageStride = tentoes::kSide, .pageNames = pageNames};
+                             .toggles = bandToggles, .pages = 2, .pageStride = tentoes::kSide, .pageNames = pageNames, .linkParam = tentoes::Link};
 constexpr PlateBands fcBands{.count = fourcorners::kBands, .first = 0, .stride = kStride, .knobs = bandKnobs, .steppers = bandSteppers,
-                             .toggles = filterToggles, .pages = 2, .pageStride = fourcorners::kSide, .pageNames = pageNames};
+                             .toggles = filterToggles, .pages = 2, .pageStride = fourcorners::kSide, .pageNames = pageNames, .linkParam = fourcorners::Link};
 constexpr PlateBands sxBands{.count = smoothtalker::kBands, .first = 0, .stride = kStride, .knobs = bandKnobs, .steppers = bandSteppers,
-                             .toggles = bandToggles, .pages = 2, .pageStride = smoothtalker::kSide, .pageNames = pageNames};
+                             .toggles = bandToggles, .pages = 2, .pageStride = smoothtalker::kSide, .pageNames = pageNames, .linkParam = smoothtalker::Link};
 constexpr PlateKnob ttRow1[] = {{tentoes::InputL, "INPUT L", "OFF", "0"}, {tentoes::InputR, "INPUT R", "OFF", "0"},
                                 {tentoes::OutputL, "OUTPUT L"}, {tentoes::OutputR, "OUTPUT R"}};
 constexpr PlateToggle ttToggles[] = {{tentoes::Trim, "TRIM", true}};
@@ -146,7 +146,7 @@ constexpr PlateKnob row1[] = {{Input, "INPUT", "-18", "+18"}, {Piano, "VOICING",
 // ---- HIGH ROLLER: lift across the top, width under it, band by band
 namespace hr {
 using namespace highroller;
-constexpr PlateKnob bandKnobs[] = {{Gain, "GAIN"}, {Width, "WIDTH"}};
+constexpr PlateKnob bandKnobs[] = {{Gain, "LIFT"}, {Width, "WIDTH"}};   // LIFT: the level of the band's enhanced copy mixed in (0..48), not a straight gain
 constexpr PlateToggle bandToggles[] = {{Solo, "SOLO"}, {Bypass, "BYPASS"}};
 constexpr PlateKnob borders[] = {{Cross1, "XOVER"}, {Cross2, "XOVER"}, {Cross3, "XOVER"}, {Cross4, "XOVER"}};
 constexpr PlateBands bands{.count = kBands, .first = 0, .stride = kStride, .knobs = bandKnobs, .toggles = bandToggles, .borders = borders, .meter = 0};
@@ -182,7 +182,7 @@ constexpr const char* columnNames[] = {"HIGH-PASS", "LOW-PASS"};
 constexpr PlateKnob bandKnobs[] = {{1, "FREQ"}};
 constexpr PlateToggle bandToggles[] = {{0, "ON"}};
 constexpr PlateBands bands{.count = 2, .first = 0, .stride = 2, .knobs = bandKnobs, .toggles = bandToggles, .pages = 2, .pageStride = kSide,
-                           .pageNames = pageNames, .columnNames = columnNames};
+                           .pageNames = pageNames, .columnNames = columnNames, .linkParam = Link};
 constexpr PlateToggle left[] = {{Link, "LINK"}};
 } // namespace ct
 namespace tvn {

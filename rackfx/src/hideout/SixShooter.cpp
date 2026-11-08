@@ -13,7 +13,7 @@ namespace sixshooter {
 namespace {
 using namespace hideout;
 
-const char* const kEqN[] = {"WIDE BELL", "NARROW BELL", "HI SHELF", "LO SHELF", "HI-PASS", "LO-PASS"};
+const char* const kEqN[] = {"WIDE", "NARROW", "HI SHELF", "LO SHELF", "HI-PASS", "LO-PASS"};   // short: they sit in half a tap column
 const char* const kSyncN[] = {"HOST", "MANUAL"};
 const char* const kGridN[] = {"FREE", "1/4", "1/4 T", "1/8", "1/8 T", "1/16"};
 constexpr double kGridBeats[] = {0.0, 1.0, 2.0 / 3.0, 0.5, 1.0 / 3.0, 0.25};

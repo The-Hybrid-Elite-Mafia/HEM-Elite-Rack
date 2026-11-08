@@ -5,6 +5,7 @@
 #include "hybrid/ui/Parts.hpp"
 
 #include <algorithm>
+#include <cstring>
 #include <array>
 #include <cmath>
 #include <cstdio>
@@ -153,7 +154,7 @@ void FaceView::header(const Ctx& c) const {
 void FaceView::knob(const Ctx& c, const Widget& w, int wi) const {
     namespace kn = hc::ui::knob;
     Renderer& r = c.r;
-    const int param = widgetParam(w, c.st);
+    const int param = widgetParam(w, c.st, c.host);
     if (param < 0 || param >= static_cast<int>(params_.size())) return;
     const hc::fx::ParamInfo& pi = params_[static_cast<std::size_t>(param)];
     const float z = c.z;
@@ -209,6 +210,11 @@ void FaceView::knob(const Ctx& c, const Widget& w, int wi) const {
             std::snprintf(b, sizeof b, ms < 100.0f ? "%.1f ms" : "%.0f ms", static_cast<double>(ms));
             v = b;
         }
+    }
+    // whole angles and cents without their ".00" ("-45 deg", "8 cents"): shorter, so neighbours' values don't meet
+    for (const char* unit : {" deg", " cents"}) {
+        const std::size_t at = v.size() >= 3 + std::strlen(unit) ? v.rfind(unit) : std::string::npos;
+        if (at != std::string::npos && at + std::strlen(unit) == v.size() && at >= 3 && v.compare(at - 3, 3, ".00") == 0) v.erase(at - 3, 3);
     }
     const TextStyle vs = c.fit(w.small ? TextStyle::Value : TextStyle::Title, v, dial.w + (w.small ? 26 : 50) * z);
     r.text(vs, v, cx, dial.bottom() + (w.small ? 26 : 32) * z, on ? (hot ? th_.silver : th_.teal) : th_.dim, Align::Center,
@@ -267,7 +273,7 @@ void FaceView::keyboard(const Ctx& c, const Widget& w) const {
 void FaceView::stepper(const Ctx& c, const Widget& w, int wi) const {
     Renderer& r = c.r;
     const float z = c.z;
-    const int param = widgetParam(w, c.st);
+    const int param = widgetParam(w, c.st, c.host);
     const Rect b = c.T(w.r);
     const bool on = c.host.active(param), hot = c.st.hover == wi;
     r.fillRound(b.inset(2 * z), 8 * z, kGlass, Blend::Over);
@@ -707,6 +713,14 @@ void FaceView::readout(const Ctx& c, const Widget& w) const {
     const float z = c.z;
     const Rect b = c.T(w.r);
     float v = c.feed.meterDb(w.choice);
+    // A gain change in dB (a band's lift or cut, a reduction) is read like a gain-reduction meter: it goes out at once
+    // and comes back over about half a second, so the number shows what happens on the hits instead of flicking back
+    // to 0.0 between them (FOUR KINGS' band 1 read +0.0 while it lifted the kick 9 dB).
+    if (w.hi == "+" && w.lo == "dB" && w.choice >= 0 && w.choice < static_cast<int>(held_.size())) {
+        float& h = held_[static_cast<std::size_t>(w.choice)];
+        h = std::fabs(v) > std::fabs(h) ? v : h + (v - h) * 0.06f;
+        v = h;
+    }
     if (std::fabs(v) < 0.05f) v = 0.0f;   // no "-0.0"
     const TextStyle cs = c.ts(TextStyle::Caption);
     const bool small = w.r.h < 110.0f;   // a short window: name and unit on one line, a smaller number
@@ -750,7 +764,10 @@ void FaceView::rta(const Ctx& c, const Widget& w) const {
     const bool dual = plain(c.host, rack::stakeout::Channels) < 0.5f, showMax = plain(c.host, rack::stakeout::ShowMax) >= 0.5f;
     const int nb = rack::stakeout::bandCount(res), low = rack::stakeout::lowBands(res);
     auto yOf = [&](float db) { return p.y + std::clamp((kTop - db) / (kTop - kBottom), 0.0f, 1.0f) * p.h; };
+    // the max line's points: only the bands that are drawn (a band too narrow to draw is skipped, and its point was
+    // left unset: the line ran from the plate's corner across the analyzer)
     float mx[2][rack::kRtaMaxBands], my[2][rack::kRtaMaxBands];
+    int npts = 0;
     for (int b = 0; b < nb; ++b) {
         const float hz = rack::stakeout::bandHz(res, b);
         const float lo = b < low ? hz - 0.5f * rack::stakeout::kLowStep[res] : b == low ? 240.0f + 0.5f * rack::stakeout::kLowStep[res]
@@ -766,12 +783,13 @@ void FaceView::rta(const Ctx& c, const Widget& w) const {
             const float y = yOf(c.feed.rtaLevel(sd, b));
             const Rgba col = sd == 0 ? th_.teal : th_.gold;
             if (y < p.bottom() - 0.5f) r.fillRound({a, y, std::max(e - a - 0.4f * z, 0.6f * z), p.bottom() - y}, 0.0f, col.withAlpha(0.75f), Blend::Over);
-            mx[sd][b] = 0.5f * (a + e);
-            my[sd][b] = yOf(c.feed.rtaMax(sd, b));
+            mx[sd][npts] = 0.5f * (a + e);
+            my[sd][npts] = yOf(c.feed.rtaMax(sd, b));
         }
+        ++npts;
     }
-    if (showMax)
-        for (int sd = 0; sd < (dual ? 2 : 1); ++sd) r.polyline(mx[sd], my[sd], nb, 1.4f * z, (sd == 0 ? th_.label : th_.gold).withAlpha(0.8f), Blend::Over, false);
+    if (showMax && npts > 1)
+        for (int sd = 0; sd < (dual ? 2 : 1); ++sd) r.polyline(mx[sd], my[sd], npts, 1.4f * z, (sd == 0 ? th_.label : th_.gold).withAlpha(0.8f), Blend::Over, false);
     const TextStyle s = c.ts(TextStyle::Caption);
     r.text(s, dual ? "LEFT" : "L+R", p.x + 14 * z, p.y + 26 * z, th_.teal, Align::Left, TextFx::Shadowed);
     if (dual) r.text(s, "RIGHT", p.x + 90 * z, p.y + 26 * z, th_.gold, Align::Left, TextFx::Shadowed);
@@ -1056,7 +1074,7 @@ void FaceView::draw(Renderer& r, const PanelHost& host, const FaceFeed& feed, co
         switch (w.kind) {
         case WKind::Knob: knob(c, w, wi); break;
         case WKind::Toggle: {
-            const int param = widgetParam(w, st);
+            const int param = widgetParam(w, st, host);
             const bool on = plain(host, param) >= 0.5f;
             std::string t = w.caption;
             if (w.control == rack::eq::On) t = "BAND " + std::to_string(std::clamp(st.selectedBand, 0, rack::eq::kBands - 1) + 1);

@@ -59,8 +59,11 @@ using namespace sixteen;
 constexpr PlateKnob bandKnobs[] = {{Gain, "GAIN"}, {Priority, "WEIGHT"}, {Freq, "FREQ"}, {Q, "Q"}};
 constexpr PlateChoice bandSteppers[] = {{Type, "TYPE"}};
 constexpr PlateToggle bandToggles[] = {{BandLink, "LINK"}, {In, "IN"}};
+// the six columns are the steering EQ's points over the sixteen bands, not six of the bands: named so ("BAND 1..6" read as
+// if it had six bands, not sixteen)
+constexpr const char* meterNames[] = {"STEER 1", "STEER 2", "STEER 3", "STEER 4", "STEER 5", "STEER 6"};
 constexpr PlateBands bands{.count = kEqBands, .first = Band0, .stride = kPerBand, .knobs = bandKnobs, .steppers = bandSteppers,
-                           .toggles = bandToggles, .meter = 0};
+                           .toggles = bandToggles, .meter = 0, .meterNames = meterNames};
 constexpr PlateKnob row1[] = {{Threshold, "THRESHOLD"}, {Ceiling, "CEILING"}, {Release, "RELEASE"}};
 constexpr PlateToggle toggles[] = {{Link, "LINK"}};
 constexpr PlateChoice steppers[] = {{Character, "RELEASE FEEL"}, {Separation, "BAND FREEDOM"}, {Quantize, "BIT DEPTH"}, {Dither, "DITHER"}, {Shaping, "NOISE SHAPE"}};

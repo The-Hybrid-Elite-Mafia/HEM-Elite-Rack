@@ -159,6 +159,7 @@ struct Widget {
     bool        small = false;
     int         meter = -1;        // needle with a meter selector (param2): the input VU meter (output = meter + 1)
     int         pageStride = 0;    // > 0: the control edits param + page * pageStride (the plate's page tabs pick the page)
+    int         pageLink = -1;     // paged: while this switch parameter is ON every page shows and edits page 0 (LINK)
     int         showParam = -1;    // >= 0: the control is there only while choice parameter showParam is showValue
     int         showValue = 0;     // (THE RACKET: each pedal's controls share the same seats)
     bool        needsSidechain = false;   // an external-sidechain choice: greyed and not selectable unless
@@ -240,6 +241,8 @@ inline constexpr std::array<float, 4> kGraphRanges{3.0f, 6.0f, 12.0f, 30.0f};
 
 // Effective parameter of a widget for the current band selection.
 [[nodiscard]] int widgetParam(const Widget& w, const FaceState& st) noexcept;
+// ...and with LINK on (Widget::pageLink), the RIGHT page is the LEFT one: it showed its own unused values, greyed at 0.0
+[[nodiscard]] int widgetParam(const Widget& w, const FaceState& st, const PanelHost& host) noexcept;
 
 // `params` is the effect's parameter table (hc::fx::Effect::params()); the controller needs the
 // defaults (double-click) and the ranges, the view the band settings for the EQ curve.
@@ -322,6 +325,7 @@ private:
     Theme             th_;
     mutable float     needle_ = 1.0f;   // the GR needle's position (it swings, it doesn't jump); > 0 = not drawn yet
     mutable std::array<float, 4> needles_{1.0f, 1.0f, 1.0f, 1.0f};   // needles that show a meter (by meter index)
+    mutable std::array<float, 16> held_{};   // gain-change readouts (dB, signed), by meter index: quick out, slow back
     static constexpr int kHistory = 240;   // frames of meter history (about 4 s at 60 frames a second)
     mutable std::array<std::array<float, kHistory>, 3> hist_{};
     mutable int histPos_ = 0, histCount_ = 0;
