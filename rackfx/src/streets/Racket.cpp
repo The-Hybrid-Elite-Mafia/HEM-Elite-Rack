@@ -29,7 +29,7 @@ using hideout::Wave;
 const char* const kPedalN[kPedals] = {"OVERDRIVE", "HARD CLIP", "FUZZ", "RASP", "HEAVY",
                                       "FLANGE", "VIB / TREM", "AUTO PAN", "PHASE", "OCT DOWN", "WAH", "CHORUS", "THICKEN", "PITCH RIDE", "BASS RIDE",
                                       "ECHO", "FLIP ECHO", "ROOM", "SPRING",
-                                      "SQUEEZE", "SLAM", "GATE", "CLEAN UP", "TONE STACK", "GRAPHIC", "VOLUME"};
+                                      "SQUEEZE", "SLAM", "GATE", "CLEAN UP", "TONESTACK", "GRAPHIC", "VOLUME"};
 const char* const kInputN[] = {"STEREO", "MONO", "MONO > WIDE"};
 const char* const kWaveN[] = {"SINE", "TRIANGLE", "SAW UP", "SAW DOWN", "SQUARE"};
 constexpr Wave kWaveOf[] = {Wave::Sine, Wave::Triangle, Wave::SawUp, Wave::SawDown, Wave::Square};

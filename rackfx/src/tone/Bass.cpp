@@ -344,7 +344,7 @@ private:
 namespace dp {
 using namespace deeppockets;
 const char* const kHpN[] = {"6 dB 16 Hz", "12 dB", "24 dB"};
-const char* const kListenN[] = {"ALL", "OVERTONES", "REAL BASS"};
+const char* const kListenN[] = {"ALL", "ADDED", "REAL BASS"};   // ADDED: only what the plug-in adds ("OVERTONES" didn't fit its button)
 const ParamInfo kParams[kCount] = {
     {"frequency", "Frequency", "Hz", 32.0f, 256.0f, 90.0f, Taper::Log},
     {"input", "Input", "dB", -60.0f, 0.0f, 0.0f},

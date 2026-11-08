@@ -726,14 +726,20 @@ void FaceView::readout(const Ctx& c, const Widget& w) const {
     if (std::fabs(v) < 0.05f) v = 0.0f;   // no "-0.0"
     const TextStyle cs = c.ts(TextStyle::Caption);
     const bool small = w.r.h < 110.0f;   // a short window: a smaller number
-    // under 72 high there is no room for the unit under the name (they ran into each other: "BAND 1" on "dB"), so
-    // the unit goes after the name on the same line
-    const bool oneLine = w.r.h < 72.0f;
-    const float nameW = r.textWidth(cs, w.caption);
+    const bool tall = !small;            // a tall window: the name on top, the number on its own line at the bottom
+    const bool oneLine = w.r.h < 72.0f;  // too short to stack the unit under the name
+    const float nameW = r.textWidth(cs, w.caption), unitW = w.lo.empty() ? 0.0f : r.textWidth(cs, w.lo);
+    const float numMinW = r.textWidth(cs, readoutWidest(w.hi));
+    // A short window holds the name and the number side by side when they fit at the smallest size, with the unit
+    // after the name when that fits too; when they don't (STRAIGHT EDGE's 172-wide band windows: "BAND 1 dB +0.0"
+    // ran together), the name goes in the top-left corner and a small number in the bottom-right.
+    const bool sideBySide = !oneLine || nameW + 14 * z + numMinW <= b.w - 36 * z;
+    const bool showUnit = !w.lo.empty() && (!oneLine || (sideBySide ? nameW + 10 * z + unitW + 14 * z + numMinW <= b.w - 36 * z
+                                                                        : nameW + 10 * z + unitW <= b.w - 36 * z));
     if (oneLine) {
-        const float base = b.cy() + r.capHeight(cs) * 0.5f;
+        const float base = sideBySide ? b.cy() + r.capHeight(cs) * 0.5f : b.y + 6 * z + r.capHeight(cs);
         r.text(cs, w.caption, b.x + 18 * z, base, th_.label, Align::Left, TextFx::Shadowed);
-        r.text(cs, w.lo, b.x + 18 * z + nameW + 10 * z, base, th_.teal, Align::Left, TextFx::Shadowed);
+        if (showUnit) r.text(cs, w.lo, b.x + 18 * z + nameW + 10 * z, base, th_.teal, Align::Left, TextFx::Shadowed);
     } else {
         r.text(cs, w.caption, b.x + 18 * z, b.y + 30 * z, th_.label, Align::Left, TextFx::Shadowed);
         if (small) r.text(cs, w.lo, b.x + 18 * z, b.bottom() - 16 * z, th_.teal, Align::Left, TextFx::Shadowed);
@@ -755,10 +761,15 @@ void FaceView::readout(const Ctx& c, const Widget& w) const {
         std::snprintf(t, sizeof t, f, static_cast<double>(v));
     }
     const bool over = w.hi == "CEIL" && v > plain(c.host, rack::limiter::Ceiling) + 0.05f;   // true peak above the ceiling
-    // the left side keeps the name and unit; on a narrow window the number gets only what they leave
-    const float words = oneLine ? nameW + 10 * z + r.textWidth(cs, w.lo) : std::max(nameW, r.textWidth(cs, w.lo));
-    const float room = std::max(b.w - 36 * z - words - 14 * z, b.w * 0.3f);
-    const TextStyle big = c.fit(small ? TextStyle::Panel : TextStyle::Display, t, std::min(b.w * (small ? 0.5f : 0.55f), room));
+    if (oneLine && !sideBySide) {   // stacked: a small number in the bottom-right corner, under the name
+        const TextStyle ns = c.fit(TextStyle::Value, t, b.w - 36 * z);
+        r.text(ns, t, b.right() - 18 * z, b.bottom() - 6 * z, over ? th_.red : th_.teal, Align::Right, TextFx::Shadowed);
+        return;
+    }
+    // side by side, the number gets what the name (and unit) leave; on a tall window it has its own line
+    const float words = tall ? 0.0f : oneLine ? (showUnit ? nameW + 10 * z + unitW : nameW) : std::max(nameW, unitW);
+    const float room = tall ? b.w - 36 * z : b.w - 36 * z - words - 14 * z;
+    const TextStyle big = c.fit(small ? TextStyle::Panel : TextStyle::Display, t, tall ? room : std::min(b.w * 0.5f, room));
     r.text(big, t, b.right() - 18 * z, b.bottom() - (small ? 14 : 18) * z, over ? th_.red : th_.teal, Align::Right, TextFx::Shadowed);
 }
 
@@ -1094,7 +1105,18 @@ void FaceView::draw(Renderer& r, const PanelHost& host, const FaceFeed& feed, co
                 button(c, c.T(w.r), t, false, hot, false, th_.teal);
                 break;
             }
-            t += t.empty() ? (on ? "ON" : "OFF") : (on ? "  ON" : "  OFF");   // a grid row's switch: the row says what it is
+            // a grid row's switch shows ON / OFF only (the row says what it is); a named switch shows its name and its
+            // state, with one space when two don't fit, and its name alone when even that doesn't fit at the smallest
+            // size ("MECHANICS  OFF" ran past both edges): the button's light says ON or OFF. Decided on the longer
+            // "OFF", so the words don't change form when it's pressed.
+            if (t.empty()) {
+                t = on ? "ON" : "OFF";
+            } else {
+                const float room = c.T(w.r).w - 12 * c.z;
+                const TextStyle smallest = c.ts(TextStyle::Caption);
+                if (r.textWidth(smallest, t + "  OFF") <= room) t += on ? "  ON" : "  OFF";
+                else if (r.textWidth(smallest, t + " OFF") <= room) t += on ? " ON" : " OFF";
+            }
             button(c, c.T(w.r), t, on, hot, !host.active(param), th_.teal);
             break;
         }

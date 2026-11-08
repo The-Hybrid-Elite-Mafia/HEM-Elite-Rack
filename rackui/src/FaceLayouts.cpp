@@ -1775,9 +1775,10 @@ FaceLayout stakeoutFace(const rack::PluginInfo& info) {
     L.widgets.back().hi = "PRESS";
     L.widgets.push_back(toggle({210, 404, 130, 36}, ClearClips, "CLIPS"));
     L.widgets.back().hi = "PRESS";
-    L.widgets.push_back(toggle({70, 452, 85, 36}, HoldL, "HOLD L"));
+    // the holds' resets: L / R / SUM (the HOLD readouts say what they reset; "HOLD L" didn't fit an 85-wide button)
+    L.widgets.push_back(toggle({70, 452, 85, 36}, HoldL, "L"));
     L.widgets.back().hi = "PRESS";
-    L.widgets.push_back(toggle({162, 452, 85, 36}, HoldR, "HOLD R"));
+    L.widgets.push_back(toggle({162, 452, 85, 36}, HoldR, "R"));
     L.widgets.back().hi = "PRESS";
     L.widgets.push_back(toggle({254, 452, 86, 36}, HoldSum, "SUM"));
     L.widgets.back().hi = "PRESS";
@@ -2024,7 +2025,10 @@ FaceLayout specFace(const rack::PluginInfo& info) {
     const bool twoRows = !S.row2.empty();
     // what sits beside the screen
     const bool needleReadouts = (S.screen == Screen::Needle || S.screen == Screen::Clone) && !S.readouts.empty();
-    const bool column = screen && (!S.choices.empty() || !S.toggles.empty() || needleReadouts);
+    // Five or more readouts beside a column of nothing but switches (THE WITNESS: six 103-wide windows, too narrow for
+    // "PEAK L") take the whole width; the switches go down the left instead.
+    const bool readoutsWide = S.screen == Screen::Readouts && S.readouts.size() >= 5 && S.choices.empty();
+    const bool column = screen && !readoutsWide && (!S.choices.empty() || !S.toggles.empty() || needleReadouts);
     if (S.bands) {
         specBands(L, S);
     } else if (screen) {
@@ -2149,7 +2153,8 @@ FaceLayout specFace(const rack::PluginInfo& info) {
         y += static_cast<float>(count) * 46 + 44;
     }
     std::vector<rack::PlateToggle> lt(S.leftToggles.begin(), S.leftToggles.end());
-    if (!screen && !S.bands) lt.insert(lt.end(), S.toggles.begin(), S.toggles.end());
+    if ((!screen && !S.bands) || (screen && !column && S.screen == Screen::Readouts && S.readouts.size() >= 5 && S.choices.empty()))
+        lt.insert(lt.end(), S.toggles.begin(), S.toggles.end());
     if (!S.left.empty()) y -= 30;
     for (const rack::PlateChoice& c : S.steppers) {
         Widget st;

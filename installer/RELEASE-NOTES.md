@@ -13,7 +13,13 @@ are drawn. Fixed properly this time:
 - Shorter values where knobs sit close: "-12 dB" (not "-12.0 dB"), "1.50 s" (not "1500 ms"), "16.0 kHz"; in tight
   grids (TEN TOES, THE SETUP's steps, SIX SHOOTER's taps, INSIDE MAN) the number only, the row's or knob's name says
   what it is.
-- Small readouts write the unit after the name ("BAND 1  dB") instead of on top of it.
+- Small readouts: name and number side by side (the unit after the name when it fits), or the name in the top-left
+  corner and the number in the bottom-right when the window is too narrow. THE WITNESS's six meters take the whole
+  width (CLEAR moved to the left column). A test checks every readout window has room for its words.
+- Switch words: one space ("DITHER ON") when two don't fit, and the name alone when even that doesn't fit (the light
+  shows ON or OFF). A test checks every switch's and choice button's words fit at the size drawn.
+- Choice names that didn't fit their buttons: DEEP POCKETS ADDED (was OVERTONES), PROMOTION ATTACK (was TRANSIENT),
+  THE RACKET TONESTACK, ENFORCER / WIDE LOAD "250Hz"; STAKEOUT's hold resets read L / R / SUM.
 - Some names shortened: TORCH's mics (DYN / COND / RIB, ON / OFF the axis), DRIVE-BY (PASS, CLOSEST), WIDE LOAD
   (WIDEN, BELOW), THE CHAIRMAN (LOW HZ), PAWN SHOP (LO CUT, HI CUT), GRAND LARCENY (VELOCITY, PIANO), THE SETUP (ENV).
 

@@ -26,7 +26,7 @@ inline float soft(float v) noexcept { return v / std::cbrt(1.0f + std::fabs(v) *
 // ---- STEREO WIDTH ---------------------------------------------------------------------------------
 namespace wid {
 using namespace width;
-const char* const kMonoN[] = {"OFF", "80 Hz", "120 Hz", "160 Hz", "250 Hz"};
+const char* const kMonoN[] = {"OFF", "80Hz", "120Hz", "160Hz", "250Hz"};   // no space: "250 Hz" didn't fit a 92-wide button
 const char* const kIoN[] = {"L / R", "M / S"};
 const char* const kOnOffW[] = {"OFF", "ON"};
 const ParamInfo kParams[kCount] = {

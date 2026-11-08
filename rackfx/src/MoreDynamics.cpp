@@ -51,7 +51,7 @@ struct Work {
 // ---- VCA COMP -------------------------------------------------------------------------------------
 namespace vc {
 using namespace vca;
-const char* const kScN[] = {"OFF", "60 Hz", "90 Hz", "150 Hz", "250 Hz"};
+const char* const kScN[] = {"OFF", "60Hz", "90Hz", "150Hz", "250Hz"};   // no space: "250 Hz" didn't fit a 92-wide button
 const char* const kTailN[] = {"STEADY", "LINGER"};
 const char* const kCharN[] = {"CLEAN", "WARM"};
 const ParamInfo kParams[kCount] = {

@@ -14,7 +14,7 @@ namespace {
 using namespace hideout;
 
 const char* const kEntryN[] = {"TRANSPOSE", "FREQUENCY"};
-const char* const kModeN[] = {"SYNC", "SMOOTH", "TRANSIENT", "PUNCHY"};
+const char* const kModeN[] = {"SYNC", "SMOOTH", "ATTACK", "PUNCHY"};   // ATTACK (was TRANSIENT, which didn't fit its button)
 const char* const kSemiN[] = {"-OCTAVE", "-MAJ 7TH", "-MIN 7TH", "-MAJ 6TH", "-MIN 6TH", "-5TH", "-TRITONE", "-4TH", "-MAJ 3RD", "-MIN 3RD", "-MAJ 2ND",
                               "-MIN 2ND", "UNISON", "+MIN 2ND", "+MAJ 2ND", "+MIN 3RD", "+MAJ 3RD", "+4TH", "+TRITONE", "+5TH", "+MIN 6TH", "+MAJ 6TH",
                               "+MIN 7TH", "+MAJ 7TH", "+OCTAVE"};

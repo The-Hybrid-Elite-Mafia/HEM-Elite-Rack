@@ -192,29 +192,60 @@ inline float captionWidth(const std::string& t) {
     return w;
 }
 
-// Every button's words fit inside it, even at the smallest text size the plate shrinks to
-// (choice buttons: the choice's name; switches: the caption + "  OFF").
+// Every button's words fit inside it at the size the plate draws them (the button's text shrinks to fit, but not
+// below the smallest style), 6 units clear each side: a switch shows its caption + "  ON" / "  OFF" (or " ON" when
+// the two spaces don't fit, as FaceView does), a choice button its choice's name.
 inline int crampedButtons(const hem::ui::FaceLayout& L, std::span<const hc::fx::ParamInfo> ps, const char* name) {
     using hem::ui::WKind;
     int n = 0;
     for (const hem::ui::Widget& w : L.widgets) {
-        std::string t;
-        // choice buttons: measured on the 0.18.0 screenshots, their words come out ~30 % wider than the
-        // estimate and may run to 3 units from each edge; switches keep the original margin
-        float scale = 1.0f, margin = 16.0f;
+        std::vector<std::string> texts;
         if (w.kind == WKind::ChoiceButton && w.param >= 0 && w.param < static_cast<int>(ps.size()) && ps[static_cast<std::size_t>(w.param)].choices) {
-            t = ps[static_cast<std::size_t>(w.param)].choices[w.choice];
-            scale = 1.3f;
-            margin = 6.0f;
+            texts.push_back(ps[static_cast<std::size_t>(w.param)].choices[w.choice]);
         } else if (w.kind == WKind::Toggle && w.hi != "PRESS") {
-            t = w.caption + "  OFF";
+            // as FaceView draws it: "NAME  OFF", "NAME OFF", or the name alone (the light shows the state)
+            const std::string cap = w.caption;
+            if (cap.empty()) texts.push_back("OFF");
+            else if (extent(St::Label, cap + " OFF", w.r.w - 12.0f).w <= w.r.w - 12.0f) texts.push_back(cap + " OFF");
+            else texts.push_back(cap);
+        } else if (w.kind == WKind::Toggle) {
+            texts.push_back(w.caption);
         } else {
             continue;
         }
-        const float need = captionWidth(t) * scale;
-        if (need > w.r.w - margin) {
+        for (const std::string& t : texts) {
+            const float need = extent(St::Label, t, w.r.w - 12.0f).w;
+            if (need > w.r.w - 12.0f) {
+                ++n;
+                std::printf("  %s: the words '%s' don't fit their %.0f-wide button (need %.0f)\n", name, t.c_str(), static_cast<double>(w.r.w),
+                            static_cast<double>(need + 12.0f));
+            }
+        }
+    }
+    return n;
+}
+
+// Every readout window holds its words at the smallest size, as FaceView lays them out: a short window (under 72)
+// the name and its widest number side by side, or failing that stacked (name top-left, number bottom-right); a taller
+// one the name and unit on the left and the number beside them; a tall one (110 and up) the number on its own line.
+// 18 units in from each side, 14 between side-by-side words.
+inline int crampedReadouts(const hem::ui::FaceLayout& L, const char* name) {
+    using hem::ui::WKind;
+    int n = 0;
+    for (const hem::ui::Widget& w : L.widgets) {
+        if (w.kind != WKind::Readout) continue;
+        const float inner = w.r.w - 36.0f;
+        const float nameW = extent(St::Caption, w.caption, 1e9f).w;
+        const float unitW = w.lo.empty() ? 0.0f : extent(St::Caption, w.lo, 1e9f).w;
+        const float numW = extent(St::Caption, hem::ui::readoutWidest(w.hi), 1e9f).w;
+        bool ok;
+        if (w.r.h < 72.0f) ok = nameW + 14.0f + numW <= inner || (nameW <= inner && numW <= inner);
+        else if (w.r.h < 110.0f) ok = std::max(nameW, unitW) + 14.0f + numW <= inner;
+        else ok = nameW <= w.r.w - 26.0f && unitW <= w.r.w - 26.0f && numW <= inner;   // the name alone on its line: 8 clear on the right
+        if (!ok) {
             ++n;
-            std::printf("  %s: the words '%s' don't fit their %.0f-wide button\n", name, t.c_str(), static_cast<double>(w.r.w));
+            std::printf("  %s: readout '%s' (%.0f x %.0f) is too small for its words\n", name, w.caption.c_str(), static_cast<double>(w.r.w),
+                        static_cast<double>(w.r.h));
         }
     }
     return n;

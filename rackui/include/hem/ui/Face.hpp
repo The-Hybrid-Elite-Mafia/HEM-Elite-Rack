@@ -221,6 +221,15 @@ inline constexpr const char* kSidechainTip = "External sidechain: VST3 only";
     return v;
 }
 
+// The widest number a readout can show in its format (to keep room for it beside the name).
+[[nodiscard]] inline const char* readoutWidest(const std::string& fmt) noexcept {
+    if (fmt == "+2") return "-60.00";
+    if (fmt == "0") return "888";
+    if (fmt == "note") return "C#4";
+    if (fmt == "key") return "Bb MIN";
+    return "-60.0";
+}
+
 [[nodiscard]] inline bool exclusive(const Widget& a, const Widget& b) noexcept {
     return a.showParam >= 0 && a.showParam == b.showParam && a.showValue != b.showValue;
 }
