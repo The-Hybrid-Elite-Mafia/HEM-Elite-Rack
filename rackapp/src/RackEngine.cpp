@@ -40,6 +40,74 @@ void stemGains(const StemMix& m, bool anySolo, float& gl, float& gr) noexcept {
     gr = g * (p < 0.0f ? 1.0f + p : 1.0f);
 }
 
+int findFullSong(const StemSet& stems, double* correlation) {
+    int used = 0;
+    std::uint64_t n = 0;
+    for (const auto& s : stems) if (s) { ++used; n = std::max(n, s->frames()); }
+    if (correlation) *correlation = 0.0;
+    if (used < 3 || n == 0) return -1;
+    // every 4th sample, left + right: plenty to tell a mix from a part
+    constexpr std::uint64_t kStride = 4;
+    const std::uint64_t m = (n + kStride - 1) / kStride;
+    std::vector<double> total(m, 0.0);
+    auto at = [](const Song& s, std::uint64_t i) { return i < s.frames() ? static_cast<double>(s.left[i]) + s.rightOrLeft()[i] : 0.0; };
+    for (const auto& s : stems)
+        if (s) for (std::uint64_t j = 0; j < m; ++j) total[j] += at(*s, j * kStride);
+    int best = -1;
+    double bestC = 0.9;   // a doubled vocal against a mix it is half of stays under this (tested)
+    for (int k = 0; k < kMaxStems; ++k) {
+        const auto& s = stems[static_cast<std::size_t>(k)];
+        if (!s) continue;
+        double xy = 0.0, xx = 0.0, yy = 0.0;
+        for (std::uint64_t j = 0; j < m; ++j) {
+            const double x = at(*s, j * kStride), y = total[j] - x;   // this stem, and the others added up
+            xy += x * y;
+            xx += x * x;
+            yy += y * y;
+        }
+        if (xx <= 0.0 || yy <= 0.0) continue;
+        const double c = xy / std::sqrt(xx * yy);
+        const double levelDb = 10.0 * std::log10(xx / yy);
+        if (correlation && c > *correlation) *correlation = c;   // the closest match, found or not
+        if (c > bestC && std::fabs(levelDb) < 10.0) { bestC = c; best = k; }
+    }
+    return best;
+}
+
+bool isFullSongName(const std::string& fileStem, const std::string& folder) {
+    auto norm = [](std::string s) {
+        while (!s.empty() && (s.back() == ' ' || s.back() == '_')) s.pop_back();
+        std::size_t a = 0;
+        while (a < s.size() && (s[a] == ' ' || s[a] == '_')) ++a;
+        s.erase(0, a);
+        for (char& c : s) c = (c >= 'A' && c <= 'Z') ? static_cast<char>(c - 'A' + 'a') : c;
+        return s;
+    };
+    const std::string f = norm(folder), n = norm(fileStem);
+    if (f.empty()) return false;
+    if (n == f) return true;
+    return n.size() > 2 && n[0] == '0' && (n[1] == ' ' || n[1] == '_' || n[1] == '-') && norm(n.substr(2)) == f;
+}
+
+float ClipGuard::process(float* l, float* r, std::uint32_t n) noexcept {
+    constexpr float kBack = 1.0f / 2400.0f;   // about 50 ms back to no reduction
+    float lowest = 1.0f;
+    for (std::uint32_t i = 0; i < n; ++i) {
+        if (g < 1.0f) {
+            g += (1.0f - g) * kBack;
+            if (g > 0.9999f) g = 1.0f;   // within 0.001 dB: back to untouched
+        }
+        const float pk = std::max(std::fabs(l[i]), std::fabs(r[i]));
+        if (pk * g > kCeiling) g = kCeiling / pk;
+        if (g < 1.0f) {
+            l[i] *= g;
+            r[i] *= g;
+            lowest = std::min(lowest, g);
+        }
+    }
+    return lowest;
+}
+
 std::shared_ptr<Song> mixStems(const StemSet& stems, const StemMixes& mix, std::string name) {
     auto out = std::make_shared<Song>();
     out->name = std::move(name);
@@ -442,6 +510,10 @@ void RackProcessor::renderChunk(float* l, float* r, std::uint32_t n) noexcept {
         for (std::uint32_t i = 0; i < n; ++i) {
             l[i] = (mon ? l[i] : 0.0f) + inL_[i];
             r[i] = (mon ? r[i] : 0.0f) + inR_[i];
+        }
+        const float gg = guard_.process(l, r, n);
+        if (gg < guardMin_.load(std::memory_order_relaxed)) guardMin_.store(gg, std::memory_order_relaxed);
+        for (std::uint32_t i = 0; i < n; ++i) {
             pk0 = std::max(pk0, std::fabs(l[i]));
             pk1 = std::max(pk1, std::fabs(r[i]));
         }
@@ -482,6 +554,11 @@ void RackProcessor::renderChunk(float* l, float* r, std::uint32_t n) noexcept {
             l[i] += abMix_ * (bL_[i] * g - l[i]);
             r[i] += abMix_ * (bR_[i] * g - r[i]);
         }
+    }
+    // the clip guard, last: nothing over 0 dBFS reaches the sound card
+    const float gg = guard_.process(l, r, n);
+    if (gg < guardMin_.load(std::memory_order_relaxed)) guardMin_.store(gg, std::memory_order_relaxed);
+    for (std::uint32_t i = 0; i < n; ++i) {
         pk0 = std::max(pk0, std::fabs(l[i]));
         pk1 = std::max(pk1, std::fabs(r[i]));
     }

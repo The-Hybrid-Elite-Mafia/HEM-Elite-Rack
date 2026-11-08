@@ -36,6 +36,7 @@
 
 #include <array>
 #include <atomic>
+#include <cmath>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -75,6 +76,24 @@ using StemMixes = std::array<StemMix, kMaxStems>;
 // One stem's left and right gains. A muted stem is off; when any stem is soloed (anySolo), only the soloed ones
 // play (a muted one stays off even when soloed).
 void stemGains(const StemMix& m, bool anySolo, float& gl, float& gr) noexcept;
+// A finished full song loaded among its own stems (Suno's "0 <song name>" file): the slot whose sound matches
+// the other stems added together (correlation over 0.9, level within 10 dB), or -1. Needs 3 stems or more.
+// Loaded with the stems it plays the song twice (about 6 dB too loud, into clipping), so it loads muted.
+[[nodiscard]] int findFullSong(const StemSet& stems, double* correlation = nullptr);
+// The same by name, the way Suno lays out a stem download: the folder is the song's name and the full song is
+// "0 <song name>" in it (or the song's name alone). fileStem and folder are the file's name without ".wav" and its
+// folder's name, in UTF-8; letter case and spaces at the ends don't count.
+[[nodiscard]] bool isFullSongName(const std::string& fileStem, const std::string& folder);
+
+// The clip guard on the rack's final output (and the WAV export): below 0 dBFS it does nothing, sample for
+// sample; a sample over 0 dBFS is pulled down to it at once (both sides by the same amount, so the stereo
+// image stays), and the gain comes back over about 50 ms. process() returns the lowest gain it used (1 = none).
+struct ClipGuard {
+    static constexpr float kCeiling = 1.0f;   // 0 dBFS
+    float g = 1.0f;
+    float process(float* l, float* r, std::uint32_t n) noexcept;
+};
+
 // The stems mixed at these settings into one stereo song, as long as the longest stem (the WAV export's input;
 // the same gains the audio thread arrives at).
 [[nodiscard]] std::shared_ptr<Song> mixStems(const StemSet& stems, const StemMixes& mix, std::string name);
@@ -116,6 +135,11 @@ public:
     [[nodiscard]] StemMixes stemMixes() const noexcept;
     // A stem's peak after its level and pan since the last call (0..), for its meter.
     [[nodiscard]] float stemPeak(int slot) const noexcept;
+    // The clip guard since the last call: the deepest it pulled the output down, in dB (0 = it never acted).
+    [[nodiscard]] float guardDb() const noexcept {
+        const float g = guardMin_.exchange(1.0f, std::memory_order_relaxed);
+        return g < 1.0f ? 20.0f * std::log10(std::max(g, 1e-6f)) : 0.0f;
+    }
     // Puts a prepared plug-in (prepare(kRate, kChunk) already called) into a slot; null empties it.
     bool setSlot(int slot, std::unique_ptr<hc::fx::Effect> effect);
     bool moveSlot(int from, int to);     // swaps two slots
@@ -257,6 +281,8 @@ private:
     std::atomic<std::int64_t> seek_{-1};
     std::atomic<std::uint64_t> playhead_{0}, songFrames_{0};
     mutable std::array<std::atomic<float>, 2> peak_{};
+    ClipGuard guard_;
+    mutable std::atomic<float> guardMin_{1.0f};
     std::atomic<float> outLufs_{-144.0f}, wetLufs_{-144.0f}, dryLufs_{-144.0f}, matchDb_{0.0f};
     std::atomic<std::uint32_t> latency_{0};
 };

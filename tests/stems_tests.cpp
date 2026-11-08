@@ -232,6 +232,121 @@ void testStems() {
         CHECK(berr < 1e-6);
     }
 
+    // a full song among its stems (Suno's "0 <song>" file) is found by its sound; real parts are not
+    {
+        std::uint32_t rng = 7;
+        auto noise = [&rng] { rng = rng * 1664525u + 1013904223u; return static_cast<float>(rng >> 8) / 8388608.0f - 1.0f; };
+        StemSet parts{};
+        const std::size_t n = 4 * 48000;
+        auto part = [&](double f, float lvl, float nz) {
+            auto s = std::make_shared<Song>();
+            s->left.resize(n);
+            s->right.resize(n);
+            for (std::size_t i = 0; i < n; ++i) {
+                const float v = lvl * static_cast<float>(std::sin(2 * std::numbers::pi * f * static_cast<double>(i) / kRate)) + nz * noise();
+                s->left[i] = v;
+                s->right[i] = v * 0.9f;
+            }
+            return s;
+        };
+        parts[1] = part(55, 0.3f, 0.0f);     // bass
+        parts[2] = part(0, 0.0f, 0.2f);      // drums (noise)
+        parts[3] = part(330, 0.15f, 0.0f);   // keys
+        parts[4] = part(440, 0.25f, 0.0f);   // lead vocal
+        auto dbl = std::make_shared<Song>(*parts[4]);   // its double: nearly the same
+        for (std::size_t i = 0; i < n; ++i) { dbl->left[i] = dbl->left[i] * 0.8f + 0.01f * noise(); dbl->right[i] = dbl->left[i] * 0.9f; }
+        parts[5] = dbl;
+        double c = 0.0;
+        const int none = findFullSong(parts, &c);
+        std::printf("  stems with a doubled vocal, no full song: found slot %d (closest match %.2f, needs 0.90)\n", none, c);
+        CHECK(none == -1);
+        // the full song: the parts added up, mastered a little differently (separation isn't exact)
+        auto fullSong = std::make_shared<Song>();
+        fullSong->left.assign(n, 0.0f);
+        fullSong->right.assign(n, 0.0f);
+        for (int k = 1; k <= 5; ++k)
+            for (std::size_t i = 0; i < n; ++i) {
+                fullSong->left[i] += parts[static_cast<std::size_t>(k)]->left[i];
+                fullSong->right[i] += parts[static_cast<std::size_t>(k)]->right[i];
+            }
+        for (std::size_t i = 0; i < n; ++i) { fullSong->left[i] = 0.9f * fullSong->left[i] + 0.02f * noise(); fullSong->right[i] = 0.9f * fullSong->right[i] + 0.02f * noise(); }
+        parts[0] = fullSong;
+        const int found = findFullSong(parts, &c);
+        std::printf("  the same plus the full song in slot 1: found slot %d (match %.3f)\n", found + 1, c);
+        CHECK(found == 0);
+        CHECK(c > 0.9);
+    }
+
+    // by name, as Suno lays out a stem download
+    CHECK(isFullSongName("0 Live the Middle", "Live the Middle"));
+    CHECK(isFullSongName("0 live the middle ", "Live the Middle"));
+    CHECK(isFullSongName("Live the Middle", "Live the Middle"));
+    CHECK(!isFullSongName("12 Vocals", "Live the Middle"));
+    CHECK(!isFullSongName("0 Kick", "Live the Middle"));
+    CHECK(!isFullSongName("10 Live the Middle", "Live the Middle"));
+    CHECK(!isFullSongName("0 Live the Middle", ""));
+
+    // the clip guard: nothing over 0 dBFS gets out; below it, the sound is untouched
+    {
+        ClipGuard guard;
+        std::vector<float> l(4800), r(4800), l0, r0;
+        for (std::size_t i = 0; i < l.size(); ++i) {
+            l[i] = 0.98f * static_cast<float>(std::sin(2 * std::numbers::pi * 100.0 * static_cast<double>(i) / kRate));
+            r[i] = -0.5f * l[i];
+        }
+        l0 = l;
+        r0 = r;
+        const float g0 = guard.process(l.data(), r.data(), 4800);
+        CHECK(g0 == 1.0f && l == l0 && r == r0);   // -0.2 dBFS: not a sample changed
+        for (std::size_t i = 0; i < l.size(); ++i) { l[i] = l0[i] * 2.0f; r[i] = r0[i] * 2.0f; }   // +5.8 dBFS
+        const float g1 = guard.process(l.data(), r.data(), 4800);
+        float pk = 0.0f;
+        double ratio = 0.0;
+        for (std::size_t i = 0; i < l.size(); ++i) {
+            pk = std::max({pk, std::fabs(l[i]), std::fabs(r[i])});
+            if (std::fabs(l[i]) > 1e-3f) ratio = std::max(ratio, std::fabs(static_cast<double>(r[i]) / l[i] + 0.5));
+        }
+        std::printf("  clip guard, a tone peaking at +5.8 dBFS: out peak %.4f (1.0000 = 0 dBFS), pulled down %.1f dB, L/R kept (off by %.1e)\n", pk,
+                    20.0 * std::log10(g1), ratio);
+        CHECK(pk <= 1.0f);
+        CHECK(g1 < 0.52f && g1 > 0.5f);
+        CHECK(ratio < 1e-5);
+        // back under: within half a second the gain is back to 1 and the sound untouched again
+        std::vector<float> ql(24000, 0.25f), qr(24000, 0.25f);
+        (void)guard.process(ql.data(), qr.data(), 24000);
+        std::vector<float> l2 = l0, r2 = r0;
+        const float g2 = guard.process(l2.data(), r2.data(), 4800);
+        CHECK(g2 == 1.0f && l2 == l0 && r2 == r0);
+
+        // the rack: 13 stems that add up past 0 dBFS (like a full song loaded with its own stems)
+        StemSet hot{};
+        for (int k = 0; k < kMaxStems; ++k) hot[static_cast<std::size_t>(k)] = stemTone(2.0, 220.0, 0.12f, 0.12f);   // 13 x 0.12 = 1.56
+        RackProcessor rack;
+        CHECK(rack.submitStems(hot));
+        (void)rack.guardDb();
+        const Out o = playFor(rack, 48000);
+        float opk = 0.0f;
+        for (std::size_t i = 0; i < o.l.size(); ++i) opk = std::max({opk, std::fabs(o.l[i]), std::fabs(o.r[i])});
+        const float gd = rack.guardDb();
+        std::printf("  13 stems adding up to +3.9 dBFS: rack output peak %.4f, guard pulled down %.1f dB\n", opk, gd);
+        CHECK(opk <= 1.0f);
+        CHECK(gd < -3.5f && gd > -4.2f);
+        // the same stems at -6 dB each: under 0 dBFS, the guard never acts
+        for (int k = 0; k < kMaxStems; ++k) rack.setStemMix(k, StemMix{-6.0f, 0.0f, false, false});
+        (void)playFor(rack, 48000);   // the faders' glide and the guard's half-second recovery
+        (void)rack.guardDb();
+        (void)playFor(rack, 48000);
+        CHECK(rack.guardDb() == 0.0f);
+        // the export: the guard too, so the file is what you heard
+        const auto mixed = mixStems(hot, StemMixes{}, "hot");
+        std::vector<float> el, er;
+        CHECK(renderOffline(*mixed, {}, el, er, {}, nullptr));
+        float epk = 0.0f;
+        for (std::size_t i = 0; i < el.size(); ++i) epk = std::max({epk, std::fabs(el[i]), std::fabs(er[i])});
+        std::printf("  export of the same: peak %.4f\n", epk);
+        CHECK(epk <= 1.0f);
+    }
+
     // the audio path with 13 stems: no allocation, and its time per block
     {
         RackProcessor rack;

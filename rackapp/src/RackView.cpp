@@ -388,21 +388,20 @@ void RackView::drawBack(Renderer& r, const RackViewState& s, const Hit& hv) cons
             const Rect bar{m.x + 34, m.y + 6 + static_cast<float>(ch) * 26, m.w - 40, 18};
             r.fillRound(bar, 5, kGlass, Blend::Over);
             const float f = std::clamp((s.peakDb[ch] + 48.0f) / 48.0f, 0.0f, 1.0f);
-            if (f > 0.002f) {
-                const float hot = std::clamp((s.peakDb[ch] + 3.0f) / 3.0f, 0.0f, 1.0f);
-                const Rgba c{kTh.teal.r + (1.0f - kTh.teal.r) * hot, kTh.teal.g * (1.0f - 0.6f * hot), kTh.teal.b * (1.0f - 0.6f * hot), 1.0f};
-                r.fillRound({bar.x + 2, bar.y + 2, (bar.w - 4) * f, bar.h - 4}, 4, c, Blend::Over, false);
-            }
+            // teal; red only while the clip guard is catching something over 0 dBFS (a hot but clean master stays teal)
+            if (f > 0.002f) r.fillRound({bar.x + 2, bar.y + 2, (bar.w - 4) * f, bar.h - 4}, 4, s.clipLit ? kTh.red : kTh.teal, Blend::Over, false);
             r.text(TextStyle::Caption, ch == 0 ? "L" : "R", m.x + 14, bar.y + 15, kTh.label, Align::Center, TextFx::Shadowed);
         }
         char b[96];
         if (s.outLufs > -100.0f) std::snprintf(b, sizeof b, "OUT %.1f LUFS", s.outLufs);
         else std::snprintf(b, sizeof b, "OUT  --  LUFS");
         r.text(TextStyle::Value, b, m.x + 34, m.y + 82, kTh.teal, Align::Left, TextFx::Shadowed);
-        if (s.match) std::snprintf(b, sizeof b, "B MATCHED %+.1f dB  -  DELAY %.0f ms", s.matchDb, s.latencyMs);
+        // while the clip guard is catching overs (and 2 s after): CLIP GUARD and how far it pulled the output down
+        if (s.clipLit) std::snprintf(b, sizeof b, "CLIP GUARD %.1f dB  -  OVER 0 dBFS", static_cast<double>(s.guardDb));
+        else if (s.match) std::snprintf(b, sizeof b, "B MATCHED %+.1f dB  -  DELAY %.0f ms", s.matchDb, s.latencyMs);
         else std::snprintf(b, sizeof b, "B NOT MATCHED  -  DELAY %.0f ms", s.latencyMs);
         const TextStyle cs = fit(r, TextStyle::Caption, b, m.w - 40);
-        r.text(cs, clip(r, cs, b, m.w - 40), m.x + 34, m.y + 110, kTh.label, Align::Left, TextFx::Shadowed);
+        r.text(cs, clip(r, cs, b, m.w - 40), m.x + 34, m.y + 110, s.clipLit ? kTh.red : kTh.label, Align::Left, TextFx::Shadowed);
     }
 
     // Chain.
@@ -642,8 +641,12 @@ void RackView::drawStems(Renderer& r, const RackViewState& s, const Hit& hv) con
         }
         const bool silent = sv.mute || sv.gainDb <= kStemMinDbView;
         {
-            const TextStyle ns = fit(r, TextStyle::Title, sv.name, nm.w);
-            r.text(ns, clip(r, ns, sv.name, nm.w), nm.x, mid(r, row, ns), silent ? kTh.dim : hotRow ? kTh.teal : kTh.silver, Align::Left, TextFx::Shadowed);
+            // the full song among its stems: marked, so it's clear why it's muted
+            const float tag = sv.full ? r.textWidth(TextStyle::Caption, "FULL SONG") + 14 : 0.0f;
+            const float w = nm.w - tag;
+            const TextStyle ns = fit(r, TextStyle::Title, sv.name, w);
+            r.text(ns, clip(r, ns, sv.name, w), nm.x, mid(r, row, ns), silent ? kTh.dim : hotRow ? kTh.teal : kTh.silver, Align::Left, TextFx::Shadowed);
+            if (sv.full) r.text(TextStyle::Caption, "FULL SONG", nm.right(), mid(r, row, TextStyle::Caption), kTh.teal, Align::Right, TextFx::Shadowed);
         }
         // level: a fader track with the stem's meter in it and a handle at its setting
         {

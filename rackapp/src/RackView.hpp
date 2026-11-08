@@ -33,6 +33,7 @@ struct StemView {
     float       gainDb = 0.0f, pan = 0.0f;
     bool        mute = false, solo = false;
     float       peakDb = -120.0f;         // its meter (after its level and pan)
+    bool        full = false;             // the full song among its stems (loaded muted)
 };
 
 inline constexpr int kStemSlots = 13;   // = hem::app::kMaxStems (The Hybrid Core's stem count); checked in main.cpp
@@ -72,6 +73,9 @@ struct RackViewState {
     int  pickerScroll = 0;                   // cards: the first row shown
     bool cardsReady = false;                 // the card atlas is on the GPU
     int  cardCols = 1, cardRows = 1;         // its grid
+    // the clip guard on the output: lit for 2 s after it acted, and the deepest it went (dB, negative)
+    bool  clipLit = false;
+    float guardDb = 0.0f;
     // stems
     std::array<StemView, kStemSlots> stems{};
     bool stemPanel = false;                  // the STEMS panel is showing in the face area

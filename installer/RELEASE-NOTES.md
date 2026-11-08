@@ -1,3 +1,14 @@
+# HEM-Elite-Rack 0.53.1
+
+- Out of the red: Suno's stem downloads include the full finished song ("0 <song name>") next to the stems, and
+  loading all of them played the song twice (about 5 dB too loud, over 0 dBFS). The rack now spots the full song
+  (by its name, or by its sound matching the other stems added up), loads it MUTED in its slot and marks it
+  FULL SONG; solo it to compare your stem mix against the finished song.
+- CLIP GUARD on the output: nothing over 0 dBFS reaches the sound card or the exported WAV. Below 0 dBFS it does
+  nothing at all (sample for sample the same); over it, the level is pulled down at once (both sides together) and
+  comes back over about half a second. While it's catching something (and 2 s after), the output bars turn red and
+  the line under them says CLIP GUARD and by how much. A hot master that stays under 0 dBFS now shows teal.
+
 # HEM-Elite-Rack 0.53.0
 
 - STEMS: load up to 13 stems at once, each in its own slot. OPEN SONG (or LOAD STEMS in the STEMS panel) now lets

@@ -127,6 +127,7 @@ bool renderOffline(const Song& song, const std::vector<SlotState>& chain, std::v
     outL.assign(n, 0.0f);
     outR.assign(n, 0.0f);
     std::vector<float> l(kChunk), r(kChunk);
+    ClipGuard guard;   // as the rack plays it: nothing over 0 dBFS
     std::uint64_t lastReport = 0;
     for (std::uint64_t pos = 0; pos < total; pos += kChunk) {
         const auto m = static_cast<std::uint32_t>(std::min<std::uint64_t>(kChunk, total - pos));
@@ -136,6 +137,7 @@ bool renderOffline(const Song& song, const std::vector<SlotState>& chain, std::v
             r[i] = k < n ? R[k] : 0.0f;
         }
         for (auto& e : fx) e->process(l.data(), r.data(), m);
+        (void)guard.process(l.data(), r.data(), m);
         for (std::uint32_t i = 0; i < m; ++i) {
             const std::uint64_t k = pos + i;
             if (k >= latency && k - latency < n) {

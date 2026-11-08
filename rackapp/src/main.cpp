@@ -270,7 +270,7 @@ StemSet demoStems() {
     const double bpm = 92.0, beat = 60.0 / bpm;
     const double chord[4][3] = {{220.0, 261.6, 329.6}, {174.6, 220.0, 261.6}, {196.0, 246.9, 293.7}, {164.8, 207.7, 246.9}};
     const char* names[kMaxStems] = {"01 Kick", "02 Snare", "03 Hats", "04 808 Bass", "05 Keys L", "06 Keys R", "07 Pad",
-                                    "08 Lead Synth", "09 Lead Vocal", "10 Vocal Double", "11 Ad-libs", "12 Riser FX", "13 Room"};
+                                    "08 Lead Synth", "09 Lead Vocal", "10 Vocal Double", "11 Ad-libs", "12 Riser FX", "(full song)"};
     std::uint32_t rng = 11;
     for (int k = 0; k < kMaxStems; ++k) {
         auto s = std::make_shared<Song>();
@@ -306,6 +306,11 @@ StemSet demoStems() {
         s->name = names[k];
         set[static_cast<std::size_t>(k)] = std::move(s);
     }
+    // the last slot: the full song (the first 12 added up), as Suno puts one in a stem download
+    StemSet parts = set;
+    parts[12] = nullptr;
+    auto full = mixStems(parts, StemMixes{}, "0 HEM demo session (full song)");
+    set[12] = std::move(full);
     return set;
 }
 
@@ -384,6 +389,11 @@ struct App {
     StemSet loadedStems{};
     std::array<std::string, kMaxStems> loadedStemInfo{};
     int loadedSlot = -1;                 // >= 0: one stem for that slot; -1: a whole new set
+    int loadedFull = -1;                 // the slot holding a full song among its stems (loads muted)
+    double loadedFullCorr = 0.0;
+    std::array<bool, kMaxStems> stemFull{};   // per slot: it's the full song, not a part
+    float guardShownDb = 0.0f;
+    std::chrono::steady_clock::time_point guardAt{};
     int loadedCount = 0;
     std::vector<float> loadedOverview;
     std::string loadedName, loadedInfo, loadError;
@@ -589,12 +599,28 @@ struct App {
                 stemInfos[at] = infos[i];
                 ++loaded;
             }
-            // the overview: what plays (the stems at 0 dB, centre)
+            // a full song among its stems (Suno's "0 <song>" file): found by its sound, loaded muted
+            // by name first (Suno: "0 <song name>" in the song's folder), then by sound
+            double fullCorr = 0.0;
+            int full = -1;
+            if (slot < 0 && loaded >= 3) {
+                int at = 0;
+                for (std::size_t i = 0; i < count && full < 0; ++i) {
+                    if (!songs[i]) continue;
+                    if (isFullSongName(toUtf8(files[i].stem().wstring()), toUtf8(files[i].parent_path().filename().wstring()))) full = at;
+                    ++at;
+                }
+                const int bySound = findFullSong(set, &fullCorr);
+                if (full < 0) full = bySound;
+            }
+            // the overview: what plays (the stems at 0 dB, centre; the full song muted)
             StemSet view = slot >= 0 ? current : set;
             if (slot >= 0) view[static_cast<std::size_t>(slot)] = set[static_cast<std::size_t>(slot)];
             std::vector<float> ov;
             if (loaded > 0) {
-                const auto mix = mixStems(view, StemMixes{}, "");
+                StemMixes plays{};
+                if (full >= 0) plays[static_cast<std::size_t>(full)].mute = true;
+                const auto mix = mixStems(view, plays, "");
                 ov = makeOverview(mix->left, mix->right);
             }
             if (slot < 0 && loaded == 1 && count == 1) {
@@ -610,6 +636,8 @@ struct App {
             loadedStems = std::move(set);
             loadedStemInfo = std::move(stemInfos);
             loadedSlot = slot;
+            loadedFull = full;
+            loadedFullCorr = fullCorr;
             loadedCount = loaded;
             loadedOverview = std::move(ov);
             loadedName = std::move(name);
@@ -633,6 +661,7 @@ struct App {
         songInfo = std::move(info);
         overview = std::move(ov);
         stemInfo = infos;
+        stemFull = {};
         for (float& p : stemPeakDb) p = -120.0f;
         say("Loaded " + songName + "  (" + songInfo + ")  -  SPACE plays / pauses" + (rack().stemCount() > 1 ? "  -  STEMS (above the plate) sets each one" : ""));
     }
@@ -648,6 +677,7 @@ struct App {
             const auto k = static_cast<std::size_t>(loadedSlot);
             if (!rack().setStem(loadedSlot, loadedStems[k])) { say("Busy - load it again", true); return; }
             stemInfo[k] = loadedStemInfo[k];
+            stemFull[k] = false;
             overview = std::move(loadedOverview);
             if (songName.empty()) songName = loadedStems[k]->name;
             songInfo = std::to_string(rack().stemCount()) + (rack().stemCount() == 1 ? " STEM - " : " STEMS - ") + mmss(static_cast<double>(rack().songFrames()) / kRate);
@@ -656,6 +686,13 @@ struct App {
         }
         setStems(loadedStems, loadedStemInfo, loadedName, std::move(loadedOverview), loadedInfo);
         if (loadedCount > 1) stemPanel = true;   // show what came in
+        if (loadedFull >= 0) {
+            const auto k = static_cast<std::size_t>(loadedFull);
+            rack().setStemMix(loadedFull, StemMix{0.0f, 0.0f, true, false});
+            stemFull[k] = true;
+            say("Slot " + std::to_string(loadedFull + 1) + " (" + loadedStems[k]->name +
+                ") is the full song, not a stem - loaded MUTED so the song doesn't play twice. Solo it to compare.");
+        }
         if (!loadError.empty()) say(loadError, true);
     }
     void removeStem(int k) {
@@ -663,6 +700,7 @@ struct App {
         if (!s) return;
         if (!rack().setStem(k, nullptr)) { say("Busy - try again", true); return; }
         stemInfo[static_cast<std::size_t>(k)].clear();
+        stemFull[static_cast<std::size_t>(k)] = false;
         if (rack().hasAudio()) {
             const auto mix = mixStems(rack().stems(), StemMixes{}, "");
             overview = makeOverview(mix->left, mix->right);
@@ -883,7 +921,11 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
             a.rack().setStemMix(5, StemMix{0.0f, 0.6f, false, false});
             a.rack().setStemMix(9, StemMix{-6.0f, 0.35f, false, false});
             a.rack().setStemMix(11, StemMix{0.0f, 0.0f, true, false});
-            a.rack().setStemMix(12, StemMix{kStemMinDb, 0.0f, false, false});
+            // the full song: found by its sound, as the loader does, and muted
+            if (const int f = findFullSong(set); f >= 0) {
+                a.rack().setStemMix(f, StemMix{0.0f, 0.0f, true, false});
+                a.stemFull[static_cast<std::size_t>(f)] = true;
+            }
             a.stemPanel = true;
         } else {
             a.setSong(demoSong(), {}, "made-up test audio - 20 s");
@@ -1348,6 +1390,15 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
             vs.peakDb[ch] = peakDb[ch];
         }
         vs.outLufs = a.host.running() && a.rack().wantsPlay() ? a.rack().outLufs() : -144.0f;
+        {   // the clip guard: lit for 2 s after it last acted, with the deepest it went
+            const float gd = a.rack().guardDb();
+            if (gd < 0.0f) {
+                if (now - a.guardAt > std::chrono::seconds(2) || gd < a.guardShownDb) a.guardShownDb = gd;
+                a.guardAt = now;
+            }
+            vs.clipLit = a.guardAt.time_since_epoch().count() != 0 && now - a.guardAt < std::chrono::seconds(2);
+            vs.guardDb = a.guardShownDb;
+        }
         vs.matchDb = a.rack().matchGainDb();
         vs.latencyMs = static_cast<float>(a.rack().latency() / kRate * 1000.0);
         vs.cpuPct = a.host.cpuAvg();
@@ -1373,6 +1424,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
             if (!s) continue;
             st.name = s->name;
             st.info = a.stemInfo[static_cast<std::size_t>(k)];
+            st.full = a.stemFull[static_cast<std::size_t>(k)];
             const StemMix m = a.rack().stemMix(k);
             st.gainDb = m.gainDb;
             st.pan = m.pan;
