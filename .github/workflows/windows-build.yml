@@ -75,6 +75,8 @@ jobs:
           tools\ci\run-and-report.ps1 -Title "app: picker cards, DYNAMICS" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_picker_dynamics.png','-Picker','2'
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           tools\ci\run-and-report.ps1 -Title "app: picker cards, EQ" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_picker_eq.png','-Picker','1'
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          tools\ci\run-and-report.ps1 -Title "app: 13 stems, STEMS panel" -Exe pwsh -ArgList '-NoProfile','-File','tools\ci\run-app-smoke.ps1','-Exe','build\rack\rackapp\Release\HEMEliteRack.exe','-Shot','shots\app_stems.png','-Stems'
 
       - name: Screenshots as a build artifact (every branch, for checking the plates before a release)
         if: always()

@@ -1,10 +1,12 @@
 #pragma once
 // =============================================================================
-//  RackProcessor — what HEM-Elite-Rack plays: one song through a chain of up to 8 plug-ins,
-//  with a loudness-matched A/B against the untouched song.
+//  RackProcessor — what HEM-Elite-Rack plays: a song, or up to 13 stems mixed together, through a chain of
+//  up to 8 plug-ins, with a loudness-matched A/B against the untouched mix.
 //
 //  Signal per block:
-//    song (or silence) → slot 1 → … → slot 8 → A/B → output
+//    stems 1..13 (level, pan, mute, solo each) → mix → slot 1 → … → slot 8 → A/B → output
+//  A single song is stem 1 with the others empty. B (ORIGINAL) is the stem mix as set (levels, pans, mutes,
+//  solos) without the chain.
 //    Each slot can be switched off (POWER (on / bypassed)): the plug-in keeps running and its output
 //    fades over 10 ms to its input delayed by the plug-in's latency, so nothing clicks or
 //    moves in time. B (ORIGINAL) is the song delayed by the whole chain's latency, so A and B
@@ -26,6 +28,7 @@
 // =============================================================================
 #include "hem/rack/Notes.hpp"
 #include "hem/rack/Clone.hpp"
+#include "hybrid/core/Config.hpp"
 #include "hybrid/core/SpscRing.hpp"
 #include "hybrid/engine/AudioProcessor.hpp"
 #include "hybrid/fx/Dsp.hpp"
@@ -51,10 +54,30 @@ inline constexpr std::uint32_t kMaxSlotDelay  = 16384;
 inline constexpr std::uint32_t kMaxChainDelay = kMaxSlots * kMaxSlotDelay;
 
 struct Song {
-    std::vector<float> left, right;   // 48 kHz
+    std::vector<float> left, right;   // 48 kHz; right empty = mono (left plays on both sides: half the memory)
     std::string        name;
     [[nodiscard]] std::uint64_t frames() const noexcept { return left.size(); }
+    [[nodiscard]] const std::vector<float>& rightOrLeft() const noexcept { return right.empty() ? left : right; }
 };
+
+// ---- stems ----------------------------------------------------------------------------------
+// How many stems the rack mixes: the rig's stem count, from The Hybrid Core's one config place.
+inline constexpr int   kMaxStems   = static_cast<int>(hc::kStemCount);
+inline constexpr float kStemMinDb  = -60.0f;   // the level fader's bottom: off
+inline constexpr float kStemMaxDb  = 12.0f;
+struct StemMix {
+    float gainDb = 0.0f;   // kStemMinDb .. kStemMaxDb; at the bottom the stem is off
+    float pan = 0.0f;      // -1 (left) .. +1 (right): a balance, so a stem at the centre plays as it is
+    bool  mute = false, solo = false;
+};
+using StemSet = std::array<std::shared_ptr<const Song>, kMaxStems>;
+using StemMixes = std::array<StemMix, kMaxStems>;
+// One stem's left and right gains. A muted stem is off; when any stem is soloed (anySolo), only the soloed ones
+// play (a muted one stays off even when soloed).
+void stemGains(const StemMix& m, bool anySolo, float& gl, float& gr) noexcept;
+// The stems mixed at these settings into one stereo song, as long as the longest stem (the WAV export's input;
+// the same gains the audio thread arrives at).
+[[nodiscard]] std::shared_ptr<Song> mixStems(const StemSet& stems, const StemMixes& mix, std::string name);
 
 // Exponential K-weighted loudness meter (stereo), 3 s memory. Audio thread.
 struct KMeter {
@@ -75,9 +98,24 @@ public:
     RackProcessor& operator=(const RackProcessor&) = delete;
 
     // ---- message thread --------------------------------------------------------------------
-    // Hands a song to the audio thread (null = no song). Playback stops and goes to the start.
+    // Hands a song to the audio thread as stem 1 and empties the other stems (null = no song). Playback stops and
+    // goes to the start.
     bool submitSong(std::shared_ptr<const Song> song);
-    [[nodiscard]] std::shared_ptr<const Song> song() const noexcept { return ownedSong_; }
+    // Hands a set of stems over (each slot its own; null = empty); stem settings go back to 0 dB, centre, no
+    // mute or solo. Playback stops and goes to the start.
+    bool submitStems(const StemSet& stems);
+    // Puts one stem in one slot (null empties it), keeping the others playing where they are.
+    bool setStem(int slot, std::shared_ptr<const Song> stem);
+    [[nodiscard]] std::shared_ptr<const Song> stem(int slot) const noexcept;
+    [[nodiscard]] const StemSet& stems() const noexcept { return ownedStems_; }
+    [[nodiscard]] int stemCount() const noexcept;   // loaded stems
+    [[nodiscard]] bool hasAudio() const noexcept { return stemCount() > 0; }
+    // A stem's level / pan / mute / solo (any thread; the audio thread glides to a change over 10 ms).
+    void setStemMix(int slot, const StemMix& m) noexcept;
+    [[nodiscard]] StemMix stemMix(int slot) const noexcept;
+    [[nodiscard]] StemMixes stemMixes() const noexcept;
+    // A stem's peak after its level and pan since the last call (0..), for its meter.
+    [[nodiscard]] float stemPeak(int slot) const noexcept;
     // Puts a prepared plug-in (prepare(kRate, kChunk) already called) into a slot; null empties it.
     bool setSlot(int slot, std::unique_ptr<hc::fx::Effect> effect);
     bool moveSlot(int from, int to);     // swaps two slots
@@ -141,7 +179,7 @@ public:
 
 private:
     struct Command {
-        enum class Type : std::uint8_t { Song, Slot, Move };
+        enum class Type : std::uint8_t { Stem, Slot, Move };
         Type            type  = Type::Slot;
         int             a = 0, b = 0;
         const Song*     song  = nullptr;
@@ -178,6 +216,7 @@ private:
     mutable std::atomic<float> inPeak_{0.0f};
     std::atomic<std::uint64_t> recOverflow_{0};
     void readSong(float* l, float* r, std::uint32_t n) noexcept;
+    void updateFrames() noexcept;
 
     hc::core::SpscRing<Command, 256> commands_;
     hc::core::SpscRing<Retired, 256> retired_;
@@ -186,12 +225,22 @@ private:
     std::array<std::unique_ptr<hc::fx::Effect>, kMaxSlots> owned_{};
     std::vector<std::unique_ptr<hc::fx::Effect>> leaving_;   // waiting for the audio thread to let go
     std::vector<std::shared_ptr<const Song>> songsLeaving_;
-    std::shared_ptr<const Song> ownedSong_;
+    StemSet ownedStems_{};
+    // the stems' settings: gain in dB, pan, mute, solo (packed so one store is one change)
+    struct StemMixRt {
+        std::atomic<float> gainDb{0.0f}, pan{0.0f};
+        std::atomic<bool>  mute{false}, solo{false};
+    };
+    std::array<StemMixRt, kMaxStems> mix_{};
+    mutable std::array<std::atomic<float>, kMaxStems> stemPeak_{};
     std::array<std::atomic<bool>, kMaxSlots> on_{};
 
     // audio thread
     std::array<SlotRt, kMaxSlots> rt_{};
-    const Song* song_ = nullptr;
+    std::array<const Song*, kMaxStems> stems_{};
+    std::array<float, kMaxStems> gl_{}, gr_{};   // the gains each stem is gliding at
+    std::array<bool, kMaxStems> snap_{};         // a stem loaded with the transport at the start: its gains start where they're set
+    std::uint64_t frames_ = 0;                   // the longest stem
     std::uint64_t pos_ = 0;
     std::int64_t pendingSeek_ = -1;
     float fade_ = 0.0f;                          // transport de-click gain

@@ -36,6 +36,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
+#include <cwctype>
 #include <string_view>
 #include <cstdio>
 #include <filesystem>
@@ -44,10 +45,12 @@
 #include <mutex>
 #include <numbers>
 #include <thread>
+#include <vector>
 
 using namespace hem;
 using namespace hem::app;
 namespace fs = std::filesystem;
+static_assert(kStemSlots == kMaxStems, "the STEMS panel's rows are the engine's stems");
 
 namespace {
 
@@ -85,14 +88,16 @@ fs::path documentsDir() {
     return out;
 }
 
-// Command line (CI and support): --exit-after <s> --screenshot <png> --device offline --demo | --demo2 --select <slot 1..8> --closed (no plate open) --picker <tab 1..7> (the plug-in picker open on that tab) [song]
+// Command line (CI and support): --exit-after <s> --screenshot <png> --device offline --demo | --demo2 --select <slot 1..8> --closed (no plate open) --picker <tab 1..7> (the plug-in picker open on that tab) --stems (13 made-up stems, the STEMS panel open) [song or stems...]
 struct Options {
     double   exitAfter = 0.0;
-    fs::path screenshot, song;
+    fs::path screenshot;
+    std::vector<fs::path> files;   // a song, or stems
     bool     offline = false, demo = false, demo2 = false;   // --demo2: the vintage chain (ARCHIVE .. LOCKDOWN)
     int      select = 0;
     bool     closed = false;
     int      picker = 0;   // > 0: open the picker on that tab
+    bool     stems = false;  // with --demo: 13 made-up stems and the STEMS panel open
 };
 Options parseOptions() {
     Options o;
@@ -107,8 +112,9 @@ Options parseOptions() {
         else if (k == L"--demo2") o.demo = o.demo2 = true;
         else if (k == L"--closed") o.closed = true;
         else if (k == L"--picker" && i + 1 < argc) o.picker = static_cast<int>(std::wcstol(argv[++i], nullptr, 10));
+        else if (k == L"--stems") o.demo = o.stems = true;
         else if (k == L"--select" && i + 1 < argc) o.select = static_cast<int>(std::wcstol(argv[++i], nullptr, 10));
-        else if (!k.empty() && k[0] != L'-') o.song = k;
+        else if (!k.empty() && k[0] != L'-') o.files.emplace_back(k);
     }
     if (argv) ::LocalFree(argv);
     return o;
@@ -121,25 +127,57 @@ void setFolder(IFileDialog* dlg, const fs::path& folder) {
     if (SUCCEEDED(::SHCreateItemFromParsingName(folder.c_str(), nullptr, IID_PPV_ARGS(&f)))) { dlg->SetFolder(f); f->Release(); }
 }
 
-fs::path askOpenSong(HWND owner, const fs::path& folder) {
-    fs::path out;
+// A song, or up to 13 stems at once (Ctrl+click / Shift+click / Ctrl+A to pick several).
+std::vector<fs::path> askOpenAudio(HWND owner, const fs::path& folder, bool several) {
+    std::vector<fs::path> out;
     IFileOpenDialog* dlg = nullptr;
     if (FAILED(::CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dlg)))) return out;
-    const COMDLG_FILTERSPEC filters[] = {{L"Songs (WAV, MP3, FLAC)", L"*.wav;*.wave;*.mp3;*.flac"}, {L"All files", L"*.*"}};
+    const COMDLG_FILTERSPEC filters[] = {{L"Audio (WAV, MP3, FLAC)", L"*.wav;*.wave;*.mp3;*.flac"}, {L"All files", L"*.*"}};
     dlg->SetFileTypes(2, filters);
-    dlg->SetTitle(L"Open a song");
+    dlg->SetTitle(several ? L"Open a song, or up to 13 stems at once (Ctrl+click or Ctrl+A to pick several)" : L"Load a stem into this slot");
     FILEOPENDIALOGOPTIONS o = 0;
     dlg->GetOptions(&o);
-    dlg->SetOptions(o | FOS_FILEMUSTEXIST | FOS_FORCEFILESYSTEM);
+    dlg->SetOptions(o | FOS_FILEMUSTEXIST | FOS_FORCEFILESYSTEM | (several ? FOS_ALLOWMULTISELECT : 0));
     setFolder(dlg, folder);
     if (SUCCEEDED(dlg->Show(owner))) {
-        IShellItem* it = nullptr;
-        PWSTR path = nullptr;
-        if (SUCCEEDED(dlg->GetResult(&it)) && SUCCEEDED(it->GetDisplayName(SIGDN_FILESYSPATH, &path))) { out = path; ::CoTaskMemFree(path); }
-        if (it) it->Release();
+        IShellItemArray* items = nullptr;
+        if (SUCCEEDED(dlg->GetResults(&items)) && items) {
+            DWORD n = 0;
+            items->GetCount(&n);
+            for (DWORD i = 0; i < n; ++i) {
+                IShellItem* it = nullptr;
+                PWSTR path = nullptr;
+                if (SUCCEEDED(items->GetItemAt(i, &it)) && SUCCEEDED(it->GetDisplayName(SIGDN_FILESYSPATH, &path))) { out.emplace_back(path); ::CoTaskMemFree(path); }
+                if (it) it->Release();
+            }
+            items->Release();
+        }
     }
     dlg->Release();
     return out;
+}
+
+// Stems in name order ("01 Kick", "02 Snare", ... "10 Pad"): numbers inside names compare as numbers.
+bool stemOrder(const fs::path& a, const fs::path& b) {
+    const std::wstring x = a.filename().wstring(), y = b.filename().wstring();
+    std::size_t i = 0, j = 0;
+    while (i < x.size() && j < y.size()) {
+        if (std::iswdigit(x[i]) && std::iswdigit(y[j])) {
+            std::size_t i2 = i, j2 = j;
+            while (i2 < x.size() && std::iswdigit(x[i2])) ++i2;
+            while (j2 < y.size() && std::iswdigit(y[j2])) ++j2;
+            const unsigned long long u = std::wcstoull(x.substr(i, i2 - i).c_str(), nullptr, 10), v = std::wcstoull(y.substr(j, j2 - j).c_str(), nullptr, 10);
+            if (u != v) return u < v;
+            i = i2;
+            j = j2;
+            continue;
+        }
+        const wchar_t c = static_cast<wchar_t>(std::towlower(x[i])), d = static_cast<wchar_t>(std::towlower(y[j]));
+        if (c != d) return c < d;
+        ++i;
+        ++j;
+    }
+    return x.size() - i < y.size() - j;
 }
 
 fs::path askSaveWav(HWND owner, const fs::path& suggested) {
@@ -225,6 +263,52 @@ std::shared_ptr<Song> demoSong() {
     return s;
 }
 
+// 13 made-up stems for demos and CI screenshots (20 s each, mono where the part is mono).
+StemSet demoStems() {
+    StemSet set{};
+    const std::size_t n = static_cast<std::size_t>(20.0 * kRate);
+    const double bpm = 92.0, beat = 60.0 / bpm;
+    const double chord[4][3] = {{220.0, 261.6, 329.6}, {174.6, 220.0, 261.6}, {196.0, 246.9, 293.7}, {164.8, 207.7, 246.9}};
+    const char* names[kMaxStems] = {"01 Kick", "02 Snare", "03 Hats", "04 808 Bass", "05 Keys L", "06 Keys R", "07 Pad",
+                                    "08 Lead Synth", "09 Lead Vocal", "10 Vocal Double", "11 Ad-libs", "12 Riser FX", "13 Room"};
+    std::uint32_t rng = 11;
+    for (int k = 0; k < kMaxStems; ++k) {
+        auto s = std::make_shared<Song>();
+        const bool stereo = k == 6 || k == 11 || k == 12;
+        s->left.assign(n, 0.0f);
+        if (stereo) s->right.assign(n, 0.0f);
+        for (std::size_t i = 0; i < n; ++i) {
+            const double t = static_cast<double>(i) / kRate, b = std::fmod(t, beat), bar = t / (4 * beat);
+            const int ci = static_cast<int>(bar) % 4;
+            rng = rng * 1664525u + 1013904223u;
+            const float nz = static_cast<float>(rng >> 8) / 8388608.0f - 1.0f;
+            const double tw = 2 * std::numbers::pi * t;
+            float v = 0.0f, w = 0.0f;
+            switch (k) {
+            case 0: v = 0.5f * static_cast<float>(std::exp(-b * 14.0) * std::sin(2 * std::numbers::pi * (50.0 + 90.0 * std::exp(-b * 30.0)) * b)); break;
+            case 1: { const double sb = std::fmod(t + beat, 2 * beat); v = sb < 0.12 ? 0.25f * static_cast<float>(1.0 - sb / 0.12) * (nz + 0.5f * static_cast<float>(std::sin(tw * 190.0))) : 0.0f; break; }
+            case 2: { const double hb = std::fmod(t, beat * 0.5); v = hb < 0.03 ? 0.12f * static_cast<float>(1.0 - hb / 0.03) * nz : 0.0f; break; }
+            case 3: v = 0.3f * static_cast<float>(std::sin(tw * chord[ci][0] * 0.25) * std::exp(-std::fmod(t, 2 * beat) * 0.8)); break;
+            case 4: v = 0.06f * static_cast<float>(std::sin(tw * chord[ci][1]) * std::exp(-b * 3.0)); break;
+            case 5: v = 0.06f * static_cast<float>(std::sin(tw * chord[ci][2]) * std::exp(-b * 3.0)); break;
+            case 6: for (double f : chord[ci]) { v += 0.03f * static_cast<float>(std::sin(tw * f * 1.003)); w += 0.03f * static_cast<float>(std::sin(tw * f * 0.997)); } break;
+            case 7: v = 0.05f * static_cast<float>(std::sin(tw * chord[ci][2] * 2.0 + 2.0 * std::sin(tw * 5.0))); break;
+            case 8: v = 0.09f * static_cast<float>(std::sin(tw * chord[ci][1] * 2.0) * (0.6 + 0.4 * std::sin(tw * 1.5))); break;
+            case 9: v = 0.05f * static_cast<float>(std::sin(tw * chord[ci][1] * 2.01) * (0.6 + 0.4 * std::sin(tw * 1.5))); break;
+            case 10: v = std::fmod(t, 4 * beat) > 3 * beat ? 0.06f * static_cast<float>(std::sin(tw * 660.0)) : 0.0f; break;
+            case 11: { const float g = static_cast<float>(std::fmod(t, 8 * beat) / (8 * beat)); v = 0.05f * g * nz; w = -0.05f * g * nz; break; }
+            case 12: v = 0.008f * nz; w = 0.008f * static_cast<float>((rng >> 3) % 1000) / 500.0f - 0.008f; break;
+            default: break;
+            }
+            s->left[i] = v;
+            if (stereo) s->right[i] = (k == 6 || k == 11 || k == 12) ? w : v;
+        }
+        s->name = names[k];
+        set[static_cast<std::size_t>(k)] = std::move(s);
+    }
+    return set;
+}
+
 // ---- MIDI keyboards: every MIDI input Windows has, opened at the start and again whenever one is plugged in
 // or out. Their messages go straight to the rack processor (any thread; it queues them for the audio thread).
 class MidiInputs {
@@ -296,9 +380,16 @@ struct App {
     std::atomic<float> loadProgress{0.0f};
     std::atomic<bool> loading{false}, loadDone{false};
     std::mutex loadMutex;
-    std::shared_ptr<Song> loadedSong;
+    // what the loader made: a song (one file) or stems (several), or one stem for one slot
+    StemSet loadedStems{};
+    std::array<std::string, kMaxStems> loadedStemInfo{};
+    int loadedSlot = -1;                 // >= 0: one stem for that slot; -1: a whole new set
+    int loadedCount = 0;
     std::vector<float> loadedOverview;
-    std::string loadedInfo, loadError;
+    std::string loadedName, loadedInfo, loadError;
+    std::array<std::string, kMaxStems> stemInfo{};   // per stem: format, rate, length
+    bool stemPanel = false;
+    std::array<float, kMaxStems> stemPeakDb{};
 
     // export
     std::thread exporter;
@@ -412,43 +503,116 @@ struct App {
         if (!note.empty()) say("Some of the saved chain could not be restored: " + note, true);
     }
 
-    // ---- song loading (worker thread) ----
-    void loadSong(const fs::path& path) {
-        if (loading.load()) { say("Still loading the last song - one moment", true); return; }
+    // ---- song / stem loading (worker thread) ----
+    // One file: a song (stem 1, the others emptied). Several: stems, one per slot in name order (up to 13).
+    // slot >= 0: one file into that stem slot; the others keep playing.
+    void loadAudio(std::vector<fs::path> files, int slot = -1) {
+        if (loading.load()) { say("Still loading - one moment", true); return; }
+        files.erase(std::remove_if(files.begin(), files.end(), [](const fs::path& f) { return !hc::media::isAudioFileName(f); }), files.end());
+        if (files.empty()) { say("No WAV, MP3 or FLAC files there", true); return; }
+        std::sort(files.begin(), files.end(), stemOrder);
+        std::string note;
+        if (slot >= 0 && files.size() > 1) files.resize(1);
+        if (files.size() > static_cast<std::size_t>(kMaxStems)) {
+            note = "Only " + std::to_string(kMaxStems) + " stems fit - loaded the first " + std::to_string(kMaxStems) + " by name, left out " +
+                   std::to_string(files.size() - kMaxStems);
+            files.resize(static_cast<std::size_t>(kMaxStems));
+        }
         if (loader.joinable()) loader.join();
         loading = true;
         loadDone = false;
         loadProgress = 0.0f;
-        songPath = path;
-        loader = std::thread([this, path] {
-            std::shared_ptr<Song> song;
-            std::vector<float> ov;
-            std::string info, error;
-            auto dec = hc::media::decodeFile(path, [this](float f) { loadProgress = 0.6f * f; return true; });
-            if (!dec) {
-                error = dec.error();
-            } else {
+        songPath = files.front();
+        const StemSet current = rack().stems();   // a one-slot load: the others, for the new overview
+        loader = std::thread([this, files, slot, current, note] {
+            const std::size_t count = files.size();
+            std::vector<std::shared_ptr<Song>> songs(count);
+            std::vector<std::string> infos(count), errors(count);
+            std::vector<std::atomic<float>> prog(count);
+            auto decodeOne = [&](std::size_t i) {
+                const fs::path& path = files[i];
+                auto dec = hc::media::decodeFile(path, [&](float f) { prog[i] = 0.6f * f; return true; });
+                if (!dec) { errors[i] = dec.error(); return; }
                 const std::uint32_t inRate = dec->sampleRate;
                 const double seconds = static_cast<double>(dec->frames()) / std::max(1u, inRate);
-                if (!hc::media::resampleTo(*dec, static_cast<std::uint32_t>(kRate), [this](float f) { loadProgress = 0.6f + 0.35f * f; return true; })) {
-                    error = "could not convert the sample rate";
-                } else {
-                    song = std::make_shared<Song>();
-                    song->left = std::move(dec->left);
-                    song->right = std::move(dec->right);
-                    song->name = toUtf8(path.stem().wstring());
-                    ov = makeOverview(song->left, song->right);
-                    char b[160];
-                    if (inRate == static_cast<std::uint32_t>(kRate))
-                        std::snprintf(b, sizeof b, "%s - 48 kHz - %s", dec->format.c_str(), mmss(seconds).c_str());
-                    else
-                        std::snprintf(b, sizeof b, "%s - %.1f kHz played at 48 kHz - %s", dec->format.c_str(), inRate / 1000.0, mmss(seconds).c_str());
-                    info = b;
+                if (!hc::media::resampleTo(*dec, static_cast<std::uint32_t>(kRate), [&](float f) { prog[i] = 0.6f + 0.4f * f; return true; })) {
+                    errors[i] = "could not convert the sample rate";
+                    return;
                 }
+                auto s = std::make_shared<Song>();
+                s->left = std::move(dec->left);
+                // a mono file, or a stereo one with both sides the same: kept once (half the memory)
+                const bool same = dec->channels == 1 || dec->right == s->left;
+                if (!same) s->right = std::move(dec->right);
+                s->name = toUtf8(path.stem().wstring());
+                char b[160];
+                if (inRate == static_cast<std::uint32_t>(kRate))
+                    std::snprintf(b, sizeof b, "%s - 48 kHz - %s%s", dec->format.c_str(), mmss(seconds).c_str(), same ? " - mono" : "");
+                else
+                    std::snprintf(b, sizeof b, "%s - %.1f kHz played at 48 kHz - %s%s", dec->format.c_str(), inRate / 1000.0, mmss(seconds).c_str(), same ? " - mono" : "");
+                infos[i] = b;
+                songs[i] = std::move(s);
+            };
+            // several files decode at once, a thread each (up to the cores there are)
+            const std::size_t workers = std::clamp<std::size_t>(std::thread::hardware_concurrency(), 1, count);
+            std::atomic<std::size_t> next{0}, finished{0};
+            std::vector<std::thread> pool;
+            for (std::size_t w = 0; w < workers; ++w)
+                pool.emplace_back([&] {
+                    for (std::size_t i; (i = next.fetch_add(1)) < count;) {
+                        decodeOne(i);
+                        prog[i] = 1.0f;
+                        finished.fetch_add(1);
+                    }
+                });
+            while (finished.load() < count) {
+                float sum = 0.0f;
+                for (auto& p : prog) sum += p.load();
+                loadProgress = 0.95f * sum / static_cast<float>(count);
+                std::this_thread::sleep_for(std::chrono::milliseconds(30));
             }
+            for (auto& th : pool) th.join();
+
+            StemSet set{};
+            std::array<std::string, kMaxStems> stemInfos{};
+            std::string error, name, info;
+            int loaded = 0;
+            std::uint64_t longest = 0;
+            for (std::size_t i = 0; i < count; ++i) {
+                if (!songs[i]) {
+                    error += (error.empty() ? "" : "; ") + toUtf8(files[i].filename().wstring()) + ": " + errors[i];
+                    continue;
+                }
+                const std::size_t at = slot >= 0 ? static_cast<std::size_t>(slot) : static_cast<std::size_t>(loaded);
+                longest = std::max(longest, songs[i]->frames());
+                set[at] = songs[i];
+                stemInfos[at] = infos[i];
+                ++loaded;
+            }
+            // the overview: what plays (the stems at 0 dB, centre)
+            StemSet view = slot >= 0 ? current : set;
+            if (slot >= 0) view[static_cast<std::size_t>(slot)] = set[static_cast<std::size_t>(slot)];
+            std::vector<float> ov;
+            if (loaded > 0) {
+                const auto mix = mixStems(view, StemMixes{}, "");
+                ov = makeOverview(mix->left, mix->right);
+            }
+            if (slot < 0 && loaded == 1 && count == 1) {
+                name = set[0]->name;
+                info = stemInfos[0];
+            } else if (slot < 0 && loaded > 0) {
+                const fs::path parent = files.front().parent_path().filename();
+                name = parent.empty() ? set[0]->name : toUtf8(parent.wstring());
+                info = std::to_string(loaded) + (loaded == 1 ? " STEM - " : " STEMS - ") + mmss(static_cast<double>(longest) / kRate);
+            }
+            if (!note.empty()) error = note + (error.empty() ? "" : " - " + error);
             std::lock_guard lock(loadMutex);
-            loadedSong = std::move(song);
+            loadedStems = std::move(set);
+            loadedStemInfo = std::move(stemInfos);
+            loadedSlot = slot;
+            loadedCount = loaded;
             loadedOverview = std::move(ov);
+            loadedName = std::move(name);
             loadedInfo = std::move(info);
             loadError = std::move(error);
             loadProgress = 1.0f;
@@ -456,11 +620,21 @@ struct App {
         });
     }
     void setSong(std::shared_ptr<Song> song, std::vector<float> ov, std::string info) {
-        songName = song->name;
+        StemSet set{};
+        const std::string name = song->name;
+        set[0] = std::move(song);
+        std::array<std::string, kMaxStems> infos{};
+        infos[0] = info;
+        setStems(set, infos, name, std::move(ov), std::move(info));
+    }
+    void setStems(const StemSet& set, const std::array<std::string, kMaxStems>& infos, std::string name, std::vector<float> ov, std::string info) {
+        if (!rack().submitStems(set)) { say("Busy - open them again", true); return; }
+        songName = std::move(name);
         songInfo = std::move(info);
         overview = std::move(ov);
-        if (!rack().submitSong(std::move(song))) { say("Busy - open the song again", true); return; }
-        say("Loaded " + songName + "  (" + songInfo + ")  -  SPACE plays / pauses");
+        stemInfo = infos;
+        for (float& p : stemPeakDb) p = -120.0f;
+        say("Loaded " + songName + "  (" + songInfo + ")  -  SPACE plays / pauses" + (rack().stemCount() > 1 ? "  -  STEMS (above the plate) sets each one" : ""));
     }
     void pollLoad() {
         if (!loadDone.load()) return;
@@ -468,28 +642,65 @@ struct App {
         loading = false;
         if (loader.joinable()) loader.join();
         std::lock_guard lock(loadMutex);
-        if (!loadedSong) { say("Could not open " + toUtf8(songPath.filename().wstring()) + ": " + loadError, true); return; }
+        if (loadedCount == 0) { say("Could not open " + toUtf8(songPath.filename().wstring()) + ": " + loadError, true); return; }
         settings.set("app", "folder", toUtf8(songPath.parent_path().wstring()));
-        setSong(std::move(loadedSong), std::move(loadedOverview), std::move(loadedInfo));
+        if (loadedSlot >= 0) {
+            const auto k = static_cast<std::size_t>(loadedSlot);
+            if (!rack().setStem(loadedSlot, loadedStems[k])) { say("Busy - load it again", true); return; }
+            stemInfo[k] = loadedStemInfo[k];
+            overview = std::move(loadedOverview);
+            if (songName.empty()) songName = loadedStems[k]->name;
+            songInfo = std::to_string(rack().stemCount()) + (rack().stemCount() == 1 ? " STEM - " : " STEMS - ") + mmss(static_cast<double>(rack().songFrames()) / kRate);
+            say("Stem " + std::to_string(loadedSlot + 1) + ": " + loadedStems[k]->name + "  (" + stemInfo[k] + ")");
+            return;
+        }
+        setStems(loadedStems, loadedStemInfo, loadedName, std::move(loadedOverview), loadedInfo);
+        if (loadedCount > 1) stemPanel = true;   // show what came in
+        if (!loadError.empty()) say(loadError, true);
+    }
+    void removeStem(int k) {
+        const auto s = rack().stem(k);
+        if (!s) return;
+        if (!rack().setStem(k, nullptr)) { say("Busy - try again", true); return; }
+        stemInfo[static_cast<std::size_t>(k)].clear();
+        if (rack().hasAudio()) {
+            const auto mix = mixStems(rack().stems(), StemMixes{}, "");
+            overview = makeOverview(mix->left, mix->right);
+        } else {
+            overview.clear();
+        }
+        if (!rack().hasAudio()) { songName.clear(); songInfo.clear(); }
+        say("Stem " + std::to_string(k + 1) + " (" + s->name + ") removed");
+    }
+    void clearStems() {
+        (void)rack().submitStems(StemSet{});
+        songName.clear();
+        songInfo.clear();
+        overview.clear();
+        for (auto& i : stemInfo) i.clear();
+        say("All stems cleared");
     }
 
     // ---- export (worker thread) ----
     void startExport(HWND owner) {
-        auto song = rack().song();
-        if (!song) { say("Open a song first", true); return; }
+        if (!rack().hasAudio()) { say("Open a song or stems first", true); return; }
+        const StemSet stems = rack().stems();
+        const StemMixes mixes = rack().stemMixes();
+        const std::string name = songName.empty() ? std::string("HEM-Elite-Rack") : songName;
         if (exportProgress.load() >= 0.0f) { say("Already exporting", true); return; }
         fs::path folder = fromUtf8(settings.get("app", "exportFolder"));
         if (folder.empty()) folder = songPath.empty() ? musicDir() : songPath.parent_path();
-        const fs::path out = askSaveWav(owner, folder / (fromUtf8(song->name) + L" (HEM-Elite-Rack).wav"));
+        const fs::path out = askSaveWav(owner, folder / (fromUtf8(name) + L" (HEM-Elite-Rack).wav"));
         if (out.empty()) return;
         settings.set("app", "exportFolder", toUtf8(out.parent_path().wstring()));
         if (exporter.joinable()) exporter.join();
         const std::vector<SlotState> chain = snapshotChain(rack());
         exportProgress = 0.0f;
         exportDone = false;
-        exporter = std::thread([this, song, chain, out] {
+        exporter = std::thread([this, stems, mixes, name, chain, out] {
             std::vector<float> l, r;
             std::string err, msg;
+            const auto song = mixStems(stems, mixes, name);   // the stems at their levels, pans, mutes and solos
             bool ok = renderOffline(*song, chain, l, r, [this](float f) { exportProgress = 0.95f * f; return true; }, &err);
             if (ok) ok = hc::media::writeWav(out, l.data(), r.data(), l.size(), static_cast<std::uint32_t>(kRate), hc::media::WavEncoding::Pcm24);
             if (ok) {
@@ -599,7 +810,7 @@ struct App {
         settings.set("app", "takeNumber", std::to_string(number));
         recWet.assign(2 * 8192, 0.0f);
         recDry.assign(2 * 8192, 0.0f);
-        if (rack().song() && !rack().wantsPlay()) {
+        if (rack().hasAudio() && !rack().wantsPlay()) {
             if (rack().playhead() >= rack().songFrames()) rack().seek(0);
             rack().play();
         }
@@ -659,9 +870,25 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     a.rack().setLoop(a.settings.get("app", "loop", "0") == "1");
     a.pickerCards = a.settings.get("app", "pickercards", "1") != "0";
 
-    if (opts.demo) {   // CI / showing it off: a made-up song and a chain with something to look at
-        a.setSong(demoSong(), {}, "made-up test audio - 20 s");
-        a.overview = makeOverview(a.rack().song()->left, a.rack().song()->right);
+    if (opts.demo) {   // CI / showing it off: a made-up song (or 13 stems) and a chain with something to look at
+        if (opts.stems) {
+            const StemSet set = demoStems();
+            std::array<std::string, kMaxStems> infos{};
+            for (auto& i : infos) i = "made up for testing - 20 s";
+            const auto mix = mixStems(set, StemMixes{}, "");
+            a.setStems(set, infos, "HEM demo session (made-up stems)", makeOverview(mix->left, mix->right), "13 STEMS - 0:20");
+            // a few settings so the panel shows what it does
+            a.rack().setStemMix(3, StemMix{-3.5f, 0.0f, false, false});
+            a.rack().setStemMix(4, StemMix{0.0f, -0.6f, false, false});
+            a.rack().setStemMix(5, StemMix{0.0f, 0.6f, false, false});
+            a.rack().setStemMix(9, StemMix{-6.0f, 0.35f, false, false});
+            a.rack().setStemMix(11, StemMix{0.0f, 0.0f, true, false});
+            a.rack().setStemMix(12, StemMix{kStemMinDb, 0.0f, false, false});
+            a.stemPanel = true;
+        } else {
+            a.setSong(demoSong(), {}, "made-up test audio - 20 s");
+            a.overview = makeOverview(a.rack().stem(0)->left, a.rack().stem(0)->right);
+        }
         if (opts.demo2) {   // the vintage chain: tape, tube EQ, tube, compressor, bus glue, limiter
             a.addPlugin("ARCHIVE", 0);
             if (auto* e = a.rack().effect(0)) { e->set(rack::tape::Input, 6); e->set(rack::tape::Wow, 15); }
@@ -761,8 +988,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     hc::ui::FontAtlas font;
     RackView view;
 
-    if (!opts.song.empty()) a.loadSong(opts.song);
-    else if (!opts.demo) a.say("Open a song (OPEN SONG, or drop a WAV / MP3 / FLAC on the window), then add plug-ins on the left");
+    if (!opts.files.empty()) a.loadAudio(opts.files);
+    else if (!opts.demo) a.say("Open a song or up to 13 stems (OPEN SONG, or drop WAV / MP3 / FLAC files on the window), then add plug-ins on the left");
 
     // MIDI keyboards (for the instruments in the chain)
     MidiInputs midiIn(a.rack());
@@ -813,6 +1040,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     auto plateChangedAt = std::chrono::steady_clock::now();
     Hit hover;
     bool faceDrag = false, seekDrag = false;
+    Hit stemDrag;   // a stem's level or pan being dragged
     float peakDb[2] = {-120.0f, -120.0f};
     const auto started = std::chrono::steady_clock::now();
     auto lastFrame = started, lastSave = started;
@@ -860,21 +1088,54 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
             probe.pickerScroll = a.pickerScroll;
             probe.selected = a.selected;
             for (int s = 0; s < kMaxSlots; ++s) probe.slots[static_cast<std::size_t>(s)].used = a.rack().effect(s) != nullptr;
+            probe.stemPanel = a.stemPanel;
+            for (int k = 0; k < kMaxStems; ++k) probe.stems[static_cast<std::size_t>(k)].used = a.rack().stem(k) != nullptr;
             switch (e.type) {
             case hc::ui::InputEvent::Type::MouseDown: {
                 const Hit hh = view.hit(x, y, probe);
                 switch (hh.action) {
-                case Action::OpenSong: {
+                case Action::OpenSong:
+                case Action::StemsLoadAll:
+                case Action::StemLoad: {
                     fs::path folder = fromUtf8(a.settings.get("app", "folder"));
                     if (folder.empty()) folder = musicDir();
-                    const fs::path p = askOpenSong(hwnd, folder);
-                    if (!p.empty()) a.loadSong(p);
+                    const bool one = hh.action == Action::StemLoad;
+                    auto files = askOpenAudio(hwnd, folder, !one);
+                    if (!files.empty()) a.loadAudio(std::move(files), one ? hh.index : -1);
+                    break;
+                }
+                case Action::StemsButton: a.stemPanel = !a.stemPanel; break;
+                case Action::StemsClose: a.stemPanel = false; break;
+                case Action::StemsClear: if (a.rack().hasAudio()) a.clearStems(); break;
+                case Action::StemRemove: a.removeStem(hh.index); break;
+                case Action::StemMute:
+                case Action::StemSolo: {
+                    StemMix m = a.rack().stemMix(hh.index);
+                    if (hh.action == Action::StemMute) m.mute = !m.mute;
+                    else if (e.fine) {   // Ctrl- or Shift-click S: this one alone
+                        for (int k = 0; k < kMaxStems; ++k) { StemMix o = a.rack().stemMix(k); o.solo = false; a.rack().setStemMix(k, o); }
+                        m.solo = true;
+                    } else m.solo = !m.solo;
+                    a.rack().setStemMix(hh.index, m);
+                    break;
+                }
+                case Action::StemLevel:
+                case Action::StemPan: {
+                    StemMix m = a.rack().stemMix(hh.index);
+                    if (e.doubleClick) {   // back to 0 dB / centre
+                        if (hh.action == Action::StemLevel) m.gainDb = 0.0f; else m.pan = 0.0f;
+                    } else {
+                        stemDrag = hh;
+                        if (hh.action == Action::StemLevel) m.gainDb = stemFaderToDb(hh.value);
+                        else m.pan = std::fabs(hh.value * 2.0f - 1.0f) < 0.04f ? 0.0f : hh.value * 2.0f - 1.0f;
+                    }
+                    a.rack().setStemMix(hh.index, m);
                     break;
                 }
                 case Action::Export: a.startExport(hwnd); break;
                 case Action::Device: a.openDevice((a.deviceIndex + 1) % static_cast<int>(a.devices.size())); break;
                 case Action::Play:
-                    if (!a.rack().song()) { a.say("Open a song first", true); break; }
+                    if (!a.rack().hasAudio()) { a.say("Open a song or stems first", true); break; }
                     if (a.rack().wantsPlay()) a.rack().pause();
                     else {
                         if (a.rack().playhead() >= a.rack().songFrames()) a.rack().seek(0);
@@ -938,6 +1199,13 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
                     float px, py;
                     toPlate(x, y, px, py);
                     a.face.controller->mouseMove(px, py, e.fine);
+                } else if (stemDrag.action == Action::StemLevel || stemDrag.action == Action::StemPan) {
+                    const Rect f = stemDrag.action == Action::StemLevel ? RackView::stemLevelRect(stemDrag.index) : RackView::stemPanRect(stemDrag.index);
+                    const float v = std::clamp((x - f.x) / f.w, 0.0f, 1.0f);
+                    StemMix m = a.rack().stemMix(stemDrag.index);
+                    if (stemDrag.action == Action::StemLevel) m.gainDb = stemFaderToDb(v);
+                    else m.pan = std::fabs(v * 2.0f - 1.0f) < 0.04f ? 0.0f : v * 2.0f - 1.0f;
+                    a.rack().setStemMix(stemDrag.index, m);
                 } else if (seekDrag) {
                     const Hit hh = view.hit(x, y, probe);
                     if (hh.action == Action::Seek && a.rack().songFrames() > 0)
@@ -956,9 +1224,19 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
                 if (faceDrag && a.face.controller) a.face.controller->mouseUp();
                 faceDrag = false;
                 seekDrag = false;
+                stemDrag = {};
                 break;
             case hc::ui::InputEvent::Type::Wheel:
-                if (a.picker) {   // the cards scroll a row per notch
+                if (a.stemPanel && !a.picker) {   // over a fader: 0.5 dB a notch (0.1 with Shift / fine); over pan: 2 %
+                    const Hit hh = view.hit(x, y, probe);
+                    if ((hh.action == Action::StemLevel || hh.action == Action::StemPan) && e.wheel != 0.0f) {
+                        StemMix m = a.rack().stemMix(hh.index);
+                        const float d = e.wheel > 0.0f ? 1.0f : -1.0f;
+                        if (hh.action == Action::StemLevel) m.gainDb = std::clamp(m.gainDb + d * (e.fine ? 0.1f : 0.5f), kStemMinDb, kStemMaxDb);
+                        else m.pan = std::clamp(m.pan + d * 0.02f, -1.0f, 1.0f);
+                        a.rack().setStemMix(hh.index, m);
+                    }
+                } else if (a.picker) {   // the cards scroll a row per notch
                     if (a.pickerCards && e.wheel != 0.0f)
                         a.pickerScroll = std::clamp(a.pickerScroll + (e.wheel > 0.0f ? -1 : 1), 0, RackView::maxScroll(probe));
                 } else if (a.face.controller && view.hit(x, y, probe).action == Action::Face) {
@@ -968,7 +1246,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
                 }
                 break;
             case hc::ui::InputEvent::Type::Key:
-                if (e.key == VK_SPACE && a.rack().song()) {
+                if (e.key == VK_SPACE && a.rack().hasAudio()) {
                     if (a.rack().wantsPlay()) a.rack().pause();
                     else { if (a.rack().playhead() >= a.rack().songFrames()) a.rack().seek(0); a.rack().play(); }
                 } else if ((e.key == VK_LEFT || e.key == VK_RIGHT) && a.rack().songFrames() > 0) {
@@ -979,13 +1257,20 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
                 else if (e.key == 'B' && !e.ctrl) a.rack().setOriginal(true);
                 else if (e.key == VK_ESCAPE) {   // the picker first, then the plate
                     if (a.picker) a.picker = false;
+                    else if (a.stemPanel) a.stemPanel = false;
                     else if (!faceDrag) { a.closeFace(); hover = {}; }
                 }
                 break;
             case hc::ui::InputEvent::Type::Drop:
             case hc::ui::InputEvent::Type::OpenFile:
-                for (const auto& f : e.files)
-                    if (hc::media::isAudioFileName(f)) { a.loadSong(f); break; }
+                {   // one file: a song; several: stems (dropped on a stem's row in the STEMS panel: into that slot)
+                    std::vector<fs::path> files;
+                    for (const auto& f : e.files) if (hc::media::isAudioFileName(f)) files.emplace_back(f);
+                    if (files.empty()) break;
+                    const Hit at = view.hit(x, y, probe);
+                    const bool row = a.stemPanel && (at.action == Action::StemLoad || at.action == Action::StemLevel || at.action == Action::StemPan) && files.size() == 1;
+                    a.loadAudio(std::move(files), row ? at.index : -1);
+                }
                 break;
             default: break;
             }
@@ -1074,6 +1359,26 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
             sv.on = a.rack().slotOn(s);
             sv.name = pluginName(*e);
             if (const auto* info = rack::findPlugin(sv.name.c_str())) sv.suite = info->suite;
+        }
+        vs.stemPanel = a.stemPanel;
+        vs.stemCount = a.rack().stemCount();
+        for (int k = 0; k < kMaxStems; ++k) {
+            StemView& st = vs.stems[static_cast<std::size_t>(k)];
+            const auto s = a.rack().stem(k);
+            const float pk = a.rack().stemPeak(k);
+            float& shown = a.stemPeakDb[static_cast<std::size_t>(k)];
+            const float pd = pk > 1e-6f ? 20.0f * std::log10(pk) : -120.0f;
+            shown = std::max(pd, shown - 24.0f * dt);   // falls 24 dB a second
+            st.used = s != nullptr;
+            if (!s) continue;
+            st.name = s->name;
+            st.info = a.stemInfo[static_cast<std::size_t>(k)];
+            const StemMix m = a.rack().stemMix(k);
+            st.gainDb = m.gainDb;
+            st.pan = m.pan;
+            st.mute = m.mute;
+            st.solo = m.solo;
+            st.peakDb = shown;
         }
         vs.selected = a.selected;
         vs.picker = a.picker;

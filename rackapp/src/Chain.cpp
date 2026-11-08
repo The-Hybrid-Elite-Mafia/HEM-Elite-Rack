@@ -122,6 +122,7 @@ bool renderOffline(const Song& song, const std::vector<SlotState>& chain, std::v
         fx.push_back(std::move(e));
     }
     const std::uint64_t n = song.frames();
+    const std::vector<float>& R = song.rightOrLeft();
     const std::uint64_t total = n + latency;
     outL.assign(n, 0.0f);
     outR.assign(n, 0.0f);
@@ -132,7 +133,7 @@ bool renderOffline(const Song& song, const std::vector<SlotState>& chain, std::v
         for (std::uint32_t i = 0; i < m; ++i) {
             const std::uint64_t k = pos + i;
             l[i] = k < n ? song.left[k] : 0.0f;
-            r[i] = k < n ? song.right[k] : 0.0f;
+            r[i] = k < n ? R[k] : 0.0f;
         }
         for (auto& e : fx) e->process(l.data(), r.data(), m);
         for (std::uint32_t i = 0; i < m; ++i) {

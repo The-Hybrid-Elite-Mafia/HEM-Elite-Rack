@@ -47,6 +47,7 @@ void testBypassEveryPlugin();
 void testRackSidechain();
 void testRackSession();
 void testLiveRack();
+void testStems();
 void testRelease();
 
 void setExePath(const char* argv0);

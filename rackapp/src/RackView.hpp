@@ -3,7 +3,8 @@
 //  RackView — the HEM-Elite-Rack window around the faceplate: top bar (OPEN SONG, EXPORT WAV,
 //  audio device), transport (play / stop, song overview you can click to jump, LIVE INPUT with MONITOR,
 //  RECORD and its meter, A / B, MATCH LOUDNESS, LOOP, output meter), the chain (8 slots: select, ON, move, remove, + ADD) and the
-//  plug-in picker. The selected plug-in's faceplate is drawn by hem::ui::FaceView in faceArea(), with an X CLOSE
+//  plug-in picker, and the STEMS panel (13 stem slots: name, level fader with the stem's meter in it, pan, MUTE,
+//  SOLO, remove; LOAD STEMS / CLEAR ALL), opened with the STEMS button above the plate. The selected plug-in's faceplate is drawn by hem::ui::FaceView in faceArea(), with an X CLOSE
 //  button in the strip above its top-right corner (closing hides the plate only; the plug-in keeps running).
 //  Design units: kW × kH, letterboxed into the window. Draws through the Renderer only and
 //  reads a plain view state, so it never touches audio objects.
@@ -25,6 +26,20 @@ struct SlotView {
     bool        on = true;
     std::string name, suite;
 };
+
+struct StemView {
+    bool        used = false;
+    std::string name, info;               // "Lead Vocal", "WAV - 44.1 kHz - 3:41"
+    float       gainDb = 0.0f, pan = 0.0f;
+    bool        mute = false, solo = false;
+    float       peakDb = -120.0f;         // its meter (after its level and pan)
+};
+
+inline constexpr int kStemSlots = 13;   // = hem::app::kMaxStems (The Hybrid Core's stem count); checked in main.cpp
+
+// The level fader's travel (0..1) and dB: 0 dB at 80 %, +12 dB at the top, OFF (-60) at the bottom.
+[[nodiscard]] float stemFaderToDb(float f) noexcept;
+[[nodiscard]] float stemDbToFader(float db) noexcept;
 
 struct RackViewState {
     // song
@@ -57,6 +72,10 @@ struct RackViewState {
     int  pickerScroll = 0;                   // cards: the first row shown
     bool cardsReady = false;                 // the card atlas is on the GPU
     int  cardCols = 1, cardRows = 1;         // its grid
+    // stems
+    std::array<StemView, kStemSlots> stems{};
+    bool stemPanel = false;                  // the STEMS panel is showing in the face area
+    int  stemCount = 0;
     // status
     std::string device, status;
     bool  alert = false;
@@ -66,11 +85,12 @@ struct RackViewState {
 enum class Action : std::uint8_t {
     None, OpenSong, Export, Device, Play, Stop, Seek, PlayA, PlayB, Match, Loop, Input, Monitor, Record,
     SlotSelect, SlotOn, SlotUp, SlotDown, SlotRemove, AddOpen, AddPlugin, PickerClose, PickerTab, PickerView, PickerScroll, Face, FaceClose,
+    StemsButton, StemsClose, StemsLoadAll, StemsClear, StemLoad, StemLevel, StemPan, StemMute, StemSolo, StemRemove,
 };
 struct Hit {
     Action action = Action::None;
-    int    index = -1;      // slot / plug-in (AddPlugin: index into rack::plugins()) / picker tab / PickerScroll: -1 up, +1 down
-    float  value = 0.0f;    // Seek: 0..1
+    int    index = -1;      // slot / stem / plug-in (AddPlugin: index into rack::plugins()) / picker tab / PickerScroll: -1 up, +1 down
+    float  value = 0.0f;    // Seek, StemLevel, StemPan: 0..1 along it
     [[nodiscard]] bool operator==(const Hit& o) const noexcept { return action == o.action && index == o.index; }
 };
 
@@ -83,6 +103,11 @@ public:
     [[nodiscard]] static Rect faceArea() noexcept { return {420, 262, 1560, 968}; }
     // The plate's X CLOSE button: in the strip between faceArea()'s top and the plate's top edge.
     [[nodiscard]] static Rect faceClose() noexcept;
+    // STEMS: at the other end of that strip; it opens / closes the STEMS panel.
+    [[nodiscard]] static Rect stemsButton() noexcept;
+    // A stem row's level fader and pan bar (for dragging: their x range).
+    [[nodiscard]] static Rect stemLevelRect(int stem) noexcept;
+    [[nodiscard]] static Rect stemPanRect(int stem) noexcept;
     // Where the 1672 × 941 faceplate sits inside faceArea(), and its zoom.
     static void facePlacement(float& originX, float& originY, float& zoom) noexcept;
 
@@ -100,6 +125,7 @@ public:
 private:
     void button(hc::ui::Renderer& r, Rect b, std::string_view text, bool lit, bool hot, bool dim = false) const;
     void drawCards(hc::ui::Renderer& r, const RackViewState& s, const Hit& hover) const;
+    void drawStems(hc::ui::Renderer& r, const RackViewState& s, const Hit& hover) const;
 };
 
 [[nodiscard]] std::vector<float> makeOverview(const std::vector<float>& left, const std::vector<float>& right);

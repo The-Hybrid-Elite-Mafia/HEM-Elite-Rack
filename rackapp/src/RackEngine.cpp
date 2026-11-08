@@ -31,6 +31,43 @@ void KMeter::add(const float* l, const float* r, std::uint32_t n, float* sl, flo
 
 double KMeter::lufs() const noexcept { return ms > 0.0 ? -0.691 + 10.0 * std::log10(ms) : -144.0; }
 
+// ---- stems ----------------------------------------------------------------------------------
+void stemGains(const StemMix& m, bool anySolo, float& gl, float& gr) noexcept {
+    if (m.mute || (anySolo && !m.solo) || m.gainDb <= kStemMinDb) { gl = gr = 0.0f; return; }
+    const float g = std::pow(10.0f, std::min(m.gainDb, kStemMaxDb) / 20.0f);
+    const float p = std::clamp(m.pan, -1.0f, 1.0f);
+    gl = g * (p > 0.0f ? 1.0f - p : 1.0f);
+    gr = g * (p < 0.0f ? 1.0f + p : 1.0f);
+}
+
+std::shared_ptr<Song> mixStems(const StemSet& stems, const StemMixes& mix, std::string name) {
+    auto out = std::make_shared<Song>();
+    out->name = std::move(name);
+    std::uint64_t n = 0;
+    bool anySolo = false;
+    for (int k = 0; k < kMaxStems; ++k)
+        if (const auto& s = stems[static_cast<std::size_t>(k)]) {
+            n = std::max(n, s->frames());
+            anySolo = anySolo || mix[static_cast<std::size_t>(k)].solo;
+        }
+    out->left.assign(n, 0.0f);
+    out->right.assign(n, 0.0f);
+    for (int k = 0; k < kMaxStems; ++k) {
+        const auto& s = stems[static_cast<std::size_t>(k)];
+        if (!s) continue;
+        float gl, gr;
+        stemGains(mix[static_cast<std::size_t>(k)], anySolo, gl, gr);
+        if (gl == 0.0f && gr == 0.0f) continue;
+        const std::vector<float>& L = s->left;
+        const std::vector<float>& R = s->rightOrLeft();
+        for (std::uint64_t i = 0; i < s->frames(); ++i) {
+            out->left[i] += L[i] * gl;
+            out->right[i] += R[i] * gr;
+        }
+    }
+    return out;
+}
+
 // ---- RackProcessor: message thread ---------------------------------------------------------
 RackProcessor::RackProcessor() {
     for (auto& s : rt_) { s.dl.assign(kMaxSlotDelay, 0.0f); s.dr.assign(kMaxSlotDelay, 0.0f); }
@@ -48,17 +85,82 @@ RackProcessor::RackProcessor() {
 RackProcessor::~RackProcessor() = default;   // the engine deletes us off the audio thread; owned_ frees the plug-ins
 
 bool RackProcessor::submitSong(std::shared_ptr<const Song> song) {
+    StemSet s{};
+    s[0] = std::move(song);
+    return submitStems(s);
+}
+
+bool RackProcessor::submitStems(const StemSet& stems) {
     play_.store(false, std::memory_order_relaxed);
     seek_.store(-1, std::memory_order_relaxed);   // a seek meant for the old song
-    Command c;
-    c.type = Command::Type::Song;
-    c.song = song.get();
-    if (!commands_.tryPush(c)) return false;
-    if (ownedSong_) songsLeaving_.push_back(std::move(ownedSong_));
-    ownedSong_ = std::move(song);
-    songFrames_.store(ownedSong_ ? ownedSong_->frames() : 0, std::memory_order_relaxed);
+    for (int k = 0; k < kMaxStems; ++k) setStemMix(k, StemMix{});
+    for (int k = 0; k < kMaxStems; ++k) {
+        Command c;
+        c.type = Command::Type::Stem;
+        c.a = k;
+        c.b = 1;   // back to the start
+        c.song = stems[static_cast<std::size_t>(k)].get();
+        if (!commands_.tryPush(c)) return false;   // 256 places, 13 used: only when the audio thread has stalled
+        auto& o = ownedStems_[static_cast<std::size_t>(k)];
+        if (o) songsLeaving_.push_back(std::move(o));
+        o = stems[static_cast<std::size_t>(k)];
+    }
+    updateFrames();
     playhead_.store(0, std::memory_order_relaxed);
     return true;
+}
+
+bool RackProcessor::setStem(int slot, std::shared_ptr<const Song> stem) {
+    if (slot < 0 || slot >= kMaxStems) return false;
+    Command c;
+    c.type = Command::Type::Stem;
+    c.a = slot;
+    c.b = 0;   // the others keep playing where they are
+    c.song = stem.get();
+    if (!commands_.tryPush(c)) return false;
+    auto& o = ownedStems_[static_cast<std::size_t>(slot)];
+    if (o) songsLeaving_.push_back(std::move(o));
+    o = std::move(stem);
+    setStemMix(slot, StemMix{});
+    updateFrames();
+    return true;
+}
+
+void RackProcessor::updateFrames() noexcept {
+    std::uint64_t n = 0;
+    for (const auto& s : ownedStems_) if (s) n = std::max(n, s->frames());
+    songFrames_.store(n, std::memory_order_relaxed);
+}
+
+std::shared_ptr<const Song> RackProcessor::stem(int slot) const noexcept {
+    return slot >= 0 && slot < kMaxStems ? ownedStems_[static_cast<std::size_t>(slot)] : nullptr;
+}
+int RackProcessor::stemCount() const noexcept {
+    int n = 0;
+    for (const auto& s : ownedStems_) n += s ? 1 : 0;
+    return n;
+}
+void RackProcessor::setStemMix(int slot, const StemMix& m) noexcept {
+    if (slot < 0 || slot >= kMaxStems) return;
+    StemMixRt& r = mix_[static_cast<std::size_t>(slot)];
+    r.gainDb.store(std::clamp(m.gainDb, kStemMinDb, kStemMaxDb), std::memory_order_relaxed);
+    r.pan.store(std::clamp(m.pan, -1.0f, 1.0f), std::memory_order_relaxed);
+    r.mute.store(m.mute, std::memory_order_relaxed);
+    r.solo.store(m.solo, std::memory_order_relaxed);
+}
+StemMix RackProcessor::stemMix(int slot) const noexcept {
+    if (slot < 0 || slot >= kMaxStems) return {};
+    const StemMixRt& r = mix_[static_cast<std::size_t>(slot)];
+    return {r.gainDb.load(std::memory_order_relaxed), r.pan.load(std::memory_order_relaxed), r.mute.load(std::memory_order_relaxed),
+            r.solo.load(std::memory_order_relaxed)};
+}
+StemMixes RackProcessor::stemMixes() const noexcept {
+    StemMixes m{};
+    for (int k = 0; k < kMaxStems; ++k) m[static_cast<std::size_t>(k)] = stemMix(k);
+    return m;
+}
+float RackProcessor::stemPeak(int slot) const noexcept {
+    return slot >= 0 && slot < kMaxStems ? stemPeak_[static_cast<std::size_t>(slot)].exchange(0.0f, std::memory_order_relaxed) : 0.0f;
 }
 
 bool RackProcessor::setSlot(int slot, std::unique_ptr<hc::fx::Effect> effect) {
@@ -124,13 +226,22 @@ void RackProcessor::applyCommands() noexcept {
     Command c;
     while (commands_.tryPop(c)) {
         switch (c.type) {
-        case Command::Type::Song:
-            if (song_) (void)retired_.tryPush(Retired{song_, nullptr});
-            song_ = c.song;
-            pos_ = 0;
-            fade_ = 0.0f;
-            pendingSeek_ = -1;
+        case Command::Type::Stem: {
+            const Song*& s = stems_[static_cast<std::size_t>(c.a)];
+            if (s) (void)retired_.tryPush(Retired{s, nullptr});
+            s = c.song;
+            gl_[static_cast<std::size_t>(c.a)] = gr_[static_cast<std::size_t>(c.a)] = 0.0f;   // swapped in while playing: it glides in
+            snap_[static_cast<std::size_t>(c.a)] = c.b != 0;                                    // loaded from the start: no glide needed
+            if (c.b) {
+                pos_ = 0;
+                fade_ = 0.0f;
+                pendingSeek_ = -1;
+            }
+            frames_ = 0;
+            for (const Song* x : stems_) if (x) frames_ = std::max(frames_, x->frames());
+            if (pos_ > frames_) pos_ = frames_;
             break;
+        }
         case Command::Type::Slot: {
             SlotRt& s = rt_[static_cast<std::size_t>(c.a)];
             if (s.fx) (void)retired_.tryPush(Retired{nullptr, s.fx});
@@ -198,8 +309,31 @@ void RackProcessor::readSong(float* l, float* r, std::uint32_t n) noexcept {
     if (want >= 0) pendingSeek_ = want;
     const bool play = play_.load(std::memory_order_relaxed);
     const bool loop = loop_.load(std::memory_order_relaxed);
-    const std::uint64_t frames = song_ ? song_->frames() : 0;
-    constexpr float kStep = 1.0f / 240.0f;   // 5 ms de-click
+    const std::uint64_t frames = frames_;
+    // the stems' gains for this chunk; each glides there over about 10 ms
+    std::array<float, kMaxStems> tl{}, tr{};
+    std::array<float, kMaxStems> pk{};
+    std::array<const float*, kMaxStems> sl{}, sr{};
+    std::array<std::uint64_t, kMaxStems> len{};
+    bool anySolo = false;
+    for (int k = 0; k < kMaxStems; ++k)
+        if (stems_[static_cast<std::size_t>(k)]) anySolo = anySolo || mix_[static_cast<std::size_t>(k)].solo.load(std::memory_order_relaxed);
+    int last = -1;
+    for (int k = 0; k < kMaxStems; ++k) {
+        const auto ks = static_cast<std::size_t>(k);
+        const Song* s = stems_[ks];
+        if (!s) continue;
+        last = k;
+        const StemMix m{mix_[ks].gainDb.load(std::memory_order_relaxed), mix_[ks].pan.load(std::memory_order_relaxed),
+                        mix_[ks].mute.load(std::memory_order_relaxed), mix_[ks].solo.load(std::memory_order_relaxed)};
+        stemGains(m, anySolo, tl[ks], tr[ks]);
+        if (snap_[ks]) { gl_[ks] = tl[ks]; gr_[ks] = tr[ks]; snap_[ks] = false; }
+        sl[ks] = s->left.data();
+        sr[ks] = s->rightOrLeft().data();
+        len[ks] = s->frames();
+    }
+    constexpr float kGlide = 1.0f / 480.0f;   // about 10 ms to a new setting
+    constexpr float kStep = 1.0f / 240.0f;    // 5 ms de-click
     for (std::uint32_t i = 0; i < n; ++i) {
         const float target = play && frames > 0 && pendingSeek_ < 0 ? 1.0f : 0.0f;
         fade_ = target > fade_ ? std::min(target, fade_ + kStep) : std::max(target, fade_ - kStep);
@@ -207,18 +341,33 @@ void RackProcessor::readSong(float* l, float* r, std::uint32_t n) noexcept {
             pos_ = std::min<std::uint64_t>(static_cast<std::uint64_t>(pendingSeek_), frames);
             pendingSeek_ = -1;
         }
+        float ol = 0.0f, orr = 0.0f;
+        for (int k = 0; k <= last; ++k) {
+            const auto ks = static_cast<std::size_t>(k);
+            if (!sl[ks]) continue;
+            gl_[ks] += (tl[ks] - gl_[ks]) * kGlide;
+            gr_[ks] += (tr[ks] - gr_[ks]) * kGlide;
+            if (std::fabs(tl[ks] - gl_[ks]) < 1e-6f) gl_[ks] = tl[ks];
+            if (std::fabs(tr[ks] - gr_[ks]) < 1e-6f) gr_[ks] = tr[ks];
+            if (fade_ <= 0.0f || pos_ >= len[ks]) continue;
+            const float x = sl[ks][pos_] * gl_[ks] * fade_, y = sr[ks][pos_] * gr_[ks] * fade_;
+            ol += x;
+            orr += y;
+            pk[ks] = std::max({pk[ks], std::fabs(x), std::fabs(y)});
+        }
+        l[i] = ol;
+        r[i] = orr;
         if (fade_ > 0.0f && pos_ < frames) {
-            l[i] = song_->left[pos_] * fade_;
-            r[i] = song_->right[pos_] * fade_;
             ++pos_;
             if (pos_ >= frames) {
                 if (loop) pos_ = 0;
                 else play_.store(false, std::memory_order_relaxed);
             }
-        } else {
-            l[i] = 0.0f;
-            r[i] = 0.0f;
         }
+    }
+    for (int k = 0; k <= last; ++k) {
+        const auto ks = static_cast<std::size_t>(k);
+        if (pk[ks] > stemPeak_[ks].load(std::memory_order_relaxed)) stemPeak_[ks].store(pk[ks], std::memory_order_relaxed);
     }
     playhead_.store(pos_, std::memory_order_relaxed);
 }

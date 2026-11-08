@@ -1,3 +1,16 @@
+# HEM-Elite-Rack 0.53.0
+
+- STEMS: load up to 13 stems at once, each in its own slot. OPEN SONG (or LOAD STEMS in the STEMS panel) now lets
+  you pick several files (Ctrl+click, Shift+click or Ctrl+A); dropping several files on the window works too. One
+  file is a song, as before; several are stems, put in slots 1..13 in name order ("01 Kick", "02 Snare", ...).
+- The STEMS panel (the STEMS button above the plate): each slot has its name, a level fader (OFF..+12 dB, 0 dB
+  marked) with the stem's own meter in it, pan, M (mute), S (solo; Ctrl- or Shift-click: that one alone) and X
+  (remove). Click an empty slot, or a stem's name, to load a file into that slot alone; the rest keep playing.
+  Double-click a fader or pan for 0 dB / centre; the mouse wheel moves them in small steps.
+- The stems are mixed, then go through the chain. B (ORIGINAL) plays the stem mix as you set it, without the chain.
+  EXPORT WAV renders the stem mix (your levels, pans, mutes and solos) through the chain.
+- Mono stems (and stereo files with both sides the same) are kept once, which halves their memory.
+
 # HEM-Elite-Rack 0.52.1
 
 0.52.0 said the plates no longer ran their words together. On the rack app's screen several still did (BODY DOUBLE,

@@ -28,6 +28,7 @@ const Rgba kEdge  = rgb8(0x252D32);
 const Rgba kGlass = rgb8(0x040607, 0.92f);
 const Rgba kInk   = rgb8(0x061012);
 constexpr float kPi = std::numbers::pi_v<float>;
+constexpr float kStemMinDbView = -59.95f;   // the level fader's bottom (-60 dB): OFF
 
 // Layout (design units).
 constexpr Rect kTop{0, 0, RackView::kW, 86};
@@ -88,6 +89,24 @@ Rect cardCell(int visible) {
 Rect cardPicture(const Rect& cell) { return {cell.x, cell.y, cell.w, cell.w * 9.0f / 16.0f}; }
 Rect scrollUp() { const Rect a = cardArea(); return {a.right() + 12, a.y, 48, 120}; }
 Rect scrollDown() { const Rect a = cardArea(); return {a.right() + 12, a.bottom() - 120 - kCardGap, 48, 120}; }
+
+// The STEMS panel: in the face area under the strip, 13 rows.
+Rect stemPanel() { const Rect a = RackView::faceArea(); return {a.x + 30, a.y + 54, a.w - 60, a.h - 84}; }
+Rect stemsClose() { const Rect p = stemPanel(); return {p.right() - 200, p.y + 22, 170, 50}; }
+Rect stemsLoadAll() { const Rect p = stemPanel(); return {p.right() - 440, p.y + 22, 226, 50}; }
+Rect stemsClear() { const Rect p = stemPanel(); return {p.right() - 640, p.y + 22, 186, 50}; }
+constexpr float kStemTop = 96;   // the first row, from the panel's top
+float stemPitch() { const Rect p = stemPanel(); return (p.h - kStemTop - 14) / static_cast<float>(kStemSlots); }
+Rect stemRow(int k) { const Rect p = stemPanel(); return {p.x + 24, p.y + kStemTop + static_cast<float>(k) * stemPitch(), p.w - 48, stemPitch() - 8}; }
+// the row's parts, left to right: number, name (click to load), level fader + its value, pan + its value, M, S, X
+Rect stemName(int k) { const Rect r = stemRow(k); return {r.x + 54, r.y, 430, r.h}; }
+Rect stemLevelR(int k) { const Rect r = stemRow(k); return {r.x + 500, r.y + 6, 380, r.h - 12}; }
+Rect stemLevelText(int k) { const Rect r = stemRow(k); return {r.x + 888, r.y, 110, r.h}; }
+Rect stemPanR(int k) { const Rect r = stemRow(k); return {r.x + 1012, r.y + 6, 190, r.h - 12}; }
+Rect stemPanText(int k) { const Rect r = stemRow(k); return {r.x + 1208, r.y, 70, r.h}; }
+Rect stemMute(int k) { const Rect r = stemRow(k); return {r.x + 1284, r.y + 2, 56, r.h - 4}; }
+Rect stemSolo(int k) { const Rect r = stemRow(k); return {r.x + 1344, r.y + 2, 56, r.h - 4}; }
+Rect stemRemove(int k) { const Rect r = stemRow(k); return {r.x + 1404, r.y + 2, 48, r.h - 4}; }
 
 float mid(const Renderer& r, Rect a, TextStyle s) { return a.cy() + r.capHeight(s) * 0.5f; }
 
@@ -154,6 +173,27 @@ Rect RackView::faceClose() noexcept {
     return {ox + hem::ui::kPlateW * z - 170.0f, a.y + 4.0f, 170.0f, h};
 }
 
+Rect RackView::stemsButton() noexcept {
+    const Rect c = faceClose();
+    float ox, oy, z;
+    facePlacement(ox, oy, z);
+    return {ox, c.y, 190.0f, c.h};
+}
+Rect RackView::stemLevelRect(int stem) noexcept { return stemLevelR(stem); }
+Rect RackView::stemPanRect(int stem) noexcept { return stemPanR(stem); }
+
+float stemFaderToDb(float f) noexcept {
+    f = std::clamp(f, 0.0f, 1.0f);
+    if (f >= 0.8f) return (f - 0.8f) / 0.2f * 12.0f;
+    const float u = 1.0f - f / 0.8f;
+    return std::max(-60.0f, -60.0f * u * u);
+}
+float stemDbToFader(float db) noexcept {
+    if (db >= 0.0f) return 0.8f + 0.2f * std::min(db, 12.0f) / 12.0f;
+    if (db <= -60.0f) return 0.0f;
+    return 0.8f * (1.0f - std::sqrt(-db / 60.0f));
+}
+
 float RackView::cardImageWidth() noexcept { return cardCell(0).w; }
 
 int RackView::maxScroll(const RackViewState& s) noexcept {
@@ -188,6 +228,25 @@ Hit RackView::hit(float x, float y, const RackViewState& s) const noexcept {
         }
         if (faceArea().contains(x, y)) return {Action::None};
     }
+    if (s.stemPanel && !s.picker) {
+        if (stemsClose().contains(x, y)) return {Action::StemsClose};
+        if (stemsLoadAll().contains(x, y)) return {Action::StemsLoadAll};
+        if (stemsClear().contains(x, y)) return {Action::StemsClear};
+        for (int k = 0; k < kStemSlots; ++k) {
+            if (!stemRow(k).contains(x, y)) continue;
+            const StemView& sv = s.stems[static_cast<std::size_t>(k)];
+            if (!sv.used) return {Action::StemLoad, k};
+            if (stemLevelR(k).inset(-4, 0).contains(x, y) || stemLevelText(k).contains(x, y))
+                return {Action::StemLevel, k, std::clamp((x - stemLevelR(k).x) / stemLevelR(k).w, 0.0f, 1.0f)};
+            if (stemPanR(k).inset(-4, 0).contains(x, y) || stemPanText(k).contains(x, y))
+                return {Action::StemPan, k, std::clamp((x - stemPanR(k).x) / stemPanR(k).w, 0.0f, 1.0f)};
+            if (stemMute(k).contains(x, y)) return {Action::StemMute, k};
+            if (stemSolo(k).contains(x, y)) return {Action::StemSolo, k};
+            if (stemRemove(k).contains(x, y)) return {Action::StemRemove, k};
+            return {Action::StemLoad, k};   // the name: load another file into this slot
+        }
+    }
+    if (!s.picker && stemsButton().contains(x, y)) return {Action::StemsButton};
     if (kOpen.contains(x, y)) return {Action::OpenSong};
     if (kExport.contains(x, y)) return {Action::Export};
     if (kDevice.contains(x, y)) return {Action::Device};
@@ -215,6 +274,7 @@ Hit RackView::hit(float x, float y, const RackViewState& s) const noexcept {
         return {Action::SlotSelect, i};
     }
     if (kAdd.contains(x, y)) return {Action::AddOpen, -1};
+    if (s.stemPanel && faceArea().contains(x, y)) return {Action::None};
     if (s.faceOpen && faceClose().contains(x, y)) return {Action::FaceClose};
     if (faceArea().contains(x, y)) return {Action::Face};
     return {};
@@ -273,7 +333,7 @@ void RackView::drawBack(Renderer& r, const RackViewState& s, const Hit& hv) cons
         r.sprite(Sprite::IconStop, {q.cx() - ic2 * 0.5f, q.cy() - ic2 * 0.5f, ic2, ic2}, kTh.label, Blend::Over, false);
     }
     {
-        const std::string name = s.loading ? "LOADING..." : s.songName.empty() ? "OPEN A SONG  (WAV, MP3, FLAC)  OR DROP ONE ON THIS WINDOW" : s.songName;
+        const std::string name = s.loading ? "LOADING..." : s.songName.empty() ? "OPEN A SONG OR UP TO 13 STEMS  (WAV, MP3, FLAC)  OR DROP THEM HERE" : s.songName;
         const std::string time = s.songName.empty() ? std::string() : clock(s.position) + " / " + clock(s.length);
         const float timeW = time.empty() ? 0.0f : r.textWidth(TextStyle::Title, time) + 30;
         const TextStyle ns = fit(r, TextStyle::Title, name, kSongLine.w - timeW);
@@ -388,7 +448,7 @@ void RackView::drawBack(Renderer& r, const RackViewState& s, const Hit& hv) cons
         for (const SlotView& sv : s.slots) any = any || sv.used;
         const char* line1 = any ? "NO PLATE OPEN" : "NO PLUG-INS YET";
         const char* line2 = any ? "CLICK A NAME IN THE CHAIN TO OPEN ITS PLATE"
-                          : s.songName.empty() ? "OPEN A SONG, THEN ADD PLUG-INS ON THE LEFT" : "PRESS  + ADD PLUG-IN  ON THE LEFT";
+                          : s.songName.empty() ? "OPEN A SONG OR UP TO 13 STEMS, THEN ADD PLUG-INS ON THE LEFT" : "PRESS  + ADD PLUG-IN  ON THE LEFT";
         r.text(TextStyle::Panel, line1, a.cx(), a.cy() - 20, kTh.label, Align::Center, TextFx::Shadowed);
         r.text(TextStyle::Label, line2, a.cx(), a.cy() + 36, kTh.teal, Align::Center, TextFx::Shadowed);
         if (any) r.text(TextStyle::Caption, "CLOSED PLUG-INS KEEP RUNNING WITH THEIR SETTINGS", a.cx(), a.cy() + 80, kTh.dim, Align::Center, TextFx::Shadowed);
@@ -416,6 +476,15 @@ void RackView::drawBack(Renderer& r, const RackViewState& s, const Hit& hv) cons
 }
 
 void RackView::drawFront(Renderer& r, const RackViewState& s, const Hit& hv) const {
+    if (!s.picker) {
+        char b[32];
+        std::snprintf(b, sizeof b, s.stemCount > 0 ? "STEMS  %d" : "STEMS", s.stemCount);
+        button(r, stemsButton(), b, s.stemPanel, hv.action == Action::StemsButton);
+    }
+    if (s.stemPanel && !s.picker) {
+        drawStems(r, s, hv);
+        return;
+    }
     if (s.faceOpen && !s.picker) button(r, faceClose(), "X   CLOSE", false, hv.action == Action::FaceClose);
     if (!s.picker) return;
     const Rect a = faceArea();
@@ -538,6 +607,87 @@ void RackView::drawCards(Renderer& r, const RackViewState& s, const Hit& hv) con
         const float shown = static_cast<float>(kCardRows) / static_cast<float>(kCardRows + ms);
         const float th = std::max(24.0f, track.h * shown), ty = track.y + (track.h - th) * static_cast<float>(scroll) / static_cast<float>(ms);
         r.fillRound({track.x, ty, track.w, th}, 4, kTh.teal, Blend::Over);
+    }
+}
+
+void RackView::drawStems(Renderer& r, const RackViewState& s, const Hit& hv) const {
+    const Rect a = faceArea();
+    r.fillRound({a.x, a.y + 50, a.w, a.h - 50}, 16, rgb8(0x000000, 0.72f), Blend::Over);
+    const Rect p = stemPanel();
+    r.fillRound(p, 16, kPanel, Blend::Over);
+    r.text(TextStyle::Panel, "STEMS", p.x + 40, p.y + 66, kTh.teal, Align::Left, TextFx::Shadowed);
+    {
+        char b[96];
+        std::snprintf(b, sizeof b, "%d OF %d SLOTS  -  MIXED, THEN INTO THE CHAIN", s.stemCount, kStemSlots);
+        const float x0 = p.x + 40 + r.textWidth(TextStyle::Panel, "STEMS") + 28;
+        const float room = stemsClear().x - 20 - x0;
+        const TextStyle cs = fit(r, TextStyle::Label, b, room);
+        r.text(cs, clip(r, cs, b, room), x0, p.y + 62, kTh.label, Align::Left, TextFx::Shadowed);
+    }
+    button(r, stemsClear(), "CLEAR ALL", false, hv.action == Action::StemsClear, s.stemCount == 0);
+    button(r, stemsLoadAll(), "LOAD STEMS", false, hv.action == Action::StemsLoadAll);
+    button(r, stemsClose(), "X   CLOSE", false, hv.action == Action::StemsClose);
+    for (int k = 0; k < kStemSlots; ++k) {
+        const StemView& sv = s.stems[static_cast<std::size_t>(k)];
+        const Rect row = stemRow(k);
+        const bool hotRow = hv.index == k && hv.action == Action::StemLoad;
+        r.fillRound(row, 9, hotRow ? rgb8(0x0F2427) : rgb8(0x0D1113), Blend::Over);
+        r.fillRound({row.x, row.y + 8, 3, row.h - 16}, 1.5f, sv.used ? kTh.teal : kEdge, Blend::Over, false);
+        r.text(TextStyle::Label, std::to_string(k + 1), row.x + 28, mid(r, row, TextStyle::Label), kTh.dim, Align::Center, TextFx::Shadowed);
+        const Rect nm = stemName(k);
+        if (!sv.used) {
+            r.text(TextStyle::Caption, hotRow ? "CLICK TO LOAD A STEM INTO THIS SLOT" : "EMPTY", nm.x, mid(r, row, TextStyle::Caption),
+                   hotRow ? kTh.teal : kTh.dim, Align::Left, TextFx::Shadowed);
+            continue;
+        }
+        const bool silent = sv.mute || sv.gainDb <= kStemMinDbView;
+        {
+            const TextStyle ns = fit(r, TextStyle::Title, sv.name, nm.w);
+            r.text(ns, clip(r, ns, sv.name, nm.w), nm.x, mid(r, row, ns), silent ? kTh.dim : hotRow ? kTh.teal : kTh.silver, Align::Left, TextFx::Shadowed);
+        }
+        // level: a fader track with the stem's meter in it and a handle at its setting
+        {
+            const Rect f = stemLevelR(k);
+            const bool hot = hv.index == k && hv.action == Action::StemLevel;
+            r.fillRound(f, f.h * 0.5f, kGlass, Blend::Over);
+            const float mf = stemDbToFader(sv.peakDb);
+            if (mf > 0.002f) {
+                const float over = std::clamp((sv.peakDb + 3.0f) / 3.0f, 0.0f, 1.0f);
+                const Rgba c{kTh.teal.r + (1.0f - kTh.teal.r) * over, kTh.teal.g * (1.0f - 0.6f * over), kTh.teal.b * (1.0f - 0.6f * over), 1.0f};
+                r.fillRound({f.x + 3, f.y + 3, (f.w - 6) * mf, f.h - 6}, (f.h - 6) * 0.5f, c.withAlpha(0.45f), Blend::Over, false);
+            }
+            const float zx = f.x + f.w * 0.8f;   // 0 dB
+            r.fillRound({zx - 1, f.y + 2, 2, f.h - 4}, 1, kTh.label.withAlpha(0.5f), Blend::Over, false);
+            const float hx = f.x + f.w * stemDbToFader(sv.gainDb);
+            r.fillRound({hx - 7, f.y - 3, 14, f.h + 6}, 4, hot ? kTh.silver : kTh.teal, Blend::Over, false);
+            char b[24];
+            if (sv.gainDb <= kStemMinDbView) std::snprintf(b, sizeof b, "OFF");
+            else std::snprintf(b, sizeof b, "%+.1f dB", static_cast<double>(sv.gainDb));
+            if (std::fabs(sv.gainDb) < 0.05f) std::snprintf(b, sizeof b, "0.0 dB");
+            const Rect tx = stemLevelText(k);
+            const TextStyle vs = fit(r, TextStyle::Value, b, tx.w);
+            r.text(vs, b, tx.right(), mid(r, row, vs), kTh.teal, Align::Right, TextFx::Shadowed);
+        }
+        // pan: a bar with the centre marked and a handle
+        {
+            const Rect f = stemPanR(k);
+            const bool hot = hv.index == k && hv.action == Action::StemPan;
+            r.fillRound(f, f.h * 0.5f, kGlass, Blend::Over);
+            r.fillRound({f.cx() - 1, f.y + 2, 2, f.h - 4}, 1, kTh.label.withAlpha(0.5f), Blend::Over, false);
+            const float hx = f.x + f.w * (0.5f + 0.5f * sv.pan);
+            const float x0 = std::min(hx, f.cx()), x1 = std::max(hx, f.cx());
+            if (x1 - x0 > 1.0f) r.fillRound({x0, f.y + 4, x1 - x0, f.h - 8}, 3, kTh.teal.withAlpha(0.35f), Blend::Over, false);
+            r.fillRound({hx - 7, f.y - 3, 14, f.h + 6}, 4, hot ? kTh.silver : kTh.teal, Blend::Over, false);
+            char b[16];
+            const int pc = static_cast<int>(std::lround(std::fabs(sv.pan) * 100.0f));
+            if (pc == 0) std::snprintf(b, sizeof b, "C");
+            else std::snprintf(b, sizeof b, "%s%d", sv.pan < 0.0f ? "L" : "R", pc);
+            const Rect tx = stemPanText(k);
+            r.text(TextStyle::Value, b, tx.right(), mid(r, row, TextStyle::Value), kTh.teal, Align::Right, TextFx::Shadowed);
+        }
+        button(r, stemMute(k), "M", sv.mute, hv.action == Action::StemMute && hv.index == k);
+        button(r, stemSolo(k), "S", sv.solo, hv.action == Action::StemSolo && hv.index == k);
+        button(r, stemRemove(k), "X", false, hv.action == Action::StemRemove && hv.index == k);
     }
 }
 
