@@ -23,7 +23,9 @@ constexpr PlateKnob row1[] = {{Headroom, "HEADROOM", "0", "30", K::Big}};
 // ---- THE FORGER: the cloned curve, the mode, the gain
 namespace fgr {
 using namespace forger;
-constexpr PlateReadout readouts[] = {{Trim, "TRIM", "dB"}, {Receiving, "RECEIVING", "", "0"}};
+// ROOM TO 0 dBFS: how far the loudest moment of the last few seconds sits under full scale (it read "TRIM", which looked
+// like a setting)
+constexpr PlateReadout readouts[] = {{Trim, "ROOM TO 0", "dB"}, {Receiving, "RECEIVING", "", "0"}};
 constexpr PlateChoice left[] = {{Mode, "MODE"}};
 constexpr PlateChoice choices[] = {{Scale, "SCALE"}};
 constexpr PlateToggle leftT[] = {{Clear, "CLEAR", true}};

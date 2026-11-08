@@ -1,3 +1,30 @@
+# HEM-Elite-Rack 0.52.0
+
+Fixes from a full control-by-control test of 0.51.3 (every plug-in, every knob, on a real song).
+
+- Every plug-in now loads at a safe level: nothing jumps louder, clips or drops a lot just from loading it (THE RACKET,
+  SIX SHOOTER, BODY DOUBLE, LOW RIDER, FINGERPRINT, FULL HOUSE, ENFORCER, HITMAN, QUICK DRAW, IRON FIST, SWITCHBLADE,
+  TERRITORY, STRAIGHT EDGE, PAWN SHOP, SPEAKEASY, BACK ALLEY, BIG HOUSE, STRAPPED, SWERVE, HOT WIRE, UNDERTOW). A test now
+  loads all 120 on a song every build and fails if one does.
+- No hum or hiss at load (IRON FIST, IVORIES, THE CHAIRMAN, KINGPIN, GOLD CHAIN, HEAVYWEIGHT): tested on silence.
+- QUICK CASH opens as QUICK CASH (it opened TOP DOG).
+- LOW PROFILE: AMOUNT tops out at +12 dB (one drag could reach +22.7 dB). LOW RIDER: its added lows top out at +12 dB.
+- THE SNITCH shows the note, the cents and the pitch; MADE MAN shows its pitch readouts (they were never drawn).
+- THE WITNESS has real peak meters (held until CLEAR). THE AUDITOR's OVERS counts true-peak overs.
+- KNOCKOUT: SUSTAIN works on a full mix; SAFETY clips at -0.1 dBFS at load. BACKBONE never pushes a hit past -0.1 dBFS.
+- IRON FIST: AUTO MAKEUP gives back what the compressor takes. KINGPIN: OUTPUT reads in dB; its meter shows GR.
+- FURNACE and MIXTAPE: more DRIVE keeps the level. THE RACKET: a drive pedal at LEVEL 50 is as loud as the song.
+- PAWN SHOP, HOT WIRE: every device / amp keeps the song's loudness.
+- SPEAKEASY starts 1 m from the sound; BACK ALLEY, BIG HOUSE and FINGERPRINT keep the dry song at full level up to MIX 50 %.
+- SURGEON: a high Q no longer turns a cutting shelf into a +14 dB boost.
+- WISEGUYS uses almost no CPU with every voice off (7 % -> 0.4 % of a core, measured).
+- THE FIXER's FREQ reads in Hz. STRAIGHT SHOOTER greys GAIN on cut shapes. REPEAT OFFENDER shows the time a note really uses.
+- DOUBLE CROSS: the M / S meter reads M and S. THE INFORMANT: soloing the modulator plays it.
+- Plates: names and values no longer run together (SIX SHOOTER, BODY DOUBLE, MADE MAN, STAKEOUT, SPEAKEASY, STREET TEAM,
+  INSIDE MAN, STRAIGHT EDGE, HIGH STAKES, FAST MONEY, TERRITORY, HIGH ROLLER); the all-bands column is named; STAKEOUT's
+  stray lines are gone; BACKROOM has its own description; linked LEFT / RIGHT EQs show the shared values on RIGHT; stepped
+  knobs move a step per short drag; gain readouts and needles hold their peaks briefly so they can be read.
+
 # HEM-Elite-Rack 0.51.4
 
 - New: **HEM-Elite-Rack VST3**, a plug-ins-only installer for DAWs (no rack app). Its own entry in Apps, silent

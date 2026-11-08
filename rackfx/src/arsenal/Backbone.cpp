@@ -55,8 +55,10 @@ public:
             mostCut = std::min(mostCut, cut_);
             mostBoost = std::max(mostBoost, boost_);
             const float g = hc::fx::dbToGain(boost_ + cut_) * mk_.next(hc::fx::dbToGain(makeupDb())) * out_.next(hc::fx::dbToGain(p(Output)));
-            L[i] *= g;
-            R[i] *= g;
+            // the make-up keeps a full-scale peak at full scale once the hold has caught it, but the first millisecond of a
+            // hit got through it (+4 dBFS on a loud song): a soft ceiling at -0.1 dBFS rounds those off
+            L[i] = ceilingSoft(L[i] * g);
+            R[i] = ceilingSoft(R[i] * g);
             pk = std::max({pk, std::fabs(L[i]), std::fabs(R[i])});
         }
         publishMeter(0, mostCut);
@@ -67,6 +69,13 @@ public:
 
 private:
     float makeupDb() const noexcept { return -downDb(0.0f, p(HighLevel), 3.0f, 6.0f); }
+    static float ceilingSoft(float y) noexcept {
+        constexpr float c = 0.9886f, k = 0.9f * c;   // -0.1 dBFS; untouched under 90 % of it
+        const float a = std::fabs(y);
+        if (a <= k) return y;
+        const float t = (a - k) / (c - k);
+        return std::copysign(k + (c - k) * t / (1.0f + t), y);
+    }
 
     double fs_ = 48000.0;
     float env_ = 0.0f, boost_ = 0.0f, cut_ = 0.0f;

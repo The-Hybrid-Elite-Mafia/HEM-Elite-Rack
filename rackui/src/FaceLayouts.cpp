@@ -1232,14 +1232,14 @@ FaceLayout voicesFace(const rack::PluginInfo& info) {
         const float x0 = 410 + static_cast<float>(v) * cw;
         L.sections.push_back({{x0 + 4, 180, cw * 0.5f - 8, 28}, kVoiceN[v]});
         L.widgets.push_back(toggle({x0 + cw * 0.5f + 2, 178, cw * 0.5f - 10, 30}, voice(v, On), ""));
-        knobs(x0, cw, 234, 30, {{voice(v, Gain), "GAIN"}, {voice(v, Pan), "PAN"}});
-        knobs(x0, cw, 314, 30, {{voice(v, Delay), "DELAY"}, {voice(v, Detune), "DETUNE"}});
-        knobs(x0, cw, 394, 30, {{voice(v, Feedback), "FEEDBACK"}, {voice(v, ModDepth), "MOD DEPTH"}});
-        knobs(x0, cw * 0.5f, 474, 30, {{voice(v, ModRate), "MOD RATE"}});
-        L.widgets.push_back(toggle({x0 + cw * 0.5f + 12, 476, cw * 0.5f - 30, 30}, voice(v, Octave), "OCT"));
-        if (v > 0) L.grooves.push_back({x0, 184, x0, 532});
+        knobs(x0, cw, 234, 30, {{voice(v, Gain), "GAIN"}, {voice(v, Pan), "PAN"}});   // rows 86 apart: a row's names clear the values above
+        knobs(x0, cw, 320, 30, {{voice(v, Delay), "DELAY"}, {voice(v, Detune), "DETUNE"}});
+        knobs(x0, cw, 406, 30, {{voice(v, Feedback), "FEEDBACK"}, {voice(v, ModDepth), "MOD DEPTH"}});
+        knobs(x0, cw * 0.5f, 492, 30, {{voice(v, ModRate), "MOD RATE"}});
+        L.widgets.push_back(toggle({x0 + cw * 0.5f + 12, 494, cw * 0.5f - 30, 30}, voice(v, Octave), "OCT"));
+        if (v > 0) L.grooves.push_back({x0, 184, x0, 550});
     }
-    constexpr float dy = 120.0f;   // everything under the voices moved down by their two extra rows
+    constexpr float dy = 138.0f;   // everything under the voices moved down by their two extra rows
     L.grooves.push_back({410, 420 + dy, 1636, 420 + dy});
     // the direct and the shared settings
     L.sections.push_back({{410, 426 + dy, 400, 22}, "DRY"});

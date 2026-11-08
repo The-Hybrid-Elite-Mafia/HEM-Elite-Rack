@@ -194,6 +194,15 @@ void testFixedControls() {
             CHECK(most < 4.0);
         }
     }
+    // BACKBONE: LOUD DOWN's make-up never pushes a hit past -0.1 dBFS (+4 dBFS on a loud song before)
+    {
+        using namespace rack::backbone;
+        auto e = load("BACKBONE", {{LowLevel, 13.6f}, {HighLevel, -13.5f}});
+        Stereo s = song(3.0);
+        for (std::size_t i = 0; i < s.size(); ++i) { s.l[i] *= 2.0f; s.r[i] *= 2.0f; }
+        run(*e, s);
+        CHECK(level(s, 0).peakDb <= -0.09);
+    }
     // KINGPIN: OUTPUT reads in dB and does what it reads
     {
         using namespace rack::kingpin;
