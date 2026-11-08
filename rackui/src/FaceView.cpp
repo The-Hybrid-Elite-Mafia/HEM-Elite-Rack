@@ -733,9 +733,11 @@ void FaceView::readout(const Ctx& c, const Widget& w) const {
     // A short window holds the name and the number side by side when they fit at the smallest size, with the unit
     // after the name when that fits too; when they don't (STRAIGHT EDGE's 172-wide band windows: "BAND 1 dB +0.0"
     // ran together), the name goes in the top-left corner and a small number in the bottom-right.
-    const bool sideBySide = !oneLine || nameW + 14 * z + numMinW <= b.w - 36 * z;
-    const bool showUnit = !w.lo.empty() && (!oneLine || (sideBySide ? nameW + 10 * z + unitW + 14 * z + numMinW <= b.w - 36 * z
-                                                                        : nameW + 10 * z + unitW <= b.w - 36 * z));
+    // Side by side only when the unit fits too, so windows in a row read alike ("PEAK L -9.6" beside "PEAK R dBFS"
+    // stacked looked like two kinds of meter).
+    const float unitRun = w.lo.empty() ? 0.0f : 10 * z + unitW;
+    const bool sideBySide = !oneLine || nameW + unitRun + 14 * z + numMinW <= b.w - 36 * z;
+    const bool showUnit = !w.lo.empty() && (!oneLine || sideBySide || nameW + unitRun <= b.w - 36 * z);
     if (oneLine) {
         const float base = sideBySide ? b.cy() + r.capHeight(cs) * 0.5f : b.y + 6 * z + r.capHeight(cs);
         r.text(cs, w.caption, b.x + 18 * z, base, th_.label, Align::Left, TextFx::Shadowed);
