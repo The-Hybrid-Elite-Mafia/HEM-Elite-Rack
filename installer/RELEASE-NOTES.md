@@ -24,6 +24,7 @@ Fixes from a full control-by-control test of 0.51.3 (every plug-in, every knob, 
   INSIDE MAN, STRAIGHT EDGE, HIGH STAKES, FAST MONEY, TERRITORY, HIGH ROLLER); the all-bands column is named; STAKEOUT's
   stray lines are gone; BACKROOM has its own description; linked LEFT / RIGHT EQs show the shared values on RIGHT; stepped
   knobs move a step per short drag; gain readouts and needles hold their peaks briefly so they can be read.
+- New plate pictures for the 16 plates whose controls moved, so every pocket sits under its control.
 
 # HEM-Elite-Rack 0.51.4
 
