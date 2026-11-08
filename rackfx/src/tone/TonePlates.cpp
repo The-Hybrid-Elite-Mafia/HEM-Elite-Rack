@@ -47,7 +47,7 @@ template <int kOut>
 struct Globals {
     static constexpr PlateKnob row1[] = {{kOut, "GAIN"}};
     static constexpr PlateToggle toggles[] = {{kOut + 1, "TRIM", true}, {kOut + 3, "DITHER"}};
-    static constexpr PlateChoice steppers[] = {{kOut + 2, "FILTER"}, {kOut + 4, "VIEW RANGE"}};
+    static constexpr PlateChoice steppers[] = {{kOut + 2, "FILTER"}, {kOut + 4, "VIEW"}};
 };
 using SG = Globals<straight::Output>;
 using BG = Globals<bottomline::Output>;
@@ -251,7 +251,7 @@ namespace rm {
 using namespace reelmoney;
 constexpr PlateChoice choices[] = {{Meter, "METER"}, {Monitor, "MONITOR"}};
 constexpr PlateToggle toggles[] = {{Link, "LINK"}};
-constexpr PlateChoice steppers[] = {{Speed, "SPEED"}, {Bias, "BIAS"}, {EchoStyle, "ECHO STYLE"}};
+constexpr PlateChoice steppers[] = {{Speed, "SPEED"}, {Bias, "BIAS"}, {EchoStyle, "ECHO TYPE"}};
 constexpr PlateKnob row1[] = {{IntoTape, "INTO TAPE", "-18", "+18", K::Big}, {TapeLevel, "TAPE LEVEL", "150", "1020"}, {Wobble, "WOBBLE", "0", "100"},
                               {Hiss, "HISS", "OFF", "0"}, {OffTape, "OFF TAPE", "-18", "+18", K::Big}};
 constexpr PlateKnob row2[] = {{EchoTime, "ECHO TIME", "1", "500"}, {EchoLevel, "ECHO LEVEL", "OFF", "100"}, {EchoTone, "ECHO TONE", "200", "16K"},

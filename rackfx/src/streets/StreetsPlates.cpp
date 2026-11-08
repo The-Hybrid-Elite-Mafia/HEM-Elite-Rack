@@ -106,7 +106,7 @@ using namespace livewire;
 constexpr PlateChoice choices[] = {{Type, "TYPE"}, {Send, "SEND"}};
 constexpr PlateToggle toggles[] = {{Flip, "FLIP"}};
 constexpr PlateKnob row1[] = {{Freq, "FREQ", "20", "21K", K::Big}, {Gain, "GAIN", "-120", "0", K::Big}};
-constexpr PlateChoice steppers[] = {{QuickFreq, "QUICK FREQ"}, {QuickGain, "QUICK GAIN"}};
+constexpr PlateChoice steppers[] = {{QuickFreq, "TONE FREQ"}, {QuickGain, "TONE GAIN"}};
 constexpr PlateToggle leftT[] = {{On, "POWER"}};
 } // namespace lw
 

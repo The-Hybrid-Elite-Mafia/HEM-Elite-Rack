@@ -1844,12 +1844,12 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
         L.widgets.push_back(cv);
         L.recesses.push_back({scr, 14, 9, false, true});
     } else {
-        L.display = {gx, 180, 1636.0f - gx, 52};
+        L.display = {gx, 180, 1636.0f - gx, 64};
         if (B.meter >= 0)
             for (int b = 0; b < n && b < 8; ++b) {
                 const bool master = B.lastIsMaster && b == n - 1;
                 const char* nm = b < static_cast<int>(B.meterNames.size()) ? B.meterNames[static_cast<std::size_t>(b)] : kNames[b];
-                readoutAt(L, {colX(b) + 6, 180, colW - 12, 52}, B.meter + b, master ? "OUTPUT" : nm, master ? "dBFS" : "dB", "+");
+                readoutAt(L, {colX(b) + 6, 180, colW - 12, 64}, B.meter + b, master ? "OUTPUT" : nm, master ? "dBFS" : "dB", "+");
             }
     }
     // the globals: row1, the switches, the borders' knobs (crossovers) between the columns
@@ -1860,7 +1860,7 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
                   50.0f * static_cast<float>(B.steppers.size() + B.toggles.size());
     if (S.screen == rack::Screen::Readouts && !S.readouts.empty()) gridH += 140.0f;
     const bool hasBorders = !B.borders.empty() && n > 1;
-    const bool borderRow = !eq && hasBorders && 440.0f + gridH <= 800.0f;   // a row of their own
+    const bool borderRow = !eq && hasBorders && 452.0f + gridH <= 800.0f;   // a row of their own
     const bool staggered = !eq && hasBorders && !borderRow;                 // no room: half a row lower than the globals
     constexpr float knobRowH = 72.0f;
     // staggered, the grid starts 12 lower: its switch rows give the 12 back (TERRITORY and STRAIGHT EDGE end where they did)
@@ -1868,10 +1868,10 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
     auto globals = [&](float top) {
         const std::size_t first = L.widgets.size();
         const int items = static_cast<int>(S.row1.size() + S.toggles.size());
-        // EQs spread the globals across the whole width, and so do plates with fewer globals than columns and no
-        // crossovers (seven knobs packed into seven of MADE MAN's twelve narrow note columns ran their names together);
-        // with crossovers on the borders they keep the middles of the columns, clear of the borders.
-        const bool spread = eq || items > n || (items < n && !hasBorders);
+        // EQs spread the globals across the whole width, and so do plates with fewer globals than narrow columns and no
+        // crossovers (seven knobs packed into seven of MADE MAN's twelve 92-wide note columns ran their names together);
+        // with crossovers on the borders, or wide columns, they keep the middles of the columns.
+        const bool spread = eq || items > n || (items < n && !hasBorders && colW < 130.0f);
         const int perRow = eqTwo ? (items + 1) / 2 : items;
         const float pitch = spread ? static_cast<float>(n) / static_cast<float>(std::max(perRow, 1)) : 1.0f;
         int slot = 0;
@@ -1893,7 +1893,8 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
             L.widgets.push_back(toggle({x - tw * 0.5f, y + 4, tw, 44}, t.param, t.caption));
             if (t.press) L.widgets.back().hi = "PRESS";
         }
-        const float bTop = borderRow ? top + 86.0f : staggered ? top + 22.0f : top;
+        // staggered: 6 lower than the globals, so their value windows (ending at 358) clear the grid's groove at 364
+        const float bTop = borderRow ? top + 86.0f : staggered ? top + 6.0f : top;
         for (std::size_t i = 0; i < B.borders.size() && static_cast<int>(i) + 1 < n; ++i) {
             const float x = colX(static_cast<int>(i) + 1);
             const rack::PlateKnob& k = B.borders[i];
@@ -1901,8 +1902,9 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
         }
         seatKnobs(L, first, 6);
     };
-    if (!eq) globals(hasBorders ? 258.0f : 270.0f);
-    const float gridTop = eq ? (eqTwo ? 286.0f : 356.0f) : borderRow ? 440.0f : staggered ? 372.0f : 360.0f;
+    if (!eq) globals(270.0f);
+    // with a crossover row the grid's groove sits under that row's value windows (they end at 438), not along them
+    const float gridTop = eq ? (eqTwo ? 286.0f : 356.0f) : borderRow ? 452.0f : staggered ? 372.0f : 360.0f;
     L.grooves.push_back({labelX, gridTop - 8, 1636, gridTop - 8});
     // the grid
     float y = gridTop;
@@ -2129,8 +2131,7 @@ FaceLayout specFace(const rack::PluginInfo& info) {
         st.kind = WKind::Stepper;
         st.param = c.param;
         st.caption = c.caption;
-        // 196 in from the edge: room for a two-word name on its left ("BAND FREEDOM", "NOISE SHAPE" ran off the plate)
-        st.r = {196, y, 144, 40};
+        st.r = {170, y, 170, 40};
         L.widgets.push_back(st);
         L.recesses.push_back({st.r.inset(-4), 9, 4, false, false});
         y += 50;

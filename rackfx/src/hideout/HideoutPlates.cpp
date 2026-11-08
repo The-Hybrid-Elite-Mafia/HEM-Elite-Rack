@@ -128,7 +128,7 @@ using namespace speakeasy;
 constexpr PlateReadout readouts[] = {{0, "PEAK L", "dBFS", "+"}, {1, "PEAK R", "dBFS", "+"}};
 constexpr PlateToggle toggles[] = {{Link, "REAL ROOM"}, {RVar, "TAIL TAKE"}, {Reset, "RESET PEAKS", true}};
 constexpr PlateToggle leftToggles[] = {{DirectOn, "DIRECT"}, {EarlyOn, "EARLY"}, {ReverbOn, "REVERB"}};
-constexpr PlateChoice steppers[] = {{EVar, "EARLY TAKE"}};
+constexpr PlateChoice steppers[] = {{EVar, "VARIATION"}};
 constexpr PlateKnob row1[] = {{RoomSize, "ROOM SIZE", "50", "20K", K::Big}, {Distance, "DISTANCE", "0.5", "50", K::Big}, {Dimension, "ROOM SHAPE", "1", "4"},
                               {Balance, "BALANCE"}, {DecayTime, "DECAY"}, {PreDelay, "PRE-DELAY"}, {Density, "DENSITY", "0", "1"}};
 constexpr PlateKnob row2[] = {{RevShelf, "TAIL DULL", "", "", K::Small}, {ErAbsorb, "EARLY DULL", "", "", K::Small}, {ShelfFreq, "DULL ABOVE", "", "", K::Small},
