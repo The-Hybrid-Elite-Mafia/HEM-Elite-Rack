@@ -15,7 +15,8 @@ using namespace amps;
 
 const char* const kTypeN[] = {"STRAIGHT IN", "PURE", "SPARKLE", "BITE", "PUSH", "GRIT", "STACK", "FIRE", "LEAD", "VENOM"};
 const char* const kCabN[] = {"NONE", "1X12 OPEN", "2X12 OPEN", "4X10 OPEN", "2X12 CLOSED", "4X12 OLD", "4X12 NEW", "1X15", "8X10"};
-const char* const kMicN[] = {"DYNAMIC ON", "DYNAMIC OFF", "CONDENSER ON", "CONDENSER OFF", "RIBBON ON", "RIBBON OFF"};
+// short, so the name fits under its knob beside the cab ("2X12 CLOSED" ran into "CONDENSER OFF"); ON / OFF = on or off the speaker's axis
+const char* const kMicN[] = {"DYN ON", "DYN OFF", "COND ON", "COND OFF", "RIB ON", "RIB OFF"};
 const char* const kRouteN[] = {"DUAL", "STEREO"};
 const ParamInfo kParams[kCount] = {
     {"amp", "Amp", "", 0, 1, 1, Taper::Toggle, kOnOff},

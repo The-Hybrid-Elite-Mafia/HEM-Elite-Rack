@@ -115,7 +115,7 @@ constexpr PlateChoice left[] = {{Source, "SOURCE"}};
 constexpr PlateToggle leftToggles[] = {{Trim, "TRIM", true}};
 constexpr PlateKnob row1[] = {{Input, "INPUT", "-18", "+18"}, {Preamp, "PREAMP", "20", "70"}, {High, "HIGH 10K", "-16", "+12"},
                               {MidGain, "MID", "0", "15"}, {MidFreq, "MID FREQ", ".7K", "6K"}, {LowGain, "LOW", "0", "15"},
-                              {LowFreq, "LOW FREQ", "OFF", "400"}, {LowCut, "LOW CUT 50", "OFF", "-15"}};
+                              {LowFreq, "LOW HZ", "OFF", "400"}, {LowCut, "LOW CUT 50", "OFF", "-15"}};
 constexpr PlateKnob row2[] = {{Analog, "HUM", "OFF", "60"}, {Noise, "HISS", "FULL", "LOW"}, {Output, "OUTPUT"},
                               {VuCal, "VU ZERO", "8", "24"}};
 } // namespace bo
@@ -336,7 +336,7 @@ const PlateSpec kSmoothTalker{.note1 = "SIX BANDS", .note2 = "SMOOTH AND MUSICAL
 const PlateSpec kLowRider{.note1 = "A NEW LOW OCTAVE", .note2 = "UNDER THE BASS", .screen = Screen::Readouts, .readouts = lo::rReadouts,
                           .toggles = lo::rToggles, .row1 = lo::rRow1,
                           .demo = [](hc::fx::Effect& e) { e.set(lowrider::LowAir, 6); }};
-const PlateSpec kUndertow{.note1 = "SUBS FROM THE BASS", .note2 = "ONE OR TWO OCTAVES DOWN", .screen = Screen::Readouts, .readouts = lo::uReadouts,
+const PlateSpec kUndertow{.note1 = "SUBS FROM THE BASS", .note2 = "1 OR 2 OCTAVES DOWN", .screen = Screen::Readouts, .readouts = lo::uReadouts,
                           .choices = lo::uChoices, .toggles = lo::uToggles, .row1 = lo::uRow1, .row2 = lo::uRow2,
                           .demo = [](hc::fx::Effect& e) { e.set(undertow::Sub2On, 1); e.set(undertow::Drive, 20); }};
 const PlateSpec kDeepPockets{.note1 = "BASS ON SMALL SPEAKERS", .note2 = "HEARD, NOT JUST FELT", .screen = Screen::Readouts, .readouts = lo::dReadouts,

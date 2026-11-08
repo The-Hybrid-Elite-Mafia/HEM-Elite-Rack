@@ -463,7 +463,7 @@ FaceLayout widthFace(const rack::PluginInfo& info) {
     stepper({508, 418, 190, 40}, InputMode, "INPUT");
     stepper({908, 418, 190, 40}, MeterMode, "METER");
     L.grooves.push_back({410, 524, 1636, 524});
-    knobRow(L, {{Width, "WIDTH", 112, "MONO", "200%", false}, {Shuffle, "LOW WIDEN", 76, "", "", true}, {ShuffleFreq, "WIDEN BELOW", 76, "350", "1.4k", true},
+    knobRow(L, {{Width, "WIDTH", 112, "MONO", "200%", false}, {Shuffle, "WIDEN", 76, "", "", true}, {ShuffleFreq, "BELOW", 76, "350", "1.4k", true},
                 {BassTrim, "LOW TRIM", 76, "-12", "+12", true}, {Rotation, "AIM", 76, "L", "R", true},
                 {Asymmetry, "CENTER SHIFT", 76, "L", "R", true}, {Balance, "BALANCE", 76, "L", "R", true}, {Output, "OUTPUT", 76, "", "", true}}, 568);
     buttonSeats(L);
@@ -950,13 +950,15 @@ FaceLayout channelFace(const rack::PluginInfo& info) {
     struct K { int p; const char* cap; };
     struct S { int p; const char* cap; bool stepper; };
     auto section = [&](float x0, float w, const char* name, std::span<const K> ks, std::span<const S> ss) {
-        L.sections.push_back({{x0, 346, w, 26}, name});
+        L.sections.push_back({{x0, 344, w, 24}, name});
         const std::size_t first = L.widgets.size();
         const float kp = w / static_cast<float>(ks.size());
         for (std::size_t k = 0; k < ks.size(); ++k) {
             const float cx = x0 + (static_cast<float>(k) + 0.5f) * kp;
             // 40 wide at 400: the values end above the switches' names (at 48 / 408 they sat on "GATE MODE KEY")
-            L.widgets.push_back(knob({cx - 20, 400, 40, 40}, ks[k].p, ks[k].cap, "", "", true));
+            // the number only under it (its name says what it is): "6.60 ms5.00 ms5.06 kHz" ran together
+            L.widgets.push_back(knob({cx - 20, 404, 40, 40}, ks[k].p, ks[k].cap, "", "", true));
+            L.widgets.back().tight = true;
         }
         seatKnobs(L, first, 6);
         const float sp = w / static_cast<float>(ss.size());
@@ -968,10 +970,10 @@ FaceLayout channelFace(const rack::PluginInfo& info) {
             else L.widgets.push_back(toggle(r, ss[k].p, ""));
         }
     };
-    constexpr K gk[] = {{GateThreshold, "THRESH"}, {Floor, "FLOOR"}, {GateRelease, "RELEASE"}, {GKeyFreq, "KEY HZ"}, {GKeyWidth, "WIDTH"}};
+    constexpr K gk[] = {{GateThreshold, "THRESH"}, {Floor, "FLOOR"}, {GateRelease, "LET GO"}, {GKeyFreq, "KEY HZ"}, {GKeyWidth, "WIDTH"}};
     constexpr S gs[] = {{GateOn, "GATE", false}, {GateMode, "MODE", true}, {GKeyOn, "KEY", false}, {GKeySource, "FROM", true},
                         {GKeyType, "FILTER", true}};
-    constexpr K ck[] = {{CompThreshold, "THRESH"}, {Ratio, "RATIO"}, {Attack, "ATTACK"}, {Release, "RELEASE"}, {CKeyFreq, "KEY HZ"},
+    constexpr K ck[] = {{CompThreshold, "THRESH"}, {Ratio, "RATIO"}, {Attack, "ATTACK"}, {Release, "LET GO"}, {CKeyFreq, "KEY HZ"},
                         {CKeyWidth, "WIDTH"}};
     constexpr S cs[] = {{CompOn, "COMP", false}, {CompType, "TYPE", true}, {Arc, "AUTO REL", false}, {CKeyOn, "KEY", false},
                         {CKeySource, "FROM", true}, {CKeyType, "FILTER", true}};
@@ -990,6 +992,7 @@ FaceLayout channelFace(const rack::PluginInfo& info) {
         for (int k = 0; k < 3; ++k) {
             const float cx = x0 + (static_cast<float>(k) + 0.5f) * (bw / 3.0f);
             L.widgets.push_back(knob({cx - 24, 624, 48, 48}, kk[k].p, kk[k].cap, "", "", true));
+            L.widgets.back().tight = true;
         }
         seatKnobs(L, first, 6);
         if (kType[b] >= 0) {
@@ -1053,28 +1056,29 @@ FaceLayout moversFace(const rack::PluginInfo& info) {
     knobs(912, 724, 256, 40, {{Freq, "FREQ"}, {CombDelay, "DELAY"}, {Gain, "GAIN"}, {Res, "RES"}, {CombFeedback, "FEEDBACK"}});
     L.grooves.push_back({410, 344, 1636, 344});
     // the globals
-    knobs(410, 1226, 376, 38, {{Spread, "SPREAD"}, {Smooth, "GLIDE"}, {Drive, "DRIVE"}, {Crush, "CRUSH"}, {Mix, "MIX"}, {Input, "INPUT"},
+    // 32 knobs and every row below a little tighter: the steps' and the delay's values ran off the plate's edge
+    knobs(410, 1226, 376, 32, {{Spread, "SPREAD"}, {Smooth, "GLIDE"}, {Drive, "DRIVE"}, {Crush, "CRUSH"}, {Mix, "MIX"}, {Input, "INPUT"},
                                {Output, "OUTPUT"}});
-    L.grooves.push_back({410, 448, 1636, 448});
+    L.grooves.push_back({410, 442, 1636, 442});
     // the movers: the LFO, the sequencer, and the depths (mover x target)
-    L.sections.push_back({{410, 452, 290, 22}, "LFO"});
-    L.sections.push_back({{712, 452, 300, 22}, "SEQUENCER"});
-    knobs(410, 120, 508, 38, {{LfoRate, "RATE"}});
-    L.widgets.push_back(toggle({536, 480, 160, 34}, LfoSync, "SYNC"));
-    stepper({536, 522, 160, 34}, LfoNote);
-    stepper({536, 564, 160, 34}, LfoWave);
-    knobs(712, 300, 508, 34, {{SeqRate, "RATE"}, {Swing, "SWING"}, {Last, "LAST"}});
-    L.widgets.push_back(toggle({716, 582, 140, 34}, SeqSync, "SYNC"));
-    stepper({866, 582, 140, 34}, SeqNote);
-    L.grooves.push_back({706, 456, 706, 642});
-    L.grooves.push_back({1018, 456, 1018, 642});
+    L.sections.push_back({{410, 446, 290, 22}, "LFO"});
+    L.sections.push_back({{712, 446, 300, 22}, "SEQUENCER"});
+    knobs(410, 120, 502, 38, {{LfoRate, "RATE"}});
+    L.widgets.push_back(toggle({536, 474, 160, 34}, LfoSync, "SYNC"));
+    stepper({536, 516, 160, 34}, LfoNote);
+    stepper({536, 558, 160, 34}, LfoWave);
+    knobs(712, 300, 502, 34, {{SeqRate, "RATE"}, {Swing, "SWING"}, {Last, "LAST"}});
+    L.widgets.push_back(toggle({716, 576, 140, 34}, SeqSync, "SYNC"));
+    stepper({866, 576, 140, 34}, SeqNote);
+    L.grooves.push_back({706, 450, 706, 628});
+    L.grooves.push_back({1018, 450, 1018, 628});
     static const char* const kTargetN[kTargets] = {"> FREQ", "> RES", "> TIME"};
-    static const char* const kMoverN[kMovers] = {"LFO", "SEQ", "FOLLOW"};
-    for (int t = 0; t < kTargets; ++t) L.sections.push_back({{1110 + static_cast<float>(t) * 175, 454, 175, 22}, kTargetN[t]});
+    static const char* const kMoverN[kMovers] = {"LFO", "SEQ", "ENV"};   // "FOLLOW" ran over the border
+    for (int t = 0; t < kTargets; ++t) L.sections.push_back({{1110 + static_cast<float>(t) * 175, 448, 175, 22}, kTargetN[t]});
     {
         const std::size_t first = L.widgets.size();
         for (int m = 0; m < kMovers; ++m) {
-            const float y = 478 + static_cast<float>(m) * 58;
+            const float y = 472 + static_cast<float>(m) * 54;
             L.sections.push_back({{1022, y, 84, 26}, kMoverN[m]});
             for (int t = 0; t < kTargets; ++t) {
                 const float cx = 1110 + (static_cast<float>(t) + 0.5f) * 175;
@@ -1083,28 +1087,29 @@ FaceLayout moversFace(const rack::PluginInfo& info) {
         }
         seatKnobs(L, first, 3);
     }
-    L.grooves.push_back({410, 650, 1636, 650});
-    // the steps
+    L.grooves.push_back({410, 636, 1636, 636});
+    // the steps: the numbers only under them ("-100 %" side by side ran together)
     {
         const std::size_t first = L.widgets.size();
         static const char* const kNum[kSteps] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"};
         const float pitch = 1226.0f / kSteps;
         for (int k = 0; k < kSteps; ++k) {
             const float cx = 410 + (static_cast<float>(k) + 0.5f) * pitch;
-            L.widgets.push_back(knob({cx - 15, 676, 30, 30}, Step1 + k, kNum[k], "", "", true));
+            L.widgets.push_back(knob({cx - 13, 668, 26, 26}, Step1 + k, kNum[k], "", "", true));
+            L.widgets.back().tight = true;
         }
         seatKnobs(L, first, 3);
     }
-    L.grooves.push_back({410, 740, 1636, 740});
+    L.grooves.push_back({410, 726, 1636, 726});
     // the delay
-    L.sections.push_back({{60, 772, 340, 22}, "DELAY"});
-    knobs(410, 480, 770, 28, {{DelayTime, "TIME"}, {DelayFeedback, "FEEDBACK"}, {DelayMix, "DRY / WET"}});
+    L.sections.push_back({{60, 760, 340, 22}, "DELAY"});
+    knobs(410, 480, 758, 28, {{DelayTime, "TIME"}, {DelayFeedback, "FEEDBACK"}, {DelayMix, "DRY / WET"}});
     const struct { int p; const char* cap; bool stepper; } sw[5] = {
         {DelaySync, "SYNC", false}, {DelayNote, "NOTE", true}, {DelayRight, "RIGHT", true}, {DelayAnalog, "STYLE", true}, {DelayRoute, "ROUTE", true}};
     for (int k = 0; k < 5; ++k) {
         const float x = 900 + static_cast<float>(k) * 147.0f;
-        L.sections.push_back({{x, 744, 143, 22}, sw[k].cap});
-        const Rect r{x + 2, 770, 139, 32};
+        L.sections.push_back({{x, 730, 143, 22}, sw[k].cap});
+        const Rect r{x + 2, 756, 139, 32};
         if (sw[k].stepper) stepper(r, sw[k].p);
         else L.widgets.push_back(toggle(r, sw[k].p, ""));
     }
@@ -1142,50 +1147,59 @@ FaceLayout tapsFace(const rack::PluginInfo& info) {
         }
         seatKnobs(L, first, 4);
     };
-    // the taps: two knobs side by side per row (three in a 204-wide column ran their names and values together:
-    // "DELAYGAINPLACE", "125 ms-6.0-30.00 deg"), the EQ switch and its shape beside PLACE
+    // the taps: two knobs side by side per row, their values the number only (the caption says what it is: "125 ms"
+    // beside "-12.0 dB" ran together in a 204-wide column), rows 90 apart so a value never meets the name under it
     static const char* const kTapN[kTaps] = {"TAP 1", "TAP 2", "TAP 3", "TAP 4", "TAP 5", "TAP 6"};
     const float cw = 1226.0f / kTaps;
+    auto tightFrom = [&](std::size_t first) { for (std::size_t i = first; i < L.widgets.size(); ++i) L.widgets[i].tight = true; };
     for (int t = 0; t < kTaps; ++t) {
         const float x0 = 410 + static_cast<float>(t) * cw;
         L.sections.push_back({{x0 + 4, 180, cw * 0.5f - 8, 24}, kTapN[t]});
         L.widgets.push_back(toggle({x0 + cw * 0.5f + 2, 178, cw * 0.5f - 10, 28}, tap(t, On), ""));
-        knobs(x0, cw, 232, 30, {{tap(t, Delay), "DELAY"}, {tap(t, Gain), "GAIN"}});
-        knobs(x0, cw * 0.5f, 316, 30, {{tap(t, Rotate), "PLACE"}});
-        L.widgets.push_back(toggle({x0 + cw * 0.5f + 2, 300, cw * 0.5f - 10, 28}, tap(t, EqOn), "EQ"));
-        stepper({x0 + cw * 0.5f + 2, 336, cw * 0.5f - 10, 28}, tap(t, EqType));
-        knobs(x0, cw, 400, 30, {{tap(t, EqFreq), "EQ FREQ"}, {tap(t, EqGain), "EQ GAIN"}});
-        if (t > 0) L.grooves.push_back({x0, 184, x0, 458});
+        std::size_t first = L.widgets.size();
+        knobs(x0, cw, 240, 30, {{tap(t, Delay), "DELAY"}, {tap(t, Gain), "GAIN"}});
+        knobs(x0, cw * 0.5f, 330, 30, {{tap(t, Rotate), "PLACE"}});
+        tightFrom(first);
+        L.widgets.push_back(toggle({x0 + cw * 0.5f + 2, 314, cw * 0.5f - 10, 28}, tap(t, EqOn), "EQ"));
+        stepper({x0 + cw * 0.5f + 2, 350, cw * 0.5f - 10, 28}, tap(t, EqType));
+        first = L.widgets.size();
+        knobs(x0, cw, 420, 30, {{tap(t, EqFreq), "FREQ"}, {tap(t, EqGain), "LEVEL"}});
+        tightFrom(first);
+        if (t > 0) L.grooves.push_back({x0, 184, x0, 482});
     }
-    L.grooves.push_back({410, 466, 1636, 466});
-    // direct, tempo, modulator (all 12 lower than before, to give the taps their third row)
-    constexpr float dy = 12.0f;
+    L.grooves.push_back({410, 488, 1636, 488});
+    // direct, tempo, modulator (34 lower than at first, to give the taps their rows)
+    constexpr float dy = 34.0f;
     L.sections.push_back({{410, 460 + dy, 230, 22}, "DRY"});
     L.sections.push_back({{648, 460 + dy, 420, 22}, "TEMPO"});
     L.sections.push_back({{1076, 460 + dy, 560, 22}, "WOBBLE"});
-    L.widgets.push_back(toggle({414, 490 + dy, 80, 32}, DirectOn, ""));
-    knobs(494, 146, 512 + dy, 32, {{DirectGain, "GAIN"}, {DirectRotate, "PLACE"}});
+    L.widgets.push_back(toggle({414, 490 + dy, 64, 32}, DirectOn, ""));
+    {
+        const std::size_t first = L.widgets.size();
+        knobs(482, 158, 518 + dy, 32, {{DirectGain, "GAIN"}, {DirectRotate, "PLACE"}});
+        tightFrom(first);
+    }
     stepper({652, 490 + dy, 130, 32}, Sync);
-    knobs(782, 100, 512 + dy, 32, {{Bpm, "BPM"}});
+    knobs(782, 100, 518 + dy, 32, {{Bpm, "BPM"}});
     stepper({886, 490 + dy, 120, 32}, Grid);
     L.widgets.push_back(toggle({886, 530 + dy, 120, 32}, Snap, "LOCK"));
     L.widgets.push_back(toggle({652, 530 + dy, 130, 32}, Tap, "TAP"));
     L.widgets.back().hi = "PRESS";
     L.widgets.push_back(toggle({1080, 490 + dy, 110, 32}, ModOn, ""));
     stepper({1080, 530 + dy, 110, 32}, ModSync);
-    knobs(1196, 210, 512 + dy, 32, {{ModRate, "RATE"}, {ModDepth, "DEPTH"}});
+    knobs(1196, 210, 518 + dy, 32, {{ModRate, "RATE"}, {ModDepth, "DEPTH"}});
     stepper({1416, 510 + dy, 210, 32}, ModNote, "");
-    L.grooves.push_back({644, 462 + dy, 644, 584 + dy});
-    L.grooves.push_back({1072, 462 + dy, 1072, 584 + dy});
-    L.grooves.push_back({410, 592 + dy, 1636, 592 + dy});
+    L.grooves.push_back({644, 462 + dy, 644, 590 + dy});
+    L.grooves.push_back({1072, 462 + dy, 1072, 590 + dy});
+    L.grooves.push_back({410, 598 + dy, 1636, 598 + dy});
     // the feedback
-    L.sections.push_back({{410, 598 + dy, 1226, 22}, "FEEDBACK"});
-    L.widgets.push_back(toggle({414, 632 + dy, 90, 32}, FbOn, ""));
-    stepper({414, 676 + dy, 90, 32}, FbMode);
-    knobs(510, 450, 640 + dy, 32, {{FbGain, "GAIN"}, {FbDelay, "DELAY"}, {FbRotate, "PLACE"}});
-    stepper({966, 654 + dy, 150, 32}, FbFilter);
-    knobs(1120, 300, 640 + dy, 32, {{FbFreq, "FREQ"}, {FbFilterGain, "GAIN"}});
-    knobs(1430, 206, 632 + dy, 44, {{Output, "OUTPUT"}});
+    L.sections.push_back({{410, 604 + dy, 1226, 22}, "FEEDBACK"});
+    L.widgets.push_back(toggle({414, 638 + dy, 90, 32}, FbOn, ""));
+    stepper({414, 682 + dy, 90, 32}, FbMode);
+    knobs(510, 450, 652 + dy, 32, {{FbGain, "GAIN"}, {FbDelay, "DELAY"}, {FbRotate, "PLACE"}});
+    stepper({966, 664 + dy, 150, 32}, FbFilter);
+    knobs(1120, 300, 652 + dy, 32, {{FbFreq, "FREQ"}, {FbFilterGain, "GAIN"}});
+    knobs(1430, 206, 644 + dy, 44, {{Output, "OUTPUT"}});
     // the left column: the peaks
     readoutAt(L, {70, 404, 270, 64}, 0, "PEAK L", "dBFS", "+");
     readoutAt(L, {70, 478, 270, 64}, 1, "PEAK R", "dBFS", "+");
@@ -1232,36 +1246,33 @@ FaceLayout voicesFace(const rack::PluginInfo& info) {
         const float x0 = 410 + static_cast<float>(v) * cw;
         L.sections.push_back({{x0 + 4, 180, cw * 0.5f - 8, 28}, kVoiceN[v]});
         L.widgets.push_back(toggle({x0 + cw * 0.5f + 2, 178, cw * 0.5f - 10, 30}, voice(v, On), ""));
-        knobs(x0, cw, 234, 30, {{voice(v, Gain), "GAIN"}, {voice(v, Pan), "PAN"}});   // rows 86 apart: a row's names clear the values above
-        knobs(x0, cw, 320, 30, {{voice(v, Delay), "DELAY"}, {voice(v, Detune), "DETUNE"}});
-        knobs(x0, cw, 406, 30, {{voice(v, Feedback), "FEEDBACK"}, {voice(v, ModDepth), "MOD DEPTH"}});
-        knobs(x0, cw * 0.5f, 492, 30, {{voice(v, ModRate), "MOD RATE"}});
-        L.widgets.push_back(toggle({x0 + cw * 0.5f + 12, 494, cw * 0.5f - 30, 30}, voice(v, Octave), "OCT"));
-        if (v > 0) L.grooves.push_back({x0, 184, x0, 550});
+        // rows 90 apart: a row's names clear the values above them (86 let "-12.0 dB" sit on "DELAY")
+        knobs(x0, cw, 240, 30, {{voice(v, Gain), "GAIN"}, {voice(v, Pan), "PAN"}});
+        knobs(x0, cw, 330, 30, {{voice(v, Delay), "DELAY"}, {voice(v, Detune), "DETUNE"}});
+        knobs(x0, cw, 420, 30, {{voice(v, Feedback), "FEEDBACK"}, {voice(v, ModDepth), "DEPTH"}});
+        knobs(x0, cw * 0.5f, 510, 30, {{voice(v, ModRate), "RATE"}});
+        L.widgets.push_back(toggle({x0 + cw * 0.5f + 12, 512, cw * 0.5f - 30, 30}, voice(v, Octave), "OCT"));
+        if (v > 0) L.grooves.push_back({x0, 184, x0, 570});
     }
-    constexpr float dy = 138.0f;   // everything under the voices moved down by their two extra rows
-    L.grooves.push_back({410, 420 + dy, 1636, 420 + dy});
-    // the direct and the shared settings
-    L.sections.push_back({{410, 426 + dy, 400, 22}, "DRY"});
-    L.widgets.push_back(toggle({414, 456 + dy, 130, 32}, DirectOn, ""));
-    knobs(560, 250, 474 + dy, 32, {{DirectGain, "GAIN"}, {DirectPan, "PAN"}});
-    L.widgets.push_back(toggle({414, 500 + dy, 130, 32}, AlignDirect, "IN TIME"));
-    L.sections.push_back({{820, 426 + dy, 816, 22}, "ALL VOICES"});
-    stepper({920, 456 + dy, 150, 32}, Range, "LOWEST");
-    stepper({920, 500 + dy, 150, 32}, Routing, "FEED");
-    L.widgets.push_back(toggle({1084, 456 + dy, 170, 32}, ModReset, "MOD RESET"));
+    L.grooves.push_back({410, 578, 1636, 578});
+    // the direct and the shared settings, then the voices' EQ: two rows under the voices (three rows ran out of plate)
+    L.sections.push_back({{410, 584, 400, 22}, "DRY"});
+    L.widgets.push_back(toggle({414, 616, 150, 32}, DirectOn, ""));
+    L.widgets.push_back(toggle({414, 656, 150, 32}, AlignDirect, "IN TIME"));
+    knobs(566, 244, 640, 32, {{DirectGain, "GAIN"}, {DirectPan, "PAN"}});
+    L.sections.push_back({{820, 584, 816, 22}, "ALL VOICES"});
+    stepper({920, 616, 150, 32}, Range, "LOWEST");
+    stepper({920, 656, 150, 32}, Routing, "FEED");
+    L.widgets.push_back(toggle({1084, 616, 170, 32}, ModReset, "MOD RESET"));
     L.widgets.back().hi = "PRESS";
-    knobs(1260, 376, 466 + dy, 32, {{FbHighPass, "FB HI-PASS"}, {Output, "OUTPUT"}});
-    L.grooves.push_back({814, 428 + dy, 814, 552 + dy});
-    L.grooves.push_back({410, 560 + dy, 1636, 560 + dy});
-    // the voices' EQ
-    L.sections.push_back({{410, 566 + dy, 600, 22}, "LOW SHELF"});
-    L.sections.push_back({{1036, 566 + dy, 600, 22}, "HIGH SHELF"});
-    L.widgets.push_back(toggle({420, 600 + dy, 110, 32}, LowOn, ""));
-    knobs(540, 470, 614 + dy, 30, {{LowGain, "GAIN"}, {LowFreq, "FREQ"}});
-    L.widgets.push_back(toggle({1046, 600 + dy, 110, 32}, HighOn, ""));
-    knobs(1166, 470, 614 + dy, 30, {{HighGain, "GAIN"}, {HighFreq, "FREQ"}});
-    L.grooves.push_back({1023, 568 + dy, 1023, 690 + dy});
+    knobs(1260, 376, 640, 32, {{FbHighPass, "FB HI-PASS"}, {Output, "OUTPUT"}});
+    L.grooves.push_back({814, 586, 814, 700});
+    L.grooves.push_back({410, 706, 1636, 706});
+    L.widgets.push_back(toggle({420, 742, 170, 32}, LowOn, "LOW SHELF"));
+    knobs(600, 410, 738, 30, {{LowGain, "GAIN"}, {LowFreq, "FREQ"}});
+    L.widgets.push_back(toggle({1036, 742, 170, 32}, HighOn, "HIGH SHELF"));
+    knobs(1216, 410, 738, 30, {{HighGain, "GAIN"}, {HighFreq, "FREQ"}});
+    L.grooves.push_back({1023, 712, 1023, 800});
     // the left column: the peaks
     readoutAt(L, {70, 404, 270, 64}, 0, "PEAK L", "dBFS", "+");
     readoutAt(L, {70, 478, 270, 64}, 1, "PEAK R", "dBFS", "+");
@@ -1318,9 +1329,12 @@ FaceLayout keysFace(const rack::PluginInfo& info) {
     for (int b = 0; b < kEqBands; ++b) {
         const float x0 = 410 + static_cast<float>(b) * cw;
         L.widgets.push_back(toggle({x0 + 10, 364, cw - 20, 32}, eq(b, EqOn), kEqN[b]));
+        const std::size_t first = L.widgets.size();
         small(x0 + cw * 0.5f - 76, 430, eq(b, EqFreq), "FREQ");
         small(x0 + cw * 0.5f, 430, eq(b, EqGain), "GAIN");
         small(x0 + cw * 0.5f + 76, 430, eq(b, EqQ), "Q");
+        // three knobs 76 apart: the numbers only ("4.48 kHz+6.0 dB0.49" ran together)
+        for (std::size_t i = first; i < L.widgets.size(); ++i) L.widgets[i].tight = true;
         if (b > 0) L.grooves.push_back({x0, 360, x0, 500});
     }
     L.grooves.push_back({410, 508, 1636, 508});
@@ -1329,9 +1343,10 @@ FaceLayout keysFace(const rack::PluginInfo& info) {
     const float mw = 1226.0f / kPaths;
     for (int q = 0; q < kPaths; ++q) {
         const float x0 = 410 + static_cast<float>(q) * mw;
-        small(x0 + 60, 548, Level0 + q, kPathN[q]);
-        L.widgets.push_back(toggle({x0 + 112, 536, 180, 32}, Solo0 + q, "SOLO"));
-        L.widgets.push_back(toggle({x0 + 112, 574, 180, 32}, Mute0 + q, "MUTE"));
+        // the knob 90 in and the switches beside it from 180: "MODULATOR" ran over the border and into SOLO
+        small(x0 + 90, 548, Level0 + q, kPathN[q]);
+        L.widgets.push_back(toggle({x0 + 180, 536, 118, 32}, Solo0 + q, "SOLO"));
+        L.widgets.push_back(toggle({x0 + 180, 574, 118, 32}, Mute0 + q, "MUTE"));
         if (q > 0) L.grooves.push_back({x0, 516, x0, 620});
     }
     // the keys
@@ -1397,7 +1412,7 @@ FaceLayout notchesFace(const rack::PluginInfo& info) {
     L.widgets.push_back(toggle({410, 392, 140, 32}, LoopOn, "LOOP"));
     L.widgets.push_back(toggle({560, 392, 140, 32}, LoopFlip, "FLIP"));
     stepper({710, 392, 170, 32}, LoopFilter, "LOOP FILTER");
-    knobs(890, 746, 380, {{Decay, "DECAY"}, {Delay, "DELAY"}, {Density, "DENSITY"}, {HiTame, "HI TAME"}, {LoopFreq, "FILTER HZ"}});
+    knobs(890, 746, 386, {{Decay, "DECAY"}, {Delay, "DELAY"}, {Density, "DENSITY"}, {HiTame, "HI TAME"}, {LoopFreq, "FILTER HZ"}});
     L.grooves.push_back({410, 472, 1636, 472});
     // the wet sound
     L.widgets.push_back(toggle({410, 520, 180, 32}, HighCutOn, "HIGH CUT"));
@@ -1452,23 +1467,24 @@ FaceLayout pawnFace(const rack::PluginInfo& info) {
     stepper({540, 340, 110, 32}, Sync, "SYNC");
     stepper({660, 340, 120, 32}, Note, "NOTE");
     L.widgets.push_back(toggle({790, 340, 180, 32}, PingPong, "PING PONG"));
-    knobs(980, 656, 328, {{TimeMs, "TIME"}, {Bpm, "BPM"}, {EchoLevel, "ECHO"}, {Feedback, "FEEDBACK"}});
+    // knob rows 34 under a groove: their names sat on the lines at 28
+    knobs(980, 656, 334, {{TimeMs, "TIME"}, {Bpm, "BPM"}, {EchoLevel, "ECHO"}, {Feedback, "FEEDBACK"}});
     // SPACE: the reverb, and the master section
     stepper({410, 460, 140, 32}, ReverbType, "REVERB");
     knobs(560, 452, 448, {{ReverbLevel, "LEVEL"}, {ReverbLength, "LENGTH"}, {SpaceMix, "SPACE MIX"}});
     L.grooves.push_back({1018, 420, 1018, 520});
-    knobs(1024, 612, 448, {{Input, "INPUT"}, {Output, "OUTPUT"}, {LowCut, "LOW CUT"}, {HighCut, "HIGH CUT"}, {Mono, "MONO"}});
+    knobs(1024, 612, 448, {{Input, "INPUT"}, {Output, "OUTPUT"}, {LowCut, "LO CUT"}, {HighCut, "HI CUT"}, {Mono, "MONO"}});
     L.grooves.push_back({410, 540, 1636, 540});
     // NOISE
     L.widgets.push_back(toggle({410, 580, 120, 32}, NoiseOn, "NOISE"));
     stepper({540, 580, 170, 32}, NoiseType, "TYPE");
     stepper({720, 580, 120, 32}, NoiseMode, "FOLLOWS");
     stepper({850, 580, 110, 32}, NoisePlace, "PLACE");
-    knobs(970, 666, 568, {{Threshold, "THRESHOLD"}, {NoiseLevel, "LEVEL"}});
+    knobs(970, 666, 574, {{Threshold, "THRESHOLD"}, {NoiseLevel, "LEVEL"}});
     L.grooves.push_back({410, 660, 1636, 660});
     // MECHANICS
     L.widgets.push_back(toggle({410, 700, 170, 32}, MechOn, "MECHANICS"));
-    knobs(590, 1046, 688, {{WowA, "WOW A"}, {WobbleA, "WOBBLE A"}, {SpeedA, "SPEED A"}, {WowB, "WOW B"}, {WobbleB, "WOBBLE B"}, {SpeedB, "SPEED B"}});
+    knobs(590, 1046, 694, {{WowA, "WOW A"}, {WobbleA, "WOBBLE A"}, {SpeedA, "SPEED A"}, {WowB, "WOW B"}, {WobbleB, "WOBBLE B"}, {SpeedB, "SPEED B"}});
     // the left column
     readoutAt(L, {70, 404, 270, 64}, 0, "IN", "dBFS", "+");
     readoutAt(L, {70, 478, 270, 64}, 1, "OUT", "dBFS", "+");
@@ -1523,14 +1539,14 @@ FaceLayout auditFace(const rack::PluginInfo& info) {
     stepper({920, 420, 170, 32}, ShortTime, "SHORT TIME");
     stepper({1100, 420, 170, 32}, Scale, "SCALE");
     stepper({1280, 420, 150, 32}, Measure, "MEASURE");
-    knobs(410, 1226, 480, {{ShortMax, "SHORT MAX"}, {ShortMin, "SHORT MIN"}, {TruePeakMax, "TRUE PEAK MAX"}, {Target, "TARGET"}, {Gain, "GAIN"}});
+    knobs(410, 1226, 488, {{ShortMax, "SHORT MAX"}, {ShortMin, "SHORT MIN"}, {TruePeakMax, "TRUE PEAK MAX"}, {Target, "TARGET"}, {Gain, "GAIN"}});
     L.grooves.push_back({410, 590, 1636, 590});
     // the measuring filters
     L.widgets.push_back(toggle({410, 630, 190, 32}, LpfOn, "LOW-PASS"));
     stepper({610, 630, 120, 32}, LpfSlope, "LP SLOPE");
     L.widgets.push_back(toggle({740, 630, 200, 32}, HpfOn, "HIGH-PASS"));
     stepper({950, 630, 120, 32}, HpfSlope, "HP SLOPE");
-    knobs(1080, 556, 618, {{LpfFreq, "LP FREQ"}, {HpfFreq, "HP FREQ"}});
+    knobs(1080, 556, 626, {{LpfFreq, "LP FREQ"}, {HpfFreq, "HP FREQ"}});
     // the left column
     L.widgets.push_back(toggle({70, 404, 270, 36}, Limiter, "LIMITER"));
     L.widgets.push_back(toggle({70, 452, 130, 36}, Reset, "RESET"));
@@ -1644,17 +1660,18 @@ FaceLayout pianoFace(const rack::PluginInfo& info) {
         L.widgets.push_back(st);
         L.recesses.push_back({st.r.inset(-4), 9, 4, false, false});
     };
-    // the top: keys, mix, tone, output
-    L.sections.push_back({{410, 184, 230, 22}, "KEYS"});
-    knobs(410, 230, 238, {{VelCurve, "VEL CURVE"}, {Formant, "FORMANT"}, {Tune, "TUNE"}});
-    L.sections.push_back({{650, 184, 530, 22}, "MIX"});
-    knobs(650, 530, 238, {{Main, "MAIN"}, {KeyUp, "KEY UP"}, {Mechanics, "ACTION"}, {PedalNoise, "PEDAL"}, {Squeeze, "SQUEEZE"}, {Sympathy, "SYMPATHY"}});
-    L.sections.push_back({{1190, 184, 270, 22}, "TONE"});
-    knobs(1190, 270, 238, {{Bass, "BASS"}, {Mid, "MID"}, {Treble, "TREBLE"}});
-    L.sections.push_back({{1466, 184, 170, 22}, "OUTPUT"});
-    knobs(1466, 170, 238, {{Volume, "VOLUME"}});
-    for (float x : {645.0f, 1185.0f, 1463.0f}) L.grooves.push_back({x, 190, x, 300});
-    L.grooves.push_back({410, 316, 1636, 316});
+    // the top, two rows: keys, tone, output; then the mix (thirteen knobs on one row ran their names together:
+    // "VEL CURVEFORMANTTUNE", "PEDALSQUEEZESYMPATHY")
+    L.sections.push_back({{410, 184, 400, 22}, "KEYS"});
+    knobs(410, 400, 240, {{VelCurve, "VELOCITY"}, {Formant, "FORMANT"}, {Tune, "TUNE"}});
+    L.sections.push_back({{820, 184, 500, 22}, "TONE"});
+    knobs(820, 500, 240, {{Bass, "BASS"}, {Mid, "MID"}, {Treble, "TREBLE"}});
+    L.sections.push_back({{1330, 184, 306, 22}, "OUTPUT"});
+    knobs(1330, 306, 240, {{Volume, "VOLUME"}});
+    for (float x : {815.0f, 1325.0f}) L.grooves.push_back({x, 190, x, 302});
+    L.grooves.push_back({410, 310, 1636, 310});
+    knobs(410, 1226, 346, {{Main, "PIANO"}, {KeyUp, "KEY UP"}, {Mechanics, "ACTION"}, {PedalNoise, "PEDAL"}, {Squeeze, "SQUEEZE"}, {Sympathy, "SYMPATHY"}});
+    L.grooves.push_back({410, 418, 1636, 418});
     // the effects, a column each
     const float cw = 1226.0f / 5.0f;
     struct Col { int on, sync, note, hz, depth, mix; const char* name; };
@@ -1663,32 +1680,32 @@ FaceLayout pianoFace(const rack::PluginInfo& info) {
                          {PhOn, PhSync, PhNote, PhHz, PhDepth, PhMix, "PHASER"}};
     for (int c = 0; c < 3; ++c) {
         const float x0 = 410 + static_cast<float>(c) * cw;
-        L.widgets.push_back(toggle({x0 + 8, 330, cw - 16, 30}, cols[c].on, cols[c].name));
-        stepper({x0 + 72, 372, cw - 80, 30}, cols[c].sync, "RATE");
-        stepper({x0 + 72, 412, cw - 80, 30}, cols[c].note, "NOTE");
-        if (cols[c].mix >= 0) knobs(x0, cw, 478, {{cols[c].hz, "HZ"}, {cols[c].depth, "DEPTH"}, {cols[c].mix, "MIX"}});
-        else knobs(x0, cw, 478, {{cols[c].hz, "HZ"}, {cols[c].depth, "DEPTH"}});
+        L.widgets.push_back(toggle({x0 + 8, 430, cw - 16, 30}, cols[c].on, cols[c].name));
+        stepper({x0 + 72, 470, cw - 80, 30}, cols[c].sync, "RATE");
+        stepper({x0 + 72, 508, cw - 80, 30}, cols[c].note, "NOTE");
+        if (cols[c].mix >= 0) knobs(x0, cw, 580, {{cols[c].hz, "HZ"}, {cols[c].depth, "DEPTH"}, {cols[c].mix, "MIX"}});
+        else knobs(x0, cw, 580, {{cols[c].hz, "HZ"}, {cols[c].depth, "DEPTH"}});
     }
     {
         const float x0 = 410 + 3 * cw;
-        L.widgets.push_back(toggle({x0 + 8, 330, cw - 16, 30}, ChOn, "CHORUS"));
-        knobs(x0, cw, 478, {{ChDepth, "DEPTH"}});
+        L.widgets.push_back(toggle({x0 + 8, 430, cw - 16, 30}, ChOn, "CHORUS"));
+        knobs(x0, cw, 580, {{ChDepth, "DEPTH"}});
     }
     {
         const float x0 = 410 + 4 * cw;
-        L.sections.push_back({{x0, 334, cw, 22}, "REVERB"});
-        knobs(x0, cw, 382, {{RvMix, "MIX"}, {RvPre, "PRE-DELAY"}});
-        knobs(x0, cw, 478, {{RvTime, "TIME"}, {RvDamp, "DAMP"}});
+        L.sections.push_back({{x0, 428, cw, 22}, "REVERB"});
+        knobs(x0, cw, 482, {{RvMix, "MIX"}, {RvPre, "PRE-DELAY"}});
+        knobs(x0, cw, 580, {{RvTime, "TIME"}, {RvDamp, "DAMP"}});
     }
-    for (int c = 1; c < 5; ++c) L.grooves.push_back({410 + static_cast<float>(c) * cw, 326, 410 + static_cast<float>(c) * cw, 552});
-    L.grooves.push_back({410, 568, 1636, 568});
+    for (int c = 1; c < 5; ++c) L.grooves.push_back({410 + static_cast<float>(c) * cw, 424, 410 + static_cast<float>(c) * cw, 646});
+    L.grooves.push_back({410, 654, 1636, 654});
     // the keyboard
     Widget keys;
     keys.kind = WKind::Keyboard;
     keys.param = Key0;
     keys.choice = kKeys;
     keys.param2 = Latch;
-    keys.r = {410, 596, 1226, 214};
+    keys.r = {410, 670, 1226, 140};
     L.widgets.push_back(keys);
     L.recesses.push_back({keys.r.inset(-6), 8, 6, false, false});
     // the left column
@@ -1844,16 +1861,18 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
         L.widgets.push_back(cv);
         L.recesses.push_back({scr, 14, 9, false, true});
     } else {
-        L.display = {gx, 180, 1636.0f - gx, 64};
+        L.display = {gx, 180, 1636.0f - gx, 52};
         if (B.meter >= 0)
             for (int b = 0; b < n && b < 8; ++b) {
                 const bool master = B.lastIsMaster && b == n - 1;
                 const char* nm = b < static_cast<int>(B.meterNames.size()) ? B.meterNames[static_cast<std::size_t>(b)] : kNames[b];
-                readoutAt(L, {colX(b) + 6, 180, colW - 12, 64}, B.meter + b, master ? "OUTPUT" : nm, master ? "dBFS" : "dB", "+");
+                readoutAt(L, {colX(b) + 6, 180, colW - 12, 52}, B.meter + b, master ? "OUTPUT" : nm, master ? "dBFS" : "dB", "+");
             }
     }
     // the globals: row1, the switches, the borders' knobs (crossovers) between the columns
-    constexpr float d = 48.0f;
+    // EQs with globals on two rows (STREET TEAM) use 36 knobs 94 apart: at 48 / 102 the first row's names sat on the
+    // groove and its values on the second row's names
+    const float d = (eq && S.row1.size() + S.toggles.size() > 8) ? 36.0f : 48.0f;
     // How tall the grid is, to know whether the crossover knobs (on the column borders) get a row of their own. On one row
     // with the globals their names ran into each other ("ADAPTIVESPLIT", "BAND FREEDOSPLIT").
     float gridH = (B.columnNames.empty() ? 0.0f : 30.0f) + 72.0f * static_cast<float>(B.knobs.size()) +
@@ -1876,12 +1895,15 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
         const bool spread = eq || items > n || (items < n && !hasBorders && colW < 130.0f);
         const int perRow = eqTwo ? (items + 1) / 2 : items;
         const float pitch = spread ? static_cast<float>(n) / static_cast<float>(std::max(perRow, 1)) : 1.0f;
+        // switches among the globals with crossovers on the borders: the row ends in the all-bands column, which has no
+        // crossover beside it (STRAIGHT EDGE's DITHER sat on the last SPLIT's name)
+        const int slotOff = (!spread && hasBorders && B.lastIsMaster && !S.toggles.empty() && items < n) ? n - items : 0;
         int slot = 0;
         auto at = [&](float& x, float& y) {
             const int row = perRow > 0 ? slot / perRow : 0, col = perRow > 0 ? slot % perRow : slot;
             ++slot;
-            x = gx + (static_cast<float>(col) + 0.5f) * pitch * colW;
-            y = top + (d + 54.0f) * static_cast<float>(row);   // the next row's names clear this row's values
+            x = gx + (static_cast<float>(col + slotOff) + 0.5f) * pitch * colW;
+            y = top + (eqTwo ? 94.0f : d + 54.0f) * static_cast<float>(row);   // the next row's names clear this row's values
         };
         for (const rack::PlateKnob& k : S.row1) {
             float x, y;
@@ -1939,6 +1961,8 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
         for (int b = 0; b < n; ++b) {
             const float c = cx(static_cast<float>(b));
             L.widgets.push_back(knob({c - kd * 0.5f, y + 2, kd, kd}, B.first + b * B.stride + k.param, "", k.lo, k.hi, true));
+            // narrow columns (TEN TOES' 110): the number only, the row's name on the left says the unit ("1.00 kHz2.00 kHz")
+            L.widgets.back().tight = colW < 130.0f;
             if (B.pages > 1) { L.widgets.back().pageStride = B.pageStride; L.widgets.back().pageLink = B.linkParam; }
         }
         y += knobRowH;
@@ -1972,7 +1996,7 @@ void specBands(FaceLayout& L, const rack::PlateSpec& S) {
     }
     if (eq) {
         L.grooves.push_back({labelX, y + 8, 1636, y + 8});
-        globals(y + (eqTwo ? 30.0f : 40.0f));
+        globals(y + 40.0f);
     }
     // the page tabs (which set the grid edits), in the left column under the name
     if (B.pages > 1) {

@@ -53,7 +53,7 @@ constexpr PlateKnob bandKnobs[] = {{0, "AMOUNT"}};
 constexpr PlateToggle bandToggles[] = {{1, "ON"}};
 constexpr const char* columnNames[] = {"GAIN", "PAN", "PITCH", "AIR LOSS", "REVERB"};
 constexpr PlateBands bands{.count = 5, .first = Gain, .stride = 2, .knobs = bandKnobs, .toggles = bandToggles, .columnNames = columnNames};
-constexpr PlateKnob row1[] = {{TrackTime, "PASS TIME"}, {CenterTime, "CLOSEST AT"}, {Start, "START", "L", "R"}, {End, "END", "L", "R"},
+constexpr PlateKnob row1[] = {{TrackTime, "PASS"}, {CenterTime, "CLOSEST"}, {Start, "START", "L", "R"}, {End, "END", "L", "R"},
                               {Close, "CLOSE", "FAR", "NEAR"}, {ReverbTime, "REV TIME"}, {Brightness, "BRIGHT", "0", "1"}};
 constexpr PlateToggle toggles[] = {{Fire, "FIRE", true}};
 constexpr PlateChoice steppers[] = {{Direction, "WAY"}, {Mode, "MODE"}, {Trigger, "TRIGGER"}};

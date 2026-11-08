@@ -216,6 +216,8 @@ void FaceView::knob(const Ctx& c, const Widget& w, int wi) const {
         const std::size_t at = v.size() >= 3 + std::strlen(unit) ? v.rfind(unit) : std::string::npos;
         if (at != std::string::npos && at + std::strlen(unit) == v.size() && at >= 3 && v.compare(at - 3, 3, ".00") == 0) v.erase(at - 3, 3);
     }
+    v = shortDb(v);
+    if (w.tight) v = tightValue(v);
     const TextStyle vs = c.fit(w.small ? TextStyle::Value : TextStyle::Title, v, dial.w + (w.small ? 26 : 50) * z);
     r.text(vs, v, cx, dial.bottom() + (w.small ? 26 : 32) * z, on ? (hot ? th_.silver : th_.teal) : th_.dim, Align::Center,
            on ? TextFx::Shadowed : TextFx::Shadowed);
@@ -723,10 +725,20 @@ void FaceView::readout(const Ctx& c, const Widget& w) const {
     }
     if (std::fabs(v) < 0.05f) v = 0.0f;   // no "-0.0"
     const TextStyle cs = c.ts(TextStyle::Caption);
-    const bool small = w.r.h < 110.0f;   // a short window: name and unit on one line, a smaller number
-    r.text(cs, w.caption, b.x + 18 * z, b.y + 30 * z, th_.label, Align::Left, TextFx::Shadowed);
-    if (small) r.text(cs, w.lo, b.x + 18 * z, b.bottom() - 16 * z, th_.teal, Align::Left, TextFx::Shadowed);
-    else r.text(cs, w.lo, b.x + 18 * z, b.y + 60 * z, th_.teal, Align::Left, TextFx::Shadowed);   // the unit, under the name
+    const bool small = w.r.h < 110.0f;   // a short window: a smaller number
+    // under 72 high there is no room for the unit under the name (they ran into each other: "BAND 1" on "dB"), so
+    // the unit goes after the name on the same line
+    const bool oneLine = w.r.h < 72.0f;
+    const float nameW = r.textWidth(cs, w.caption);
+    if (oneLine) {
+        const float base = b.cy() + r.capHeight(cs) * 0.5f;
+        r.text(cs, w.caption, b.x + 18 * z, base, th_.label, Align::Left, TextFx::Shadowed);
+        r.text(cs, w.lo, b.x + 18 * z + nameW + 10 * z, base, th_.teal, Align::Left, TextFx::Shadowed);
+    } else {
+        r.text(cs, w.caption, b.x + 18 * z, b.y + 30 * z, th_.label, Align::Left, TextFx::Shadowed);
+        if (small) r.text(cs, w.lo, b.x + 18 * z, b.bottom() - 16 * z, th_.teal, Align::Left, TextFx::Shadowed);
+        else r.text(cs, w.lo, b.x + 18 * z, b.y + 60 * z, th_.teal, Align::Left, TextFx::Shadowed);   // the unit, under the name
+    }
     char t[24];
     static constexpr const char* kNames[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
     const int idx = static_cast<int>(std::lround(v));
@@ -744,7 +756,7 @@ void FaceView::readout(const Ctx& c, const Widget& w) const {
     }
     const bool over = w.hi == "CEIL" && v > plain(c.host, rack::limiter::Ceiling) + 0.05f;   // true peak above the ceiling
     // the left side keeps the name and unit; on a narrow window the number gets only what they leave
-    const float words = std::max(r.textWidth(cs, w.caption), r.textWidth(cs, w.lo));
+    const float words = oneLine ? nameW + 10 * z + r.textWidth(cs, w.lo) : std::max(nameW, r.textWidth(cs, w.lo));
     const float room = std::max(b.w - 36 * z - words - 14 * z, b.w * 0.3f);
     const TextStyle big = c.fit(small ? TextStyle::Panel : TextStyle::Display, t, std::min(b.w * (small ? 0.5f : 0.55f), room));
     r.text(big, t, b.right() - 18 * z, b.bottom() - (small ? 14 : 18) * z, over ? th_.red : th_.teal, Align::Right, TextFx::Shadowed);

@@ -8,8 +8,11 @@
 #pragma once
 
 #include "hem/ui/Face.hpp"
+#include "FontMetrics.hpp"
+#include "hybrid/fx/Fx.hpp"
 
 #include <algorithm>
+#include <array>
 #include <span>
 #include <cstdio>
 #include <string>
@@ -23,58 +26,123 @@ struct Box {
     int owner = -1;   // the widget the text belongs to (-1: plate text)
 };
 
-// cap height / average letter width at zoom 1, plate units
-struct Size { float cap, letter; };
-inline constexpr Size kCaption{14.0f, 10.4f};
-inline constexpr Size kLabel{18.0f, 13.0f};
-inline constexpr Size kValue{18.0f, 10.5f};
-inline constexpr Size kTitle{24.0f, 14.0f};
+// The plate's text the way FaceView sizes it: a style from the ladder for the zoom (the largest one not
+// bigger than the base style at that zoom), stepped down until the words fit their width, and drawn with the
+// fonts' real letter widths (FontMetrics.hpp). Two zooms are checked, and the wider result counts: the VST3
+// window draws the plate at zoom 1, the rack app at 0.933 (faceArea 1560 x 968), where the styles can't step
+// down any further and the words come out larger next to the plate. Before 0.52.1 this file guessed letter
+// widths from the CI screenshots, which only show zoom 1; on Steven's screen (the rack app) BODY DOUBLE,
+// STREET TEAM, INSIDE MAN and SIX SHOOTER ran their words together though this test passed.
+enum class St { Caption, Value, Label, Title, Tab, Panel, Heading, Display };
+struct StSpec { float em; bool bold; };
+inline constexpr StSpec kSt[] = {{24, false}, {28, false}, {30, false}, {34, false}, {40, false}, {52, true}, {56, true}, {96, true}};
+inline constexpr float kZooms[] = {1.0f, 0.9330144f};
+inline constexpr float kPad = 3.0f;
+inline constexpr float kPlateEdge = 816.0f;   // the main plate's lower edge in the pictures (the footer strip starts at 832)   // plate units of clear metal each word wants on either side
 
-// A line of text centred on cx with its baseline at y; never wider than maxW (FaceView shrinks it).
-inline hc::ui::Rect centred(const std::string& t, float cx, float baseline, Size s, float maxW) {
-    const float w = std::min(static_cast<float>(t.size()) * s.letter, maxW);
-    return {cx - w * 0.5f, baseline - s.cap, w, s.cap + 2.0f};
+inline float textAdvance(const std::string& s, bool bold) {
+    float a = 0;
+    for (char ch : s) {
+        const int i = static_cast<unsigned char>(ch) - 32;
+        a += (i >= 0 && i < 95) ? (bold ? kBoldAdv[i] : kSemiBoldAdv[i]) : 0.6f;
+    }
+    return a;
 }
-inline hc::ui::Rect leftAligned(const std::string& t, float x, float baseline, Size s, float maxW) {
-    const float w = std::min(static_cast<float>(t.size()) * s.letter, maxW);
-    return {x, baseline - s.cap, w, s.cap + 2.0f};
+// width in design units of `s` in style `t`
+inline float designW(St t, const std::string& s) { return kSt[static_cast<int>(t)].em * textAdvance(s, kSt[static_cast<int>(t)].bold); }
+inline St styleAt(St base, float z) {
+    const float want = kSt[static_cast<int>(base)].em * z * 1.04f;
+    St best = St::Caption;
+    for (int i = 0; i < 8; ++i) if (kSt[i].em <= want) best = static_cast<St>(i);
+    return best;
+}
+inline St fitAt(St base, const std::string& s, float maxWpu, float z) {
+    St t = styleAt(base, z);
+    while (t != St::Caption && designW(t, s) > maxWpu * z) t = static_cast<St>(static_cast<int>(t) - 1);
+    return t;
+}
+// the word's width and cap height in plate units, the larger of the two zooms
+struct Ext { float w, cap; };
+inline Ext extent(St base, const std::string& s, float maxWpu) {
+    Ext e{0, 0};
+    for (float z : kZooms) {
+        const St t = fitAt(base, s, maxWpu, z);
+        e.w = std::max(e.w, designW(t, s) / z);
+        e.cap = std::max(e.cap, kSt[static_cast<int>(t)].em * kSemiBoldCap / z);
+    }
+    return e;
+}
+inline hc::ui::Rect centred(const std::string& t, float cx, float baseline, St base, float maxW) {
+    const Ext e = extent(base, t, maxW);
+    return {cx - e.w * 0.5f - kPad, baseline - e.cap, e.w + 2 * kPad, e.cap + 2.0f};
+}
+inline hc::ui::Rect leftAligned(const std::string& t, float x, float baseline, St base, float maxW) {
+    const Ext e = extent(base, t, maxW);
+    return {x - kPad, baseline - e.cap, e.w + 2 * kPad, e.cap + 2.0f};
 }
 
-// A knob's value text is as long as its longest value; "+14.0 dB" is the long case on the plates.
-inline std::vector<Box> textBoxes(const hem::ui::FaceLayout& L) {
+// What a knob shows under it, the way FaceView writes it (".00 deg" / ".00 cents" and ".0 dB" past 10 dropped).
+inline std::string shown(std::string v) {
+    for (const char* unit : {" deg", " cents"}) {
+        const std::size_t u = std::char_traits<char>::length(unit);
+        if (v.size() >= 3 + u && v.compare(v.size() - u, u, unit) == 0 && v.compare(v.size() - u - 3, 3, ".00") == 0) v.erase(v.size() - u - 3, 3);
+    }
+    return hem::ui::shortDb(v);
+}
+// The widest thing a knob can show: its value at the ends, the default and nine steps between.
+inline std::string widestValue(const hc::fx::ParamInfo& p, bool tight) {
+    std::string best;
+    float bw = -1;
+    auto take = [&](float plain) {
+        std::string s = shown(hc::fx::formatValue(p, plain));
+        if (tight) s = hem::ui::tightValue(s);
+        const float w = textAdvance(s, false);
+        if (w > bw) { bw = w; best = s; }
+    };
+    take(p.min); take(p.max); take(p.def);
+    for (int i = 1; i < 10; ++i) take(hc::fx::toPlain(p, static_cast<float>(i) / 10.0f));
+    return best;
+}
+
+inline std::vector<Box> textBoxes(const hem::ui::FaceLayout& L, std::span<const hc::fx::ParamInfo> ps) {
     using hem::ui::WKind;
     std::vector<Box> out;
     for (std::size_t i = 0; i < L.widgets.size(); ++i) {
         const hem::ui::Widget& w = L.widgets[i];
         if (w.kind != WKind::Knob) continue;
         const float cx = w.r.cx();
-        if (!w.caption.empty()) {
-            const Size s = w.small ? kCaption : kLabel;
-            out.push_back({centred(w.caption, cx, w.r.y - (w.small ? 12.0f : 16.0f), s, w.r.w + (w.small ? 26.0f : 70.0f)),
+        if (!w.caption.empty())
+            out.push_back({centred(w.caption, cx, w.r.y - (w.small ? 12.0f : 16.0f), w.small ? St::Caption : St::Label, w.r.w + (w.small ? 26.0f : 70.0f)),
                            w.caption + " (caption)", static_cast<int>(i)});
-        }
-        const Size vs = w.small ? kValue : kTitle;
-        out.push_back({centred("+14.0 dB", cx, w.r.bottom() + (w.small ? 26.0f : 32.0f), vs, w.r.w + (w.small ? 26.0f : 50.0f)),
-                       w.caption + " (value)", static_cast<int>(i)});
+        const std::string v = (w.param >= 0 && w.param < static_cast<int>(ps.size())) ? widestValue(ps[static_cast<std::size_t>(w.param)], w.tight) : "+14.0 dB";
+        out.push_back({centred(v, cx, w.r.bottom() + (w.small ? 26.0f : 32.0f), w.small ? St::Value : St::Title, w.r.w + (w.small ? 26.0f : 50.0f)),
+                       w.caption + " (value '" + v + "')", static_cast<int>(i)});
     }
     float y = L.title.bottom() + 30.0f;
     for (const std::string& n : L.leftNotes) {
-        out.push_back({leftAligned(n, L.title.x + 2.0f, y, kLabel, L.title.w), "note '" + n + "'", -1});
+        out.push_back({leftAligned(n, L.title.x + 2.0f, y, St::Label, L.title.w), "note '" + n + "'", -1});
         y += 36.0f;
     }
-    for (const auto& [rect, text] : L.sections)
-        out.push_back({centred(text, rect.cx(), rect.cy() + kLabel.cap * 0.5f, kLabel, rect.w - 10.0f), "section '" + text + "'", -1});
+    for (const auto& [rect, text] : L.sections) {
+        const Ext e = extent(St::Label, text, rect.w - 10.0f);
+        out.push_back({centred(text, rect.cx(), rect.cy() + e.cap * 0.5f, St::Label, rect.w - 10.0f), "section '" + text + "'", -1});
+    }
     return out;
 }
 
 inline bool hits(const hc::ui::Rect& a, const hc::ui::Rect& b) {
     return a.x < b.right() - 0.5f && b.x < a.right() - 0.5f && a.y < b.bottom() - 0.5f && b.y < a.bottom() - 0.5f;
 }
+// a groove (a lit line in the metal) through the words
+inline bool crosses(const hc::ui::Rect& a, const std::array<float, 4>& g) {
+    const float x0 = std::min(g[0], g[2]), x1 = std::max(g[0], g[2]), y0 = std::min(g[1], g[3]), y1 = std::max(g[1], g[3]);
+    return hits(a, {x0 - 1.0f, y0 - 1.0f, x1 - x0 + 2.0f, y1 - y0 + 2.0f});
+}
 
 // Number of clashes; each one is printed.
-inline int clashes(const hem::ui::FaceLayout& L, const char* name) {
+inline int clashes(const hem::ui::FaceLayout& L, std::span<const hc::fx::ParamInfo> ps, const char* name) {
     using hem::ui::WKind;
-    const std::vector<Box> boxes = textBoxes(L);
+    const std::vector<Box> boxes = textBoxes(L, ps);
     int n = 0;
     for (std::size_t a = 0; a < boxes.size(); ++a) {
         for (std::size_t b = a + 1; b < boxes.size(); ++b)
@@ -96,6 +164,15 @@ inline int clashes(const hem::ui::FaceLayout& L, const char* name) {
                 std::printf("  %s: text %s runs into control '%s'\n", name, boxes[a].what.c_str(), w.caption.c_str());
             }
         }
+        if (boxes[a].r.bottom() > kPlateEdge) {   // past the main plate's lower edge, onto its frame
+            ++n;
+            std::printf("  %s: text %s runs off the plate's edge\n", name, boxes[a].what.c_str());
+        }
+        for (const auto& g : L.grooves)
+            if (crosses(boxes[a].r, g)) {
+                ++n;
+                std::printf("  %s: text %s sits on a groove\n", name, boxes[a].what.c_str());
+            }
     }
     return n;
 }

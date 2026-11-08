@@ -1,3 +1,22 @@
+# HEM-Elite-Rack 0.52.1
+
+0.52.0 said the plates no longer ran their words together. On the rack app's screen several still did (BODY DOUBLE,
+STREET TEAM, INSIDE MAN, SIX SHOOTER and more): the test that checks for it guessed the letters narrower than they
+are drawn. Fixed properly this time:
+
+- The test now sizes every word with the plate font's real letter widths, at both sizes the plate is drawn (the
+  rack app and the VST3 window), using the widest value each knob can show, and also checks that no word sits on a
+  lit line or runs off the plate. It flagged 25 plates; all are fixed and the test passes for all 120.
+- New layouts: SIX SHOOTER, BODY DOUBLE, GRAND LARCENY, THE SETUP, THE INFORMANT, INSIDE MAN, PAWN SHOP, THE AUDITOR,
+  COLD CASE, STREET TEAM; smaller moves on the band plates (FAST MONEY, HIGH STAKES, HIGH ROLLER, TERRITORY,
+  STRAIGHT EDGE, FOUR KINGS, SWEET SIXTEEN, THE FIXER). New plate pictures for every plate whose controls moved.
+- Shorter values where knobs sit close: "-12 dB" (not "-12.0 dB"), "1.50 s" (not "1500 ms"), "16.0 kHz"; in tight
+  grids (TEN TOES, THE SETUP's steps, SIX SHOOTER's taps, INSIDE MAN) the number only, the row's or knob's name says
+  what it is.
+- Small readouts write the unit after the name ("BAND 1  dB") instead of on top of it.
+- Some names shortened: TORCH's mics (DYN / COND / RIB, ON / OFF the axis), DRIVE-BY (PASS, CLOSEST), WIDE LOAD
+  (WIDEN, BELOW), THE CHAIRMAN (LOW HZ), PAWN SHOP (LO CUT, HI CUT), GRAND LARCENY (VELOCITY, PIANO), THE SETUP (ENV).
+
 # HEM-Elite-Rack 0.52.0
 
 Fixes from a full control-by-control test of 0.51.3 (every plug-in, every knob, on a real song).
@@ -24,7 +43,6 @@ Fixes from a full control-by-control test of 0.51.3 (every plug-in, every knob, 
   INSIDE MAN, STRAIGHT EDGE, HIGH STAKES, FAST MONEY, TERRITORY, HIGH ROLLER); the all-bands column is named; STAKEOUT's
   stray lines are gone; BACKROOM has its own description; linked LEFT / RIGHT EQs show the shared values on RIGHT; stepped
   knobs move a step per short drag; gain readouts and needles hold their peaks briefly so they can be read.
-- New plate pictures for the 16 plates whose controls moved, so every pocket sits under its control.
 
 # HEM-Elite-Rack 0.51.4
 

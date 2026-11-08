@@ -30,6 +30,8 @@
 
 #include <array>
 #include <cstdint>
+#include <cstdlib>
+#include <cstdio>
 #include <filesystem>
 #include <optional>
 #include <span>
@@ -157,6 +159,7 @@ struct Widget {
     std::string caption;           // above the control
     std::string lo, hi;            // knob scale labels ("0" .. "10", "LO" .. "HI")
     bool        small = false;
+    bool        tight = false;   // a knob in a narrow grid whose row name says the unit: its value is written without it
     int         meter = -1;        // needle with a meter selector (param2): the input VU meter (output = meter + 1)
     int         pageStride = 0;    // > 0: the control edits param + page * pageStride (the plate's page tabs pick the page)
     int         pageLink = -1;     // paged: while this switch parameter is ON every page shows and edits page 0 (LINK)
@@ -171,6 +174,53 @@ inline constexpr const char* kSidechainTip = "External sidechain: VST3 only";
     return !w.needsSidechain || feed.hasSidechainInput();
 }
 // Two controls that are never on the plate at the same time (they may share a place).
+// A knob's value written shorter, so two values side by side don't meet: dB from 10 up without the ".0"
+// ("-12 dB", "+20 dB"; "-12.5 dB" keeps its digit) and a time of a second or more in seconds ("10000 ms" ->
+// "10.0 s", "1500 ms" -> "1.50 s").
+[[nodiscard]] inline std::string shortDb(std::string v) {
+    if (v.size() >= 7 && v.compare(v.size() - 5, 5, ".0 dB") == 0) {
+        std::size_t s = 0;
+        while (s < v.size() && (v[s] == '+' || v[s] == '-')) ++s;
+        std::size_t digits = 0;
+        for (std::size_t k = s; k < v.size() - 5; ++k) digits += (v[k] >= '0' && v[k] <= '9') ? 1u : 0u;
+        if (digits >= 2) v.erase(v.size() - 5, 2);
+    }
+    if (v.size() > 3 && v.compare(v.size() - 3, 3, " ms") == 0) {
+        char* end = nullptr;
+        const double ms = std::strtod(v.c_str(), &end);
+        if (end == v.c_str() + (v.size() - 3) && ms >= 1000.0) {
+            char b[24];
+            std::snprintf(b, sizeof b, ms >= 10000.0 ? "%.1f s" : "%.2f s", ms / 1000.0);
+            v = b;
+        }
+    }
+    // a plain number of 100 or more without ".00" ("1200.00" BPM -> "1200")
+    if (v.size() >= 6 && v.find(' ') == std::string::npos && v.compare(v.size() - 3, 3, ".00") == 0) {
+        std::size_t s = (v[0] == '+' || v[0] == '-') ? 1u : 0u;
+        if (v.size() - 3 - s >= 3) v.erase(v.size() - 3);
+    }
+    // "10.40 kHz" -> "10.4 kHz" (a hundredth of a kHz is 10 Hz up there: not worth the width)
+    if (v.size() >= 9 && v.compare(v.size() - 4, 4, " kHz") == 0) {
+        const std::size_t dot = v.find('.');
+        if (dot != std::string::npos && dot >= 2 && v.size() - 4 - dot == 3) v.erase(v.size() - 5, 1);
+    }
+    return v;
+}
+
+// A tight knob's value: the number only ("+3.0", "-100", "250"), kHz as "k" ("5.06k"); its row's name says what it is.
+[[nodiscard]] inline std::string tightValue(std::string v) {
+    const std::size_t sp = v.rfind(' ');
+    if (sp == std::string::npos) return v;
+    const std::string unit = v.substr(sp + 1);
+    static constexpr const char* kUnits[] = {"dB", "Hz", "kHz", "ms", "s", "%", "st", "cents", "deg", "x", "dBFS"};
+    bool known = false;
+    for (const char* u : kUnits) known = known || unit == u;
+    if (!known) return v;   // a name ("2X12 CLOSED") stays whole
+    v.erase(sp);
+    if (unit == "kHz") v += "k";
+    return v;
+}
+
 [[nodiscard]] inline bool exclusive(const Widget& a, const Widget& b) noexcept {
     return a.showParam >= 0 && a.showParam == b.showParam && a.showValue != b.showValue;
 }
