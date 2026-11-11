@@ -22,7 +22,7 @@ const char* const kMidHzN[] = {"700", "1K", "1.4K", "2K", "2.8K", "3.5K", "4.5K"
 const char* const kMidModeN[] = {"BOOST", "CUT"};
 const char* const kLowHzN[] = {"OFF", "60", "120", "250", "400"};
 const char* const kCutN[] = {"OFF", "-3", "-6", "-9", "-12", "-15"};
-const char* const kNoiseN[] = {"FULL", "LOW"};
+const char* const kNoiseN[] = {"OFF", "LOW", "FULL"};
 const char* const kMeterIoN[] = {"IN", "OUT"};
 const char* const kPushN[] = {"A", "B"};
 const ParamInfo kParams[kCount] = {
@@ -38,12 +38,12 @@ const ParamInfo kParams[kCount] = {
     {"lowcut", "Low Cut", "", 0, 5, 0, Taper::Choice, kCutN},
     {"eqin", "EQ", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"analog", "Hum", "", 0, 2, 0, Taper::Choice, kMainsN},
-    {"noise", "Hiss", "", 0, 1, 0, Taper::Choice, kNoiseN},
+    {"noise", "Hiss", "", 0, 2, 0, Taper::Choice, kNoiseN},
     {"phase", "Phase", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
     {"trim", "Trim", "", 0, 1, 0, Taper::Toggle, kPushN},
     {"meter", "Meter", "", 0, 1, 1, Taper::Choice, kMeterIoN},
-    {"vucal", "VU Zero", "dB", 8.0f, 24.0f, 18.0f},
+    {"vucal", "VU Zero", "dB", 8.0f, 24.0f, 10.0f},   // 0 VU = -10 dBFS: loud masters read near 0, not pinned
 };
 const hc::fx::MeterInfo kMeters[] = {{"INPUT", "VU", -20.0f, 3.0f}, {"OUTPUT", "VU", -20.0f, 3.0f}};
 constexpr float kMidQ = 1.0f, kShelfQ = 0.7071f;
@@ -110,8 +110,10 @@ public:
             const float u = a * x;
             return std::tanh(u + even * u * u) / a;
         });
-        const int mains = pick(p(Analog), 2);
-        const float noise = p(Noise) < 0.5f ? 1.0f : 0.25f;
+        // HUM and HISS are separate switches, both OFF at load: hiss alone runs the generator in hiss-only mode
+        const int hum = pick(p(Analog), 2), hissSel = pick(p(Noise), 2);
+        const float hiss = hissSel == 0 ? 0.0f : hissSel == 1 ? 0.25f : 1.0f;
+        const int mains = hum > 0 ? hum : (hiss > 0.0f ? 3 : 0);
         const float wOut = hc::fx::dbToGain(p(Output) + trimDb_);
         float pk = 0.0f;
         for (std::uint32_t i = 0; i < n; ++i) {
@@ -123,7 +125,7 @@ public:
             const float o = out_.next(wOut);
             l *= o;
             r *= o;
-            hum_.tick(mains, noise, l, r);
+            hum_.tick(mains, 1.0f, l, r, hiss);
             L[i] = l;
             R[i] = r;
             vuOut_.tick(l, r);

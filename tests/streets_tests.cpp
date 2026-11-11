@@ -736,7 +736,7 @@ void testDetective() {
 
 void testWitness() {
     using namespace witness;
-    auto e = make("THE WITNESS");
+    auto e = make("THE WITNESS", {{Headroom, 18}});   // 0 VU = -18 here (the plate loads at 10)
     const float amp = static_cast<float>(std::pow(10.0, -18.0 / 20.0));
     Stereo s = sine(1000, 2.0, amp), ref = s;
     run(*e, s);
@@ -754,7 +754,7 @@ void testWitness() {
     Stereo q = sine(1000, 0.1, amp);
     run(*h, q);
     // DISPLAY DELAY 500 ms: a tone that starts now shows half a second later
-    auto d = make("THE WITNESS", {{DisplayDelay, 500}});
+    auto d = make("THE WITNESS", {{DisplayDelay, 500}, {Headroom, 18}});
     Stereo u(36000);
     for (std::size_t i = 12000; i < u.size(); ++i) u.l[i] = u.r[i] = amp * static_cast<float>(std::sin(2.0 * 3.14159265358979 * 1000.0 * i / 48000.0));
     run(*d, u);

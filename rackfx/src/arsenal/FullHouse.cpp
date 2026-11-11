@@ -21,7 +21,7 @@ const ParamInfo kParams[kCount] = {
     {"gate", "Gate", "dB", -96.0f, 0.0f, -60.0f},
     {"lowon", "Low Level On", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"lowthreshold", "Low Threshold", "dB", -96.0f, 0.0f, -40.0f},
-    {"lowgain", "Low Gain", "dB", 0.0f, 48.0f, 0.0f},
+    {"lowgain", "Low Gain", "dB", 0.0f, 48.0f, 6.0f},   // ON at load, so it lifts (and its meter moves)
     {"leveleron", "Evener On", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"leveler", "Evener", "dB", -48.0f, 0.0f, -12.0f},
     {"levelermode", "Evener Release", "", 0, 1, 0, Taper::Choice, kLevelN},

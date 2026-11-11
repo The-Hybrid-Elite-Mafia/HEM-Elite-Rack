@@ -38,7 +38,7 @@ const ParamInfo kParams[kCount] = {
     {"start", "Start", "s", 0.0f, 1.0f, 0.0f},
     {"length", "Length", "s", 0.0f, 6.0f, 6.0f},
     {"decay", "Decay", "x", 0.25f, 1.0f, 1.0f},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 15.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 25.0f},
     {"direct", "Direct", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"predelay", "Pre-Delay", "ms", 0.0f, 500.0f, 0.0f},
     {"drydelay", "Dry Delay", "ms", 0.0f, 30.0f, 0.0f},
@@ -213,8 +213,9 @@ public:
             dry_[0].write(l);
             dry_[1].write(r);
             const float m = mix_.next(wMix), g = out_g_.next(wOut);
-            // MIX: the dry song stays at full level up to 50 % while the space comes up to full; past 50 % the dry fades out.
-            const float gd = std::min(1.0f, 2.0f * (1.0f - m)), gw = std::min(1.0f, 2.0f * m);
+            // MIX: dry and space cross over at equal power (the space is scaled as loud as the song), so any blend
+            // comes out about as loud as the song went in
+            const float gd = std::cos(1.5707964f * m), gw = std::sin(1.5707964f * m);
             L[i] = g * (gd * dry_[0].read(dd) + gw * pre_[0].read(pd));
             R[i] = g * (gd * dry_[1].read(dd) + gw * pre_[1].read(pd));
             if (++pos_ == B) {

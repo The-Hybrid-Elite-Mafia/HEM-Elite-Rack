@@ -1,6 +1,7 @@
 // FaceView: the live parts of a HEM-Elite-Rack faceplate, drawn over the static plate.
 #include "hem/ui/Face.hpp"
 #include "hem/rack/Space.hpp"
+#include "hem/rack/Streets.hpp"
 
 #include "hybrid/ui/Parts.hpp"
 
@@ -759,8 +760,18 @@ void FaceView::readout(const Ctx& c, const Widget& w) const {
         const int k = std::clamp(idx, 0, 47);
         std::snprintf(t, sizeof t, "%s %s", (k >= 24 ? kFlats : kNames)[k % 12], k % 24 >= 12 ? "MIN" : "MAJ");
     } else {
-        const char* f = w.hi == "+2" ? "%+.2f" : w.hi == "+" ? "%+.1f" : w.hi == "0" ? "%.0f" : "%.1f";
+        const char* f = w.hi == "+2" ? "%+.2f" : (w.hi == "+" || w.hi == "cents") ? "%+.1f" : w.hi == "0" ? "%.0f" : "%.1f";
         std::snprintf(t, sizeof t, f, static_cast<double>(v));
+    }
+    // THE SNITCH: a tuner needle across the window's foot, -50 .. +50 cents: centre mark, the needle where the note
+    // sits, green within 5 cents (it showed the number only)
+    if (w.hi == "cents" && v > -99.0f) {
+        const float x0 = b.x + 18 * z, x1 = b.right() - 18 * z, yb = b.bottom() - 8 * z, cx = 0.5f * (x0 + x1);
+        r.fillRound({x0, yb - 1.5f * z, x1 - x0, 3 * z}, 1.5f * z, th_.dim, Blend::Over, false);
+        r.fillRound({cx - 1 * z, yb - 7 * z, 2 * z, 14 * z}, 1 * z, th_.label, Blend::Over, false);
+        const float nx = cx + std::clamp(v / 50.0f, -1.0f, 1.0f) * 0.5f * (x1 - x0);
+        const Rgba nc = std::fabs(v) <= 5.0f ? th_.teal : th_.red;
+        r.fillRound({nx - 2.5f * z, yb - 10 * z, 5 * z, 20 * z}, 2.5f * z, nc, Blend::Over, false);
     }
     const bool over = w.hi == "CEIL" && v > plain(c.host, rack::limiter::Ceiling) + 0.05f;   // true peak above the ceiling
     if (oneLine && !sideBySide) {   // stacked: a small number in the bottom-right corner, under the name
@@ -1090,6 +1101,24 @@ void FaceView::draw(Renderer& r, const PanelHost& host, const FaceFeed& feed, co
     const Ctx c{r, host, feed, st, ox, oy, zoom};
     if (plate) r.panel({ox, oy, kPlateW * zoom, kPlateH * zoom});
     header(c);
+    // THE RACKET: the plate has six knob seats and three switch seats for every pedal; the seats the picked pedal does
+    // not use get a blanking cap (empty shells looked like knobs that had fallen off). Same seats as stompFace().
+    if (L_.name == "THE RACKET") {
+        const int ped = static_cast<int>(std::lround(plain(host, rack::racket::Which)));
+        const rack::racket::PedalFace pf = rack::racket::pedalFace(ped);
+        const float kp = 1226.0f / static_cast<float>(rack::racket::kMaxKnobs), sp = 1226.0f / static_cast<float>(rack::racket::kMaxSwitches);
+        const Rgba cap = rgb8(0x161B1F), rim = rgb8(0x2A3136);
+        for (int k = pf.knobCount; k < rack::racket::kMaxKnobs; ++k) {
+            const float cx = 410 + (static_cast<float>(k) + 0.5f) * kp;
+            r.fillRound(c.T({cx - 63, 551, 126, 126}), 63 * zoom, rim, Blend::Over, false);
+            r.fillRound(c.T({cx - 58, 556, 116, 116}), 58 * zoom, cap, Blend::Over, false);
+        }
+        for (int k = pf.switchCount; k < rack::racket::kMaxSwitches; ++k) {
+            const float x0 = 410 + static_cast<float>(k) * sp + 16;
+            r.fillRound(c.T({x0 - 1, 737, 380, 44}), 11 * zoom, rim, Blend::Over, false);
+            r.fillRound(c.T({x0 + 2, 740, 374, 38}), 9 * zoom, cap, Blend::Over, false);
+        }
+    }
     int tip = -1;   // a greyed control under the mouse: says why, on top of everything
     for (std::size_t i = 0; i < L_.widgets.size(); ++i) {
         const Widget& w = L_.widgets[i];

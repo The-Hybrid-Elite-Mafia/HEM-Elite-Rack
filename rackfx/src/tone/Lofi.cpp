@@ -147,7 +147,7 @@ using namespace cratedigger;
 const ParamInfo kParams[kCount] = {
     {"crackle", "Crackle", "%", 0.0f, 100.0f, 0.0f},
     {"noise", "Noise", "%", 0.0f, 100.0f, 0.0f},
-    {"wear", "Wear", "%", 0.0f, 100.0f, 30.0f},
+    {"wear", "Wear", "%", 0.0f, 100.0f, 15.0f},   // 30 % dulled the song 1.2 dB at load
     {"warp", "Warp", "%", 0.0f, 100.0f, 20.0f},
     {"monolows", "Mono Lows", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},

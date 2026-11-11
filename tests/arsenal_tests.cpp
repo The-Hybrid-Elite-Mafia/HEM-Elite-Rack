@@ -254,8 +254,9 @@ void testLevelers() {
     {   using namespace opto;
         for (const char* name : {"CONSIGLIERE", "STONE COLD"}) {
             const float k = std::string(name) == "STONE COLD" ? 0.1f : 1.0f;   // its dials go 0..10
-            auto light = make(name, {{PeakReduction, 30 * k}}), hard = make(name, {{PeakReduction, 70 * k}});
-            auto lim = make(name, {{PeakReduction, 70 * k}, {Mode, 1}});
+            // AUTO MAKEUP is ON at load: off here, to see the squeeze itself
+            auto light = make(name, {{PeakReduction, 30 * k}, {AutoMakeup, 0}}), hard = make(name, {{PeakReduction, 70 * k}, {AutoMakeup, 0}});
+            auto lim = make(name, {{PeakReduction, 70 * k}, {Mode, 1}, {AutoMakeup, 0}});
             const double a = toneOut(*light, 1000, 0.3f, 3.0), b = toneOut(*hard, 1000, 0.3f, 3.0), c = toneOut(*lim, 1000, 0.3f, 3.0);
             std::printf("  %s -10 dBFS tone: PR 30 %%  %.1f dB, PR 70 %% %.1f dB, PR 70 %% LIMIT %.1f dB\n", name, a, b, c);
             CHECK(b < a - 3.0 && c < b - 2.0);
@@ -265,19 +266,19 @@ void testLevelers() {
             std::printf("  %s PR 70 %% with AUTO MAKEUP: %.1f dB\n", name, m);
             CHECK(std::fabs(m) < 1.5);
             // GAIN: the dial's full turn is +40 dB
-            auto g = make(name, {{Gain, 25 * k}, {PeakReduction, 0}});
+            auto g = make(name, {{Gain, 25 * k}, {PeakReduction, 0}, {AutoMakeup, 0}});
             CHECK(std::fabs(toneOut(*g, 1000, 0.01f) - 10.0) < 0.3);
             auto dry = make(name, {{PeakReduction, 90 * k}, {Mix, 0}});
             Stereo s = noise(0.5, 0.5f), ref = s;
             run(*dry, s);
             CHECK(maxDelayedDiff(s, ref, 0, 0) < 1e-6);
         }
-        // the meters: a -18 dBFS RMS tone reads 0 VU
+        // the meters: a -10 dBFS RMS tone reads 0 VU (0 VU = -10 dBFS: loud masters read near 0, not pinned)
         auto e = make("CONSIGLIERE", {{PeakReduction, 0}});
-        Stereo s = sine(1000, 1.0, 0.1259f * 1.4142f);
+        Stereo s = sine(1000, 1.0, 0.3162f * 1.4142f);
         run(*e, s);
         const float vu = e->meter(0);
-        std::printf("  CONSIGLIERE: a -18 dBFS RMS tone reads %+.2f VU\n", vu);
+        std::printf("  CONSIGLIERE: a -10 dBFS RMS tone reads %+.2f VU\n", vu);
         CHECK(std::fabs(vu) < 0.3f);
         // ANALOG: hum under the music, nothing on silence
         auto hum = make("CONSIGLIERE", {{PeakReduction, 0}, {Analog, 2}});
@@ -288,14 +289,14 @@ void testLevelers() {
         CHECK(h60 < -55.0 && h60 > -80.0);
     }
     {   using namespace thedon;
-        auto gentle = make("THE DON", {{Threshold, 6}, {Ratio, 1}}), hard = make("THE DON", {{Threshold, 6}, {Ratio, 4}});
-        auto none = make("THE DON", {{Threshold, 6}, {Ratio, 0}});
+        auto gentle = make("THE DON", {{Threshold, 6}, {Ratio, 1}, {VuCal, 18}}), hard = make("THE DON", {{Threshold, 6}, {Ratio, 4}, {VuCal, 18}});
+        auto none = make("THE DON", {{Threshold, 6}, {Ratio, 0}, {VuCal, 18}});
         const double a = toneOut(*gentle, 500, 0.5f, 3.0), b = toneOut(*hard, 500, 0.5f, 3.0), c = toneOut(*none, 500, 0.5f, 3.0);
         // threshold -12 on the dial = -30 dBFS (VU CALIBRATE 18)
         std::printf("  THE DON -6 dBFS tone, threshold -12: 1:1 %.1f dB, 2:1 %.1f dB, LIMIT %.1f dB\n", c, a, b);
         CHECK(std::fabs(c) < 0.6 && a < -4.0 && b < a - 6.0);
         auto cal = make("THE DON", {{Threshold, 6}, {Ratio, 2}, {VuCal, 8}});
-        CHECK(toneOut(*cal, 500, 0.5f, 3.0) > toneOut(*make("THE DON", {{Threshold, 6}, {Ratio, 2}}), 500, 0.5f, 3.0) + 3.0);
+        CHECK(toneOut(*cal, 500, 0.5f, 3.0) > toneOut(*make("THE DON", {{Threshold, 6}, {Ratio, 2}, {VuCal, 18}}), 500, 0.5f, 3.0) + 3.0);
     }
     {   using namespace slowburn;
         // SEPARATE: a tone only on the left leaves the right alone; LINKED pulls both
@@ -522,9 +523,9 @@ void testLoudness() {
         const double q = toneOut(*lift, 500, 0.01f, 3.0);   // -40 dBFS, threshold -36: +2 dB; quieter: more
         const double qq = toneOut(*lift, 500, 0.001f, 3.0); // -60 dBFS: 24 under -> +12
         auto hold = make("BACKBONE", {{HighLevel, -24}});
-        const double h = toneOut(*hold, 500, 0.1f, 2.0) + db(0.1);   // -20 dBFS over -24, made up so 0 dBFS stays
+        const double h = toneOut(*hold, 500, 0.1f, 2.0) + db(0.1);   // -20 dBFS, 4 dB over -24 at 3:1: held down about 2.7 dB, nothing lifted
         std::printf("  BACKBONE: low level 24 lifts -40 dBFS %+.1f dB, -60 dBFS %+.1f dB; high level -24: -20 dBFS comes out %.1f dBFS\n", q, qq, h);
-        CHECK(q > 0.5 && qq > 9.0 && qq < 13.0 && h > -8.0);
+        CHECK(q > 0.5 && qq > 9.0 && qq < 13.0 && h < -21.5 && h > -24.0);
     }
     {   using namespace wheelman;
         auto e = make("WHEELMAN", {{Target, -20}, {RangeMin, -12}, {RangeMax, 12}});

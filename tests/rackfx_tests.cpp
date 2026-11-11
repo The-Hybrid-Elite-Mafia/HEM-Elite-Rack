@@ -1258,7 +1258,8 @@ void testMovement() {
         auto f = [](double hz) { auto e = fresh("GETAWAY", {{Depth, 0}, {Manual, 1.0f}, {Feedback, 0}, {Mix, 50}}); return toneOut(*e, hz, 0.2f); };
         const double n500 = f(500), p1k = f(1000);
         std::printf("  GETAWAY at 1 ms, mix 50 %%: 500 Hz %.1f dB (notch), 1 kHz %.2f dB\n", n500, p1k);
-        CHECK(n500 < -30.0 && std::fabs(p1k) < 0.2);
+        // MIX 50 %: the blend gets back 1.5 dB of what the notches take, so the comb's peaks sit at +1.5 dB
+        CHECK(n500 < -30.0 && std::fabs(p1k - 1.5) < 0.2);
     }
     {   // SMOKESCREEN: still, the stages make a deep notch somewhere; MIX 0 = dry
         using namespace phaser;

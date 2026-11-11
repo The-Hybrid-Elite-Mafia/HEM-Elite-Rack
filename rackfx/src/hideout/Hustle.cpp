@@ -19,7 +19,7 @@ const ParamInfo kParams[kCount] = {
     {"rate", "Rate", "Hz", 0.01f, 60.0f, 0.2f, Taper::Log},
     {"factor", "Multiplier", "", 0, 9, 2, Taper::Choice, kFactorN},
     {"wave", "Wave", "", 0, 4, 4, Taper::Choice, kWaveN},
-    {"amdepth", "Level Depth", "%", 0.0f, 100.0f, 50.0f},
+    {"amdepth", "Level Depth", "%", 0.0f, 100.0f, 20.0f},   // keeps the song within 1 dB of its level at load
     {"amon", "Level", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"amphase", "Level Phase", "", 0, 3, 0, Taper::Choice, kPhaseN},
     {"fmdepth", "Pitch Depth", "%", 0.0f, 100.0f, 50.0f},

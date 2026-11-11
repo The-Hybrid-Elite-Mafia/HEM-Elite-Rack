@@ -110,7 +110,7 @@ void testDeadDrop() {
     }
     // feedback 150 % builds up but the analog stage holds it in
     {
-        auto e = make("DEAD DROP", {{Sync, 2}, {Time, 50}, {Feedback, 150}, {Analog, 2}});
+        auto e = make("DEAD DROP", {{Sync, 2}, {Time, 50}, {Feedback, 150}, {Analog, 2}, {Mix, 100}});
         Stereo s = noise(3.0, 0.1f);
         run(*e, s);
         double pk = 0;

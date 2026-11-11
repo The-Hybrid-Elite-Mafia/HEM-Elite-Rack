@@ -1,3 +1,32 @@
+# HEM-Elite-Rack 0.54.0
+
+Fixes from Steven's control-by-control test, checked in code and by the tests on every build.
+
+- Every plug-in now loads within 1 dB of the song (it was -4 .. +2 dB), apart from the ones whose job is to change it
+  (THE CLEANER, the two riders, DRIVE-BY, THE INFORMANT, THE MOLD). The build test now holds them to that.
+- Delay and reverb blends keep the song's level: CATHEDRAL, BACKROOM, CHROME, REPEAT OFFENDER, DEAD DROP, BACK ALLEY,
+  COIL, FINGERPRINT and THE CREW cross over at equal power (a 25 % blend took the song 2 dB down). GETAWAY and
+  SMOKESCREEN get back half of what their notches take.
+- Load blends: DEAD DROP, COLD CASE, BACK ALLEY, COIL, BIG HOUSE 30 %, FINGERPRINT and REPEAT OFFENDER 25 %, THE
+  RACKET's echo, flip echo, room and spring 30 % (DEAD DROP and COLD CASE loaded 100 % wet).
+- Slow rates read right: 0.25 Hz showed "0 Hz" and the LFO looked off (GETAWAY, SMOKESCREEN, SHAPESHIFTER, HUSTLE).
+- THE CHAIRMAN: HUM and HISS are separate switches, both OFF at load (HISS had no off).
+- OLD MONEY loads at 2:1 from -12 dB (1:1 did nothing). LAST WORD loads at -1 dBTP in TRUE PEAK.
+- CONSIGLIERE and STONE COLD load with AUTO MAKEUP on (SQUEEZE dropped the level). HEAVYWEIGHT's make-up eased
+  (+1.1 dB at load). CHAUFFEUR's target -18 dB (it pushed a mix +5 dB and over 0 dBFS).
+- BACKBONE: LOUD DOWN only turns the loud parts down (its make-up lifted the whole song +4.7 dB).
+- FOUR KINGS and HAYMAKER: the gain meters hold each hit for a moment (they flicked back to 0 between kicks).
+- FULL HOUSE: LOW LEVEL lifts 6 dB at load, so its LOW GAIN meter moves on quiet parts.
+- SURGEON: a cutting shelf at any Q no longer goes above 0 dB by more than 0.5 dB (it was +3.3 dB at the top of Q).
+- VU meters: 0 VU = -10 dBFS at load on HEAVYWEIGHT, THE DON, QUICK DRAW, REEL MONEY, THE CHAIRMAN, THE WITNESS and the
+  other VU plates, so a loud master reads near 0 instead of pinning. VU ZERO still sets it.
+- B MATCHED uses the exact loudness (LUFS) weighting the meters use (its look-alike treble weighting matched high
+  cuts a little off).
+- THE SNITCH: a tuner needle under CENTS (green within 5 cents).
+- THE RACKET: knob and switch seats the picked pedal doesn't use get a blank cap.
+- Knobs: a press within 30 units of a small knob's centre grabs it (COLD CASE's MIX was easy to miss).
+- TORCH, BOTTOM FEEDER, CRATE DIGGER, HUSTLE, SHAKEDOWN: load levels within 1 dB (amp paths trimmed, wear, depths).
+
 # HEM-Elite-Rack 0.53.1
 
 - Out of the red: Suno's stem downloads include the full finished song ("0 <song name>") next to the stems, and

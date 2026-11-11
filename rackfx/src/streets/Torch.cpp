@@ -18,6 +18,10 @@ const char* const kCabN[] = {"NONE", "1X12 OPEN", "2X12 OPEN", "4X10 OPEN", "2X1
 // short, so the name fits under its knob beside the cab ("2X12 CLOSED" ran into "CONDENSER OFF"); ON / OFF = on or off the speaker's axis
 const char* const kMicN[] = {"DYN ON", "DYN OFF", "COND ON", "COND OFF", "RIB ON", "RIB OFF"};
 const char* const kRouteN[] = {"DUAL", "STEREO"};
+// the amp path at its default knobs came out louder than it went in (measured on a -18 dB RMS mix): this takes it
+// back to within 1 dB at load. Only the amp path: AMP off / all DI stays exactly the input. OUTPUT still reads 0 dB.
+constexpr float kLoadTrimDb = -1.4f;
+const float kLoadTrim = std::pow(10.0f, kLoadTrimDb / 20.0f);
 const ParamInfo kParams[kCount] = {
     {"amp", "Amp", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"type", "Type", "", 0, kAmps - 1, Pure, Taper::Choice, kTypeN},
@@ -140,7 +144,7 @@ private:
                 v -= dc_[c];
                 for (auto& b : stack_[static_cast<std::size_t>(c)]) v = b.tick(v);
                 const float d = c == 0 ? clean_.l.process(dry[0][i], Preamp::latency()) : clean_.r.process(dry[1][i], Preamp::latency());
-                x[c] = d + ampMix_ * (v * mg - d);
+                x[c] = d + ampMix_ * (v * mg * kLoadTrim - d);
             }
             // the two cabinet paths
             const float va = volA_.next(wA), vb = volB_.next(wB), pa = panA_.next(wPa), pb = panB_.next(wPb);

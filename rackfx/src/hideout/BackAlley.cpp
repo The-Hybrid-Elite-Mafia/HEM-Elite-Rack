@@ -30,7 +30,7 @@ const ParamInfo kParams[kCount] = {
     {"highpass", "Hi-Pass", "Hz", 30.0f, 1500.0f, 30.0f, Taper::Log},
     {"lowpass", "Lo-Pass", "Hz", 1500.0f, 21000.0f, 21000.0f, Taper::Log},
     {"mono", "Mono", "", 0.0f, 10.0f, 10.0f},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 50.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 30.0f},
 };
 constexpr int kChirp = 8;   // all-passes that make the spring's "boing"
 constexpr double kLineS = 3.6;
@@ -58,6 +58,7 @@ public:
         reset();
     }
     void reset() noexcept override {
+        anyOn_ = (p(EchoOn) >= 0.5f && levelOrOff(p(EchoLevel)) > 0.0f) || (p(ReverbOn) >= 0.5f && levelOrOff(p(ReverbLevel)) > 0.0f) ? 1.0f : 0.0f;
         fdn_.clear();
         for (auto& e : echo_) e.clear();
         for (auto& ch : chirp_) for (auto& b : ch) b.clear();
@@ -81,6 +82,7 @@ public:
         const float wE = p(EchoOn) >= 0.5f ? levelOrOff(p(EchoLevel)) : 0.0f, wR = p(ReverbOn) >= 0.5f ? levelOrOff(p(ReverbLevel)) : 0.0f;
         const float wMix = p(Mix) * 0.01f, wW = p(Mono) * 0.1f;
         const double wowStep = 0.6 / fs_;
+        const float onK = static_cast<float>(1.0 - std::exp(-1.0 / (fs_ * 0.02)));
         const float maxD = static_cast<float>(kLineS * fs_) - 8.0f;
         for (std::uint32_t i = 0; i < n; ++i) {
             const float dl = L[i], dr = R[i];
@@ -109,9 +111,10 @@ public:
             wl = master_[0][1].tick(master_[0][0].tick(wl));
             wr = master_[1][1].tick(master_[1][0].tick(wr));
             const float m = mix_.next(wMix), w = width_.next(wW);
-            // MIX: the dry song stays at full level up to 50 % while the effects come up to full; past 50 % the dry fades out.
-            // So 50 % (the start) is the whole song plus the echo and the spring, not the song 6 dB down.
-            const float gd = std::min(1.0f, 2.0f * (1.0f - m)), gw = std::min(1.0f, 2.0f * m);
+            // MIX: equal power (echo and spring add to the song's power), so any blend keeps the song's level; with both
+            // effects off there is nothing to make room for, so the dry song passes at unity (the dry side follows ON)
+            anyOn_ += ((wE > 0.0f || wR > 0.0f ? 1.0f : 0.0f) - anyOn_) * onK;
+            const float gd = std::cos(1.5707964f * m * anyOn_), gw = std::sin(1.5707964f * m);
             const float yl = gd * dl + gw * wl, yr = gd * dr + gw * wr;
             const float mid = 0.5f * (yl + yr), side = 0.5f * (yl - yr) * w;
             L[i] = mid + side;
@@ -148,6 +151,7 @@ private:
     float fb_[2]{};
     std::array<float, 4> key_{};
     hc::fx::Smoothed time_, echoG_, revG_, mix_, width_;
+    float anyOn_ = 1.0f;   // echo or reverb on (smoothed): the dry side's share of MIX
 };
 
 } // namespace

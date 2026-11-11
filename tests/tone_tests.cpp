@@ -394,7 +394,7 @@ void testChairman() {
         run(*e, s);
         double corr = 0;
         for (std::size_t i = 12000; i < s.size(); ++i) corr += s.l[i] * in.l[i - kLatency];
-        auto v = make("THE CHAIRMAN", {{Analog, 0}});
+        auto v = make("THE CHAIRMAN", {{Analog, 0}, {VuCal, 18}});   // 0 VU = -18 dBFS here (the plate loads at 10)
         Stereo t = sine(1000, 1.0, static_cast<float>(std::sqrt(2.0) * std::pow(10.0, -18.0 / 20.0)), kFs);
         run(*v, t);
         const float vu = v->meter(0);
@@ -1290,7 +1290,7 @@ void testReelMoney() {
         CHECK(w100 > 10.0 * std::max(w0, 1e-4));
     }
     {   // VU: a -18 dBFS RMS tone reads 0 VU with VU ZERO at -18
-        auto e = make("REEL MONEY", {{Wobble, 0}, {Meter, 0}});
+        auto e = make("REEL MONEY", {{Wobble, 0}, {Meter, 0}, {VuZero, -18}});   // the plate loads at -10
         Stereo s = sine(1000, 1.0, 0.1778f);
         run(*e, s);
         std::printf("  REEL MONEY VU in on a -18 dBFS RMS tone: %+.2f VU\n", e->meter(0));

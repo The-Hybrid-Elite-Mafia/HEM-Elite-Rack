@@ -14,7 +14,7 @@ using namespace arsenal;
 
 const char* const kPushN[] = {"A", "B"};
 const ParamInfo kParams[kCount] = {
-    {"headroom", "Headroom", "dB", 4.0f, 26.0f, 18.0f},
+    {"headroom", "Headroom", "dB", 4.0f, 26.0f, 10.0f},   // 0 VU = -10 dBFS: loud masters read near 0, not pinned
     {"displaydelay", "Display Delay", "ms", 0.0f, 1000.0f, 0.0f},
     {"clear", "Clear", "", 0, 1, 0, Taper::Toggle, kPushN},
 };

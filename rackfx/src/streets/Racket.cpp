@@ -109,24 +109,24 @@ const ParamInfo kParams[kCount] = {
     {"brhigh", "Bass Ride High", "st", -12.0f, 12.0f, 12.0f},
     HEM_PCT("brpos", "Bass Ride Position", 50.0f),
     // ECHO
-    HEM_PCT("ecmix", "Echo Mix", 50.0f), HEM_SYNC("ecsync"), HEM_NOTE("ecnote", 12),
+    HEM_PCT("ecmix", "Echo Mix", 30.0f), HEM_SYNC("ecsync"), HEM_NOTE("ecnote", 12),
     {"ectime", "Echo Time", "s", 0.01f, 2.0f, 0.5f, Taper::Log},
     {"ecfeedback", "Echo Feedback", "", 0.0f, 10.0f, 5.0f},
     {"echighcut", "Echo High Cut", "kHz", 0.1f, 7.0f, 7.0f, Taper::Log},
     {"ecstereo", "Echo Stereo", "", 0.0f, 10.0f, 10.0f},
     // FLIP ECHO
-    HEM_PCT("femix", "Flip Echo Mix", 50.0f), HEM_SYNC("fesync"), HEM_NOTE("fenote", 12),
+    HEM_PCT("femix", "Flip Echo Mix", 30.0f), HEM_SYNC("fesync"), HEM_NOTE("fenote", 12),
     {"fetime", "Flip Echo Time", "s", 0.01f, 1.0f, 0.5f, Taper::Log},
     {"fepitch", "Flip Echo Pitch", "cents", -1200.0f, 1200.0f, 0.0f},
     HEM_PCT("fefeedback", "Flip Echo Feedback", 50.0f), HEM_PCT("festereo", "Flip Echo Stereo", 100.0f),
     {"fereverse", "Reverse", "", 0, 1, 1, Taper::Toggle, kOnOff},
     // ROOM
-    HEM_PCT("rmmix", "Room Mix", 50.0f),
+    HEM_PCT("rmmix", "Room Mix", 30.0f),
     {"rmpre", "Room Pre-Delay", "ms", 11.0f, 160.0f, 80.0f},
     {"rmtime", "Room Time", "s", 0.2f, 10.0f, 1.4f, Taper::Log},
     {"rmtone", "Room Tone", "", 0.1f, 2.0f, 0.6f},
     // SPRING
-    HEM_PCT("spmix", "Spring Mix", 50.0f),
+    HEM_PCT("spmix", "Spring Mix", 30.0f),
     {"sptime", "Spring Time", "s", 0.2f, 10.0f, 3.6f, Taper::Log},
     {"sppre", "Spring Pre-Delay", "ms", 20.0f, 170.0f, 20.0f},
     // SQUEEZE

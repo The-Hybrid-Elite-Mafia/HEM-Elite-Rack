@@ -124,8 +124,10 @@ public:
                 wet[c] = f[2].tick(f[1].tick(f[0].tick(sum)));
             }
             if (mono) wet[1] = wet[0];
-            L[i] = og * (dry[0] + mx * (wet[0] - dry[0]));
-            R[i] = og * (dry[1] + mx * (wet[1] - dry[1]));
+            // MIX: equal power (the spring adds to the song's power), so any blend keeps the song's level
+            const float gd = std::cos(1.5707964f * mx), gw = std::sin(1.5707964f * mx);
+            L[i] = og * (gd * dry[0] + gw * wet[0]);
+            R[i] = og * (gd * dry[1] + gw * wet[1]);
         }
     }
 

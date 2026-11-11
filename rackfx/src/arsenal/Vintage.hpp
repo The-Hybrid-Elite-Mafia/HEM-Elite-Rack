@@ -20,8 +20,9 @@ public:
         clear();
     }
     void clear() noexcept { env_ = 0.0f; ph_ = 0.0; }
-    // mains: 0 off, 1 = 50 Hz, 2 = 60 Hz, 3 = hiss only; amount: 1 = the usual level. Adds to l, r.
-    void tick(int mains, float amount, float& l, float& r) noexcept {
+    // mains: 0 off, 1 = 50 Hz, 2 = 60 Hz, 3 = hiss only; amount: 1 = the usual level; hiss: how much hiss
+    // rides with the hum (0 = none). Adds to l, r.
+    void tick(int mains, float amount, float& l, float& r, float hiss = 1.0f) noexcept {
         const float lev = std::max(std::fabs(l), std::fabs(r));
         env_ += (lev - env_) * (lev > env_ ? up_ : down_);
         if (mains <= 0 || env_ < 1e-9f) return;
@@ -33,8 +34,9 @@ public:
             hum = static_cast<float>(0.75 * std::sin(w) + 0.3 * std::sin(2 * w) + 0.15 * std::sin(3 * w));
         }
         const float k = env_ * amount * 0.001f;
-        l += k * (hum + 0.5f * noise());
-        r += k * (hum + 0.5f * noise());
+        const float h = 0.5f * hiss;
+        l += k * (hum + h * noise());
+        r += k * (hum + h * noise());
     }
 
 private:
@@ -47,13 +49,14 @@ private:
     std::uint32_t rng_ = 0x2545F491u;
 };
 
-// A VU meter: average power over ~300 ms; 0 VU = `calDb` under full scale (-18 dBFS RMS by default).
+// A VU meter: average power over ~300 ms; 0 VU = `calDb` under full scale (-10 dBFS RMS by default: a loud master
+// sits near 0 VU instead of pinning past +3; -18 had every modern mix on the stop).
 struct Vu {
     double ms = 0, k = 0;
     void prepare(double fs) { k = 1.0 - std::exp(-1.0 / (fs * 0.065)); ms = 0; }
     void clear() noexcept { ms = 0; }
     void tick(float l, float r) noexcept { ms += (0.5 * (static_cast<double>(l) * l + static_cast<double>(r) * r) - ms) * k; }
-    [[nodiscard]] float vu(float calDb = 18.0f) const noexcept { return std::max(powDb(ms), -100.0f) + calDb; }
+    [[nodiscard]] float vu(float calDb = 10.0f) const noexcept { return std::max(powDb(ms), -100.0f) + calDb; }
 };
 
 // AUTO MAKEUP: gives back what the compressor takes, on average (2 s), so the level stays put.

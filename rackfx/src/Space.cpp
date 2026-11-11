@@ -160,9 +160,11 @@ public:
             wl = static_cast<float>(eq_[0][1].tick(eq_[0][0].tick(wl)));
             wr = static_cast<float>(eq_[1][1].tick(eq_[1][0].tick(wr)));
             const float m = 0.5f * (wl + wr), sd = 0.5f * (wl - wr) * width;
+            // MIX: equal power (the tail is not the dry sound, so their powers add): the song stays as loud at any mix
             const float mx = mix_.next(p(Mix) * 0.01f);
-            L[s] += mx * ((m + sd) - L[s]);
-            R[s] += mx * ((m - sd) - R[s]);
+            const float gd = std::cos(1.5707964f * mx), gw = std::sin(1.5707964f * mx);
+            L[s] = gd * L[s] + gw * (m + sd);
+            R[s] = gd * R[s] + gw * (m - sd);
         }
     }
 
@@ -207,7 +209,7 @@ const ParamInfo kParams[kCount] = {
     {"offset", "Stereo Offset", "ms", 0.0f, 30.0f, 0.0f},
     {"lowcut", "Low Cut", "Hz", 20.0f, 1000.0f, 60.0f, Taper::Log},
     {"highcut", "High Cut", "Hz", 1000.0f, 20000.0f, 12000.0f, Taper::Log},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 30.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 25.0f},
 };
 class Impl final : public hc::fx::Effect {
 public:
@@ -248,8 +250,10 @@ public:
                 line_[0].write(L[i] + fb * fl);
                 line_[1].write(R[i] + fb * fr);
             }
-            L[i] += mx * (el - L[i]);
-            R[i] += mx * (er - R[i]);
+            // MIX: equal power, so a blend is as loud as the dry song (the repeats come later than the sound)
+            const float gd = std::cos(1.5707964f * mx), gw = std::sin(1.5707964f * mx);
+            L[i] = gd * L[i] + gw * el;
+            R[i] = gd * R[i] + gw * er;
         }
     }
 private:

@@ -39,7 +39,7 @@ const ParamInfo kParams[kCount] = {
     {"echolevel", "Echo Level", "", 0.0f, 100.0f, 0.0f},
     {"echotone", "Echo Tone", "Hz", 200.0f, 16000.0f, 3500.0f, Taper::Log},
     {"meter", "Meter", "", 0, 1, 1, Taper::Choice, kMeterN},
-    {"vuzero", "VU Zero", "dBFS", -24.0f, -8.0f, -18.0f},
+    {"vuzero", "VU Zero", "dBFS", -24.0f, -8.0f, -10.0f},   // loud masters read near 0 VU, not pinned
 };
 const hc::fx::MeterInfo kMeters[] = {{"INPUT", "VU", -20.0f, 3.0f}, {"OUTPUT", "VU", -20.0f, 3.0f}};
 constexpr std::uint32_t kWowBase = 64;   // the moving delay's centre (samples); room for the deepest wobble

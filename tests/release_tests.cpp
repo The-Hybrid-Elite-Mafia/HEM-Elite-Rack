@@ -7,6 +7,8 @@
 #include "hem/rack/Arsenal.hpp"
 #include "hem/rack/ColorFx.hpp"
 #include "hem/rack/Hideout.hpp"
+#include "hem/rack/Holdouts.hpp"
+#include "hem/rack/Maximizers.hpp"
 #include "hem/rack/Plugins.hpp"
 #include "hem/rack/Garage.hpp"
 #include "hem/rack/Streets.hpp"
@@ -98,7 +100,7 @@ void testEveryPluginIsItsOwn() {
 }
 
 void testSafeOnLoad() {
-    // Loading a plug-in never jumps the song up, never drops it a lot and never clips it. Measured on the song above.
+    // Loading a plug-in keeps the song within 1 dB and never clips it. Measured on the song above.
     // Left out, each for its own reason: THE CLEANER takes noise out (this song is mostly noise), DRIVE-BY's sound passes by
     // (it is meant to come and go), WHEELMAN and CHAUFFEUR ride to their target, THE MOLD is a hardware loop (silent with
     // nothing plugged in), THE INFORMANT plays only when it gets notes.
@@ -108,7 +110,8 @@ void testSafeOnLoad() {
         for (const char* s : skip) skipped = skipped || std::strcmp(s, p.name) == 0;
         if (skipped) continue;
         const Level d = through(p.name);
-        const bool ok = d.rmsDb > -4.0 && d.rmsDb < 2.0 && d.peakDb < 2.0;
+        // Steven's gate: within 1 dB of the song at load (it was -4 .. +2 dB)
+        const bool ok = std::fabs(d.rmsDb) <= 1.05 && d.peakDb < 1.0;
         if (!ok) std::printf("  %s on load: level %+.1f dB, peak %+.1f dB\n", p.name, d.rmsDb, d.peakDb);
         CHECK(ok);
     }
@@ -191,7 +194,7 @@ void testFixedControls() {
                 most = std::max(most, 10.0 * std::log10(re * re + im * im + 1e-30));
             }
             std::printf("  SURGEON %s -16.8 dB at Q 40: highest point %+.1f dB\n", type < 1.5f ? "LOW SHELF" : "HIGH SHELF", most);
-            CHECK(most < 4.0);
+            CHECK(most < 1.0);   // a cutting shelf never boosts (was +14 dB, then +3.3 dB)
         }
     }
     // BACKBONE: LOUD DOWN's make-up never pushes a hit past -0.1 dBFS (+4 dBFS on a loud song before)
@@ -218,6 +221,49 @@ void testFixedControls() {
             CHECK(std::fabs(d.rmsDb) < 1.0);
         }
         CHECK(std::fabs(through("THE RACKET", {{OdLevel, 100}}).rmsDb - 12.0) < 1.0);
+    }
+    // Defaults from Steven's gate: delay / reverb blends 20-35 %, LFOs running, hum and hiss off, a ratio that compresses,
+    // LAST WORD at -1 dBTP in TRUE PEAK
+    {
+        auto def = [](const char* name, int i) { return rack::findPlugin(name)->create()->params()[static_cast<std::size_t>(i)].def; };
+        CHECK(def("DEAD DROP", rack::deaddrop::Mix) >= 20 && def("DEAD DROP", rack::deaddrop::Mix) <= 35);
+        CHECK(def("FINGERPRINT", rack::fingerprint::Mix) >= 20 && def("FINGERPRINT", rack::fingerprint::Mix) <= 35);
+        CHECK(def("COLD CASE", rack::coldcase::Mix) >= 20 && def("COLD CASE", rack::coldcase::Mix) <= 35);
+        CHECK(def("BACK ALLEY", rack::backalley::Mix) >= 20 && def("BACK ALLEY", rack::backalley::Mix) <= 35);
+        CHECK(def("THE CHAIRMAN", rack::chairman::Analog) == 0 && def("THE CHAIRMAN", rack::chairman::Noise) == 0);
+        CHECK(def("OLD MONEY", rack::oldmoney::Ratio) >= 2.0f);
+        CHECK(def("LAST WORD", rack::lastword::Ceiling) == -1.0f && def("LAST WORD", rack::lastword::Domain) == 2.0f);
+        // THE CHAIRMAN with HUM and HISS off: nothing added on a quiet tone; HISS alone (hum off) is heard
+        auto quiet = load("THE CHAIRMAN");
+        Stereo t = sine(1000, 1.0, 0.01f);
+        run(*quiet, t);
+        auto hiss = load("THE CHAIRMAN", {{rack::chairman::Noise, 2}});
+        Stereo u = sine(1000, 1.0, 0.3f), uu = u;
+        run(*hiss, u);
+        auto clean = load("THE CHAIRMAN");
+        run(*clean, uu);
+        double d = 0;
+        for (std::size_t i = 0; i < u.size(); ++i) d = std::max(d, static_cast<double>(std::fabs(u.l[i] - uu.l[i])));
+        CHECK(d > 1e-5);
+    }
+    // BACK ALLEY: echo and reverb off passes the song at unity at any MIX
+    {
+        using namespace rack::backalley;
+        CHECK(std::fabs(through("BACK ALLEY", {{EchoOn, 0}, {ReverbOn, 0}, {Mix, 60}}).rmsDb) < 0.1);
+    }
+    // FOUR KINGS: a band's meter holds what it did on the hit (it flicked back to 0 between kicks: lit in a few blocks of
+    // a hundred, so it looked dead)
+    {
+        auto e = load("FOUR KINGS", {{0, 12}});
+        Stereo s = song(2.0);
+        int lit = 0, blocks = 0;
+        for (std::size_t i = 0; i < s.size(); i += 512, ++blocks) {
+            const auto n = static_cast<std::uint32_t>(std::min<std::size_t>(512, s.size() - i));
+            e->process(s.l.data() + i, s.r.data() + i, n);
+            lit += std::fabs(e->meter(0)) > 0.5f ? 1 : 0;
+        }
+        std::printf("  FOUR KINGS band 1 +12 on the song: meter shows a move in %d of %d blocks\n", lit, blocks);
+        CHECK(lit * 3 > blocks);
     }
     // PAWN SHOP: each old device keeps the song's loudness
     {

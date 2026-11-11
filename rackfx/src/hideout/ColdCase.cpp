@@ -50,7 +50,7 @@ const ParamInfo kParams[kCount] = {
     {"highcut", "High Cut Freq", "Hz", 1000.0f, 20000.0f, 12000.0f, Taper::Log},
     {"predelay", "Pre-Delay", "ms", 0.0f, 100.0f, 0.0f},
     {"wetmode", "Wet Mode", "", 0, 2, 0, Taper::Choice, kWetModeN},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 30.0f},   // a blend at load, not all wet
     {"gain", "Gain", "dB", -18.0f, 18.0f, 0.0f},
     {"reset", "Reset Peaks", "", 0, 1, 0, Taper::Toggle, kPushN},
 };

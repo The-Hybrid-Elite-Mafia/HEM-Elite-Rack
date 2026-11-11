@@ -45,7 +45,7 @@ constexpr PlateKnob row2[] = {{DiTone, "DI TONE", "0", "10", K::Small}, {DiLevel
 
 namespace sn {
 using namespace snitch;
-constexpr PlateReadout readouts[] = {{0, "NOTE", "", "note"}, {1, "CENTS", "OFF", "+"}, {2, "PITCH", "Hz"}};
+constexpr PlateReadout readouts[] = {{0, "NOTE", "", "note"}, {1, "CENTS", "OFF", "cents"}, {2, "PITCH", "Hz"}};
 constexpr PlateChoice steppers[] = {{Mode, "MODE"}};
 constexpr PlateKnob row1[] = {{Reference, "REFERENCE A", "-6", "+6"}};
 constexpr PlateToggle noteToggles[] = {{0, "ON"}};

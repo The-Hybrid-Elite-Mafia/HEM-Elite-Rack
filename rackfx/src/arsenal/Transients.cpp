@@ -15,6 +15,17 @@
 
 namespace hem::rack {
 namespace {
+// A transient's gain lasts a few milliseconds: published as the block's value, a meter showed it in one frame of fifty
+// and looked dead (FOUR KINGS' bands). This holds the biggest move and lets it fall back over about a quarter second.
+struct GainHold {
+    float v = 0.0f;
+    float push(float most, std::uint32_t n, double fs) noexcept {
+        const float k = static_cast<float>(std::exp(-static_cast<double>(n) / (fs * 0.25)));
+        v = std::fabs(most) >= std::fabs(v * k) ? most : v * k;
+        return v;
+    }
+};
+
 using namespace arsenal;
 
 const char* const kPushN[] = {"A", "B"};   // any change = a push
@@ -55,6 +66,7 @@ public:
     void prepare(double fs, std::uint32_t) override { fs_ = fs; reset(); }
     void reset() noexcept override {
         sh_.clear();
+        gHold_ = {};
         out_.prepare(fs_, 30, hc::fx::dbToGain(p(Output)));
         trimDb_ = 0.0f;
         push_ = p(Trim);
@@ -80,7 +92,7 @@ public:
             R[i] *= g;
             pk = std::max({pk, std::fabs(L[i]), std::fabs(R[i])});
         }
-        publishMeter(0, most);
+        publishMeter(0, gHold_.push(most, n, fs_));
         publishMeter(1, pk_.push(dbOf(pk), n, fs_));
         publishReduction(std::min(most, 0.0f));
     }
@@ -91,6 +103,7 @@ private:
     hc::fx::Smoothed out_;
     float trimDb_ = 0.0f, push_ = 0.0f;
     maxim::PeakHold pk_;
+    GainHold gHold_;
 };
 } // namespace hm
 
@@ -127,6 +140,7 @@ public:
     void reset() noexcept override {
         for (auto& x : xo_) x.clear();
         for (auto& s : sh_) s.clear();
+        for (auto& h : bHold_) h = {};
         out_.prepare(fs_, 30, hc::fx::dbToGain(p(Output)));
         trimDb_ = 0.0f;
         push_ = p(Trim);
@@ -170,7 +184,7 @@ public:
         }
         float worst = 0.0f;
         for (int b = 0; b < kBands; ++b) {
-            publishMeter(b, most[b]);
+            publishMeter(b, bHold_[b].push(most[b], n, fs_));
             worst = std::min(worst, most[b]);
         }
         publishMeter(kBands, pk_.push(dbOf(pk), n, fs_));
@@ -184,6 +198,7 @@ private:
     hc::fx::Smoothed out_;
     float trimDb_ = 0.0f, push_ = 0.0f;
     maxim::PeakHold pk_;
+    GainHold bHold_[kBands];
 };
 } // namespace fk
 

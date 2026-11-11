@@ -1648,6 +1648,8 @@ FaceLayout pianoFace(const rack::PluginInfo& info) {
         for (const K& kk : ks) {
             const float cx = x0 + (static_cast<float>(k++) + 0.5f) * pitch;
             L.widgets.push_back(knob({cx - 19, y, 38, 38}, kk.p, kk.cap, "", "", true));
+            // a rate knob named HZ shows the number only ("0.05", not "0.05 Hz" running into DEPTH)
+            if (std::string_view(kk.cap) == "HZ") L.widgets.back().tight = true;
         }
         seatKnobs(L, first, 4);
     };

@@ -73,10 +73,15 @@ public:
                 wl += d_[0].read(base + depth * ml);
                 wr += d_[1].read(base + depth * mr);
             }
-            wl /= static_cast<float>(voices);
-            wr /= static_cast<float>(voices);
-            L[i] += mx * (wl - L[i]);
-            R[i] += mx * (wr - R[i]);
+            // the voices sit at different delays, so their powers add: scale by 1 / sqrt(voices), not 1 / voices
+            // (that left THE CREW 3.8 dB under the song at load)
+            const float vn = 1.0f / std::sqrt(static_cast<float>(voices));
+            wl *= vn;
+            wr *= vn;
+            // MIX: equal power (the voices are late and moving, so they add as power to the dry sound)
+            const float gd = std::cos(1.5707964f * mx), gw = std::sin(1.5707964f * mx);
+            L[i] = gd * L[i] + gw * wl;
+            R[i] = gd * R[i] + gw * wr;
         }
     }
 private:
@@ -127,8 +132,10 @@ public:
                 d_[c].write(io[c][i] + fb * fbs_[c]);
                 const float w = d_[c].read(delay);
                 fbs_[c] = soft(w);   // keeps high feedback from running away
-                // MIX 50 % = equal parts: the deepest notches
-                io[c][i] += mx * (w - io[c][i]);
+                // MIX 50 % = equal parts: the deepest notches. The notches take power out, so the blend gets back
+                // half of it in dB (1.5 dB at 50 %): about the song's level, peaks no more than +1.5 dB at the peaks of the comb
+                const float mk = 1.0f / std::sqrt(std::sqrt((1.0f - mx) * (1.0f - mx) + mx * mx));
+                io[c][i] = mk * (io[c][i] + mx * (w - io[c][i]));
             }
         }
     }
@@ -185,7 +192,9 @@ public:
                     v = y;
                 }
                 fbs_[c] = soft(v);
-                io[c][i] += mx * (v - io[c][i]);
+                // the notches take power out: the blend gets back half of it in dB (1.5 dB at 50 %)
+                const float mk = 1.0f / std::sqrt(std::sqrt((1.0f - mx) * (1.0f - mx) + mx * mx));
+                io[c][i] = mk * (io[c][i] + mx * (v - io[c][i]));
             }
         }
     }
@@ -204,7 +213,7 @@ using namespace tremolo;
 const char* const kShapeN[] = {"SINE", "TRIANGLE", "SQUARE"};
 const ParamInfo kParams[kCount] = {
     {"rate", "Rate", "Hz", 0.1f, 20.0f, 4.0f, Taper::Log},
-    {"depth", "Depth", "%", 0.0f, 100.0f, 50.0f},
+    {"depth", "Depth", "%", 0.0f, 100.0f, 20.0f},   // a clear pulse that keeps the song within 1 dB of its level
     {"shape", "Shape", "", 0, 2, 0, Taper::Choice, kShapeN},
     {"pan", "Auto Pan", "", 0, 1, 0, Taper::Toggle, kOnOff},
 };

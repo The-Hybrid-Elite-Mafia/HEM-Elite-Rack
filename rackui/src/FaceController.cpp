@@ -85,7 +85,17 @@ int FaceController::hit(float x, float y) const noexcept {
             return i;
         }
     }
-    return -1;
+    // Nothing under the pointer: the nearest knob within 30 units of its centre takes it. A small knob (COLD CASE's
+    // MIX, 20 units across) had a 20-unit target and drags started just off it did nothing.
+    int best = -1;
+    float bestD = 30.0f * 30.0f;
+    for (int i = 0; i < static_cast<int>(L_.widgets.size()); ++i) {
+        const Widget& w = L_.widgets[static_cast<std::size_t>(i)];
+        if (w.kind != WKind::Knob || !widgetShown(w, params_, host_)) continue;
+        const float d = dist2(x, y, w.r.cx(), w.r.cy());
+        if (d <= bestD) { best = i; bestD = d; }
+    }
+    return best;
 }
 
 Rect FaceController::plot() const noexcept { return plotArea(L_.display); }

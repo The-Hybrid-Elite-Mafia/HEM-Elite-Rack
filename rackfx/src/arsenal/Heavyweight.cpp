@@ -99,7 +99,8 @@ public:
         const float envRel = coefMs(fs_, 2.0);
         const float fAtt = coefMs(fs_, 0.1), fRel = coefMs(fs_, 30.0), sAtt = coefMs(fs_, 20.0);
         const float punch = p(Punch) / 30.0f;
-        const float makeupDb = -0.5f * downDb(0.0f, thr, ratio, 6.0f);
+        // half... less: 0.42 of the full-scale reduction comes back, so a mix at -18 dB RMS loads within 1 dB (0.5 put it +1.1 dB up)
+        const float makeupDb = -0.42f * downDb(0.0f, thr, ratio, 6.0f);
         float most = 0.0f;
         for (std::uint32_t i = 0; i < n; ++i) {
             vuIn_.tick(L[i], R[i]);

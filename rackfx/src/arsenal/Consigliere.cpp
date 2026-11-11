@@ -10,7 +10,7 @@ using namespace arsenal;
 
 const char* const kModeN[] = {"COMPRESS", "LIMIT"};
 #define HEM_OPTO_TAIL                                                                          \
-    {"automakeup", "Auto Makeup", "", 0, 1, 0, Taper::Toggle, kOnOff},                         \
+    {"automakeup", "Auto Makeup", "", 0, 1, 1, Taper::Toggle, kOnOff},   /* ON at load: SQUEEZE no longer drops the level */ \
     {"mode", "Mode", "", 0, 1, 0, Taper::Choice, kModeN},                                      \
     {"hifreq", "Bright Detect", "", 0.0f, 100.0f, 50.0f},                                            \
     {"analog", "Hum", "", 0, 2, 0, Taper::Choice, kMainsN},                                 \

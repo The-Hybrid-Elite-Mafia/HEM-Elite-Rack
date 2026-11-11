@@ -19,6 +19,10 @@ const char* const kAmpN[] = {"WARM", "DARK"};
 const char* const kDriveN[] = {"OFF", "FAT", "TIGHT", "SHARP"};
 const char* const kVoiceN[] = {"1", "2", "3"};
 const char* const kPushN[] = {"A", "B"};
+// the amp path at its default knobs came out louder than it went in (measured on a -18 dB RMS mix): this takes it
+// back to within 1 dB at load. Only the amp path: AMP off / all DI stays exactly the input. OUTPUT still reads 0 dB.
+constexpr float kLoadTrimDb = -1.5f;
+const float kLoadTrim = std::pow(10.0f, kLoadTrimDb / 20.0f);
 const ParamInfo kParams[kCount] = {
     {"input", "Input", "dB", -12.0f, 12.0f, 0.0f},
     {"amp", "Amp", "", 0, 1, 0, Taper::Choice, kAmpN},
@@ -173,6 +177,7 @@ private:
                     x = dk + cm * (br - dk);
                     if (rm > 0.0f) x += rm * room_.tick(c, x);
                 }
+                x *= kLoadTrim;   // the amp side only
                 (c == 0 ? L[i] : R[i]) = (x + bl * (dl * di[c][i] - x)) * og;
             }
         }

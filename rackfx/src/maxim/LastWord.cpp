@@ -16,10 +16,10 @@ const ParamInfo kParams[kCount] = {
     {"inputr", "Input Right", "dB", -60.0f, 0.0f, 0.0f},
     {"inputlink", "Input Link", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"threshold", "Threshold", "dB", -30.0f, 0.0f, 0.0f},
-    {"ceiling", "Ceiling", "dB", -30.0f, 0.0f, 0.0f},
+    {"ceiling", "Ceiling", "dB", -30.0f, 0.0f, -1.0f},   // -1 dBTP at load: the streaming-safe ceiling
     {"release", "Release", "ms", 0.01f, 1000.0f, 100.0f, Taper::Log},
     {"autorelease", "Auto Release", "", 0, 1, 0, Taper::Toggle, kOnOff},
-    {"domain", "Peak Mode", "", 0, 2, 0, Taper::Choice, kDomainN},
+    {"domain", "Peak Mode", "", 0, 2, 2, Taper::Choice, kDomainN},   // TRUE PEAK at load
     {"quantize", "Bit Depth", "", 0, 5, 0, Taper::Choice, kQuantN6},
     {"dither", "Dither", "", 0, 2, 0, Taper::Choice, kDitherN},
     {"shaping", "Noise Shape", "", 0, 3, 3, Taper::Choice, kShapeN},

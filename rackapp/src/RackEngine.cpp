@@ -1,5 +1,7 @@
 #include "RackEngine.hpp"
 
+#include "hem/rack/KWeight.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -8,9 +10,12 @@ namespace hem::app {
 
 // ---- KMeter --------------------------------------------------------------------------------
 void KMeter::prepare(double fs) {
-    using T = hc::fx::BiquadCoefs::Type;
-    shelf.set(hc::fx::BiquadCoefs::make(T::HighShelf, fs, 1500.0, 0.7071, 4.0));
-    hp.set(hc::fx::BiquadCoefs::make(T::HighPass, fs, 38.0, 0.5));
+    // the exact BS.1770 K-weighting (the A / B match used a look-alike shelf at 1.5 kHz that weighed a high cut
+    // differently from the LUFS readouts, so B MATCHED was off after high-frequency moves)
+    hc::fx::BiquadCoefs sc, hpc;
+    hem::rack::kWeighting(fs, sc, hpc);
+    shelf.set(sc);
+    hp.set(hpc);
     coef = 1.0 / (fs * 3.0);
     clear();
 }

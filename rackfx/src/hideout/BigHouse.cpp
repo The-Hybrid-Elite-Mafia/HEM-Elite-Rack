@@ -26,7 +26,7 @@ const ParamInfo kParams[kCount] = {
     {"decay", "Decay", "", 0.04f, 3.5f, 3.5f, Taper::Log},
     {"early", "Early", "dB", -40.0f, 0.0f, -6.0f},
     {"reverb", "Reverb", "dB", -40.0f, 0.0f, 0.0f},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 50.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 30.0f},
     {"lowdamp", "Low Damp", "Hz", 16.0f, 1600.0f, 200.0f, Taper::Log},
     {"lowratio", "Low Ratio", "x", 0.1f, 2.0f, 1.0f},
     {"highdamp", "High Damp", "Hz", 1000.0f, 21000.0f, 6000.0f, Taper::Log},
@@ -166,8 +166,9 @@ public:
             }
             const float m = mix_.next(wMix), eg = erG_.next(wEr), rg = rvG_.next(wRv), g = gain_.next(wGain);
             const float wl = eg * el + rg * shape * tl, wr = eg * er + rg * shape * tr;
-            // MIX: the dry song stays at full level up to 50 % while the space comes up to full; past 50 % the dry fades out.
-            const float gd = std::min(1.0f, 2.0f * (1.0f - m)), gw = std::min(1.0f, 2.0f * m);
+            // MIX: the dry song stays at full level up to 50 % (the space is quieter than the song, so dropping the dry
+            // lost level: -1.1 dB at 30 %), the space comes up on an equal-power curve, past 50 % the dry fades out
+            const float gd = std::min(1.0f, 2.0f * (1.0f - m)), gw = std::sin(1.5707964f * m);
             const float ol = (gd * dry[0] + gw * wl) * g, orr = (gd * dry[1] + gw * wr) * g;
             L[i] = ol;
             R[i] = orr;

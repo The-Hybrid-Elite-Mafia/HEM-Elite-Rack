@@ -43,7 +43,7 @@ const ParamInfo kParams[kCount] = {
     {"modrate", "Mod Rate", "Hz", 0.1f, 6000.0f, 0.1f, Taper::Log},
     {"analog", "Vintage", "", 0, 4, 2, Taper::Choice, kAnalogN},
     {"lofi", "Lo-Res", "", 0, 1, 0, Taper::Toggle, kOnOff},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 30.0f},   // a usable blend at load, not all repeats
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
 };
 const hc::fx::MeterInfo kMeters[] = {{"OUTPUT", "dBFS", -48.0f, 0.0f}};
@@ -179,8 +179,10 @@ public:
             }
             const float m = mix_.next(wMix), o = out_.next(wOut);
             const float wl = f[0] * phL, wr = f[1] * phR;
-            L[i] = (xl + m * (wl - xl)) * o;
-            R[i] = (xr + m * (wr - xr)) * o;
+            // MIX: equal power (repeats come after the sound, their powers add), so a blend keeps the song's level
+            const float gd = std::cos(1.5707964f * m), gw = std::sin(1.5707964f * m);
+            L[i] = (gd * xl + gw * wl) * o;
+            R[i] = (gd * xr + gw * wr) * o;
             pk = std::max({pk, std::fabs(L[i]), std::fabs(R[i])});
         }
         publishMeter(0, meterHold_.push(std::max(dbOf(pk), -100.0f), n, fs_));

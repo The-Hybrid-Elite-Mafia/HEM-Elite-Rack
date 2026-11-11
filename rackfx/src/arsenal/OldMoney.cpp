@@ -18,8 +18,8 @@ const char* const kRelModeN[] = {"AUTO", "MANUAL"};
 const char* const kBehaviorN[] = {"SNAP BACK", "EASE OUT"};
 const char* const kCharacterN[] = {"COLORED", "PURE"};
 const ParamInfo kParams[kCount] = {
-    {"threshold", "Threshold", "dB", -60.0f, 0.0f, -20.0f},
-    {"ratio", "Ratio", ":1", 0.5f, 50.0f, 1.0f, Taper::Log},
+    {"threshold", "Threshold", "dB", -60.0f, 0.0f, -12.0f},   // with 2:1: a little gain reduction on a mix, level within 1 dB
+    {"ratio", "Ratio", ":1", 0.5f, 50.0f, 2.0f, Taper::Log},   // 2:1 at load: it compresses (1:1 did nothing)
     {"attack", "Attack", "ms", 0.5f, 500.0f, 16.0f, Taper::Log},
     {"release", "Release", "ms", 5.0f, 5000.0f, 160.0f, Taper::Log},
     {"releasemode", "Release Mode", "", 0, 1, 0, Taper::Choice, kRelModeN},

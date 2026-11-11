@@ -98,7 +98,7 @@ private:
 namespace cf {
 using namespace chauffeur;
 const ParamInfo kParams[kCount] = {
-    {"target", "Target", "dB", -42.0f, 0.0f, -14.0f},
+    {"target", "Target", "dB", -42.0f, 0.0f, -18.0f},   // a bass stem sits near -18 dB: at -14 a mix was pushed +5 dB and over 0 dBFS
     {"notesens", "Note Pickup", "%", 0.0f, 100.0f, 50.0f},
     {"response", "Speed", "", 0, 1, 1, Taper::Choice, kSpeedN},
     {"ignorespill", "Ignore Bleed", "dB", -50.0f, -3.0f, -40.0f},
