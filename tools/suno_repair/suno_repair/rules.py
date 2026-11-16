@@ -1,0 +1,96 @@
+"""Offline planner: the same manifest format, built by fixed rules from the telemetry.
+Used with --planner rules (no API key, no cost) and as the yardstick to compare Claude's plan against."""
+from __future__ import annotations
+
+
+def neutral_stem(name: str) -> dict:
+    return {
+        "stem": name, "gain_db": 0.0, "delay_samples": 0.0, "polarity_invert": False, "mono_below_hz": 0.0,
+        "eq": [], "dynamic_notches": [],
+        "deesser": {"enabled": False, "freq_hz": 6500.0, "q": 1.5, "threshold_db": -12.0, "max_cut_db": 6.0},
+        "bleed_gate": {"enabled": False, "threshold_dbfs": -60.0, "reduction_db": 12.0, "attack_ms": 2.0, "release_ms": 120.0},
+        "sidechain_duck": {"enabled": False, "trigger_stem": None, "band_low_hz": 40.0, "band_high_hz": 120.0,
+                           "depth_db": 3.0, "attack_ms": 5.0, "release_ms": 90.0},
+        "rationale": "no measured problem",
+    }
+
+
+def neutral_master() -> dict:
+    return {"eq": [], "glue": {"enabled": False, "threshold_dbfs": -18.0, "ratio": 2.0, "attack_ms": 30.0,
+                               "release_ms": 150.0, "makeup_db": 0.0},
+            "mono_below_hz": 0.0, "rationale": "no measured problem"}
+
+
+def plan(tel: dict, target_lufs: float, ceiling_dbtp: float) -> dict:
+    stems = []
+    bleed = tel["cross_stem"]["bleed"]
+    rows = bleed["rows_leak_into_columns"]
+    kb = tel["cross_stem"]["kick_bass_40_350"]
+    for name, s in tel["stems"].items():
+        m = neutral_stem(name)
+        why = []
+        sh = s.get("shift") or {}
+        if sh.get("offset_samples") is not None and abs(sh["offset_samples"]) >= 0.5 and (sh.get("match_strength") or 0) >= 0.1:
+            m["delay_samples"] = round(-float(sh["offset_samples"]), 2)
+            why.append(f"offset {sh['offset_samples']} samples")
+        if sh.get("polarity_inverted"):
+            m["polarity_invert"] = True
+            why.append("polarity inverted vs mix")
+        st = s["stereo"]
+        if st.get("sub_phase_problem"):
+            m["mono_below_hz"] = 120.0
+            why.append(f"sub corr {st.get('sub_lt150_corr')}")
+        for r in s.get("resonances_2k_8k", []):
+            if r["kind"] == "stationary_artifact" and len(m["dynamic_notches"]) < 8:
+                m["dynamic_notches"].append({"freq_hz": float(r["hz"]), "q": float(min(max(r["q_estimate"] or 8.0, 4.0), 40.0)),
+                                             "threshold_db": 3.0, "max_cut_db": float(min(r["prominence_db"] or 6.0, 12.0)),
+                                             "attack_ms": 5.0, "release_ms": 120.0})
+                why.append(f"stationary tone {r['hz']} Hz")
+        for h in s.get("hot_spots", []):
+            if len(m["eq"]) >= 12:
+                break
+            if h["band"] == "mud":
+                m["eq"].append({"type": "peak", "freq_hz": 320.0, "gain_db": -min(3.0, 0.5 * (h["excess_db"] or 4.0)), "q": 1.0,
+                                "start_s": h["start_s"], "end_s": h["end_s"]})
+                why.append(f"mud {h['start_s']}-{h['end_s']} s")
+            elif h["band"] == "harsh":
+                m["eq"].append({"type": "peak", "freq_hz": 3500.0, "gain_db": -min(3.0, 0.5 * (h["excess_db"] or 4.0)), "q": 1.2,
+                                "start_s": h["start_s"], "end_s": h["end_s"]})
+                why.append(f"harsh {h['start_s']}-{h['end_s']} s")
+            elif h["band"] == "sibilance" and s["role"] in ("vocal", "backing_vocal"):
+                m["deesser"].update(enabled=True)
+        if m["deesser"]["enabled"]:
+            why.append("sibilance spikes")
+        # bleed into this stem
+        if name in rows and (s.get("active_pct") or 100) <= 85:
+            j = rows.index(name)
+            worst = max((row[j] for row in bleed["bleed_db"] if row[j] is not None), default=None)
+            if worst is not None and worst > -35.0:
+                thr = bleed["gate_threshold_hint_dbfs"].get(name)
+                if thr is not None:
+                    m["bleed_gate"].update(enabled=True, threshold_dbfs=float(max(-90.0, min(-10.0, thr))), reduction_db=15.0)
+                    why.append(f"bleed {worst} dB in gaps")
+        if kb.get("overlap") is not None and kb["overlap"] > 0.35 and name == kb.get("bass_stem"):
+            c = kb.get("most_collision_hz") or 60.0
+            m["sidechain_duck"].update(enabled=True, trigger_stem=kb["kick_stem"], band_low_hz=float(max(20.0, c / 1.6)),
+                                       band_high_hz=float(min(4000.0, c * 1.6)), depth_db=3.0)
+            why.append(f"kick/bass overlap {kb['overlap']} at {c} Hz")
+        if why:
+            m["rationale"] = "; ".join(why)[:400]
+        stems.append(m)
+    master = neutral_master()
+    ss = tel["stem_sum"]
+    if ss.get("sub_lt150_corr") is not None and ss["sub_lt150_corr"] < 0.85:
+        master["mono_below_hz"] = 120.0
+        master["rationale"] = f"sum sub corr {ss['sub_lt150_corr']}"
+    return {"target_lufs": float(target_lufs), "true_peak_ceiling_dbtp": float(ceiling_dbtp), "stems": stems, "master": master}
+
+
+def fill_missing(manifest: dict, stem_names: list[str]) -> dict:
+    """Stems Claude left out get neutral settings (the session always renders every stem)."""
+    have = {s["stem"] for s in manifest.get("stems", [])}
+    for n in stem_names:
+        if n not in have:
+            manifest.setdefault("stems", []).append(neutral_stem(n))
+    manifest.setdefault("rack_chain", [])
+    return manifest

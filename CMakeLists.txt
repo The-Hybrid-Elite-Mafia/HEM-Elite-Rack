@@ -53,6 +53,7 @@ add_subdirectory(rackfx)
 add_subdirectory(rackui)
 add_subdirectory(rackapp)
 add_subdirectory(tools/rack_snapshot)
+add_subdirectory(tools/rack_render)
 
 option(HEM_RACK_BUILD_VST3 "Also build the VST3 bundle (fetches the MIT-licensed Steinberg VST3 SDK)" ON)
 if(HEM_RACK_BUILD_VST3)
