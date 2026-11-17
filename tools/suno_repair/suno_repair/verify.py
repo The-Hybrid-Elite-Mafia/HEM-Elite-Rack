@@ -9,7 +9,7 @@ import numpy as np
 from scipy.signal import butter, sosfiltfilt
 
 from . import loudness as lu
-from .forensics import _corr, masking_matrix, mono_loss_db, resonance_count, spectra
+from .forensics import _corr, masking_matrix, mono_loss_db, resonance_count, resonances, spectra
 
 
 def sub_corr(x: np.ndarray, rate: int, hz: float = 150.0) -> float | None:
@@ -50,11 +50,19 @@ def verify(rate: int, aligned: dict, clean: dict, master: np.ndarray, target_luf
     mpost = masking_matrix(names, sp_post)["mean_overlap"]
     check("200-500 Hz cross-stem overlap (mean, 0..1)", {"pre": mpre, "post": mpost}, mpost < mpre or mpre < 0.05,
           "post lower than pre (or nothing to fix: pre < 0.05)")
-    rpre = {n: resonance_count(sp_pre[n]) for n in names}
-    rpost = {n: resonance_count(sp_post[n]) for n in names}
-    tpre, tpost = sum(rpre.values()), sum(rpost.values())
-    check("3-6 kHz resonant peaks > 6 dB prominence (all stems)", {"pre": tpre, "post": tpost, "per_stem_pre": rpre,
-          "per_stem_post": rpost}, tpost < tpre or tpre == 0, "fewer after (or none before)")
+    # Only steady narrowband tones count as artifacts (spectral kurtosis < -0.5, there > half the song).
+    # Musical notes also make > 6 dB peaks in a long-term spectrum; removing those would damage the song.
+    def steady(sp):
+        return [r["hz"] for r in resonances(sp, 3000.0, 6000.0, 6.0, top=10_000) if r["kind"] == "stationary_artifact"]
+    rpre = {n: steady(sp_pre[n]) for n in names}
+    rpost = {n: steady(sp_post[n]) for n in names}
+    tpre, tpost = sum(map(len, rpre.values())), sum(map(len, rpost.values()))
+    allpre = sum(resonance_count(sp_pre[n]) for n in names)
+    allpost = sum(resonance_count(sp_post[n]) for n in names)
+    check("3-6 kHz steady artifact tones > 6 dB prominence (all stems)",
+          {"pre": tpre, "post": tpost, "all_peaks_incl_musical_pre": allpre, "all_peaks_incl_musical_post": allpost,
+           "per_stem_pre_hz": rpre, "per_stem_post_hz": rpost},
+          tpost < tpre or tpre == 0, "fewer after (or none before)")
 
     stems_ok = {}
     for n, x in clean.items():

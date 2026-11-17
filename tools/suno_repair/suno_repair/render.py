@@ -99,6 +99,12 @@ def glue(x: np.ndarray, rate: int, c: dict) -> tuple[np.ndarray, float]:
     return x * blocks_to_samples(db_to_gain(g + c["makeup_db"]), x.shape[1], block), float(g.min())
 
 
+def dc_block(x: np.ndarray, rate: int, hz: float = 5.0) -> np.ndarray:
+    """Removes DC and sub-sonic drift (zero phase, so nothing above ~10 Hz moves)."""
+    from scipy.signal import butter, sosfiltfilt
+    return sosfiltfilt(butter(1, hz, btype="highpass", fs=rate, output="sos"), x, axis=-1)
+
+
 def finish_loudness(x: np.ndarray, rate: int, target_lufs: float, ceiling_dbtp: float, log: dict) -> np.ndarray:
     """Gain to target, true-peak limit, re-measure, correct; then confirm the ceiling on the result."""
     current = lu.integrated(x, rate)
@@ -111,6 +117,7 @@ def finish_loudness(x: np.ndarray, rate: int, target_lufs: float, ceiling_dbtp: 
     for outer in range(4):
         for it in range(8):
             y, gr = true_peak_limit(x * 10 ** (g / 20.0), rate, limit_at)
+            y = dc_block(y, rate)        # the limiter's gain changes on lopsided peaks leave DC; take it out here
             got = lu.integrated(y, rate)
             err = target_lufs - got
             log.setdefault("iterations", []).append({"gain_db": round(g, 3), "lufs": round(got, 3), "limiter_gr_db": round(gr, 2),
@@ -127,6 +134,19 @@ def finish_loudness(x: np.ndarray, rate: int, target_lufs: float, ceiling_dbtp: 
     return y
 
 
+def align(session: Session, manifest: dict) -> dict:
+    """Polarity, delay and gain only: the stems as the repairs see them (also the 'before' for the checks)."""
+    by_name = {m["stem"]: m for m in manifest["stems"]}
+    out = {}
+    for s in session.stems:
+        m = by_name[s.name]
+        x = s.audio * (-1.0 if m["polarity_invert"] else 1.0)
+        if abs(m["delay_samples"]) > 1e-6:
+            x = fractional_delay(x, m["delay_samples"])
+        out[s.name] = x * 10 ** (m["gain_db"] / 20.0)
+    return out
+
+
 def render(session: Session, manifest: dict, out: Path, rack_exe: Path | None = None, tempo: float | None = None) -> dict:
     rate = session.rate
     log = {"stems": {}, "master": {}, "rack": []}
@@ -136,13 +156,7 @@ def render(session: Session, manifest: dict, out: Path, rack_exe: Path | None = 
         log["rack_skipped"] = "rack_chain present but no --rack-render exe given; built-in stages only"
 
     # Pass 1: alignment (every stem, so sidechain triggers are aligned too)
-    aligned = {}
-    for s in session.stems:
-        m = by_name[s.name]
-        x = s.audio * (-1.0 if m["polarity_invert"] else 1.0)
-        if abs(m["delay_samples"]) > 1e-6:
-            x = fractional_delay(x, m["delay_samples"])
-        aligned[s.name] = x * 10 ** (m["gain_db"] / 20.0)
+    aligned = align(session, manifest)
 
     # Pass 2: repairs
     clean = {}
@@ -179,6 +193,8 @@ def render(session: Session, manifest: dict, out: Path, rack_exe: Path | None = 
     if mm["glue"]["enabled"]:
         mix, log["master"]["glue_max_gr_db"] = glue(mix, rate, mm["glue"])
     mix = mono_below(mix, rate, mm["mono_below_hz"])
+    mix = dc_block(mix, rate)
+    log["master"]["dc_block"] = "5 Hz zero-phase high-pass before and after the limiter (always on)"
     mix = _rack(mix, rate, [st for st in rack_steps if st["target"] == "master"], rack_exe, tempo, log, "master")
     master = finish_loudness(mix, rate, manifest["target_lufs"], manifest["true_peak_ceiling_dbtp"], log["master"])
     write_wav(out / "master.wav", master, rate)

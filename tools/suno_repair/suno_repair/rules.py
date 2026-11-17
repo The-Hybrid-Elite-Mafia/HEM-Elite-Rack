@@ -30,7 +30,7 @@ def plan(tel: dict, target_lufs: float, ceiling_dbtp: float) -> dict:
         m = neutral_stem(name)
         why = []
         sh = s.get("shift") or {}
-        if sh.get("offset_samples") is not None and abs(sh["offset_samples"]) >= 0.5 and (sh.get("match_strength") or 0) >= 0.1:
+        if sh.get("offset_samples") is not None and abs(sh["offset_samples"]) >= 0.5 and (sh.get("match_strength_psr") or 0) >= 6.0:
             m["delay_samples"] = round(-float(sh["offset_samples"]), 2)
             why.append(f"offset {sh['offset_samples']} samples")
         if sh.get("polarity_inverted"):
@@ -41,9 +41,14 @@ def plan(tel: dict, target_lufs: float, ceiling_dbtp: float) -> dict:
             m["mono_below_hz"] = 120.0
             why.append(f"sub corr {st.get('sub_lt150_corr')}")
         for r in s.get("resonances_2k_8k", []):
-            if r["kind"] == "stationary_artifact" and len(m["dynamic_notches"]) < 8:
+            if r["kind"] == "stationary_artifact" and (r.get("present_pct_of_song") or 0) >= 90 and len(m["eq"]) < 12:
+                # always there and steady: a fixed notch takes it out completely
+                m["eq"].append({"type": "notch", "freq_hz": float(r["hz"]), "gain_db": 0.0,
+                                "q": float(min(max(r["q_estimate"] or 20.0, 8.0), 40.0)), "start_s": None, "end_s": None})
+                why.append(f"steady tone {r['hz']} Hz (notch)")
+            elif r["kind"] == "stationary_artifact" and len(m["dynamic_notches"]) < 8:
                 m["dynamic_notches"].append({"freq_hz": float(r["hz"]), "q": float(min(max(r["q_estimate"] or 8.0, 4.0), 40.0)),
-                                             "threshold_db": 3.0, "max_cut_db": float(min(r["prominence_db"] or 6.0, 12.0)),
+                                             "threshold_db": 3.0, "max_cut_db": float(min((r["prominence_db"] or 6.0) + 3.0, 18.0)),
                                              "attack_ms": 5.0, "release_ms": 120.0})
                 why.append(f"stationary tone {r['hz']} Hz")
         for h in s.get("hot_spots", []):

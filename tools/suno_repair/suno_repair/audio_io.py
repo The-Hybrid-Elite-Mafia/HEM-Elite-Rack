@@ -68,10 +68,41 @@ class Session:
         raise KeyError(name)
 
 
+COMPRESSED = (".mp3", ".m4a", ".aac", ".ogg", ".opus")
+
+
+def _decode_ffmpeg(path: Path) -> tuple[np.ndarray, int, dict]:
+    """Compressed files go through ffmpeg: libsndfile 1.2.2 stops early on some Suno MP3s
+    (a 210 s stem came back as 53.9 s) and their headers report wrong lengths."""
+    import json
+    import shutil
+    import subprocess
+    if shutil.which("ffmpeg") is None:
+        raise SystemExit(f"{path.name}: compressed audio needs ffmpeg on the PATH")
+    pr = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "a:0", "-show_entries", "stream=sample_rate,channels,codec_name",
+                         "-of", "json", str(path)], capture_output=True, text=True)
+    st = json.loads(pr.stdout or "{}").get("streams", [{}])[0]
+    rate, ch = int(st.get("sample_rate", 0)), int(st.get("channels", 0))
+    if not rate or not ch:
+        raise SystemExit(f"{path.name}: ffprobe could not read the audio stream")
+    r = subprocess.run(["ffmpeg", "-v", "error", "-i", str(path), "-f", "f32le", "-acodec", "pcm_f32le", "-"],
+                       capture_output=True)
+    if r.returncode != 0:
+        raise SystemExit(f"{path.name}: ffmpeg failed: {r.stderr.decode(errors='replace')[:300]}")
+    x = np.frombuffer(r.stdout, dtype=np.float32).reshape(-1, ch).astype(np.float64)
+    return x, rate, {"channels": ch, "subtype": f"{st.get('codec_name', '?')} (decoded by ffmpeg)"}
+
+
 def read_stereo(path: Path, target_rate: int | None = None) -> tuple[np.ndarray, int, dict]:
-    info = sf.info(str(path))
-    x, rate = sf.read(str(path), dtype="float64", always_2d=True)
     notes = []
+    if path.suffix.lower() in COMPRESSED:
+        x, rate, fi = _decode_ffmpeg(path)
+        info_rate, info_ch, info_sub = rate, fi["channels"], fi["subtype"]
+        notes.append("lossy source: the stem's own encoder artifacts are part of the measurement")
+    else:
+        info = sf.info(str(path))
+        x, rate = sf.read(str(path), dtype="float64", always_2d=True)
+        info_rate, info_ch, info_sub = int(info.samplerate), int(info.channels), str(info.subtype)
     if x.shape[1] == 1:
         x = np.repeat(x, 2, axis=1)
         notes.append("mono file: copied to both sides")
@@ -83,7 +114,7 @@ def read_stereo(path: Path, target_rate: int | None = None) -> tuple[np.ndarray,
         x = resample_poly(x, target_rate // g, rate // g, axis=0)
         notes.append(f"resampled {rate} -> {target_rate} Hz")
         rate = target_rate
-    meta = {"rate": int(info.samplerate), "channels": int(info.channels), "subtype": str(info.subtype), "notes": notes}
+    meta = {"rate": int(info_rate), "channels": int(info_ch), "subtype": info_sub, "notes": notes}
     return np.ascontiguousarray(x.T), int(rate), meta
 
 
@@ -100,7 +131,7 @@ def _is_mix(path: Path) -> bool:
 
 def load_session(folder: Path, mix_path: Path | None = None) -> Session:
     folder = Path(folder)
-    wavs = sorted(p for p in folder.iterdir() if p.suffix.lower() in (".wav", ".wave", ".flac", ".aif", ".aiff"))
+    wavs = sorted(p for p in folder.iterdir() if p.suffix.lower() in (".wav", ".wave", ".flac", ".aif", ".aiff") + COMPRESSED)
     if mix_path is None:
         cands = [p for p in wavs if _is_mix(p)]
         mix_path = cands[0] if len(cands) == 1 else None
@@ -112,7 +143,7 @@ def load_session(folder: Path, mix_path: Path | None = None) -> Session:
 
     # The session rate is the mix's rate (ground truth), else the first stem's.
     first = mix_path if mix_path is not None else stem_paths[0]
-    rate = int(sf.info(str(first)).samplerate)
+    rate = read_stereo(first)[1] if first.suffix.lower() in COMPRESSED else int(sf.info(str(first)).samplerate)
 
     def load(p: Path) -> Track:
         a, _, meta = read_stereo(p, rate)

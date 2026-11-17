@@ -23,9 +23,9 @@ You receive measured telemetry and must answer ONLY by calling submit_repair_man
 
 Rules:
 1. Fix measured problems only. A stem with no problem gets neutral settings: gain 0, delay 0, no EQ, everything disabled.
-2. Alignment: if shift.offset_samples is not null and |offset| >= 0.5 with match_strength >= 0.1, set delay_samples = -offset_samples. If polarity_inverted is true, set polarity_invert true.
+2. Alignment: if shift.offset_samples is not null and |offset| >= 0.5 with match_strength_psr >= 6, set delay_samples = -offset_samples. If polarity_inverted is true, set polarity_invert true.
 3. Sub phase: when a stem's sub_phase_problem is true (or sub_lt150_corr < 0.85), set mono_below_hz between 100 and 150.
-4. Resonances: for resonances_2k_8k with kind "stationary_artifact", add a dynamic notch at that hz, q = max(q_estimate, 4), threshold_db about 3, max_cut_db = min(prominence_db, 12). Musical/intermittent peaks: leave alone unless prominence_db > 12.
+4. Resonances: for resonances_2k_8k with kind "stationary_artifact": if present_pct_of_song >= 90, add an EQ band type "notch" at that hz, q = clamp(q_estimate, 8, 40), whole song; otherwise add a dynamic notch at that hz, q = max(q_estimate, 4), threshold_db about 3, max_cut_db = min(prominence_db + 3, 18). Musical/intermittent peaks: leave alone unless prominence_db > 12.
 5. Hot spots are time-coded: fix them with EQ bands limited to start_s/end_s (mud 200-500 Hz cut 1.5-4 dB, harsh 2-5 kHz cut 1.5-3 dB). Use the whole-song form (null times) only when the problem covers most of the song.
 6. Sibilance hot spots on vocal stems: enable the de-esser (freq 5500-8000 Hz, threshold about -12, max_cut 4-8).
 7. Bleed: a bleed_db value (row leaks into column) above -35 means audible leakage in the column stem's gaps: enable that stem's bleed_gate with threshold_dbfs = gate_threshold_hint_dbfs and reduction 10-20 dB. Never gate a stem with active_pct above 85.

@@ -219,7 +219,7 @@ def hot_spots(sp: StemSpectra, excess_db: float = 4.0) -> list[dict]:
         if not act.any():
             continue
         norm = float(np.median(rel[act]))
-        over = act & (rel - norm > excess_db)
+        over = act & (rel - norm > excess_db) & (rel > -30.0)   # the band must actually carry sound
         for a, b in _ranges(np.arange(nseg) * SEGMENT_S, over, SEGMENT_S):
             i0, i1 = int(a / SEGMENT_S), int(round(b / SEGMENT_S))
             out.append({"band": band, "start_s": a, "end_s": b,
@@ -231,7 +231,8 @@ def hot_spots(sp: StemSpectra, excess_db: float = 4.0) -> list[dict]:
 # --------------------------------------------------------------------------- alignment (ShiftMap)
 
 def gcc_phat(sig: np.ndarray, ref: np.ndarray, max_lag: int) -> tuple[float, float, float]:
-    """Lag (samples, sub-sample) by which `sig` is LATE vs `ref`, PHAT peak height, plain-correlation sign."""
+    """Lag (samples, sub-sample) by which `sig` is LATE vs `ref`, peak-to-sidelobe ratio (peak / RMS of the
+    correlation away from the peak; > 6 = a clear match), plain-correlation sign."""
     n = sig.size + ref.size
     nfft = 1 << (n - 1).bit_length()
     S = np.fft.rfft(sig, nfft)
@@ -240,16 +241,28 @@ def gcc_phat(sig: np.ndarray, ref: np.ndarray, max_lag: int) -> tuple[float, flo
     cc = np.fft.irfft(X / np.maximum(np.abs(X), 1e-20), nfft)
     cc = np.concatenate([cc[-max_lag:], cc[:max_lag + 1]])
     k = int(np.argmax(np.abs(cc)))
-    off = 0.0
-    if 0 < k < cc.size - 1:
-        a, b, c = abs(cc[k - 1]), abs(cc[k]), abs(cc[k + 1])
-        den = a - 2 * b + c
-        off = 0.5 * (a - c) / den if abs(den) > 1e-12 else 0.0
-    lag = (k - max_lag) + off
+    lag = refine_lag(X, nfft, float(k - max_lag))
+    side = np.delete(cc, np.arange(max(0, k - 20), min(cc.size, k + 21)))
+    psr = float(abs(cc[k]) / max(float(np.sqrt(np.mean(side * side))), 1e-20)) if side.size else 0.0
     plain = np.fft.irfft(X, nfft)
     li = int(round(lag)) % nfft
     sign = float(np.sign(plain[li])) if plain[li] != 0 else 1.0
-    return float(lag), float(abs(cc[k])), sign
+    return float(lag), psr, sign
+
+
+def refine_lag(X: np.ndarray, nfft: int, k0: float, beta: float = 0.7, step: float = 0.02) -> float:
+    """Sub-sample lag: PHAT-beta cross-correlation evaluated on a fine grid within +/- 1 sample of the
+    whole-sample peak (on the synthetic test: 37.15-37.25 for a true 37.3 samples)."""
+    W = X / np.maximum(np.abs(X), 1e-20) ** beta
+    keep = np.abs(W) > 1e-6 * float(np.abs(W).max())
+    W, w = W[keep], (2.0 * np.pi / nfft) * np.nonzero(keep)[0]
+    taus = np.arange(k0 - 1.0, k0 + 1.0 + step / 2, step)
+    best, best_v = k0, -np.inf
+    for tau in taus:
+        v = float(np.real(np.dot(W, np.exp(1j * w * tau))))
+        if v > best_v:
+            best, best_v = float(tau), v
+    return best
 
 
 def shift_map(stem: np.ndarray, ref: np.ndarray, rate: int, win_s: float = 8.0, hop_s: float = 10.0,
@@ -265,16 +278,24 @@ def shift_map(stem: np.ndarray, ref: np.ndarray, rate: int, win_s: float = 8.0, 
         if seg.size < W // 2 or to_db(np.array([np.mean(seg * seg)]))[0] < thr:
             continue
         lag, h, sign = gcc_phat(seg, r[a:a + W], L)
-        if h > 0.05:
+        if h >= 6.0:
             points.append((a / rate + win_s / 2, lag, h, sign))
     if not points:
         return {"offset_samples": None, "offset_ms": None, "drift_ms_per_min": None, "polarity_inverted": None,
-                "windows": 0, "note": "stem silent or no clear match with the reference"}
+                "match_strength_psr": None, "windows": 0, "note": "stem silent or no clear match with the reference"}
     t = np.array([p[0] for p in points])
     lag = np.array([p[1] for p in points])
     h = np.array([p[2] for p in points])
     sign = np.array([p[3] for p in points])
-    off = float(np.average(lag, weights=h)) if h.sum() > 0 else float(np.median(lag))
+    med = float(np.median(lag))
+    agree = np.abs(lag - med) <= 1.0
+    if agree.mean() < 0.6 or agree.sum() < 2:
+        return {"offset_samples": None, "offset_ms": None, "drift_ms_per_min": None, "polarity_inverted": None,
+                "match_strength_psr": _r(float(np.median(h)), 1), "windows": len(points),
+                "window_lags": [round(float(v), 2) for v in lag],
+                "note": "windows disagree (tonal stem: the match repeats every cycle); no offset applied"}
+    t, lag, h, sign = t[agree], lag[agree], h[agree], sign[agree]
+    off = float(np.average(lag, weights=h))
     drift = None
     if len(points) >= 3 and (t.max() - t.min()) > 20:
         slope = np.polyfit(t, lag, 1, w=h)[0]       # samples per second
@@ -282,7 +303,7 @@ def shift_map(stem: np.ndarray, ref: np.ndarray, rate: int, win_s: float = 8.0, 
     neg = float(np.average(sign < 0, weights=h))
     return {"offset_samples": round(off, 2), "offset_ms": round(off / rate * 1000.0, 3),
             "drift_ms_per_min": None if drift is None else round(drift, 3),
-            "polarity_inverted": bool(neg > 0.75), "match_strength": _r(float(np.median(h)), 3), "windows": len(points)}
+            "polarity_inverted": bool(neg > 0.75), "match_strength_psr": _r(float(np.median(h)), 1), "windows": len(points)}
 
 
 def onset_dtw_drift(stem: np.ndarray, ref: np.ndarray, rate: int, seg_s: float = 20.0) -> dict:
@@ -310,6 +331,11 @@ def onset_dtw_drift(stem: np.ndarray, ref: np.ndarray, rate: int, seg_s: float =
     if len(ts) < 3:
         return {"drift_ms_per_min": None, "note": "too few active segments"}
     slope = float(np.polyfit(ts, offs, 1)[0])      # ms per second
+    res_ms = hop / rate * 1000.0
+    resid = np.asarray(offs) - np.polyval(np.polyfit(ts, offs, 1), ts)
+    if float(np.std(resid)) > 3 * res_ms or abs(slope * 60.0) > 200.0:
+        return {"drift_ms_per_min": None, "note": "onset match not steady (tonal or sparse stem); use the GCC-PHAT drift",
+                "segment_offsets_ms": [round(o, 1) for o in offs]}
     return {"drift_ms_per_min": round(slope * 60.0, 2), "segment_offsets_ms": [round(o, 1) for o in offs],
             "resolution_ms": round(hop / rate * 1000.0, 2)}
 
@@ -332,7 +358,7 @@ def bleed_matrix(stems: list[Track], rate: int, block_ms: float = 21.3) -> dict:
     for jj, j in enumerate(names):
         ej = env[j]
         p95 = np.percentile(ej, 95)
-        gap = (ej < p95 - 35.0) & (ej > -140.0)
+        gap = (ej < min(otsu(ej[ej > -140.0]), p95 - 12.0)) & (ej > -140.0)
         res["gap_pct"][j] = _r(100.0 * float(gap.mean()), 1)
         res["gap_floor_dbfs"][j] = _r(float(np.median(ej[gap])) if gap.any() else None, 1)
         for ii, i in enumerate(names):
@@ -351,8 +377,32 @@ def bleed_matrix(stems: list[Track], rate: int, block_ms: float = 21.3) -> dict:
                 pi = np.power(10.0, ei[F] / 10.0).mean()
                 res["bleed_db"][ii].append(_r(10 * math.log10(max(pj, 1e-30) / max(pi, 1e-30)), 1))
             res["envelope_corr"][ii].append(_r(c, 2))
-    res["gate_threshold_hint_dbfs"] = {j: _r(float(np.percentile(env[j], 95) - 30.0), 1) for j in names}
+    res["gate_threshold_hint_dbfs"] = {}
+    for j in names:
+        ej = env[j]
+        live = ej[ej > -140.0]
+        if live.size:
+            split = min(otsu(live), float(np.percentile(ej, 95)) - 12.0)
+            gp = live[live < split]
+            floor = float(np.median(gp)) if gp.size else split - 12.0
+            res["gate_threshold_hint_dbfs"][j] = _r(floor + 0.5 * (split - floor) + 3.0, 1)   # just above the gap floor
+        else:
+            res["gate_threshold_hint_dbfs"][j] = None
     return res
+
+
+def otsu(db: np.ndarray, bins: int = 120) -> float:
+    """Level (dB) that best splits frames into 'gap' and 'playing' (Otsu's method on the histogram)."""
+    if db.size < 4:
+        return float(db.mean()) if db.size else -140.0
+    h, e = np.histogram(db, bins=bins)
+    c = 0.5 * (e[1:] + e[:-1])
+    w0 = np.cumsum(h)
+    w1 = w0[-1] - w0
+    m0 = np.cumsum(h * c) / np.maximum(w0, 1)
+    m1 = ((h * c).sum() - np.cumsum(h * c)) / np.maximum(w1, 1)
+    var = w0 * w1 * (m0 - m1) ** 2
+    return float(e[int(np.argmax(var)) + 1])
 
 
 def overlap_coeff(Pa: np.ndarray, Pb: np.ndarray, freqs: np.ndarray, lo: float, hi: float) -> tuple[float, np.ndarray, np.ndarray]:

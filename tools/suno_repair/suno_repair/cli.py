@@ -38,6 +38,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--rack-plugins", default=None, help="comma list of rack plug-in names to offer Claude")
     ap.add_argument("--tempo", type=float, default=None, help="song BPM for tempo-synced rack plug-ins")
     ap.add_argument("--save-stft", action="store_true", help="also save the raw complex STFT (L, R, M, S) per stem as .npz (large)")
+    ap.add_argument("--verify-only", action="store_true", help="re-check an existing --out folder (no analysis, no render)")
     a = ap.parse_args(argv)
 
     out = a.out
@@ -51,6 +52,16 @@ def main(argv: list[str] | None = None) -> int:
     names = [s.name for s in session.stems]
     say(f"loaded {len(names)} stems at {session.rate} Hz, {session.length / session.rate:.1f} s"
         f"{', reference mix: ' + session.mix.name if session.mix else ', no reference mix'}")
+
+    if a.verify_only:
+        from .audio_io import read_stereo
+        manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+        aligned = render.align(session, manifest)
+        clean = {n: read_stereo(out / "stems" / f"{n}_clean.wav", session.rate)[0] for n in names}
+        master = read_stereo(out / "master.wav", session.rate)[0]
+        res = verify.verify(session.rate, aligned, clean, master, manifest["target_lufs"], manifest["true_peak_ceiling_dbtp"],
+                            session.mix.audio if session.mix is not None else None, out)
+        return _print_checks(res, say, out)
 
     full, _ = forensics.analyze(session, out / "stft" if a.save_stft else None)
     tel = forensics.compact(full)
@@ -105,6 +116,10 @@ def main(argv: list[str] | None = None) -> int:
 
     ref = session.mix.audio if session.mix is not None else None
     res = verify.verify(session.rate, result["aligned"], result["clean"], result["master"], a.target, a.ceiling, ref, out)
+    return _print_checks(res, say, out)
+
+
+def _print_checks(res: dict, say, out: Path) -> int:
     say("verification " + ("ALL PASS" if res["all_pass"] else "FAILED") + f" -> {out / 'verification.md'}")
     for c in res["checks"]:
         v = c["value"] if not isinstance(c["value"], dict) else {k: w for k, w in c["value"].items() if not isinstance(w, dict)}
