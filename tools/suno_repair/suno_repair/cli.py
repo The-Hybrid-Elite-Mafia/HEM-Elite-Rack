@@ -24,7 +24,7 @@ def _dump(obj, path: Path) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="suno_repair", description="Zero-touch Suno stem forensics, planning, repair and verification")
-    ap.add_argument("stems", type=Path, help="folder with the Suno stem WAVs (and the original mix, if its name has 'mix' or 'master')")
+    ap.add_argument("stems", type=Path, nargs="+", help="stem folder, stem files or a Suno .zip (the original mix is found by 'mix'/'master' in its name)")
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--mix", type=Path, help="the original stereo mix (ground truth); found by name if not given")
     ap.add_argument("--target", type=float, default=-14.0, help="integrated LUFS target (-14 streaming, -11 heavy country-trap)")

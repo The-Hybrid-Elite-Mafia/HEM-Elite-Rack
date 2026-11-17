@@ -129,9 +129,54 @@ def _is_mix(path: Path) -> bool:
     return any(h in n for h in MIX_HINTS)
 
 
-def load_session(folder: Path, mix_path: Path | None = None) -> Session:
-    folder = Path(folder)
-    wavs = sorted(p for p in folder.iterdir() if p.suffix.lower() in (".wav", ".wave", ".flac", ".aif", ".aiff") + COMPRESSED)
+AUDIO = (".wav", ".wave", ".flac", ".aif", ".aiff") + COMPRESSED
+
+
+def _audio_in(folder: Path) -> list[Path]:
+    """Audio files in a folder; if there are none at the top, the ones in its sub-folders
+    (Suno zips often hold one folder). Our own output folders are skipped."""
+    top = [p for p in folder.iterdir() if p.is_file() and p.suffix.lower() in AUDIO]
+    if top:
+        return top
+    return [p for p in folder.rglob("*") if p.is_file() and p.suffix.lower() in AUDIO
+            and not any(part.startswith("HEM Repair") for part in p.relative_to(folder).parts)]
+
+
+def resolve_inputs(paths) -> list[Path]:
+    """Folders, single audio files and .zip files (unpacked next to the zip, once) -> audio files."""
+    import zipfile
+    if isinstance(paths, (str, Path)):
+        paths = [paths]
+    out: list[Path] = []
+    for p in map(Path, paths):
+        if p.is_dir():
+            out += _audio_in(p)
+        elif p.suffix.lower() == ".zip":
+            dest = p.with_suffix("")
+            if not dest.exists():
+                with zipfile.ZipFile(p) as z:
+                    for m in z.infolist():
+                        target = (dest / m.filename).resolve()
+                        if not str(target).startswith(str(dest.resolve())):
+                            raise SystemExit(f"{p.name}: unsafe path inside the zip ({m.filename})")
+                    z.extractall(dest)
+            out += _audio_in(dest)
+        elif p.is_file() and p.suffix.lower() in AUDIO:
+            out.append(p)
+        elif not p.exists():
+            raise SystemExit(f"not found: {p}")
+    seen, uniq = set(), []
+    for p in out:
+        k = str(p.resolve()).lower()
+        if k not in seen:
+            seen.add(k)
+            uniq.append(p)
+    return sorted(uniq, key=lambda q: q.name.lower())
+
+
+def load_session(inputs, mix_path: Path | None = None) -> Session:
+    wavs = resolve_inputs(inputs)
+    folder = wavs[0].parent if wavs else Path(str(inputs))
     if mix_path is None:
         cands = [p for p in wavs if _is_mix(p)]
         mix_path = cands[0] if len(cands) == 1 else None
@@ -139,7 +184,7 @@ def load_session(folder: Path, mix_path: Path | None = None) -> Session:
         mix_path = Path(mix_path)
     stem_paths = [p for p in wavs if mix_path is None or p.resolve() != mix_path.resolve()]
     if not stem_paths:
-        raise SystemExit(f"no stem files found in {folder}")
+        raise SystemExit(f"no stem files found in {inputs}")
 
     # The session rate is the mix's rate (ground truth), else the first stem's.
     first = mix_path if mix_path is not None else stem_paths[0]

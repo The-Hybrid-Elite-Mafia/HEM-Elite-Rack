@@ -91,7 +91,8 @@ def run_gui() -> int:
     style.configure("Run.TButton", font=("Segoe UI", 12, "bold"), padding=10)
     style.configure("Title.TLabel", font=("Segoe UI", 16, "bold"), foreground="#d4af37", background="#111111")
 
-    stems = tk.StringVar(value=st.get("last_stems", ""))
+    stems = tk.StringVar(value="")
+    picked: list[str] = []
     mix = tk.StringVar(value="")
     target = tk.StringVar(value=st.get("target", list(TARGETS)[0]))
     model = tk.StringVar(value=st.get("model", MODELS[0]))
@@ -103,10 +104,34 @@ def run_gui() -> int:
     frm.pack(fill="both", expand=True)
     ttk.Label(frm, text="HYBRID ELITE MAFIA  ·  SUNO REPAIR", style="Title.TLabel").grid(row=0, column=0, columnspan=3, sticky="w", pady=(0, 10))
 
+    def show_picked(paths):
+        from .audio_io import resolve_inputs
+        logbox.delete("1.0", "end")
+        try:
+            files = resolve_inputs(paths)
+        except SystemExit as e:
+            messagebox.showerror(APP_NAME, str(e))
+            return
+        if not files:
+            messagebox.showerror(APP_NAME, "No audio files (WAV, MP3, FLAC, AIFF) found there.")
+            return
+        picked[:] = [str(p) for p in paths]
+        stems.set(" | ".join(Path(p).name for p in paths))
+        logbox.insert("end", f"{len(files)} audio files found:\n" + "".join(f"   {f.name}\n" for f in files))
+        status.set(f"{len(files)} files ready. Press RUN.")
+
     def pick_stems():
-        d = filedialog.askdirectory(title="Folder with your Suno stems", initialdir=stems.get() or None)
+        fs = filedialog.askopenfilenames(title="Select your stems (WAV / MP3), or the Suno .zip",
+                                         initialdir=st.get("last_dir") or None,
+                                         filetypes=[("Stems or Suno zip", "*.wav *.mp3 *.flac *.aif *.aiff *.m4a *.zip"), ("All files", "*.*")])
+        if fs:
+            show_picked(list(fs))
+
+    def pick_folder():
+        d = filedialog.askdirectory(title="Folder that holds your stems (files are not shown in this box)",
+                                    initialdir=st.get("last_dir") or None)
         if d:
-            stems.set(d)
+            show_picked([d])
 
     def pick_mix():
         f = filedialog.askopenfilename(title="Original stereo mix (optional)",
@@ -114,9 +139,12 @@ def run_gui() -> int:
         if f:
             mix.set(f)
 
-    ttk.Label(frm, text="Stems folder").grid(row=1, column=0, sticky="w")
-    ttk.Entry(frm, textvariable=stems, width=80).grid(row=1, column=1, sticky="we", padx=6)
-    ttk.Button(frm, text="Browse…", command=pick_stems).grid(row=1, column=2)
+    ttk.Label(frm, text="Stems").grid(row=1, column=0, sticky="w")
+    ttk.Entry(frm, textvariable=stems, width=80, state="readonly").grid(row=1, column=1, sticky="we", padx=6)
+    stembtns = ttk.Frame(frm)
+    stembtns.grid(row=1, column=2)
+    ttk.Button(stembtns, text="Files / Zip…", command=pick_stems).pack(side="left")
+    ttk.Button(stembtns, text="Folder…", command=pick_folder).pack(side="left")
     ttk.Label(frm, text="Original mix (optional)").grid(row=2, column=0, sticky="w")
     ttk.Entry(frm, textvariable=mix, width=80).grid(row=2, column=1, sticky="we", padx=6)
     mixbtns = ttk.Frame(frm)
@@ -197,16 +225,21 @@ def run_gui() -> int:
     def start():
         if state["running"]:
             return
-        folder = Path(stems.get().strip().strip('"'))
-        if not folder.is_dir():
-            messagebox.showerror(APP_NAME, "Pick the folder that holds your stems first.")
+        if not picked:
+            messagebox.showerror(APP_NAME, "Pick your stems first (Files / Zip… or Folder…).")
             return
+        from .audio_io import resolve_inputs
+        files = resolve_inputs(picked)
+        if not files:
+            messagebox.showerror(APP_NAME, "No audio files found in what you picked.")
+            return
+        folder = files[0].parent
         k = key.get().strip()
-        settings = {"last_stems": str(folder), "target": target.get(), "model": model.get().strip(), "api_key": k}
+        settings = {"last_dir": str(folder), "target": target.get(), "model": model.get().strip(), "api_key": k}
         save_settings(settings)
         stamp = dt.datetime.now().strftime("%Y-%m-%d %H-%M")
         out = folder / f"HEM Repair {stamp}"
-        argv = [str(folder), "--out", str(out), "--target", str(TARGETS[target.get()])]
+        argv = [str(p) for p in picked] + ["--out", str(out), "--target", str(TARGETS[target.get()])]
         if mix.get().strip():
             argv += ["--mix", mix.get().strip().strip('"')]
         if k:
