@@ -30,7 +30,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--target", type=float, default=-14.0, help="integrated LUFS target (-14 streaming, -11 heavy country-trap)")
     ap.add_argument("--ceiling", type=float, default=-1.0, help="true-peak ceiling dBTP")
     ap.add_argument("--planner", choices=("claude", "rules"), default="claude")
-    ap.add_argument("--model", default=None, help="Claude model id (default: HEM_REPAIR_MODEL or claude-sonnet-5-5)")
+    ap.add_argument("--model", default=None, help="claude-sonnet-4-5 (default) or claude-opus-4-1, per the project prompt")
     ap.add_argument("--manifest", type=Path, help="render an existing manifest.json instead of planning")
     ap.add_argument("--stop-after", choices=("analyze", "plan"))
     ap.add_argument("--rack-render", type=Path, help="hem_rack_render.exe from the HEM-Elite-Rack build")

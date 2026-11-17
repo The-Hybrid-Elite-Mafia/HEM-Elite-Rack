@@ -15,7 +15,7 @@ import time
 
 from .schema import manifest_schema, strip_numeric_limits, validate
 
-DEFAULT_MODEL = os.environ.get("HEM_REPAIR_MODEL", "claude-sonnet-5-5")
+DEFAULT_MODEL = os.environ.get("HEM_REPAIR_MODEL", "claude-sonnet-4-5")   # project prompt: claude-sonnet-4-5 or claude-opus-4-1
 TOOL_NAME = "submit_repair_manifest"
 
 SYSTEM = """You are the planning stage of an automatic stem-repair pipeline for AI-generated (Suno) music.

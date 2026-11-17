@@ -182,7 +182,7 @@ def hf_cutoff(sp: StemSpectra, rate: int) -> dict:
     f = sp.freqs
     db = uniform_filter1d(sp.mean_db, size=9, mode="nearest")
     df = f[1] - f[0]
-    lo, hi = 10000.0, min(21000.0, 0.47 * rate)
+    lo, hi = 12000.0, min(16000.0, 0.47 * rate)      # project prompt: brickwalls 12-16 kHz
     idx = np.where((f >= lo) & (f <= hi))[0]
     if idx.size == 0:
         return {"cutoff_hz": None, "drop_db": None, "brickwall": False}
@@ -476,8 +476,16 @@ def analyze(session: Session, stft_dir: Path | None = None) -> tuple[dict, dict]
     rate = session.rate
     sp: dict[str, StemSpectra] = {}
     stems_out = {}
-    ref = session.mix.audio if session.mix is not None else np.sum([s.audio for s in session.stems], axis=0)
+    # Timing reference (project prompt: "against the reference mix/drum grid"): the mix, else the drum stem.
+    drums = next((s for s in session.stems if s.role in ("drums", "kick")), None)
+    if session.mix is not None:
+        ref, ref_name = session.mix.audio, session.mix.name
+    elif drums is not None:
+        ref, ref_name = drums.audio, drums.name
+    else:
+        ref, ref_name = None, None
     for s in session.stems:
+        use_ref = ref is not None and s.name != ref_name
         sp[s.name] = spectra(s.audio, rate, (stft_dir / f"{s.name}_stft.npz") if stft_dir else None)
         a = s.audio
         stems_out[s.name] = {
@@ -486,8 +494,8 @@ def analyze(session: Session, stft_dir: Path | None = None) -> tuple[dict, dict]
             "integrity": integrity(a),
             "loudness": lu.full_report(a, rate),
             "stereo": stereo_report(a, rate),
-            "shift": shift_map(a, ref, rate) if session.mix is not None else {"note": "no reference mix given"},
-            "onset_drift": onset_dtw_drift(a, ref, rate) if session.mix is not None else None,
+            "shift": (shift_map(a, ref, rate) | {"reference": ref_name}) if use_ref else {"note": "this stem is the timing reference" if ref is not None else "no mix and no drum stem to time against"},
+            "onset_drift": (onset_dtw_drift(a, ref, rate) | {"reference": ref_name}) if use_ref else None,
             "resonances_2k_8k": resonances(sp[s.name]),
             "resonance_count_3k_6k": resonance_count(sp[s.name]),
             "hf_cutoff": hf_cutoff(sp[s.name], rate),

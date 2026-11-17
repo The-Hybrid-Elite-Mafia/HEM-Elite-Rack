@@ -48,8 +48,8 @@ def verify(rate: int, aligned: dict, clean: dict, master: np.ndarray, target_luf
     sp_post = {n: spectra(clean[n], rate) for n in names}
     mpre = masking_matrix(names, sp_pre)["mean_overlap"]
     mpost = masking_matrix(names, sp_post)["mean_overlap"]
-    check("200-500 Hz cross-stem overlap (mean, 0..1)", {"pre": mpre, "post": mpost}, mpost < mpre or mpre < 0.05,
-          "post lower than pre (or nothing to fix: pre < 0.05)")
+    check("200-500 Hz cross-stem overlap (mean, 0..1)", {"pre": mpre, "post": mpost}, mpost < mpre,
+          "measurable drop: post lower than pre (Steven's spec)")
     # Only steady narrowband tones count as artifacts (spectral kurtosis < -0.5, there > half the song).
     # Musical notes also make > 6 dB peaks in a long-term spectrum; removing those would damage the song.
     def steady(sp):
@@ -59,10 +59,10 @@ def verify(rate: int, aligned: dict, clean: dict, master: np.ndarray, target_luf
     tpre, tpost = sum(map(len, rpre.values())), sum(map(len, rpost.values()))
     allpre = sum(resonance_count(sp_pre[n]) for n in names)
     allpost = sum(resonance_count(sp_post[n]) for n in names)
-    check("3-6 kHz steady artifact tones > 6 dB prominence (all stems)",
-          {"pre": tpre, "post": tpost, "all_peaks_incl_musical_pre": allpre, "all_peaks_incl_musical_post": allpost,
-           "per_stem_pre_hz": rpre, "per_stem_post_hz": rpost},
-          tpost < tpre or tpre == 0, "fewer after (or none before)")
+    check("3-6 kHz high-Q resonant spikes > 6 dB prominence (all stems)",
+          {"pre": allpre, "post": allpost, "of_them_steady_ai_tones_pre": tpre, "of_them_steady_ai_tones_post": tpost,
+           "steady_per_stem_pre_hz": rpre, "steady_per_stem_post_hz": rpost},
+          allpost < allpre or allpre == 0, "attenuated: fewer after (Steven's spec)")
 
     stems_ok = {}
     for n, x in clean.items():
