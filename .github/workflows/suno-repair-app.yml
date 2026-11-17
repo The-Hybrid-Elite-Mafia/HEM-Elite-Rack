@@ -4,12 +4,14 @@ name: HEM Suno Repair app
 on:
   push:
     branches: [suno-repair-pipeline]
-    paths: ['tools/suno_repair/**', '.github/workflows/suno-repair-app.yml']
+    paths: ['tools/suno_repair/**', 'installer/HEMSunoRepair.iss', '.github/workflows/suno-repair-app.yml']
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: windows-2022
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v5
 
@@ -35,14 +37,13 @@ jobs:
           pyinstaller --noconfirm --clean --windowed --name "HEM Suno Repair"
           --add-binary "ffmpeg.exe;." --add-binary "ffprobe.exe;."
           --collect-all librosa --collect-all pyloudnorm --collect-data soundfile --collect-submodules anthropic
-          --hidden-import jsonschema --hidden-import tkinter
+          --hidden-import jsonschema --hidden-import tkinter --icon ..\..\rackapp\resources\HEMEliteRack.ico
           hem_suno_repair.py
 
       - name: Test the packaged program on a test song (built-in rules, no API key)
         working-directory: tools/suno_repair
         run: |
           python make_test_stems.py "$env:RUNNER_TEMP\song" --seconds 40
-          Copy-Item "$env:RUNNER_TEMP\song\Guitar.wav" "$env:RUNNER_TEMP\song_mp3_src.wav"
           .\ffmpeg.exe -v error -i "$env:RUNNER_TEMP\song\Guitar.wav" -b:a 320k "$env:RUNNER_TEMP\song\Keys.mp3"
           $p = Start-Process -FilePath "dist\HEM Suno Repair\HEM Suno Repair.exe" -ArgumentList "`"$env:RUNNER_TEMP\song`"","--out","`"$env:RUNNER_TEMP\out`"","--planner","rules" -Wait -PassThru
           Write-Host "exit code $($p.ExitCode)"
@@ -52,10 +53,25 @@ jobs:
           if (-not (Test-Path "$env:RUNNER_TEMP\out\master.wav")) { throw "no master.wav" }
           if ($p.ExitCode -ne 0 -or -not $v.all_pass) { throw "packaged program test failed (exit $($p.ExitCode))" }
 
-      - name: Zip
-        run: Compress-Archive -Path "tools\suno_repair\dist\HEM Suno Repair" -DestinationPath "HEM-Suno-Repair-Windows.zip"
+      - name: Installer (Inno Setup)
+        run: |
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Host }
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe not found" }
+          & $iscc "/DAppVersion=0.1.$env:GITHUB_RUN_NUMBER" installer\HEMSunoRepair.iss | Out-Host
+          if ($LASTEXITCODE -ne 0) { throw "ISCC failed ($LASTEXITCODE)" }
+          Get-Item installer\output\HEM-Suno-Repair-Setup.exe | Select-Object Name, Length
 
-      - uses: actions/upload-artifact@v5
-        with:
-          name: HEM-Suno-Repair-Windows
-          path: HEM-Suno-Repair-Windows.zip
+      - name: Publish the download (release suno-repair-app, pre-release)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = 'suno-repair-app'
+          gh release view $tag -R $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag installer\output\HEM-Suno-Repair-Setup.exe -R $env:GITHUB_REPOSITORY --prerelease --title "HEM Suno Repair" --notes "Windows installer for HEM Suno Repair (pick your stems folder, press RUN)." --target $env:GITHUB_SHA
+          } else {
+            gh release upload $tag installer\output\HEM-Suno-Repair-Setup.exe -R $env:GITHUB_REPOSITORY --clobber
+          }
+          if ($LASTEXITCODE -ne 0) { throw "publish failed ($LASTEXITCODE)" }
+          Write-Host "::notice::https://github.com/$env:GITHUB_REPOSITORY/releases/download/$tag/HEM-Suno-Repair-Setup.exe"
