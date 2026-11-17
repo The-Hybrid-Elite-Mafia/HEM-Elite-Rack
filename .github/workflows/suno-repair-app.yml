@@ -1,0 +1,61 @@
+name: HEM Suno Repair app
+
+# Builds the Windows program (tools/suno_repair) and tests the packaged .exe on a test song.
+on:
+  push:
+    branches: [suno-repair-pipeline]
+    paths: ['tools/suno_repair/**', '.github/workflows/suno-repair-app.yml']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Python packages
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r tools/suno_repair/requirements.txt pyinstaller
+
+      - name: ffmpeg (for MP3 stems)
+        run: |
+          Invoke-WebRequest -Uri https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip -OutFile ffmpeg.zip
+          Expand-Archive ffmpeg.zip -DestinationPath ffmpeg
+          $bin = (Get-ChildItem ffmpeg -Recurse -Filter ffmpeg.exe | Select-Object -First 1).DirectoryName
+          Copy-Item "$bin\ffmpeg.exe","$bin\ffprobe.exe" tools\suno_repair\
+
+      - name: Package
+        working-directory: tools/suno_repair
+        run: >
+          pyinstaller --noconfirm --clean --windowed --name "HEM Suno Repair"
+          --add-binary "ffmpeg.exe;." --add-binary "ffprobe.exe;."
+          --collect-all librosa --collect-all pyloudnorm --collect-data soundfile --collect-submodules anthropic
+          --hidden-import jsonschema --hidden-import tkinter
+          hem_suno_repair.py
+
+      - name: Test the packaged program on a test song (built-in rules, no API key)
+        working-directory: tools/suno_repair
+        run: |
+          python make_test_stems.py "$env:RUNNER_TEMP\song" --seconds 40
+          Copy-Item "$env:RUNNER_TEMP\song\Guitar.wav" "$env:RUNNER_TEMP\song_mp3_src.wav"
+          .\ffmpeg.exe -v error -i "$env:RUNNER_TEMP\song\Guitar.wav" -b:a 320k "$env:RUNNER_TEMP\song\Keys.mp3"
+          $p = Start-Process -FilePath "dist\HEM Suno Repair\HEM Suno Repair.exe" -ArgumentList "`"$env:RUNNER_TEMP\song`"","--out","`"$env:RUNNER_TEMP\out`"","--planner","rules" -Wait -PassThru
+          Write-Host "exit code $($p.ExitCode)"
+          Get-ChildItem "$env:RUNNER_TEMP\out" -Recurse | Select-Object FullName, Length | Format-Table -AutoSize
+          Get-Content "$env:RUNNER_TEMP\out\verification.md"
+          $v = Get-Content "$env:RUNNER_TEMP\out\verification.json" | ConvertFrom-Json
+          if (-not (Test-Path "$env:RUNNER_TEMP\out\master.wav")) { throw "no master.wav" }
+          if ($p.ExitCode -ne 0 -or -not $v.all_pass) { throw "packaged program test failed (exit $($p.ExitCode))" }
+
+      - name: Zip
+        run: Compress-Archive -Path "tools\suno_repair\dist\HEM Suno Repair" -DestinationPath "HEM-Suno-Repair-Windows.zip"
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: HEM-Suno-Repair-Windows
+          path: HEM-Suno-Repair-Windows.zip
