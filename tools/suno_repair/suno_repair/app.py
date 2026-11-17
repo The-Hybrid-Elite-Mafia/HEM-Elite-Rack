@@ -23,7 +23,7 @@ from pathlib import Path
 
 APP_NAME = "HEM Suno Repair"
 MODELS = ("claude-sonnet-4-5", "claude-opus-4-1")
-TARGETS = {"-14 LUFS (streaming)": -14.0, "-11 LUFS (heavy country-trap)": -11.0}
+TARGETS = {"-14 LUFS (Streaming Standard)": -14.0, "-12 LUFS (Punchy Modern)": -12.0, "-11 LUFS (Country-Trap Max)": -11.0}
 
 
 def app_dir() -> Path:
@@ -69,44 +69,158 @@ class _QueueWriter(io.TextIOBase):
         return len(s)
 
 
+def _dpi_aware() -> None:
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            ctypes.windll.shcore.SetProcessDpiAwareness(1)
+        except Exception:
+            pass
+
+
 def run_gui() -> int:
     import tkinter as tk
-    from tkinter import filedialog, messagebox, ttk
+    from tkinter import filedialog, messagebox
 
+    from PIL import ImageTk
+
+    from . import skin
     from .cli import main as pipeline_main
 
+    _dpi_aware()
     st = load_settings()
     root = tk.Tk()
-    root.title(APP_NAME)
-    root.geometry("900x680")
-    root.configure(bg="#111111")
-    style = ttk.Style(root)
+    root.withdraw()
+    root.title("HEM Suno Repair · Hybrid Elite Mafia")
+    dpi = root.winfo_fpixels("1i") / 96.0
+    s = max(0.7, min(dpi, root.winfo_screenwidth() * 0.94 / skin.BASE_W, root.winfo_screenheight() * 0.88 / skin.BASE_H))
+    W, H = int(skin.BASE_W * s), int(skin.BASE_H * s)
+    root.geometry(f"{W}x{H}")
+    root.resizable(False, False)
+    root.configure(bg="#0a0a0a")
     try:
-        style.theme_use("clam")
+        ico = bundled_dir() / "HEMEliteRack.ico"
+        if ico.exists():
+            root.iconbitmap(str(ico))
     except tk.TclError:
         pass
-    for w in ("TFrame", "TLabel", "TCheckbutton"):
-        style.configure(w, background="#111111", foreground="#e8e8e8")
-    style.configure("TButton", padding=6)
-    style.configure("Run.TButton", font=("Segoe UI", 12, "bold"), padding=10)
-    style.configure("Title.TLabel", font=("Segoe UI", 16, "bold"), foreground="#d4af37", background="#111111")
 
+    def S(v):
+        return int(round(v * s))
+
+    def box(b):
+        return tuple(S(v) for v in b)
+
+    keep = []          # PhotoImage references (Tk drops images that Python forgets)
+
+    def photo(im):
+        p = ImageTk.PhotoImage(im)
+        keep.append(p)
+        return p
+
+    cv = tk.Canvas(root, width=W, height=H, highlightthickness=0, bd=0, bg="#0a0a0a")
+    cv.pack()
+    cv.create_image(0, 0, image=photo(skin.render_chrome(s)), anchor="nw")
+
+    ui_font = ("Segoe UI", 12) if sys.platform == "win32" else ("DejaVu Sans", 12)
+    mono = ("Consolas", 11) if sys.platform == "win32" else ("DejaVu Sans Mono", 10)
+
+    def entry(b, var, show=None, readonly=False):
+        x0, y0, x1, y1 = box(b)
+        e = tk.Entry(root, textvariable=var, bg="#0c0c0e", fg="#ece8e0", insertbackground="#d4a04a",
+                     disabledbackground="#0c0c0e", readonlybackground="#0c0c0e", relief="flat", bd=0,
+                     highlightthickness=0, font=ui_font, show=show or "")
+        if readonly:
+            e.configure(state="readonly")
+        pad = S(10)
+        cv.create_window(x0 + pad, (y0 + y1) // 2, window=e, anchor="w", width=x1 - x0 - 2 * pad, height=y1 - y0 - S(12))
+        return e
+
+    def image_button(b, render, label, command, kind="metal"):
+        x0, y0, x1, y1 = box(b)
+        w, h = x1 - x0, y1 - y0
+        imgs = {k: photo(render(w, h, label, s, k)) for k in ("normal", "hover", "pressed", "disabled")}
+        item = cv.create_image(x0, y0, image=imgs["normal"], anchor="nw")
+        state = {"enabled": True, "imgs": imgs, "label": label}
+
+        def set_img(k):
+            cv.itemconfigure(item, image=state["imgs"][k])
+
+        def relabel(text):
+            state["label"] = text
+            state["imgs"] = {k: photo(render(w, h, text, s, k)) for k in ("normal", "hover", "pressed", "disabled")}
+            set_img("normal" if state["enabled"] else "disabled")
+
+        def enable(on):
+            state["enabled"] = on
+            set_img("normal" if on else "disabled")
+            cv.itemconfigure(item, state="normal")
+
+        cv.tag_bind(item, "<Enter>", lambda e: state["enabled"] and (set_img("hover"), cv.configure(cursor="hand2")))
+        cv.tag_bind(item, "<Leave>", lambda e: (set_img("normal" if state["enabled"] else "disabled"), cv.configure(cursor="")))
+        cv.tag_bind(item, "<ButtonPress-1>", lambda e: state["enabled"] and set_img("pressed"))
+
+        def release(e):
+            if not state["enabled"]:
+                return
+            set_img("hover")
+            if x0 <= e.x <= x1 and y0 <= e.y <= y1:
+                command()
+        cv.tag_bind(item, "<ButtonRelease-1>", release)
+        return type("Btn", (), {"enable": staticmethod(enable), "relabel": staticmethod(relabel)})
+
+    rows = skin.LAYOUT["rows"]
     stems = tk.StringVar(value="")
-    picked: list[str] = []
     mix = tk.StringVar(value="")
-    target = tk.StringVar(value=st.get("target", list(TARGETS)[0]))
-    model = tk.StringVar(value=st.get("model", MODELS[0]))
     key = tk.StringVar(value=st.get("api_key", ""))
-    show_key = tk.BooleanVar(value=False)
-    status = tk.StringVar(value="Pick your stems folder, then press RUN.")
+    model = tk.StringVar(value=st.get("model", MODELS[0]))
+    target = tk.StringVar(value=st.get("target", list(TARGETS)[0]) if st.get("target") in TARGETS else list(TARGETS)[0])
+    picked: list[str] = []
+    state = {"out": None, "running": False, "show_key": False}
 
-    frm = ttk.Frame(root, padding=14)
-    frm.pack(fill="both", expand=True)
-    ttk.Label(frm, text="HYBRID ELITE MAFIA  ·  SUNO REPAIR", style="Title.TLabel").grid(row=0, column=0, columnspan=3, sticky="w", pady=(0, 10))
+    entry(rows["stems"][2], stems, readonly=True)
+    entry(rows["mix"][2], mix, readonly=True)
+    model_entry = entry(rows["model"][2], model)
+    key_entry = entry(rows["key"][2], key, show="•")
 
+    # loudness target: a gold-rimmed field that opens a dark menu
+    tb = box(rows["target"][2])
+    target_text = cv.create_text(tb[0] + S(14), (tb[1] + tb[3]) // 2, text=target.get(), anchor="w", fill="#ece8e0", font=ui_font)
+    menu = tk.Menu(root, tearoff=0, bg="#16140f", fg="#ece8e0", activebackground="#d4a04a", activeforeground="#1a1008",
+                   font=ui_font, bd=0, relief="flat")
+    for name in TARGETS:
+        menu.add_command(label=name, command=lambda n=name: (target.set(n), cv.itemconfigure(target_text, text=n)))
+    hit = cv.create_rectangle(*tb, outline="", fill="")
+    for it in (hit, target_text):
+        cv.tag_bind(it, "<Button-1>", lambda e: menu.tk_popup(root.winfo_rootx() + tb[0], root.winfo_rooty() + tb[3] + S(2)))
+        cv.tag_bind(it, "<Enter>", lambda e: cv.configure(cursor="hand2"))
+        cv.tag_bind(it, "<Leave>", lambda e: cv.configure(cursor=""))
+    cv.tag_raise(target_text)
+
+    # status line + terminal
+    stx, sty = skin.LAYOUT["status_text"]
+    status_item = cv.create_text(S(stx) - S(20), S(sty), text="Ready for stem batch ingestion.", anchor="w",
+                                 fill="#68ec78", font=(ui_font[0], 15))
+    t = box(skin.LAYOUT["terminal"])
+    logbox = tk.Text(root, bg="#07140b", fg="#6cf07c", insertbackground="#6cf07c", relief="flat", bd=0,
+                     highlightthickness=0, font=mono, wrap="word", padx=S(10), pady=S(8))
+    sb = tk.Scrollbar(root, command=logbox.yview, bg="#0c1a10", troughcolor="#07140b", relief="flat", bd=0, width=S(12))
+    logbox.configure(yscrollcommand=sb.set)
+    cv.create_window(t[0] + S(3), t[1] + S(3), window=logbox, anchor="nw", width=t[2] - t[0] - S(20), height=t[3] - t[1] - S(6))
+    cv.create_window(t[2] - S(16), t[1] + S(3), window=sb, anchor="nw", width=S(13), height=t[3] - t[1] - S(6))
+
+    def log(line: str):
+        logbox.insert("end", line)
+        logbox.see("end")
+
+    def set_status(text, color="#68ec78"):
+        cv.itemconfigure(status_item, text=text, fill=color)
+
+    log("> [Init] Pick your stems (Files / Zip) and press EXECUTE.\n")
+
+    # ---- actions
     def show_picked(paths):
         from .audio_io import resolve_inputs
-        logbox.delete("1.0", "end")
         try:
             files = resolve_inputs(paths)
         except SystemExit as e:
@@ -116,9 +230,12 @@ def run_gui() -> int:
             messagebox.showerror(APP_NAME, "No audio files (WAV, MP3, FLAC, AIFF) found there.")
             return
         picked[:] = [str(p) for p in paths]
-        stems.set(" | ".join(Path(p).name for p in paths))
-        logbox.insert("end", f"{len(files)} audio files found:\n" + "".join(f"   {f.name}\n" for f in files))
-        status.set(f"{len(files)} files ready. Press RUN.")
+        stems.set("  |  ".join(Path(p).name for p in paths))
+        logbox.delete("1.0", "end")
+        log(f"> [Init] Scanning stems... {len(files)} audio files found\n")
+        for f in files:
+            log(f">   Loaded: {f.name}\n")
+        set_status(f"{len(files)} stems ready. Press EXECUTE REPAIR ENGINE.")
 
     def pick_stems():
         fs = filedialog.askopenfilenames(title="Select your stems (WAV / MP3), or the Suno .zip",
@@ -128,7 +245,7 @@ def run_gui() -> int:
             show_picked(list(fs))
 
     def pick_folder():
-        d = filedialog.askdirectory(title="Folder that holds your stems (files are not shown in this box)",
+        d = filedialog.askdirectory(title="Folder that holds your stems (this box shows folders only)",
                                     initialdir=st.get("last_dir") or None)
         if d:
             show_picked([d])
@@ -136,56 +253,34 @@ def run_gui() -> int:
     def pick_mix():
         f = filedialog.askopenfilename(title="Original stereo mix (optional)",
                                        filetypes=[("Audio", "*.wav *.flac *.mp3 *.aif *.aiff *.m4a"), ("All", "*.*")])
-        if f:
-            mix.set(f)
+        mix.set(f or "")
 
-    ttk.Label(frm, text="Stems").grid(row=1, column=0, sticky="w")
-    ttk.Entry(frm, textvariable=stems, width=80, state="readonly").grid(row=1, column=1, sticky="we", padx=6)
-    stembtns = ttk.Frame(frm)
-    stembtns.grid(row=1, column=2)
-    ttk.Button(stembtns, text="Files / Zip…", command=pick_stems).pack(side="left")
-    ttk.Button(stembtns, text="Folder…", command=pick_folder).pack(side="left")
-    ttk.Label(frm, text="Original mix (optional)").grid(row=2, column=0, sticky="w")
-    ttk.Entry(frm, textvariable=mix, width=80).grid(row=2, column=1, sticky="we", padx=6)
-    mixbtns = ttk.Frame(frm)
-    mixbtns.grid(row=2, column=2)
-    ttk.Button(mixbtns, text="Browse…", command=pick_mix).pack(side="left")
-    ttk.Button(mixbtns, text="Clear", command=lambda: mix.set("")).pack(side="left")
-    ttk.Label(frm, text="Loudness target").grid(row=3, column=0, sticky="w", pady=4)
-    ttk.Combobox(frm, textvariable=target, values=list(TARGETS), state="readonly", width=34).grid(row=3, column=1, sticky="w", padx=6)
-    ttk.Label(frm, text="Claude model").grid(row=4, column=0, sticky="w", pady=4)
-    ttk.Combobox(frm, textvariable=model, values=list(MODELS), width=34).grid(row=4, column=1, sticky="w", padx=6)
-    ttk.Label(frm, text="Claude API key").grid(row=5, column=0, sticky="w", pady=4)
-    key_entry = ttk.Entry(frm, textvariable=key, width=80, show="•")
-    key_entry.grid(row=5, column=1, sticky="we", padx=6)
-    ttk.Checkbutton(frm, text="Show", variable=show_key,
-                    command=lambda: key_entry.configure(show="" if show_key.get() else "•")).grid(row=5, column=2, sticky="w")
+    def toggle_key():
+        state["show_key"] = not state["show_key"]
+        key_entry.configure(show="" if state["show_key"] else "•")
+        cv.itemconfigure(show_item, image=show_imgs[state["show_key"]])
 
-    run_btn = ttk.Button(frm, text="RUN", style="Run.TButton")
-    run_btn.grid(row=6, column=0, columnspan=3, sticky="we", pady=10)
-    ttk.Label(frm, textvariable=status).grid(row=7, column=0, columnspan=3, sticky="w")
-    bar = ttk.Progressbar(frm, mode="indeterminate")
-    bar.grid(row=8, column=0, columnspan=3, sticky="we", pady=4)
-
-    logbox = tk.Text(frm, height=20, bg="#1b1b1b", fg="#e8e8e8", insertbackground="#e8e8e8", font=("Consolas", 9), wrap="word")
-    logbox.grid(row=9, column=0, columnspan=3, sticky="nsew")
-    out_btn = ttk.Button(frm, text="Open output folder", state="disabled")
-    out_btn.grid(row=10, column=0, columnspan=3, sticky="e", pady=(8, 0))
-    frm.columnconfigure(1, weight=1)
-    frm.rowconfigure(9, weight=1)
+    sbx = box(rows["stems"][3])
+    half = (sbx[2] - sbx[0] - S(8)) // 2
+    image_button((rows["stems"][3][0], rows["stems"][3][1], rows["stems"][3][0] + half / s, rows["stems"][3][3]), skin.metal_button, "Files / Zip…", pick_stems)
+    image_button((rows["stems"][3][0] + half / s + 8, rows["stems"][3][1], rows["stems"][3][2], rows["stems"][3][3]), skin.metal_button, "Folder…", pick_folder)
+    image_button(rows["mix"][3], skin.metal_button, "Browse…", pick_mix)
+    kb = box(rows["key"][3])
+    show_imgs = {v: photo(skin.toggle(kb[2] - kb[0], kb[3] - kb[1], "Show", v, s)) for v in (False, True)}
+    show_item = cv.create_image(kb[0], kb[1], image=show_imgs[False], anchor="nw")
+    cv.tag_bind(show_item, "<Button-1>", lambda e: toggle_key())
 
     q: "queue.Queue[str]" = queue.Queue()
-    state = {"out": None, "running": False}
 
     def pump():
         try:
             while True:
-                s = q.get_nowait()
-                if s.startswith("\x00DONE"):
-                    finish(s)
+                m = q.get_nowait()
+                if m.startswith("\x00DONE"):
+                    finish(m)
                 else:
-                    logbox.insert("end", s)
-                    logbox.see("end")
+                    for line in m.splitlines(keepends=True):
+                        log(("> " + line) if line.strip() and not line.startswith(" ") else line)
         except queue.Empty:
             pass
         root.after(150, pump)
@@ -193,17 +288,18 @@ def run_gui() -> int:
     def finish(msg: str):
         code = int(msg.split(":", 1)[1])
         state["running"] = False
-        bar.stop()
-        run_btn.configure(state="normal")
+        run_btn.enable(True)
+        run_btn.relabel("EXECUTE REPAIR ENGINE")
         out = state["out"]
         if out and out.exists():
-            out_btn.configure(state="normal", command=lambda: os.startfile(str(out)) if hasattr(os, "startfile") else None)
+            open_btn.enable(True)
         if code == 0:
-            status.set("DONE — all checks pass. Files are in the output folder.")
+            set_status("DONE — all checks pass. Master exported.")
+            log(f"> [Success] Master exported to: {out}\n")
         elif code == 5:
-            status.set("DONE — some checks FAILED (see verification.md). Files are still written.")
+            set_status("DONE — some checks FAILED (see verification.md).", "#f0c060")
         else:
-            status.set(f"STOPPED with an error (code {code}). The log above says why.")
+            set_status(f"STOPPED with an error (code {code}) — see the log.", "#ff6b5b")
 
     def worker(argv: list[str], out: Path):
         out.mkdir(parents=True, exist_ok=True)
@@ -235,13 +331,12 @@ def run_gui() -> int:
             return
         folder = files[0].parent
         k = key.get().strip()
-        settings = {"last_dir": str(folder), "target": target.get(), "model": model.get().strip(), "api_key": k}
-        save_settings(settings)
+        save_settings({"last_dir": str(folder), "target": target.get(), "model": model.get().strip(), "api_key": k})
         stamp = dt.datetime.now().strftime("%Y-%m-%d %H-%M")
         out = folder / f"HEM Repair {stamp}"
         argv = [str(p) for p in picked] + ["--out", str(out), "--target", str(TARGETS[target.get()])]
         if mix.get().strip():
-            argv += ["--mix", mix.get().strip().strip('"')]
+            argv += ["--mix", mix.get().strip()]
         if k:
             os.environ["ANTHROPIC_API_KEY"] = k
             argv += ["--planner", "claude", "--model", model.get().strip() or MODELS[0]]
@@ -251,15 +346,30 @@ def run_gui() -> int:
                 return
             argv += ["--planner", "rules"]
         logbox.delete("1.0", "end")
+        log("> [DSP] Measuring stems, Claude plan, repair, master, verification...\n")
         state.update(out=out, running=True)
-        out_btn.configure(state="disabled")
-        run_btn.configure(state="disabled")
-        status.set("Working… measuring takes a few minutes for a full song.")
-        bar.start(12)
+        open_btn.enable(False)
+        run_btn.enable(False)
+        run_btn.relabel("WORKING…")
+        set_status("Working… a full song takes several minutes.", "#f0c060")
         threading.Thread(target=worker, args=(argv, out), daemon=True).start()
 
-    run_btn.configure(command=start)
+    def open_out():
+        out = state["out"]
+        if out and out.exists():
+            if hasattr(os, "startfile"):
+                os.startfile(str(out))
+            else:
+                subprocess.Popen(["xdg-open", str(out)])
+
+    run_btn = image_button(skin.LAYOUT["execute"], skin.gold_bar, "EXECUTE REPAIR ENGINE", start)
+    open_btn = image_button(skin.LAYOUT["open_btn"], skin.metal_button, "Open output folder", open_out)
+    open_btn.enable(False)
+
+    if os.environ.get("HEM_PRESELECT_STEMS"):      # for scripted tests: start with these stems picked
+        root.after(300, lambda: show_picked(os.environ["HEM_PRESELECT_STEMS"].split(os.pathsep)))
     root.after(150, pump)
+    root.deiconify()
     root.mainloop()
     return 0
 

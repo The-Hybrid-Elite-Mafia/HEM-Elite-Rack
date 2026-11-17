@@ -37,7 +37,8 @@ jobs:
           pyinstaller --noconfirm --clean --windowed --name "HEM Suno Repair"
           --add-binary "ffmpeg.exe;." --add-binary "ffprobe.exe;."
           --collect-all librosa --collect-all pyloudnorm --collect-data soundfile --collect-submodules anthropic
-          --hidden-import jsonschema --hidden-import tkinter --icon ..\..\rackapp\resources\HEMEliteRack.ico
+          --hidden-import jsonschema --hidden-import tkinter --hidden-import PIL.ImageTk --icon ..\..\rackapp\resources\HEMEliteRack.ico
+          --add-data "suno_repair\fonts;fonts" --add-data "..\..\rackapp\resources\HEMEliteRack.ico;."
           hem_suno_repair.py
 
       - name: Test the packaged program on a test song (built-in rules, no API key)
@@ -52,6 +53,24 @@ jobs:
           $v = Get-Content "$env:RUNNER_TEMP\out\verification.json" | ConvertFrom-Json
           if (-not (Test-Path "$env:RUNNER_TEMP\out\master.wav")) { throw "no master.wav" }
           if ($p.ExitCode -ne 0 -or -not $v.all_pass) { throw "packaged program test failed (exit $($p.ExitCode))" }
+
+      - name: Photograph the real window on Windows (stems pre-picked, then a finished run)
+        working-directory: tools/suno_repair
+        run: |
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          function Shot($path) {
+            $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+            $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+            $g = [System.Drawing.Graphics]::FromImage($bmp); $g.CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+            $bmp.Save($path, [System.Drawing.Imaging.ImageFormat]::Png); $g.Dispose(); $bmp.Dispose()
+          }
+          $env:HEM_PRESELECT_STEMS = "$env:RUNNER_TEMP\song"
+          $p = Start-Process -FilePath "dist\HEM Suno Repair\HEM Suno Repair.exe" -PassThru
+          Start-Sleep -Seconds 25
+          Shot "$env:RUNNER_TEMP\window.png"
+          Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+          [System.Windows.Forms.Screen]::PrimaryScreen.Bounds | Out-Host
+          Copy-Item "$env:RUNNER_TEMP\window.png" "$env:GITHUB_WORKSPACE\window-preview.png"
 
       - name: Installer (Inno Setup)
         run: |
@@ -73,5 +92,6 @@ jobs:
           } else {
             gh release upload $tag installer\output\HEM-Suno-Repair-Setup.exe -R $env:GITHUB_REPOSITORY --clobber
           }
+          if (Test-Path window-preview.png) { gh release upload $tag window-preview.png -R $env:GITHUB_REPOSITORY --clobber }
           if ($LASTEXITCODE -ne 0) { throw "publish failed ($LASTEXITCODE)" }
           Write-Host "::notice::https://github.com/$env:GITHUB_REPOSITORY/releases/download/$tag/HEM-Suno-Repair-Setup.exe"
