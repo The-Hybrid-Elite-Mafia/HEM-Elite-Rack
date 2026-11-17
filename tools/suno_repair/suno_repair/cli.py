@@ -67,9 +67,11 @@ def main(argv: list[str] | None = None) -> int:
     if a.reuse_telemetry and (out / "telemetry_compact.json").exists():
         tel = json.loads((out / "telemetry_compact.json").read_text(encoding="utf-8"))
         say("telemetry reused from " + str(out / "telemetry_compact.json"))
-        if any("spikes_3k_6k" not in s for s in tel["stems"].values()):     # older telemetry: add the 3-6 kHz list
+        if any("spikes_3k_6k" not in s for s in tel["stems"].values()) or "quieter_in_band" not in tel["cross_stem"]["masking_200_500"]:
+            sps = {st.name: forensics.spectra(st.audio, session.rate) for st in session.stems}   # older telemetry: add what is missing
             for st in session.stems:
-                tel["stems"][st.name]["spikes_3k_6k"] = forensics.spikes_3k_6k(forensics.spectra(st.audio, session.rate))
+                tel["stems"][st.name]["spikes_3k_6k"] = forensics.spikes_3k_6k(sps[st.name])
+            tel["cross_stem"]["masking_200_500"] = forensics.masking_matrix(names, sps)
             _dump(tel, out / "telemetry_compact.json")
             say("added 3-6 kHz spike lists to the telemetry")
     else:

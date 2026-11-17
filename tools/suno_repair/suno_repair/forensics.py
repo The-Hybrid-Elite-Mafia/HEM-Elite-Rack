@@ -424,14 +424,19 @@ def overlap_coeff(Pa: np.ndarray, Pb: np.ndarray, freqs: np.ndarray, lo: float, 
 
 
 def masking_matrix(names: list[str], sp: dict, lo: float = 200.0, hi: float = 500.0) -> dict:
-    m, vals = {}, []
+    m, vals, quieter = {}, [], {}
     for a, b in itertools.combinations(names, 2):
         if sp[a].low_pow.shape[0] != sp[b].low_pow.shape[0]:
             continue
         oc, _, _ = overlap_coeff(sp[a].low_pow, sp[b].low_pow, sp[a].low_freqs, lo, hi)
         m[f"{a} | {b}"] = _r(oc, 3)
+        sel = (sp[a].low_freqs >= lo) & (sp[a].low_freqs <= hi)
+        quieter[f"{a} | {b}"] = a if sp[a].low_pow[:, sel].sum() < sp[b].low_pow[:, sel].sum() else b
         vals.append(oc)
-    return {"band_hz": [lo, hi], "pairs": m, "mean_overlap": _r(float(np.mean(vals)) if vals else 0.0, 4)}
+    # Overlap peaks when both stems are equally loud in the band: cutting the QUIETER one lowers it,
+    # cutting the louder one raises it.
+    return {"band_hz": [lo, hi], "pairs": m, "quieter_in_band": quieter,
+            "mean_overlap": _r(float(np.mean(vals)) if vals else 0.0, 4)}
 
 
 def kick_bass_collision(stems: list[Track], sp: dict) -> dict:

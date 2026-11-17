@@ -83,6 +83,45 @@ def plan(tel: dict, target_lufs: float, ceiling_dbtp: float) -> dict:
         if why:
             m["rationale"] = "; ".join(why)[:400]
         stems.append(m)
+    by = {m["stem"]: m for m in stems}
+    # T4: every 3-6 kHz spike over 6 dB gets a dynamic notch (cut only while it stands out)
+    for name, s in tel["stems"].items():
+        m = by[name]
+        have = {round(n["freq_hz"]) for n in m["dynamic_notches"]} | {round(b["freq_hz"]) for b in m["eq"] if b["type"] == "notch"}
+        sp = sorted(s.get("spikes_3k_6k", []), key=lambda r: -(r["prominence_db"] or 0))
+        added = 0
+        for r in sp:
+            if round(r["hz"]) in have:
+                continue
+            q = float(min(max(r["q_estimate"] or 8.0, 4.0), 40.0))
+            if len(m["dynamic_notches"]) < 24:
+                m["dynamic_notches"].append({"freq_hz": float(r["hz"]), "q": q, "threshold_db": 2.0,
+                                             "max_cut_db": float(min(r["prominence_db"] or 6.0, 18.0)),
+                                             "attack_ms": 2.0, "release_ms": 80.0})
+            elif len(m["eq"]) < 12:
+                m["eq"].append({"type": "peak", "freq_hz": float(r["hz"]), "gain_db": -float(min(max((r["prominence_db"] or 6.0) - 4.0, 1.0), 18.0)),
+                                "q": q, "start_s": None, "end_s": None})
+            added += 1
+        if added:
+            m["rationale"] = (m["rationale"] if m["rationale"] != "no measured problem" else "") + f"; {added} spikes 3-6 kHz"
+    # T3: carve 200-500 Hz in the less important stem of every pair that overlaps >= 0.08
+    quieter = tel["cross_stem"]["masking_200_500"].get("quieter_in_band", {})
+    cut = {}
+    pairs = sorted(((p, o) for p, o in (tel["cross_stem"]["masking_200_500"]["pairs"] or {}).items() if o), key=lambda x: -x[1])
+    chosen = [(p, o) for p, o in pairs if o >= 0.08] or [(p, o) for p, o in pairs[:2] if o > 0.005]
+    for pair, ov in chosen:
+        t = quieter.get(pair)
+        if t is None:
+            continue
+        for t in [t]:
+            cut[t] = max(cut.get(t, 0.0), min(4.0, 2.0 + 5.0 * (ov - 0.08)))
+    for name, db in cut.items():
+        m = by[name]
+        if len(m["eq"]) < 12:
+            m["eq"].append({"type": "peak", "freq_hz": 300.0, "gain_db": -round(db, 1), "q": 1.0, "start_s": None, "end_s": None})
+            m["rationale"] = (m["rationale"] if m["rationale"] != "no measured problem" else "") + f"; 200-500 Hz masking cut {round(db, 1)} dB"
+    for m in stems:
+        m["rationale"] = m["rationale"].lstrip("; ")[:400]
     master = neutral_master()
     ss = tel["stem_sum"]
     if ss.get("sub_lt150_corr") is not None and ss["sub_lt150_corr"] < 0.85:
