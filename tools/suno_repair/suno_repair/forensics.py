@@ -174,6 +174,13 @@ def resonances(sp: StemSpectra, lo: float = 2000.0, hi: float = 8000.0, min_prom
     return out[:top]
 
 
+def spikes_3k_6k(sp: StemSpectra) -> list[dict]:
+    """Every 3-6 kHz peak over 6 dB prominence (the project's verification target), for the planner."""
+    return [{"hz": r["hz"], "prominence_db": r["prominence_db"], "q_estimate": r["q_estimate"],
+             "present_pct_of_song": r["present_pct_of_song"], "kind": r["kind"]}
+            for r in resonances(sp, 3000.0, 6000.0, 6.0, top=10_000)]
+
+
 def resonance_count(sp: StemSpectra, lo: float = 3000.0, hi: float = 6000.0, min_prom_db: float = 6.0) -> int:
     return len(resonances(sp, lo, hi, min_prom_db, top=10_000))
 
@@ -498,6 +505,7 @@ def analyze(session: Session, stft_dir: Path | None = None) -> tuple[dict, dict]
             "onset_drift": (onset_dtw_drift(a, ref, rate) | {"reference": ref_name}) if use_ref else None,
             "resonances_2k_8k": resonances(sp[s.name]),
             "resonance_count_3k_6k": resonance_count(sp[s.name]),
+            "spikes_3k_6k": spikes_3k_6k(sp[s.name]),
             "hf_cutoff": hf_cutoff(sp[s.name], rate),
             "hot_spots": hot_spots(sp[s.name]),
             "active_pct": _r(100.0 * float(sp[s.name].active.mean()), 1),
@@ -563,6 +571,7 @@ def compact(full: dict) -> dict:
             "resonances_2k_8k": [{k: r[k] for k in ("hz", "prominence_db", "q_estimate", "spectral_kurtosis", "present_pct_of_song", "kind")} | {
                 "present_ranges_s": r["present_ranges_s"][:4]} for r in s["resonances_2k_8k"][:5]],
             "hf_cutoff": s["hf_cutoff"], "hot_spots": s["hot_spots"][:8],
+            "spikes_3k_6k": s.get("spikes_3k_6k", []),
         }
     out = {"sample_rate": full["sample_rate"], "length_s": full["length_s"], "stems": stems,
            "stem_sum": {"integrated_lufs": full["stem_sum"]["loudness"]["integrated_lufs"],

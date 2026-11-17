@@ -38,6 +38,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--rack-plugins", default=None, help="comma list of rack plug-in names to offer Claude")
     ap.add_argument("--tempo", type=float, default=None, help="song BPM for tempo-synced rack plug-ins")
     ap.add_argument("--save-stft", action="store_true", help="also save the raw complex STFT (L, R, M, S) per stem as .npz (large)")
+    ap.add_argument("--reuse-telemetry", action="store_true", help="skip measuring; use telemetry_*.json already in --out")
     ap.add_argument("--verify-only", action="store_true", help="re-check an existing --out folder (no analysis, no render)")
     a = ap.parse_args(argv)
 
@@ -63,11 +64,20 @@ def main(argv: list[str] | None = None) -> int:
                             session.mix.audio if session.mix is not None else None, out)
         return _print_checks(res, say, out)
 
-    full, _ = forensics.analyze(session, out / "stft" if a.save_stft else None)
-    tel = forensics.compact(full)
-    _dump(full, out / "telemetry_full.json")
-    _dump(tel, out / "telemetry_compact.json")
-    say("telemetry written")
+    if a.reuse_telemetry and (out / "telemetry_compact.json").exists():
+        tel = json.loads((out / "telemetry_compact.json").read_text(encoding="utf-8"))
+        say("telemetry reused from " + str(out / "telemetry_compact.json"))
+        if any("spikes_3k_6k" not in s for s in tel["stems"].values()):     # older telemetry: add the 3-6 kHz list
+            for st in session.stems:
+                tel["stems"][st.name]["spikes_3k_6k"] = forensics.spikes_3k_6k(forensics.spectra(st.audio, session.rate))
+            _dump(tel, out / "telemetry_compact.json")
+            say("added 3-6 kHz spike lists to the telemetry")
+    else:
+        full, _ = forensics.analyze(session, out / "stft" if a.save_stft else None)
+        tel = forensics.compact(full)
+        _dump(full, out / "telemetry_full.json")
+        _dump(tel, out / "telemetry_compact.json")
+        say("telemetry written")
     if a.stop_after == "analyze":
         return 0
 

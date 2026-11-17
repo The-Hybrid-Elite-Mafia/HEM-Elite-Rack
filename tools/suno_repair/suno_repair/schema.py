@@ -88,7 +88,7 @@ def manifest_schema(stem_names: list[str], rack_plugins: list[str] | None) -> di
         "polarity_invert": {"type": "boolean"},
         "mono_below_hz": _num(0, 300, "0 = off"),
         "eq": {"type": "array", "items": EQ_BAND, "maxItems": 12},
-        "dynamic_notches": {"type": "array", "items": DYN_NOTCH, "maxItems": 8},
+        "dynamic_notches": {"type": "array", "items": DYN_NOTCH, "maxItems": 24},
         "deesser": DEESSER,
         "bleed_gate": BLEED_GATE,
         "sidechain_duck": SIDECHAIN,

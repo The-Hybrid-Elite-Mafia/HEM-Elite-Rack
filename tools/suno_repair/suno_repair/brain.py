@@ -21,11 +21,18 @@ TOOL_NAME = "submit_repair_manifest"
 SYSTEM = """You are the planning stage of an automatic stem-repair pipeline for AI-generated (Suno) music.
 You receive measured telemetry and must answer ONLY by calling submit_repair_manifest.
 
+The render is judged by these pass/fail targets (the project's own), so the plan must reach them:
+ T1 master integrated loudness within +/-0.2 LU of target_lufs, true peak <= true_peak_ceiling_dbtp (the renderer's final limiter handles these)
+ T2 master sub < 150 Hz L/R correlation >= +0.85 and mono fold-down loss < 1.5 dB
+ T3 a measurable DROP in mean 200-500 Hz cross-stem spectral overlap (cross_stem.masking_200_500)
+ T4 FEWER 3-6 kHz high-Q resonant spikes > 6 dB prominence, counted over all stems (each stem's spikes_3k_6k list)
+
 Rules:
 1. Fix measured problems only. A stem with no problem gets neutral settings: gain 0, delay 0, no EQ, everything disabled.
 2. Alignment: if shift.offset_samples is not null and |offset| >= 0.5 with match_strength_psr >= 6, set delay_samples = -offset_samples. If polarity_inverted is true, set polarity_invert true.
 3. Sub phase: when a stem's sub_phase_problem is true (or sub_lt150_corr < 0.85), set mono_below_hz between 100 and 150.
-4. Resonances: for resonances_2k_8k with kind "stationary_artifact": if present_pct_of_song >= 90, add an EQ band type "notch" at that hz, q = clamp(q_estimate, 8, 40), whole song; otherwise add a dynamic notch at that hz, q = max(q_estimate, 4), threshold_db about 3, max_cut_db = min(prominence_db + 3, 18). Musical/intermittent peaks: leave alone unless prominence_db > 12.
+4. Spikes (T4): attenuate EVERY entry of each stem's spikes_3k_6k. kind "stationary_artifact" with present_pct_of_song >= 90: EQ band type "notch" at that hz, q = clamp(q_estimate, 8, 40), whole song. All others: a dynamic notch at that hz, q = clamp(q_estimate, 4, 40), threshold_db 2, max_cut_db = prominence_db (cap 18), attack 2 ms, release 80 ms. If a stem has more than 24 spikes, use dynamic notches for the 24 most prominent and static peak cuts (gain -(prominence_db-4), same q) for the rest. Spikes in resonances_2k_8k outside 3-6 kHz: only stationary_artifact ones.
+4b. Masking (T3): for every pair in masking_200_500.pairs with overlap >= 0.08, cut 200-500 Hz in the less important stem of the pair (keep: lead vocal > bass > drums > backing vocal > the rest; between two "rest" stems cut both): peak band at the stem's mud centre (about 300 Hz), gain -2 to -4 dB (bigger for higher overlap), q 0.9-1.2, whole song.
 5. Hot spots are time-coded: fix them with EQ bands limited to start_s/end_s (mud 200-500 Hz cut 1.5-4 dB, harsh 2-5 kHz cut 1.5-3 dB). Use the whole-song form (null times) only when the problem covers most of the song.
 6. Sibilance hot spots on vocal stems: enable the de-esser (freq 5500-8000 Hz, threshold about -12, max_cut 4-8).
 7. Bleed: a bleed_db value (row leaks into column) above -35 means audible leakage in the column stem's gaps: enable that stem's bleed_gate with threshold_dbfs = gate_threshold_hint_dbfs and reduction 10-20 dB. Never gate a stem with active_pct above 85.
@@ -80,6 +87,12 @@ def plan(telemetry: dict, stem_names: list[str], target_lufs: float, ceiling_dbt
                 kw["temperature"] = 0
             try:
                 return client.messages.create(**kw)
+            except TypeError as e:          # the installed SDK does not take this argument at all
+                if opts["temperature"] and "temperature" in str(e):
+                    opts["temperature"] = False
+                    log["dropped_options"].append({"option": "temperature", "sdk_error": str(e)[:300]})
+                    continue
+                raise
             except anthropic.BadRequestError as e:
                 msg = str(e).lower()
                 for key, words in (("strict", ("strict",)), ("temperature", ("temperature",)),
