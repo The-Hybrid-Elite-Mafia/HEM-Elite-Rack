@@ -68,9 +68,12 @@ jobs:
           $p = Start-Process -FilePath "dist\HEM Suno Repair\HEM Suno Repair.exe" -PassThru
           Start-Sleep -Seconds 25
           Shot "$env:RUNNER_TEMP\window.png"
+          Copy-Item "$env:RUNNER_TEMP\window.png" "$env:GITHUB_WORKSPACE\window-preview.png"
+          if ($p.HasExited) { throw "the window closed by itself (exit $($p.ExitCode)) - see window-preview.png" }
+          $err = Get-Process | Where-Object { $_.MainWindowTitle -like '*Unhandled exception*' -or $_.MainWindowTitle -like '*Error*' }
+          if ($err) { throw "an error window is open: $($err.MainWindowTitle)" }
           Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
           [System.Windows.Forms.Screen]::PrimaryScreen.Bounds | Out-Host
-          Copy-Item "$env:RUNNER_TEMP\window.png" "$env:GITHUB_WORKSPACE\window-preview.png"
 
       - name: Installer (Inno Setup)
         run: |
