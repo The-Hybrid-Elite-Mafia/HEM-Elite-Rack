@@ -1,3 +1,9 @@
+# HEM-Elite-Rack 0.55.1
+
+- Fixed: meters, peak readouts and live displays stayed still in Audacity. Audacity doesn't send those values
+  back to the plug-in window, so the window now reads them straight from the running plug-in. Other hosts work
+  as before.
+
 ## HEM-Elite-Rack — 0.55.0: the HEM frame look on all 120 plug-ins
 
 - **New look for every plug-in window.** Each plug-in now opens in the HEM frame (the same chrome frame,

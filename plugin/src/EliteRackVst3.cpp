@@ -8,7 +8,9 @@
 //  a Bypass parameter (latency-matched, 10 ms crossfade, no click). What the faceplate shows
 //  besides the knobs (before / after spectrum, THE CLEANER's noise curve, SURGEON's dynamic gains
 //  and auto gain) travels from the processor to the editor as hidden read-only output
-//  parameters, about 30 times a second, so it works the VST3 way in every host.
+//  parameters, about 30 times a second, so it works the VST3 way in every host. The same values also go to a
+//  table the editor in this process reads directly (found through a registry once the processor announces
+//  itself), for hosts that run both halves in one process but do not pass output parameters back (Audacity).
 //  Steinberg VST3 SDK: MIT licence (verified from the SDK's LICENSE.txt, v3.8.1). No ASIO.
 // =============================================================================
 #include "hem/rack/EliteEq.hpp"
@@ -25,6 +27,7 @@
 
 #include "pluginterfaces/base/ibstream.h"
 #include "pluginterfaces/vst/ivstevents.h"
+#include "pluginterfaces/vst/ivstmessage.h"
 #include "pluginterfaces/vst/ivstmidicontrollers.h"
 #include "pluginterfaces/vst/ivstparameterchanges.h"
 #include "pluginterfaces/vst/ivstprocesscontext.h"
@@ -37,6 +40,11 @@
 #include <windows.h>
 
 #include <algorithm>
+#include <array>
+#include <atomic>
+#include <chrono>
+#include <map>
+#include <mutex>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -78,6 +86,28 @@ static_assert(kSent <= 100);
 float dbToNorm(float db, float lo, float hi) { return std::clamp((db - lo) / (hi - lo), 0.0f, 1.0f); }
 float normToDb(double n, float lo, float hi) { return lo + static_cast<float>(n) * (hi - lo); }
 constexpr float kSpecLo = -120.0f, kSpecHi = 0.0f;
+
+// ---- the display values, shared in-process between a processor and its controller --------------------
+constexpr Vst::ParamID kLiveLo = kBypassId, kLiveHi = kCloneBase + rack::clone::kPoints;   // every display id is in [lo, hi)
+constexpr std::int64_t kLiveStaleMs = 300;   // no process() call for this long: the processor is stopped
+constexpr const char* kLiveMessage = "hemrack.live";
+std::int64_t nowMs() {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+struct LiveDisplay {
+    std::array<std::atomic<float>, kLiveHi - kLiveLo> v{};
+    std::array<std::atomic<bool>, kLiveHi - kLiveLo> set{};
+    std::atomic<std::int64_t> lastMs{0};
+};
+struct LiveRegistry {
+    std::mutex mutex;
+    std::map<std::int64_t, std::shared_ptr<LiveDisplay>> map;
+    std::int64_t next = 1;
+};
+LiveRegistry& live() {
+    static LiveRegistry r;
+    return r;
+}
 bool isCompressor(const rack::PluginInfo& info) {
     const rack::Face f = info.face;
     if (f == rack::Face::Spec) return info.plate && info.plate->reportsReduction;
@@ -155,6 +185,7 @@ public:
         note_ = dynamic_cast<rack::NoteSink*>(fx_.get());
         clone_ = dynamic_cast<rack::CloneSource*>(fx_.get());
     }
+    ~Processor() override { unregister(); }
     static FUnknown* createInstance(void* ctx) { return static_cast<Vst::IAudioProcessor*>(new Processor(static_cast<const rack::PluginInfo*>(ctx))); }
 
     tresult PLUGIN_API initialize(FUnknown* context) SMTG_OVERRIDE {
@@ -164,7 +195,27 @@ public:
         else addAudioInput(STR16("Stereo In"), Vst::SpeakerArr::kStereo);
         if (sc_) addAudioInput(STR16("Sidechain"), Vst::SpeakerArr::kStereo, Vst::BusTypes::kAux, 0);   // off until the host routes one
         addAudioOutput(STR16("Stereo Out"), Vst::SpeakerArr::kStereo);
+        std::lock_guard lock(live().mutex);
+        if (token_ == 0) token_ = live().next++;
+        live().map[token_] = live_;
         return kResultOk;
+    }
+    tresult PLUGIN_API terminate() SMTG_OVERRIDE {
+        unregister();
+        return AudioEffect::terminate();
+    }
+    // Tell the controller which display table is ours (UI thread; never from process()).
+    tresult PLUGIN_API connect(Vst::IConnectionPoint* other) SMTG_OVERRIDE {
+        const tresult r = AudioEffect::connect(other);
+        if (r == kResultOk && token_ != 0) {
+            if (Vst::IMessage* msg = allocateMessage()) {
+                msg->setMessageID(kLiveMessage);
+                msg->getAttributes()->setInt("token", token_);
+                sendMessage(msg);
+                msg->release();
+            }
+        }
+        return r;
     }
     tresult PLUGIN_API setBusArrangements(Vst::SpeakerArrangement* inputs, int32 numIns, Vst::SpeakerArrangement* outputs, int32 numOuts) SMTG_OVERRIDE {
         if (note_) {   // an instrument: no audio in
@@ -283,10 +334,11 @@ public:
         }
         out.silenceFlags = 0;
         sinceSend_ += total;
-        if (data.outputParameterChanges && sinceSend_ >= sendEvery_) {
+        if (sinceSend_ >= sendEvery_) {
             sinceSend_ = 0;
-            sendDisplay(*data.outputParameterChanges);
+            sendDisplay(data.outputParameterChanges);
         }
+        live_->lastMs.store(nowMs(), std::memory_order_relaxed);
         return kResultOk;
     }
 
@@ -299,15 +351,25 @@ public:
     tresult PLUGIN_API getState(IBStream* state) SMTG_OVERRIDE { return writeText(state, stateText(*fx_, bypass_)) ? kResultOk : kResultFalse; }
 
 private:
-    void send(Vst::IParameterChanges& c, Vst::ParamID id, double v) {
+    // To the host (output parameter, when it gives us the list) and to this process's display table.
+    void send(Vst::IParameterChanges* c, Vst::ParamID id, double v) {
+        if (id >= kLiveLo && id < kLiveHi) {
+            live_->v[id - kLiveLo].store(static_cast<float>(v), std::memory_order_relaxed);
+            live_->set[id - kLiveLo].store(true, std::memory_order_relaxed);
+        }
+        if (!c) return;
         int32 idx = 0;
-        if (Vst::IParamValueQueue* q = c.addParameterData(id, idx)) {
+        if (Vst::IParamValueQueue* q = c->addParameterData(id, idx)) {
             int32 pi = 0;
             q->addPoint(0, v, pi);
         }
     }
+    void unregister() noexcept {
+        std::lock_guard lock(live().mutex);
+        if (token_ != 0) live().map.erase(token_);
+    }
     // What the faceplate draws, as normalized values on hidden read-only parameters.
-    void sendDisplay(Vst::IParameterChanges& c) {
+    void sendDisplay(Vst::IParameterChanges* c) {
         send(c, kRateId, std::clamp(sampleRate_ / 384000.0, 0.0, 1.0));
         if (spectrum_) {
             for (int i = 0; i < kSent; ++i) {
@@ -350,6 +412,8 @@ private:
 
     const rack::PluginInfo* info_;
     std::unique_ptr<hc::fx::Effect> fx_;
+    std::shared_ptr<LiveDisplay> live_ = std::make_shared<LiveDisplay>();
+    std::int64_t token_ = 0;
     rack::SpectrumSource* spectrum_ = nullptr;
     rack::NoiseProfileSource* noise_ = nullptr;
     rack::EliteEqView* eq_ = nullptr;
@@ -447,13 +511,14 @@ public:
         : c_(c), fx_(fx), restorer_(info.face == rack::Face::Restorer), spectrum_(dynamic_cast<const rack::SpectrumSource*>(&fx) != nullptr),
           analyzer_(dynamic_cast<const rack::AnalyzerSource*>(&fx) != nullptr), clone_(dynamic_cast<const rack::CloneSource*>(&fx) != nullptr),
           sidechain_(dynamic_cast<const rack::SidechainSink*>(&fx) != nullptr) {}
+    void setLive(std::shared_ptr<LiveDisplay> d) { live_ = std::move(d); }   // UI thread
     float meterDb(int m) const override {
         const auto ms = fx_.meters();
         if (m < 0 || m >= static_cast<int>(ms.size())) return -100.0f;
-        return normToDb(c_.getParamNormalized(kMeterBase + static_cast<Vst::ParamID>(m)), ms[static_cast<std::size_t>(m)].min, ms[static_cast<std::size_t>(m)].max);
+        return normToDb(get(kMeterBase + static_cast<Vst::ParamID>(m)), ms[static_cast<std::size_t>(m)].min, ms[static_cast<std::size_t>(m)].max);
     }
     bool hasSpectrum() const override { return spectrum_; }
-    float reductionDb() const override { return normToDb(c_.getParamNormalized(kGrId), -30.0f, 0.0f); }
+    float reductionDb() const override { return normToDb(get(kGrId), -30.0f, 0.0f); }
     float before(int b) const override { return bin(kBeforeBase, b); }
     float after(int b) const override { return bin(kAfterBase, b); }
     bool hasNoiseFloor() const override { return restorer_; }
@@ -462,42 +527,50 @@ public:
     bool hasSidechainInput() const override { return sidechain_; }   // the plug-in has a sidechain bus (HITMAN)
     float cloneDb(int i) const override {
         if (i < 0 || i >= rack::clone::kPoints) return 0.0f;
-        return normToDb(c_.getParamNormalized(kCloneBase + static_cast<Vst::ParamID>(i)), -rack::clone::kCurveDb, rack::clone::kCurveDb);
+        return normToDb(get(kCloneBase + static_cast<Vst::ParamID>(i)), -rack::clone::kCurveDb, rack::clone::kCurveDb);
     }
     float rtaLevel(int side, int b) const override { return band(kRtaBase, side, b); }
     float rtaMax(int side, int b) const override { return band(kRtaMaxBase, side, b); }
     float spdAngle(int b) const override {
         if (b < 0 || b >= rack::kRtaMaxBands) return 0.0f;
-        return normToDb(c_.getParamNormalized(kSpdAngBase + static_cast<Vst::ParamID>(b)), -90.0f, 90.0f);
+        return normToDb(get(kSpdAngBase + static_cast<Vst::ParamID>(b)), -90.0f, 90.0f);
     }
     float spdLevel(int b) const override { return band(kSpdLvlBase, 0, b); }
     float noiseFloor(int b) const override { return bin(kNoiseBase, b); }
-    float removedDb() const override { return normToDb(c_.getParamNormalized(kRemovedId), -60.0f, 0.0f); }
+    float removedDb() const override { return normToDb(get(kRemovedId), -60.0f, 0.0f); }
     float dynamicGainDb(int band) const override {
-        return normToDb(c_.getParamNormalized(kDynBase + static_cast<Vst::ParamID>(std::clamp(band, 0, rack::eq::kBands - 1))), -30.0f, 30.0f);
+        return normToDb(get(kDynBase + static_cast<Vst::ParamID>(std::clamp(band, 0, rack::eq::kBands - 1))), -30.0f, 30.0f);
     }
-    float autoGainDb() const override { return normToDb(c_.getParamNormalized(kAutoGainId), -24.0f, 24.0f); }
+    float autoGainDb() const override { return normToDb(get(kAutoGainId), -24.0f, 24.0f); }
     double sampleRate() const override {
-        const double r = c_.getParamNormalized(kRateId) * 384000.0;
+        const double r = get(kRateId) * 384000.0;
         return r > 8000.0 ? r : 48000.0;
     }
 
 private:
+    // The running processor's own table when it is live in this process (and not bypassed), else the host's copy.
+    double get(Vst::ParamID id) const {
+        if (live_ && id >= kLiveLo && id < kLiveHi && live_->set[id - kLiveLo].load(std::memory_order_relaxed) &&
+            nowMs() - live_->lastMs.load(std::memory_order_relaxed) <= kLiveStaleMs && c_.getParamNormalized(kBypassId) < 0.5)
+            return live_->v[id - kLiveLo].load(std::memory_order_relaxed);
+        return c_.getParamNormalized(id);
+    }
     float bin(Vst::ParamID base, int b) const {
         const float x = static_cast<float>(b) * 0.5f;
         const int i0 = std::clamp(static_cast<int>(x), 0, kSent - 1), i1 = std::min(i0 + 1, kSent - 1);
         const float f = x - static_cast<float>(i0);
-        const float a = normToDb(c_.getParamNormalized(base + static_cast<Vst::ParamID>(i0)), kSpecLo, kSpecHi);
-        const float c = normToDb(c_.getParamNormalized(base + static_cast<Vst::ParamID>(i1)), kSpecLo, kSpecHi);
+        const float a = normToDb(get(base + static_cast<Vst::ParamID>(i0)), kSpecLo, kSpecHi);
+        const float c = normToDb(get(base + static_cast<Vst::ParamID>(i1)), kSpecLo, kSpecHi);
         return a + (c - a) * f;
     }
     float band(Vst::ParamID base, int side, int b) const {
         if (side < 0 || side > 1 || b < 0 || b >= rack::kRtaMaxBands) return kSpecLo;
-        return normToDb(c_.getParamNormalized(base + static_cast<Vst::ParamID>(side * rack::kRtaMaxBands + b)), kSpecLo, kSpecHi);
+        return normToDb(get(base + static_cast<Vst::ParamID>(side * rack::kRtaMaxBands + b)), kSpecLo, kSpecHi);
     }
     Vst::EditController& c_;
     const hc::fx::Effect& fx_;
     bool restorer_, spectrum_, analyzer_, clone_, sidechain_;
+    std::shared_ptr<LiveDisplay> live_;
 };
 
 class FaceView final : public CPluginView {
@@ -604,6 +677,19 @@ public:
         for (std::size_t i = 0; i < ps.size(); ++i) setParamNormalized(static_cast<Vst::ParamID>(i), hc::fx::toNormalized(ps[i], fx_->get(static_cast<int>(i))));
         setParamNormalized(kBypassId, bypass ? 1.0 : 0.0);
         return kResultOk;
+    }
+
+    tresult PLUGIN_API notify(Vst::IMessage* message) SMTG_OVERRIDE {
+        if (message && message->getMessageID() && std::strcmp(message->getMessageID(), kLiveMessage) == 0) {
+            int64 t = 0;
+            if (message->getAttributes() && message->getAttributes()->getInt("token", t) == kResultOk) {
+                std::lock_guard lock(live().mutex);
+                const auto it = live().map.find(t);
+                if (it != live().map.end()) feed_.setLive(it->second);
+            }
+            return kResultOk;
+        }
+        return EditController::notify(message);
     }
 
     IPlugView* PLUGIN_API createView(FIDString name) SMTG_OVERRIDE {
