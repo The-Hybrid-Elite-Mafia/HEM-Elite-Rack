@@ -24,23 +24,25 @@ const SharedFaceArt* sharedFaceArt(const std::filesystem::path& assetDir, std::s
     if (!plate) return nullptr;
     auto brand = BrandArt::load(assetDir, error);
     if (!brand) return nullptr;
-    art = SharedFaceArt{std::move(*fonts), hc::ui::buildPartsAtlas(plate->master), std::move(*brand)};
+    auto frame = hc::ui::loadImageFile(assetDir / "brand" / "HEM-Frame-4K.jpg", nullptr);
+    art = SharedFaceArt{std::move(*fonts), hc::ui::buildPartsAtlas(plate->master), std::move(*brand), frame ? std::move(*frame) : hc::ui::Image{}};
     dir = assetDir;
     return &*art;
 }
 
 void FaceWindow::sizeFor(float scale, int& width, int& height) noexcept {
-    width = std::max(320, static_cast<int>(std::lround(kPlateW * scale)));
-    height = std::max(180, static_cast<int>(std::lround(kPlateH * scale)));
+    // The HEM frame look: the window is the frame (16:9), the plate body sits in its glass bed.
+    width = std::max(320, static_cast<int>(std::lround(rackframe::kW * scale)));
+    height = std::max(180, static_cast<int>(std::lround(rackframe::kH * scale)));
 }
 
 float FaceWindow::defaultScale() noexcept {
     const UINT dpi = ::GetDpiForSystem();
-    float scale = 0.72f * static_cast<float>(dpi ? dpi : 96) / 96.0f;
+    float scale = 0.45f * static_cast<float>(dpi ? dpi : 96) / 96.0f;
     RECT work{};
     if (::SystemParametersInfoW(SPI_GETWORKAREA, 0, &work, 0)) {
-        const float fitW = 0.9f * static_cast<float>(work.right - work.left) / kPlateW;
-        const float fitH = 0.85f * static_cast<float>(work.bottom - work.top) / kPlateH;
+        const float fitW = 0.9f * static_cast<float>(work.right - work.left) / rackframe::kW;
+        const float fitH = 0.85f * static_cast<float>(work.bottom - work.top) / rackframe::kH;
         scale = std::max(0.3f, std::min({scale, fitW, fitH}));
     }
     return scale;
@@ -55,27 +57,28 @@ bool FaceWindow::setUp(const rack::PluginInfo& info, ParamTable params, PanelHos
     state_ = FaceState{};
     layout_ = std::make_unique<FaceLayout>(faceLayout(info));
     view_ = std::make_unique<FaceView>(*layout_, params);
+    view_->setFramed(true);
     controller_ = std::make_unique<FaceController>(*layout_, params, host, feed, state_);
     if (!renderer_.init(4, error)) return false;
     if (!renderer_.setParts(art->parts, error)) return false;
     w_ = w;
     h_ = h;
     canvas_ = hc::ui::Canvas{};
-    canvas_.scale = std::min(static_cast<float>(w_) / kPlateW, static_cast<float>(h_) / kPlateH);
-    canvas_.offsetX = std::round((static_cast<float>(w_) - kPlateW * canvas_.scale) * 0.5f);
-    canvas_.offsetY = std::round((static_cast<float>(h_) - kPlateH * canvas_.scale) * 0.5f);
+    canvas_.scale = std::min(static_cast<float>(w_) / rackframe::kW, static_cast<float>(h_) / rackframe::kH);   // design units = frame pixels
+    canvas_.offsetX = std::round((static_cast<float>(w_) - rackframe::kW * canvas_.scale) * 0.5f);
+    canvas_.offsetY = std::round((static_cast<float>(h_) - rackframe::kH * canvas_.scale) * 0.5f);
     canvas_.pixelW = static_cast<float>(w_);
     canvas_.pixelH = static_cast<float>(h_);
     if (!font_.bake(art->fonts, canvas_.scale)) { if (error) *error = "could not bake the Poppins atlas"; return false; }
     if (!renderer_.setFont(font_, error)) return false;
-    // The gunmetal plate at the window's own pixel density (capped at the 4096 px texture limit).
-    const float ppu = std::min({canvas_.scale, 4096.0f / kPlateW, 4096.0f / kPlateH});
-    const std::optional<hc::ui::Image> pic = loadPlateArt(assetDir, info.name);   // the plug-in's own faceplate picture, when it has one
-    if (!renderer_.setPanel(hc::ui::buildMips(hc::ui::premultiply(renderRackPlate(*layout_, art->brand, ppu, pic ? &*pic : nullptr))), error))
+    // The HEM frame with this plate's glass panel and recesses, at the window's own pixel density (capped at the
+    // 4096 px texture limit).
+    const float ppu = std::min({canvas_.scale, 4096.0f / rackframe::kW, 4096.0f / rackframe::kH});
+    if (!renderer_.setPanel(hc::ui::buildMips(hc::ui::premultiply(renderRackPlateFramed(*layout_, ppu, art->frame))), error))
         return false;
     if (!renderer_.setTargetSize(w_, h_, error)) return false;
     renderer_.beginStatic(canvas_);
-    renderer_.panel({0, 0, kPlateW, kPlateH});
+    renderer_.panel({0, 0, rackframe::kW, rackframe::kH});
     renderer_.endStatic();
     feed_->setSpectrumActive(true);
     open_ = true;
@@ -122,7 +125,8 @@ void FaceWindow::close() noexcept {
 
 void FaceWindow::handleInput() {
     for (const hc::ui::InputEvent& e : window_.takeEvents()) {
-        const float x = canvas_.toDesignX(e.x), y = canvas_.toDesignY(e.y);
+        const RackFrameMap m = rackFrameMap();   // frame pixels -> plate units (the controller works in plate units)
+        const float x = m.plateX(canvas_.toDesignX(e.x)), y = m.plateY(canvas_.toDesignY(e.y));
         switch (e.type) {
         case hc::ui::InputEvent::Type::MouseDown: controller_->mouseDown(x, y, e.doubleClick, e.fine); break;
         case hc::ui::InputEvent::Type::MouseMove: controller_->mouseMove(x, y, e.fine); break;
@@ -135,7 +139,8 @@ void FaceWindow::handleInput() {
 
 void FaceWindow::draw() {
     renderer_.beginFrame(canvas_);
-    view_->draw(renderer_, *host_, *feed_, state_, 0, 0, 1.0f, false);
+    const RackFrameMap m = rackFrameMap();
+    view_->draw(renderer_, *host_, *feed_, state_, m.ox, m.oy, m.s, false);
 }
 
 void FaceWindow::frame() {

@@ -40,7 +40,7 @@ add_custom_command(TARGET HEMEliteRackVST3 POST_BUILD
             "${HEM_VST3_PKG}/Contents/Resources/fonts/"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${HEM_HC_DIR}/assets/faceplates/Main-Faceplate.png" "${HEM_VST3_PKG}/Contents/Resources/faceplates/"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PROJECT_SOURCE_DIR}/assets/brand/crown_badge.png" "${PROJECT_SOURCE_DIR}/assets/brand/ghost.png"
-            "${HEM_VST3_PKG}/Contents/Resources/brand/"
+            "${PROJECT_SOURCE_DIR}/assets/brand/HEM-Frame-4K.jpg" "${HEM_VST3_PKG}/Contents/Resources/brand/"
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${PROJECT_SOURCE_DIR}/assets/plates" "${HEM_VST3_PKG}/Contents/Resources/plates"
     VERBATIM)
 

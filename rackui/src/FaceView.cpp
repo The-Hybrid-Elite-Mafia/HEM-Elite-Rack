@@ -107,23 +107,27 @@ void FaceView::header(const Ctx& c) const {
         const TextStyle st = c.fit(TextStyle::Label, text, sr.w - 10 * z);
         r.text(st, text, sr.cx(), c.mid(sr, st), th_.teal, Align::Center, TextFx::Shadowed);
     }
-    // HYBRID ELITE MAFIA / suite between the crown and the ghost.
+    // HYBRID ELITE MAFIA / suite between the crown and the ghost (the frame look has its own top strip).
+    const TextStyle ls = c.ts(TextStyle::Label), cs = c.ts(TextStyle::Caption);
+    if (!framed_) {
     const float cx = c.X(kPlateW * 0.5f);
     const TextStyle hs = c.fit(TextStyle::Heading, "HYBRID ELITE MAFIA", 760 * z);
     r.text(hs, "HYBRID ELITE MAFIA", cx, c.Y(84), th_.silver, Align::Center, TextFx::Shadowed);
     const TextStyle ss = c.fit(TextStyle::Label, L_.suite, 760 * z);
     r.text(ss, L_.suite, cx, c.Y(126), th_.teal, Align::Center, TextFx::Shadowed);
     // HEM AUDIO / EST. 2024 beside the ghost; HEM-ELITE-RACK beside the crown.
-    const TextStyle ls = c.ts(TextStyle::Label), cs = c.ts(TextStyle::Caption);
     r.text(ls, "HEM AUDIO", c.X(L_.ghost.x - 26), c.Y(78), th_.silver, Align::Right, TextFx::Shadowed);
     r.text(cs, "EST. 2024", c.X(L_.ghost.x - 26), c.Y(112), th_.teal, Align::Right, TextFx::Shadowed);
     r.text(ls, "HEM-ELITE-RACK", c.X(L_.crown.right() + 26), c.Y(78), th_.silver, Align::Left, TextFx::Shadowed);
     r.text(cs, "AUDIO TOOLS", c.X(L_.crown.right() + 26), c.Y(112), th_.dim, Align::Left, TextFx::Shadowed);
+    }
 
     // The plug-in name, big, with its notes under it.
     const Rect ta = c.T(L_.title);
-    const TextStyle ns = c.fit(TextStyle::Display, L_.name, ta.w);
-    r.text(ns, L_.name, ta.x, ta.y + ta.h * 0.66f, th_.teal, Align::Left, TextFx::Shadowed);
+    if (!framed_) {   // framed: the name is in the frame's top strip
+        const TextStyle ns = c.fit(TextStyle::Display, L_.name, ta.w);
+        r.text(ns, L_.name, ta.x, ta.y + ta.h * 0.66f, th_.teal, Align::Left, TextFx::Shadowed);
+    }
     float y = L_.title.bottom() + 30;
     for (const std::string& n : L_.leftNotes) {
         const TextStyle s = c.fit(TextStyle::Label, n, ta.w);
@@ -141,6 +145,7 @@ void FaceView::header(const Ctx& c) const {
             sy += i % 2 == 0 ? 34 : 70;
         }
     }
+    if (framed_) { frameStrip(c); return; }
     // Footer: the tagline in its window, names at the ends.
     const Rect fp = c.T(L_.footerPlate);
     r.fillRound(fp.inset(4 * z), 6 * z, kGlass, Blend::Over);
@@ -149,6 +154,43 @@ void FaceView::header(const Ctx& c) const {
     const Rect ft = c.T(L_.footer);
     r.text(cs, L_.name, c.X(80), c.mid(ft, cs), th_.dim, Align::Left, TextFx::Shadowed);
     r.text(cs, "HYBRID ELITE MAFIA", c.X(kPlateW - 80), c.mid(ft, cs), th_.dim, Align::Right, TextFx::Shadowed);
+}
+
+void FaceView::frameStrip(const Ctx& c) const {
+    Renderer& r = c.r;
+    // Frame pixels at this zoom: c places the plate the way rackFrameMap() does, so the frame's origin follows.
+    const RackFrameMap m = rackFrameMap();
+    const float f = c.z / m.s, fx0 = c.ox - m.ox * f, fy0 = c.oy - m.oy * f;
+    auto FX = [&](float x) { return fx0 + x * f; };
+    auto FY = [&](float y) { return fy0 + y * f; };
+    // the base style at the frame's own scale, stepped down until `text` fits `width`
+    auto fit = [&](TextStyle base, std::string_view text, float width) {
+        const float want = em(base) * f * 1.04f;
+        TextStyle t = kLadder[0];
+        for (TextStyle k : kLadder) if (em(k) <= want) t = k;
+        while (t != kLadder[0] && r.textWidth(t, text) > width)
+            for (std::size_t i = 1; i < std::size(kLadder); ++i)
+                if (kLadder[i] == t) { t = kLadder[i - 1]; break; }
+        return t;
+    };
+    // title like Steven's EQ example: "HEM" in amber, the plug-in name in engraved silver
+    const Rgba amber = rgb8(0xFF8A1E), silver = rgb8(0xB9C0CA);
+    const float x0 = FX(rackframe::kTitleX), base = FY(rackframe::kTitleBase), titleW = rackframe::kTitleMaxW * f;
+    const std::string title = "HEM  " + L_.name;
+    const TextStyle big = fit(TextStyle::Display, title, titleW);
+    r.text(big, "HEM", x0, base, amber, Align::Left, TextFx::Shadowed);   // solid, like every light on these plates
+    r.text(big, L_.name, x0 + r.textWidth(big, "HEM  "), base, silver, Align::Left, TextFx::Shadowed);
+    // what it is (the suite line) and the tagline under the title
+    const float bx = FX(rackframe::kTitleX + 4), room = rackframe::kBlurbMaxW * f;
+    r.text(fit(TextStyle::Label, L_.suite, room), L_.suite, bx, FY(rackframe::kBlurbBase), th_.teal, Align::Left, TextFx::Shadowed);
+    r.text(fit(TextStyle::Caption, L_.tagline, room), L_.tagline, bx, FY(rackframe::kBlurbBase + 44), th_.label, Align::Left, TextFx::Shadowed);
+    // brand, chrome-white, right of the emblem
+    const float brandW = rackframe::kBrandMaxW * f;
+    r.text(fit(TextStyle::Heading, "HYBRID ELITE MAFIA", brandW), "HYBRID ELITE MAFIA", FX(rackframe::kBrandR), FY(rackframe::kBrandBase),
+           rgb8(0xDCE6F2), Align::Right, TextFx::Shadowed);
+    const std::string sub = "HEM-ELITE-RACK  -  EST. 2024";
+    r.text(fit(TextStyle::Caption, sub, brandW), sub, FX(rackframe::kBrandR), FY(rackframe::kBrandBase + 60), th_.teal, Align::Right,
+           TextFx::Shadowed);
 }
 
 void FaceView::knob(const Ctx& c, const Widget& w, int wi) const {

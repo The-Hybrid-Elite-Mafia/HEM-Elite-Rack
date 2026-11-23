@@ -50,7 +50,7 @@ jobs:
         env:
           GALLIUM_DRIVER: llvmpipe
         run: |
-          tools\ci\run-and-report.ps1 -Title "faceplates" -Exe .\build\rack\tools\rack_snapshot\Release\hem_rack_snapshot.exe -ArgList '--out','shots','--scale','0.75'
+          tools\ci\run-and-report.ps1 -Title "faceplates" -Exe .\build\rack\tools\rack_snapshot\Release\hem_rack_snapshot.exe -ArgList '--out','shots','--scale','0.35'
 
       - name: Start the real app and capture its window
         env:

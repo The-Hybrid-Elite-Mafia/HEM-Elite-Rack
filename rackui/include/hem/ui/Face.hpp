@@ -263,6 +263,33 @@ struct BrandArt {
 // real crown and ghost are laid on top; without it the plate is drawn here from the layout.
 [[nodiscard]] hc::ui::Image renderRackPlate(const FaceLayout& layout, const BrandArt& art, float pixelsPerUnit,
                                            const hc::ui::Image* plateArt = nullptr);
+// ---- the HEM frame look (Steven's template, same as the Dark Matter Series) ----------------------
+// assets/brand/HEM-Frame-4K.jpg: chrome frame, 3D emblem on top, glass bed over the circuit board (3840 × 2160
+// frame pixels). Every plate's body (below its header, above its footer) is scaled into the bed as one smoked-glass
+// panel with its recesses cut in; the plug-in's name, what it is and the brand sit in the frame's top strip. Same
+// widgets, same parameters, same hit-testing (the controller still works in plate units): only the look changes.
+namespace rackframe {
+inline constexpr float kW = 3840.0f, kH = 2160.0f;
+inline constexpr Rect  kBed{265, 482, 3455, 1456};      // the glass bed in the art
+inline constexpr Rect  kEmblem{1716, 168, 457, 458};    // 3D emblem (hangs into the top of the bed)
+inline constexpr Rect  kContent{340, 650, 3300, 1250};  // where the plate body goes (clear of the emblem)
+inline constexpr Rect  kBody{34, 160, 1608, 668};       // plate units: every plate's body, header and footer left out
+inline constexpr float kTitleX = 395, kTitleBase = 335, kTitleMaxW = 1290;
+inline constexpr float kBlurbBase = 412, kBlurbMaxW = 1290;
+inline constexpr float kBrandR = 3540, kBrandBase = 335, kBrandMaxW = 1300;
+} // namespace rackframe
+// Plate units -> frame pixels: frame = o + s · plate. The same for every plug-in.
+struct RackFrameMap {
+    float s = 1, ox = 0, oy = 0;
+    [[nodiscard]] Rect  toFrame(Rect r) const noexcept { return {ox + r.x * s, oy + r.y * s, r.w * s, r.h * s}; }
+    [[nodiscard]] float plateX(float frameX) const noexcept { return (frameX - ox) / s; }
+    [[nodiscard]] float plateY(float frameY) const noexcept { return (frameY - oy) / s; }
+};
+[[nodiscard]] RackFrameMap rackFrameMap() noexcept;
+// The frame art with the plate body's smoked-glass panel and its recesses (display glass, knob wells, pockets),
+// (kW × kH × pixelsPerFramePixel). Empty frameArt: a plain dark chassis (the controls still work).
+[[nodiscard]] hc::ui::Image renderRackPlateFramed(const FaceLayout& layout, float pixelsPerFramePixel, const hc::ui::Image& frameArt);
+
 // The plug-in's faceplate picture: <assetDir>/plates/HEM_<NAME>.jpg (spaces in the name become '_').
 [[nodiscard]] std::filesystem::path plateArtFile(const std::filesystem::path& assetDir, std::string_view pluginName);
 // Loads it; nullopt when the plug-in has none (its plate is then drawn from the layout).
@@ -354,10 +381,14 @@ public:
     FaceView(const FaceLayout& layout, ParamTable params, Theme theme = {}) noexcept : L_(layout), params_(params), th_(theme) {}
     void draw(hc::ui::Renderer& r, const PanelHost& host, const FaceFeed& feed, const FaceState& st, float originX, float originY,
               float zoom, bool plate = true) const;
+    // HEM frame look: (originX, originY, zoom) place the plate the way rackFrameMap() does; the plate's own header
+    // and footer lettering is replaced by the frame's top strip.
+    void setFramed(bool on) noexcept { framed_ = on; }
 
 private:
     struct Ctx;
     void header(const Ctx& c) const;
+    void frameStrip(const Ctx& c) const;
     void knob(const Ctx& c, const Widget& w, int wi) const;
     void button(const Ctx& c, Rect r, std::string_view text, bool lit, bool hot, bool dim, Rgba colour) const;
     void stepper(const Ctx& c, const Widget& w, int wi) const;
@@ -382,6 +413,7 @@ private:
     const FaceLayout& L_;
     ParamTable        params_;
     Theme             th_;
+    bool              framed_ = false;
     mutable float     needle_ = 1.0f;   // the GR needle's position (it swings, it doesn't jump); > 0 = not drawn yet
     mutable std::array<float, 4> needles_{1.0f, 1.0f, 1.0f, 1.0f};   // needles that show a meter (by meter index)
     mutable std::array<float, 16> held_{};   // gain-change readouts (dB, signed), by meter index: quick out, slow back

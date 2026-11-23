@@ -611,6 +611,49 @@ void plateRules() {
 
 } // namespace
 
+// The HEM frame look (Steven's template): every plate's body, scaled into the frame's glass bed, keeps every widget
+// and recess inside the bed and clear of the emblem; clicks in the frame land on the same widget as on the plate.
+void framedFaces() {
+    const RackFrameMap m = rackFrameMap();
+    auto within = [](const Rect& a, const Rect& b) {
+        return a.x >= b.x - 0.5f && a.y >= b.y - 0.5f && a.right() <= b.right() + 0.5f && a.bottom() <= b.bottom() + 0.5f;
+    };
+    auto hits = [](const Rect& a, const Rect& b) { return a.x < b.right() && b.x < a.right() && a.y < b.bottom() && b.y < a.bottom(); };
+    CHECK(m.s > 1.5f && within(m.toFrame(rackframe::kBody), rackframe::kContent) && !hits(m.toFrame(rackframe::kBody), rackframe::kEmblem));
+    int bad = 0;
+    for (const auto& info : rack::plugins()) {
+        const FaceLayout L = faceLayout(info);
+        bool ok = true;
+        for (const Widget& w : L.widgets) ok = ok && within(w.r, rackframe::kBody);
+        for (const Recess& r : L.recesses) ok = ok && (r.r.y >= L.footer.y || within(r.r, rackframe::kBody));
+        for (const auto& [rect, text] : L.sections) ok = ok && within(rect, rackframe::kBody);
+        // a click at a widget's centre in frame pixels comes back to the same plate point
+        for (const Widget& w : L.widgets) {
+            const Rect f = m.toFrame(w.r);
+            ok = ok && std::fabs(m.plateX(f.cx()) - w.r.cx()) < 0.01f && std::fabs(m.plateY(f.cy()) - w.r.cy()) < 0.01f;
+        }
+        if (!ok) { std::printf("  FAIL detail: %s does not fit the HEM frame\n", info.name); ++bad; }
+    }
+    CHECK(bad == 0);
+    // the framed plate: frame size, the art untouched outside the bed, the glass panel and the recesses cut in
+    hc::ui::Image art;
+    art.width = 384; art.height = 216;
+    art.rgba.assign(static_cast<std::size_t>(art.width) * art.height * 4, 255);
+    for (std::size_t i = 0; i < art.rgba.size(); i += 4) { art.rgba[i] = 120; art.rgba[i + 1] = 124; art.rgba[i + 2] = 130; }
+    const FaceLayout L = faceLayout(rack::plugins()[0]);
+    const float ppu = 0.25f;
+    const hc::ui::Image img = renderRackPlateFramed(L, ppu, art);
+    CHECK(img.width == 960 && img.height == 540);
+    auto px = [&](float x, float y) { return img.at(static_cast<std::uint32_t>(x * ppu), static_cast<std::uint32_t>(y * ppu)); };
+    const std::uint8_t* corner = px(60, 60);
+    CHECK(corner[0] == 120 && corner[1] == 124 && corner[2] == 130);
+    const Rect body = m.toFrame(rackframe::kBody);
+    const std::uint8_t* glass = px(body.x + 6, body.bottom() - 6);
+    CHECK(glass[1] < 100 && glass[1] > 5);
+    const hc::ui::Image none = renderRackPlateFramed(L, ppu, hc::ui::Image{});
+    CHECK(none.width == 960 && none.height == 540 && none.rgba[3] == 255);
+}
+
 void testFaces() {
     std::printf("[faceplates]\n");
     for (const auto& info : rack::plugins()) layoutRules(info);
@@ -622,6 +665,7 @@ void testFaces() {
     sidechainChoice();
     plateRules();
     cardRules();
+    framedFaces();
 }
 
 } // namespace hem::test

@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
         const std::string k = argv[i];
         if (k == "--out" && i + 1 < argc) out = argv[++i];
         else if (k == "--scale" && i + 1 < argc) scale = std::strtof(argv[++i], nullptr);
-        else if (k == "--width" && i + 1 < argc) scale = std::strtof(argv[++i], nullptr) / hem::ui::kPlateW;
+        else if (k == "--width" && i + 1 < argc) scale = std::strtof(argv[++i], nullptr) / hem::ui::rackframe::kW;   // the window is the HEM frame
         else if (k == "--groups") groups = true;
     }
     std::error_code ec;
