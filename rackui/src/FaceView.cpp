@@ -182,14 +182,14 @@ void FaceView::frameStrip(const Ctx& c) const {
     r.text(big, L_.name, x0 + r.textWidth(big, "HEM  "), base, silver, Align::Left, TextFx::Shadowed);
     // what it is (the suite line) and the tagline under the title
     const float bx = FX(rackframe::kTitleX + 4), room = rackframe::kBlurbMaxW * f;
-    r.text(fit(TextStyle::Label, L_.suite, room), L_.suite, bx, FY(rackframe::kBlurbBase), th_.teal, Align::Left, TextFx::Shadowed);
-    r.text(fit(TextStyle::Caption, L_.tagline, room), L_.tagline, bx, FY(rackframe::kBlurbBase + 44), th_.label, Align::Left, TextFx::Shadowed);
+    r.text(fit(TextStyle::Tab, L_.suite, room), L_.suite, bx, FY(rackframe::kBlurbBase), th_.teal, Align::Left, TextFx::Shadowed);
+    r.text(fit(TextStyle::Label, L_.tagline, room), L_.tagline, bx, FY(rackframe::kBlurbBase + 50), th_.label, Align::Left, TextFx::Shadowed);
     // brand, chrome-white, right of the emblem
     const float brandW = rackframe::kBrandMaxW * f;
     r.text(fit(TextStyle::Heading, "HYBRID ELITE MAFIA", brandW), "HYBRID ELITE MAFIA", FX(rackframe::kBrandR), FY(rackframe::kBrandBase),
            rgb8(0xDCE6F2), Align::Right, TextFx::Shadowed);
     const std::string sub = "HEM-ELITE-RACK  -  EST. 2024";
-    r.text(fit(TextStyle::Caption, sub, brandW), sub, FX(rackframe::kBrandR), FY(rackframe::kBrandBase + 60), th_.teal, Align::Right,
+    r.text(fit(TextStyle::Label, sub, brandW), sub, FX(rackframe::kBrandR), FY(rackframe::kBrandBase + 64), th_.teal, Align::Right,
            TextFx::Shadowed);
 }
 
