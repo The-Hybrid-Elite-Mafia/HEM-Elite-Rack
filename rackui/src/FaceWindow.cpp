@@ -24,8 +24,11 @@ const SharedFaceArt* sharedFaceArt(const std::filesystem::path& assetDir, std::s
     if (!plate) return nullptr;
     auto brand = BrandArt::load(assetDir, error);
     if (!brand) return nullptr;
-    auto frame = hc::ui::loadImageFile(assetDir / "brand" / "HEM-Frame-4K.jpg", nullptr);
-    art = SharedFaceArt{std::move(*fonts), hc::ui::buildPartsAtlas(plate->master), std::move(*brand), frame ? std::move(*frame) : hc::ui::Image{}};
+    auto frame = hc::ui::loadImageFile(assetDir / "brand" / "HEM-Board-4K.jpg", nullptr);
+    const hc::ui::HemPartImages hem = hc::ui::loadHemParts(assetDir / "parts");
+    const bool hemOk = hem.complete();
+    art = SharedFaceArt{std::move(*fonts), hc::ui::buildPartsAtlas(plate->master, hemOk ? &hem : nullptr), std::move(*brand),
+                        frame ? std::move(*frame) : hc::ui::Image{}, hemOk};
     dir = assetDir;
     return &*art;
 }
@@ -58,6 +61,7 @@ bool FaceWindow::setUp(const rack::PluginInfo& info, ParamTable params, PanelHos
     layout_ = std::make_unique<FaceLayout>(faceLayout(info));
     view_ = std::make_unique<FaceView>(*layout_, params);
     view_->setFramed(true);
+    view_->setHemParts(art->hemParts);
     controller_ = std::make_unique<FaceController>(*layout_, params, host, feed, state_);
     if (!renderer_.init(4, error)) return false;
     if (!renderer_.setParts(art->parts, error)) return false;

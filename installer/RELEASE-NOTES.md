@@ -1,3 +1,10 @@
+# HEM-Elite-Rack 0.56.0
+
+- New look for all 120 plug-ins, built from Steven's own backplate and parts sheet: the circuit board under
+  clear glass, controls on clear glass plates with a thin steel edge and a thin neon line (cyan top-left, amber
+  bottom-right), chrome knobs with tick marks, capsule buttons, and the round power button.
+- Nothing else changed. Same knobs, same buttons, same meters, same sound. Only the looks changed.
+
 # HEM-Elite-Rack 0.55.1
 
 - Fixed: meters, peak readouts and live displays stayed still in Audacity. Audacity doesn't send those values

@@ -340,73 +340,117 @@ hc::ui::Image renderRackPlateFramed(const FaceLayout& L, float ppu, const hc::ui
         for (std::size_t i = 0; i < img.rgba.size(); i += 4) { img.rgba[i] = img.rgba[i + 1] = 14; img.rgba[i + 2] = 17; }
     }
     const RackFrameMap m = rackFrameMap();
-    // 2) the plate body: one smoked-glass panel; then every recess cut into it (frame pixels)
-    struct Shape { Rect b; float rad; int kind; bool round; };   // 0 smoked glass panel, 2 display glass, 3 machined pocket
-    std::vector<Shape> shapes;
-    const Rect body = m.toFrame(kBody);
-    shapes.push_back({{body.x - 18, body.y - 18, body.w + 36, body.h + 36}, 30, 0, false});
-    for (const Recess& rc : L.recesses) {
-        if (rc.r.y >= L.footer.y || rc.r.bottom() <= kBody.y) continue;   // the footer's tagline window: the strip has it
-        shapes.push_back({m.toFrame(rc.r), rc.round ? rc.r.w * 0.5f * m.s : rc.radius * m.s, rc.glass ? 2 : 3, rc.round});
-    }
-    auto sdShape = [](const Shape& sh, float x, float y) {
-        if (sh.round) { const float dx = x - sh.b.cx(), dy = y - sh.b.cy(); return std::sqrt(dx * dx + dy * dy) - sh.b.w * 0.5f; }
-        return sdRound(x, y, sh.b, sh.rad);
-    };
-    auto lit = [](float nx, float ny) { return std::max(0.0f, -(nx * 0.6f + ny * 0.8f)); };   // light from the top-left
-    for (const Shape& sh : shapes) {
-        const float margin = sh.kind == 0 ? 26.0f : 10.0f;   // soft contact shadow round each piece
-        const int x0 = std::max(0, static_cast<int>((sh.b.x - margin) * ppu)), x1 = std::min(static_cast<int>(W), static_cast<int>((sh.b.right() + margin) * ppu) + 1);
-        const int y0 = std::max(0, static_cast<int>((sh.b.y - margin) * ppu)), y1 = std::min(static_cast<int>(H), static_cast<int>((sh.b.bottom() + margin) * ppu) + 1);
-        for (int py = y0; py < y1; ++py) {
+    // Per-pixel painter over a box (frame pixels), linear light.
+    auto paint = [&](Rect box, auto&& f) {
+        const int x0 = std::max(0, static_cast<int>(box.x * ppu)), x1 = std::min(static_cast<int>(W), static_cast<int>(box.right() * ppu) + 1);
+        const int y0 = std::max(0, static_cast<int>(box.y * ppu)), y1 = std::min(static_cast<int>(H), static_cast<int>(box.bottom() * ppu) + 1);
+        for (int py = y0; py < y1; ++py)
             for (int px = x0; px < x1; ++px) {
-                const float ux = (static_cast<float>(px) + 0.5f) / ppu, uy = (static_cast<float>(py) + 0.5f) / ppu;
-                const float d = sdShape(sh, ux, uy);
                 std::uint8_t* o = &img.rgba[(static_cast<std::size_t>(py) * W + static_cast<std::size_t>(px)) * 4];
-                float R = hc::ui::srgb8ToLinear(o[0]), G = hc::ui::srgb8ToLinear(o[1]), B = hc::ui::srgb8ToLinear(o[2]);
-                if (d >= 0.0f) {
-                    if (sh.kind != 0) continue;   // pockets: no shadow outside (they are cut in, not stuck on)
-                    const float k = 0.42f + 0.58f * std::clamp(d / margin, 0.0f, 1.0f);
-                    R *= k; G *= k; B *= k;
-                } else {
-                    const float e = 0.75f;
-                    float nx = sdShape(sh, ux + e, uy) - sdShape(sh, ux - e, uy), ny = sdShape(sh, ux, uy + e) - sdShape(sh, ux, uy - e);
-                    const float l = std::sqrt(nx * nx + ny * ny) + 1e-6f;
-                    nx /= l; ny /= l;
-                    const float t = std::clamp((uy - sh.b.y) / sh.b.h, 0.0f, 1.0f);
-                    const float aa = std::clamp(-d * ppu, 0.0f, 1.0f);   // 1-pixel soft edge
-                    float nR = R, nG = G, nB = B;
-                    if (sh.kind == 0) {
-                        // smoked glass over the circuit board: the board faintly visible, a sheen at the top, a lit bevel
-                        const float rim = std::clamp(1.0f + d / 4.0f, 0.0f, 1.0f), li = lit(-nx, -ny);
-                        const float k = 0.30f, sheen = 0.010f * (1.0f - t) * (1.0f - t);
-                        nR = R * k + 0.0045f + sheen + rim * (0.10f * li + 0.012f);
-                        nG = G * k + 0.0055f + sheen + rim * (0.11f * li + 0.014f);
-                        nB = B * k + 0.0075f + sheen * 1.15f + rim * (0.12f * li + 0.018f);
-                    } else if (sh.kind == 2) {
-                        // deep display glass with a machined bezel ring
-                        float v = 0.010f + 0.008f * (1.0f - t);
-                        v *= 0.55f + 0.45f * std::clamp(std::min(uy - sh.b.y, ux - sh.b.x) / 22.0f, 0.0f, 1.0f);
-                        nR = v; nG = v * 1.18f; nB = v * 1.45f;
-                        if (d > -3.0f) { nR += 0.05f; nG += 0.068f; nB += 0.08f; }
-                    } else {
-                        // machined pocket: darker toward the top wall (in shadow), the lower lip catching the light
-                        const float k = 0.22f;
-                        float v = (R * 0.3f + G * 0.6f + B * 0.1f) * k;
-                        const float wall = std::clamp(-d / (sh.round ? 0.18f * sh.b.w : 20.0f), 0.0f, 1.0f);
-                        v *= 0.45f + 0.55f * wall;
-                        nR = v; nG = v * 1.02f; nB = v * 1.08f;
-                        const float lip = std::clamp(1.0f + d / 3.0f, 0.0f, 1.0f) * lit(-nx, -ny);   // the lower inner wall faces the light
-                        nR += 0.07f * lip; nG += 0.075f * lip; nB += 0.08f * lip;
-                    }
-                    R += (nR - R) * aa; G += (nG - G) * aa; B += (nB - B) * aa;
-                }
-                o[0] = hc::ui::linearToSrgb8(std::min(1.0f, R));
-                o[1] = hc::ui::linearToSrgb8(std::min(1.0f, G));
-                o[2] = hc::ui::linearToSrgb8(std::min(1.0f, B));
+                float c[3] = {hc::ui::srgb8ToLinear(o[0]), hc::ui::srgb8ToLinear(o[1]), hc::ui::srgb8ToLinear(o[2])};
+                f((static_cast<float>(px) + 0.5f) / ppu, (static_cast<float>(py) + 0.5f) / ppu, c);
+                for (int k = 0; k < 3; ++k) o[k] = hc::ui::linearToSrgb8(std::clamp(c[k], 0.0f, 1.0f));
                 o[3] = 255;
             }
+    };
+    // Chamfered rectangle (cut corners), signed distance: negative inside.
+    auto sdChamfer = [](float x, float y, Rect r, float cut) {
+        const float cx = r.cx(), cy = r.cy(), hx = r.w * 0.5f, hy = r.h * 0.5f;
+        const float qx = std::fabs(x - cx), qy = std::fabs(y - cy);
+        const float box = std::max(qx - hx, qy - hy);
+        const float diag = (qx + qy - (hx + hy - cut)) * 0.70710678f;
+        return std::max(box, diag);
+    };
+    const float cyan[3] = {0.0f, 0.78f, 1.0f}, amber[3] = {1.0f, 0.34f, 0.01f};   // neon (linear)
+    const float s = m.s;
+
+    // 2) Steven's reference: the controls on CLEAR glass plates (the board shows through), cut corners, a thin
+    //    steel bevel, a thin neon line (cyan top-left, amber bottom-right), small screws. Screens: darker glass in a
+    //    chrome bezel. Big milled panels a layout draws become their own plates; otherwise the whole body is one.
+    std::vector<std::pair<Rect, bool>> plates;   // frame rect, screen window
+    for (const Recess& rc : L.recesses) {
+        if (rc.r.y >= L.footer.y || rc.r.bottom() <= kBody.y || rc.round) continue;
+        if (rc.glass) plates.push_back({m.toFrame(rc.r), true});
+        else if (rc.r.w >= 260.0f && rc.r.h >= 140.0f) plates.push_back({m.toFrame(rc.r), false});
+    }
+    if (std::none_of(plates.begin(), plates.end(), [](const auto& p) { return !p.second; })) {
+        const Rect body = m.toFrame(kBody);
+        plates.insert(plates.begin(), {{body.x - 18, body.y - 18, body.w + 36, body.h + 36}, false});
+    }
+    for (const auto& [r, screen] : plates) {
+        const float cut = std::min({(screen ? 16.0f : 40.0f) * s, r.w * 0.22f, r.h * 0.22f}), reach = 16.0f;
+        paint(r.inset(-reach - 2), [&](float x, float y, float* c) {
+            const float d = sdChamfer(x, y, r, cut);
+            const float t = ((x - r.x) / r.w + (y - r.y) / r.h) * 0.5f;   // 0 top-left .. 1 bottom-right
+            const float mixA = std::clamp((t - 0.46f) / 0.08f, 0.0f, 1.0f);
+            float nc[3];
+            for (int k = 0; k < 3; ++k) nc[k] = screen ? cyan[k] : cyan[k] * (1.0f - mixA) + amber[k] * mixA;
+            const float bevelW = screen ? 7.0f : 6.0f;
+            if (d < 0.0f) {
+                if (screen && d < -bevelW) {   // deep display glass, the board a ghost behind it
+                    const float v = 0.008f + 0.006f * std::clamp(1.0f - (y - r.y) / r.h, 0.0f, 1.0f);
+                    c[0] = c[0] * 0.10f + v; c[1] = c[1] * 0.10f + v * 1.18f; c[2] = c[2] * 0.10f + v * 1.45f;
+                } else if (!screen) {
+                    for (int k = 0; k < 3; ++k) c[k] *= 0.93f;   // clear: the board shows through
+                }
+                if (d >= -bevelW) {   // brushed steel, lit from the top-left
+                    const float u = -d / bevelW;
+                    const float light = 0.5f + 0.5f * std::clamp(1.0f - 2.0f * t, -1.0f, 1.0f);
+                    const float v = 0.06f + 0.16f * light * (1.0f - 0.5f * u) + 0.05f * std::sin(u * 3.14159f);
+                    for (int k = 0; k < 3; ++k) c[k] = v * (k == 2 ? 1.08f : 1.0f);
+                }
+            }
+            if (std::fabs(d) < 1.2f) for (int k = 0; k < 3; ++k) c[k] *= 0.35f;   // dark seam where plate meets board
+            const float line = std::fabs(d + bevelW + 2.0f);   // the neon line, colour only
+            const float core = std::clamp(1.0f - line / (screen ? 1.6f : 2.2f), 0.0f, 1.0f), glow = std::exp(-line / 7.0f) * (screen ? 0.18f : 0.30f);
+            const float g = d < -bevelW ? core * (screen ? 0.8f : 1.2f) + glow : core * 1.2f + glow * 0.4f;
+            for (int k = 0; k < 3; ++k) c[k] += nc[k] * g;
+            if (d >= 0.0f) {   // faint contact shadow on the board just outside
+                const float sh = 0.86f + 0.14f * std::clamp(d / reach, 0.0f, 1.0f);
+                for (int k = 0; k < 3; ++k) c[k] *= sh;
+            }
+        });
+        if (screen) continue;
+        const float sr = std::clamp(6.0f * s, 6.0f, 11.0f), in = cut * 0.45f + sr + 8.0f;   // small corner screws
+        for (auto [sx, sy] : {std::pair{r.x + in, r.y + in}, std::pair{r.right() - in, r.y + in}, std::pair{r.x + in, r.bottom() - in},
+                                    std::pair{r.right() - in, r.bottom() - in}}) {
+            paint({sx - sr - 4, sy - sr - 4, 2 * sr + 8, 2 * sr + 8}, [&](float x, float y, float* c) {
+                const float dx = x - sx, dy = y - sy, d = std::sqrt(dx * dx + dy * dy);
+                if (d > sr + 2.0f) return;
+                if (d > sr) { for (int k = 0; k < 3; ++k) c[k] *= 0.55f; return; }
+                const float n = (-dx * 0.6f - dy * 0.8f) / sr;
+                float v = 0.12f + 0.20f * std::max(0.0f, n);
+                if (std::fabs((dx - dy) * 0.7071f) < sr * 0.16f && d < sr * 0.8f) v *= 0.25f;
+                c[0] = v; c[1] = v * 1.02f; c[2] = v * 1.06f;
+            });
         }
+    }
+
+    // 3) knobs: a soft shadow where the chrome knob sits, and a tick scale round it (the knob itself is a live part)
+    std::vector<Rect> seats;   // knobs that share a seat (only one shows at a time) get one shadow and one scale
+    for (const Widget& w : L.widgets) {
+        if (w.kind != WKind::Knob || w.r.w <= 0.0f) continue;
+        if (std::any_of(seats.begin(), seats.end(), [&](const Rect& q) {
+                return std::fabs(q.cx() - w.r.cx()) < q.w * 0.3f && std::fabs(q.cy() - w.r.cy()) < q.w * 0.3f; }))
+            continue;
+        seats.push_back(w.r);
+        const Rect dial = m.toFrame(w.r);
+        const float cx = dial.cx(), cy = dial.cy(), R = dial.w * 0.5f;
+        paint(dial.inset(-R * 0.30f), [&](float x, float y, float* c) {
+            const float dx = x - cx - R * 0.04f, dy = y - cy - R * 0.07f, dd = std::sqrt(dx * dx + dy * dy) / R;
+            if (dd < 1.15f) { const float sh = 1.0f - 0.55f * (1.15f - dd) / 1.15f; for (int q = 0; q < 3; ++q) c[q] *= sh; }
+            const float rx = x - cx, ry = y - cy, rr = std::sqrt(rx * rx + ry * ry) / R;
+            const float ang = std::atan2(rx, -ry);   // 0 = up, clockwise
+            constexpr float kMin = -0.75f * 3.14159265f, kMax = 0.75f * 3.14159265f;
+            if (ang < kMin - 0.05f || ang > kMax + 0.05f) return;
+            const float step = (kMax - kMin) / 10.0f;
+            const float idx = (ang - kMin) / step, nearest = std::round(idx);
+            const bool major = nearest == 0.0f || nearest == 10.0f || nearest == 5.0f;
+            if (rr < 1.06f || rr > (major ? 1.22f : 1.17f)) return;
+            const float distPx = std::fabs(idx - nearest) * step * rr * R;
+            const float a = std::clamp(1.0f - (distPx - 1.2f * s) / 1.2f, 0.0f, 1.0f) * (major ? 0.85f : 0.6f);
+            for (int q = 0; q < 3; ++q) c[q] = c[q] * (1.0f - a) + 0.62f * a;
+        });
     }
     return img;
 }

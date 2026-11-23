@@ -263,20 +263,21 @@ struct BrandArt {
 // real crown and ghost are laid on top; without it the plate is drawn here from the layout.
 [[nodiscard]] hc::ui::Image renderRackPlate(const FaceLayout& layout, const BrandArt& art, float pixelsPerUnit,
                                            const hc::ui::Image* plateArt = nullptr);
-// ---- the HEM frame look (Steven's template, same as the Dark Matter Series) ----------------------
-// assets/brand/HEM-Frame-4K.jpg: chrome frame, 3D emblem on top, glass bed over the circuit board (3840 × 2160
-// frame pixels). Every plate's body (below its header, above its footer) is scaled into the bed as one smoked-glass
-// panel with its recesses cut in; the plug-in's name, what it is and the brand sit in the frame's top strip. Same
-// widgets, same parameters, same hit-testing (the controller still works in plate units): only the look changes.
+// ---- the HEM board look (Steven's backplate and parts sheet, same as the HEM Suite) ----------------
+// assets/brand/HEM-Board-4K.jpg: chrome frame, 3D emblem on top, the circuit board under clear glass (3840 × 2160
+// frame pixels). Every plate's body (below its header, above its footer) is scaled into the board; each big group of
+// controls sits on a clear glass plate (thin steel edge, thin neon line), screens get darker glass in a chrome bezel;
+// the plug-in's name, what it is and the brand sit in the frame's top strip. Same widgets, same parameters, same
+// hit-testing (the controller still works in plate units): only the look changes.
 namespace rackframe {
 inline constexpr float kW = 3840.0f, kH = 2160.0f;
-inline constexpr Rect  kBed{265, 482, 3455, 1456};      // the glass bed in the art
-inline constexpr Rect  kEmblem{1716, 168, 457, 458};    // 3D emblem (hangs into the top of the bed)
-inline constexpr Rect  kContent{340, 650, 3300, 1250};  // where the plate body goes (clear of the emblem)
+inline constexpr Rect  kBed{230, 230, 3380, 1690};      // the board inside the frame
+inline constexpr Rect  kEmblem{1720, 0, 400, 545};      // 3D emblem (hangs into the top of the board)
+inline constexpr Rect  kContent{330, 610, 3180, 1230};  // where the plate body goes (clear of the emblem)
 inline constexpr Rect  kBody{34, 160, 1608, 668};       // plate units: every plate's body, header and footer left out
-inline constexpr float kTitleX = 395, kTitleBase = 335, kTitleMaxW = 1290;
-inline constexpr float kBlurbBase = 412, kBlurbMaxW = 1290;
-inline constexpr float kBrandR = 3540, kBrandBase = 335, kBrandMaxW = 1300;
+inline constexpr float kTitleX = 345, kTitleBase = 372, kTitleMaxW = 1320;
+inline constexpr float kBlurbBase = 452, kBlurbMaxW = 1320;
+inline constexpr float kBrandR = 3480, kBrandBase = 372, kBrandMaxW = 1200;
 } // namespace rackframe
 // Plate units -> frame pixels: frame = o + s · plate. The same for every plug-in.
 struct RackFrameMap {
@@ -286,7 +287,7 @@ struct RackFrameMap {
     [[nodiscard]] float plateY(float frameY) const noexcept { return (frameY - oy) / s; }
 };
 [[nodiscard]] RackFrameMap rackFrameMap() noexcept;
-// The frame art with the plate body's smoked-glass panel and its recesses (display glass, knob wells, pockets),
+// The board art with the clear glass plates, screen windows, knob shadows and tick scales,
 // (kW × kH × pixelsPerFramePixel). Empty frameArt: a plain dark chassis (the controls still work).
 [[nodiscard]] hc::ui::Image renderRackPlateFramed(const FaceLayout& layout, float pixelsPerFramePixel, const hc::ui::Image& frameArt);
 
@@ -384,6 +385,8 @@ public:
     // HEM frame look: (originX, originY, zoom) place the plate the way rackFrameMap() does; the plate's own header
     // and footer lettering is replaced by the frame's top strip.
     void setFramed(bool on) noexcept { framed_ = on; }
+    // Steven's parts (chrome knob, capsule buttons, power button) are in the atlas: draw the controls with them
+    void setHemParts(bool on) noexcept { hemParts_ = on; }
 
 private:
     struct Ctx;
@@ -414,6 +417,7 @@ private:
     ParamTable        params_;
     Theme             th_;
     bool              framed_ = false;
+    bool              hemParts_ = false;
     mutable float     needle_ = 1.0f;   // the GR needle's position (it swings, it doesn't jump); > 0 = not drawn yet
     mutable std::array<float, 4> needles_{1.0f, 1.0f, 1.0f, 1.0f};   // needles that show a meter (by meter index)
     mutable std::array<float, 16> held_{};   // gain-change readouts (dB, signed), by meter index: quick out, slow back
