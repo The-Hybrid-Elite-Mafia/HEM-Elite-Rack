@@ -209,6 +209,12 @@ void FaceView::knob(const Ctx& c, const Widget& w, int wi) const {
     const bool on = c.host.active(param);
     const bool hot = c.st.hover == wi || c.st.active == wi;
 
+    if (hemParts_) {
+        // Steven's chrome knob turns as a whole: its pointer shows the value against the tick scale on the plate
+        const float d = dial.w * 1.02f;
+        r.spriteRotated(Sprite::HemKnobCyan, cx, cy, d, d, ang);
+        if (!on) r.fillRound(dial.inset(dial.w * 0.02f), dial.w * 0.49f, {0.0f, 0.0f, 0.0f, 0.62f}, Blend::Over);   // switched off
+    } else {
     // Dashed teal scale: 31 dashes, lit up to the value.
     const float ar = kn::kArcRadius * R, aw = kn::kArcWidth * R * 1.1f;
     r.sprite(Sprite::KnobTrack, {cx - R, cy - R, 2 * R, 2 * R});
@@ -235,6 +241,7 @@ void FaceView::knob(const Ctx& c, const Widget& w, int wi) const {
     r.spriteRotated(Sprite::KnobIndicator, cx + std::sin(ang) * mid, cy - std::cos(ang) * mid, iw, ih, ang,
                     {0.55f + 0.45f * th_.teal.r, 0.55f + 0.45f * th_.teal.g, 0.55f + 0.45f * th_.teal.b, 1.0f}, Blend::Over, false);
     r.sprite(Sprite::KnobLight, {cx - bd / 2, cy - bd / 2, bd, bd});
+    }
     // A knob its section's switch has turned off stays a whole knob, pointer and value showing: only its lights go
     // out (scale and tip unlit, caption and value dim). The switch's own light says the section is off.
 
@@ -281,6 +288,20 @@ void FaceView::button(const Ctx& c, Rect b, std::string_view text, bool lit, boo
     Renderer& r = c.r;
     const float z = c.z;
     const TextStyle bs = c.fit(TextStyle::Label, text, b.w - 16 * z);
+    if (hemParts_ && b.w >= b.h * 1.6f) {
+        // Steven's capsule bar: lit = glowing, unlit = the same part turned down; the chrome ends never stretch.
+        // Amber for the ON / OFF switches, cyan for the choices.
+        const bool amberCap = colour.r > 0.8f && colour.g < 0.7f;
+        const float h = std::min(b.h, b.w * 0.45f);
+        const Rect cb{b.x, b.cy() - h * 0.5f, b.w, h};
+        const float corner = h / 74.0f;   // the capsule picture is 74 px tall
+        r.nineSlice(amberCap ? Sprite::HemCapsuleAmber : Sprite::HemCapsuleCyan, cb, corner,
+                    lit && !dim ? Rgba{1, 1, 1, 1} : hot ? Rgba{0.42f, 0.42f, 0.44f, 1} : Rgba{0.26f, 0.26f, 0.28f, 1});
+        const TextStyle hs = c.fit(TextStyle::Label, text, cb.w - 2 * hc::ui::hempart::kCapsuleEnd * corner - 4 * z);
+        r.text(hs, text, cb.cx(), c.mid(cb, hs), lit && !dim ? rgb8(0x061018) : dim ? th_.dim : hot ? th_.silver : rgb8(0xC8D2DC),
+               Align::Center, lit && !dim ? TextFx::Plain : TextFx::Shadowed);
+        return;
+    }
     if (lit && !dim) {   // a solid lit button: no glow or bloom around it (Steven: no haze)
         r.fillRound(b.inset(2 * z), 9 * z, colour.withAlpha(0.92f), Blend::Over, false);
         r.fillRound({b.x + 8 * z, b.y + 5 * z, b.w - 16 * z, b.h * 0.34f}, 7 * z, {1, 1, 1, 0.14f}, Blend::Add);
@@ -373,6 +394,14 @@ void FaceView::bypass(const Ctx& c, const Widget& w, int wi) const {
     const float z = c.z;
     const Rect b = c.T(w.r);
     const bool on = !c.host.bypassed(), hot = c.st.hover == wi;
+    if (hemParts_) {   // Steven's power button: lit = working on the sound, dark = bypassed
+        r.sprite(on ? Sprite::HemPowerOn : Sprite::HemPowerOff, b, hot ? Rgba{1.15f, 1.15f, 1.15f, 1} : Rgba{1, 1, 1, 1});
+        const char* t = on ? "ON" : "BYPASSED";
+        const TextStyle cs = c.ts(TextStyle::Caption);
+        r.text(cs, w.caption.empty() ? t : w.caption + "  " + t, b.cx(), b.bottom() + 30 * z, on ? th_.label : th_.dim, Align::Center,
+               TextFx::Shadowed);
+        return;
+    }
     if (on) {   // solid teal: no glow and not emissive, so the bloom leaves no haze around it
         r.fillRound(b.inset(3 * z), b.w * 0.5f - 3 * z, th_.teal.withAlpha(0.95f), Blend::Over, false);
         r.fillRound({b.x + b.w * 0.22f, b.y + b.h * 0.12f, b.w * 0.56f, b.h * 0.3f}, b.h * 0.15f, {1, 1, 1, 0.18f}, Blend::Add);
@@ -1161,7 +1190,7 @@ void FaceView::draw(Renderer& r, const PanelHost& host, const FaceFeed& feed, co
                 if (r.textWidth(smallest, t + "  OFF") <= room) t += on ? "  ON" : "  OFF";
                 else if (r.textWidth(smallest, t + " OFF") <= room) t += on ? " ON" : " OFF";
             }
-            button(c, c.T(w.r), t, on, hot, !host.active(param), th_.teal);
+            button(c, c.T(w.r), t, on, hot, !host.active(param), hemParts_ ? rgb8(0xFF8A1E) : th_.teal);   // the board look: amber switches
             break;
         }
         case WKind::ChoiceButton: {

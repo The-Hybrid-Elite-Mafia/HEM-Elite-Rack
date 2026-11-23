@@ -22,9 +22,10 @@ struct SharedFaceArt {
     hc::ui::FontSet    fonts;
     hc::ui::PartsAtlas parts;
     BrandArt           brand;
-    hc::ui::Image      frame;   // brand/HEM-Frame-4K.jpg (empty if missing: plain dark chassis)
+    hc::ui::Image      frame;   // brand/HEM-Board-4K.jpg (empty if missing: plain dark chassis)
+    bool               hemParts = false;   // parts/ held Steven's parts and they are in the atlas
 };
-// `assetDir` holds fonts/, faceplates/Main-Faceplate.png and brand/ (crown, ghost, HEM-Frame-4K.jpg).
+// `assetDir` holds fonts/, faceplates/Main-Faceplate.png and brand/ (crown, ghost, HEM-Board-4K.jpg) and parts/ (Steven's parts sheet).
 [[nodiscard]] const SharedFaceArt* sharedFaceArt(const std::filesystem::path& assetDir, std::string* error);
 
 class FaceWindow {

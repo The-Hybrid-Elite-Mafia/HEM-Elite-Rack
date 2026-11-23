@@ -648,8 +648,8 @@ void framedFaces() {
     const std::uint8_t* corner = px(60, 60);
     CHECK(corner[0] == 120 && corner[1] == 124 && corner[2] == 130);
     const Rect body = m.toFrame(rackframe::kBody);
-    const std::uint8_t* glass = px(body.x + 6, body.bottom() - 6);
-    CHECK(glass[1] < 100 && glass[1] > 5);
+    const std::uint8_t* glass = px(body.x + 40, body.cy());   // clear glass: the board shows through, barely darker
+    CHECK(glass[1] >= 110 && glass[1] <= 124);
     const hc::ui::Image none = renderRackPlateFramed(L, ppu, hc::ui::Image{});
     CHECK(none.width == 960 && none.height == 540 && none.rgba[3] == 255);
 }
