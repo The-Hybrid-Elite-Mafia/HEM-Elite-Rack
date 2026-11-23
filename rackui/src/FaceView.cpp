@@ -97,6 +97,7 @@ void FaceView::header(const Ctx& c) const {
     const float z = c.z;
     // Lit channels in the metal: bright solid teal with a hot core, sharp edges, no glow around them.
     for (const auto& g : L_.grooves) {
+        if (hemParts_) break;   // the board look: the glass plates' neon edges replace the lit channels
         const float xs[2] = {c.X(g[0]), c.X(g[2])}, ys[2] = {c.Y(g[1]), c.Y(g[3])};
         r.polyline(xs, ys, 2, 2.4f * z, th_.teal, Blend::Over, false);
         r.polyline(xs, ys, 2, 1.0f * z, {1, 1, 1, 0.35f}, Blend::Add, false);
@@ -273,7 +274,7 @@ void FaceView::knob(const Ctx& c, const Widget& w, int wi) const {
     // The scale's end labels sit in the dial's own bottom corners, under the ends of the arc and above
     // the value, so they can never run into the value or into the next knob. A label too wide for its
     // corner is left out (both go, so the pair stays balanced) - the value underneath says it anyway.
-    if (!w.lo.empty() || !w.hi.empty()) {
+    if (!hemParts_ && (!w.lo.empty() || !w.hi.empty())) {   // the board look: the plate's tick scale replaces them
         const TextStyle ss = c.ts(TextStyle::Caption);
         const float room = R * 0.62f;
         if (r.textWidth(ss, w.lo) <= room && r.textWidth(ss, w.hi) <= room) {
