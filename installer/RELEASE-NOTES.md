@@ -1,3 +1,13 @@
+## HEM-Elite-Rack — 0.55.0: the HEM frame look on all 120 plug-ins
+
+- **New look for every plug-in window.** Each plug-in now opens in the HEM frame (the same chrome frame,
+  emblem and glass bed as the Dark Matter Series). The plate's controls sit on one smoked-glass panel in
+  the bed; the name, what it is, the tagline and the brand sit in the top strip.
+- **Nothing else changed.** Same knobs, buttons, meters and displays in the same places, same sound.
+- The rack app's own faceplate view and the picker cards keep their look for now.
+
+---
+
 # HEM-Elite-Rack 0.53.1
 
 - Out of the red: Suno's stem downloads include the full finished song ("0 <song name>") next to the stems, and
