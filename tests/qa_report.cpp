@@ -5,6 +5,7 @@
 #include "QaCommon.hpp"
 #include "hem/rack/EliteEq.hpp"
 #include "hem/rack/OfflineRender.hpp"
+#include "hem/rack/Holdouts.hpp"
 #include "hem/rack/Plugins.hpp"
 #include "hem/rack/Tape.hpp"
 #include "hem/ui/Face.hpp"
@@ -276,6 +277,7 @@ void auditDsp(const rack::PluginInfo& info, hemqa::Report& rep) {
     auto read = [&](const MeterRef& m) { return m.index < 0 ? e->reductionDb() : e->meter(m.index); };
     std::vector<int> moved(meters.size(), 0), bad(meters.size(), 0);
     std::vector<float> lastHot(meters.size(), 0.0f);
+    std::vector<std::set<float>> seen(meters.size());   // the value at the end of each pass: a readout follows the controls
     auto meterPass = [&](int mode) {
         e = makeOffline(info);
         e->prepare(hemqa::kRate, hemqa::kBlock);
@@ -299,6 +301,7 @@ void auditDsp(const rack::PluginInfo& info, hemqa::Report& rep) {
                 lastHot[m] = hot;
             }
         }
+        for (std::size_t m = 0; m < meters.size(); ++m) seen[m].insert(lastHot[m]);
     };
     auto allMoved = [&] { return std::all_of(moved.begin(), moved.end(), [](int x) { return x != 0; }); };
     for (int mode = 0; mode <= 4; ++mode) meterPass(mode);
@@ -316,7 +319,18 @@ void auditDsp(const rack::PluginInfo& info, hemqa::Report& rep) {
     }
     for (std::size_t m = 0; m < meters.size(); ++m) {
         if (bad[m]) rep.add(name, "METER", "METER_NAN_OR_INF", meters[m].name, "non-finite meter value");
-        if (!moved[m]) rep.add(name, "METER", "METER_STUCK", meters[m].name, "reads " + hemqa::fmt("%g", lastHot[m]) +
+        if (moved[m]) continue;
+        // FINGERPRINT offline (the QA renders offline, like an export): each response is made at its block, so
+        // READY is always lit; that is the point of the offline mode.
+        if (name == "FINGERPRINT" && meters[m].index == rack::fingerprint::Ready && lastHot[m] >= 0.5f) {
+            rep.note(name, "READY: always lit offline, by design (the response is made at its block, never pending)");
+            continue;
+        }
+        if (seen[m].size() > 1) {
+            rep.note(name, meters[m].name + ": a readout of a setting (follows the controls, not the sound): " + std::to_string(seen[m].size()) + " values seen");
+            continue;
+        }
+        rep.add(name, "METER", "METER_STUCK", meters[m].name, "reads " + hemqa::fmt("%g", lastHot[m]) +
                                " for both silence and hot signal (read after every block), with the controls at default / min / max /"
                                " middle, with a single voice, in random settings and with each other control moved on its own");
     }
