@@ -1,5 +1,6 @@
 #include "Chain.hpp"
 
+#include "hem/rack/OfflineRender.hpp"
 #include "hem/rack/Hitman.hpp"
 #include "hem/rack/Plugins.hpp"
 
@@ -118,6 +119,10 @@ bool renderOffline(const Song& song, const std::vector<SlotState>& chain, std::v
         if (!s.on) continue;
         auto e = makePlugin(s);
         if (!e) { if (error) *error = "unknown plug-in " + s.name; return false; }
+        if (auto* o = dynamic_cast<rack::OfflineRender*>(e.get())) {   // the WAV export: FINGERPRINT never lands late
+            o->setOfflineRender(true);
+            e->reset();
+        }
         latency += e->latency();
         fx.push_back(std::move(e));
     }

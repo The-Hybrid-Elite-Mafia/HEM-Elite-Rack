@@ -4,6 +4,7 @@
 #include "Harness.hpp"
 #include "QaCommon.hpp"
 #include "hem/rack/EliteEq.hpp"
+#include "hem/rack/OfflineRender.hpp"
 #include "hem/rack/Plugins.hpp"
 #include "hem/rack/Tape.hpp"
 #include "hem/ui/Face.hpp"
@@ -18,6 +19,13 @@ namespace {
 
 using hemqa::Stereo;
 using namespace hem::ui;
+
+// The QA renders offline, like a DAW export: plug-ins that care are told so (FINGERPRINT).
+std::unique_ptr<hc::fx::Effect> makeOffline(const rack::PluginInfo& info) {
+    auto e = info.create();
+    if (auto* o = dynamic_cast<rack::OfflineRender*>(e.get())) o->setOfflineRender(true);
+    return e;
+}
 
 Stereo run(hc::fx::Effect& e, const Stereo& in) {
     Stereo out = in;
@@ -90,7 +98,7 @@ std::vector<MeterRef> plateMeters(const rack::PluginInfo& info, const hc::fx::Ef
 
 void auditDsp(const rack::PluginInfo& info, hemqa::Report& rep) {
     const std::string name = info.name;
-    auto e = info.create();
+    auto e = makeOffline(info);
     const std::span<const hc::fx::ParamInfo> ps = e->params();
     const int controls = controlCount(info, static_cast<int>(ps.size()));
     const Stereo full = hemqa::testAudio(1.0), voice = hemqa::voiceAudio(1.0), silence(static_cast<std::size_t>(0.5 * hemqa::kRate));
@@ -129,7 +137,7 @@ void auditDsp(const rack::PluginInfo& info, hemqa::Report& rep) {
     };
     bool fresh = false;
     auto stateHash = [&](int mode, int param, float value, bool& blewUp, bool& getOk) {
-        if (fresh) { e = info.create(); e->prepare(hemqa::kRate, hemqa::kBlock); }
+        if (fresh) { e = makeOffline(info); e->prepare(hemqa::kRate, hemqa::kBlock); }
         setContext(param, mode);
         Stereo o;
         if (mode == 6 && param >= 0) {
@@ -234,7 +242,7 @@ void auditDsp(const rack::PluginInfo& info, hemqa::Report& rep) {
             auto find = [&](const char* id) { for (int k = 0; k < static_cast<int>(ps.size()); ++k) if (std::string(ps[static_cast<std::size_t>(k)].id) == id) return k; return -1; };
             std::set<std::uint64_t> hashes;
             for (float v : values) {
-                e = info.create();
+                e = makeOffline(info);
                 e->prepare(hemqa::kRate, hemqa::kBlock);
                 e->setDefaults();
                 for (const Setting& st : c.sets) e->set(find(st.id), st.value);
@@ -269,7 +277,7 @@ void auditDsp(const rack::PluginInfo& info, hemqa::Report& rep) {
     std::vector<int> moved(meters.size(), 0), bad(meters.size(), 0);
     std::vector<float> lastHot(meters.size(), 0.0f);
     auto meterPass = [&](int mode) {
-        e = info.create();
+        e = makeOffline(info);
         e->prepare(hemqa::kRate, hemqa::kBlock);
         setContext(-1, mode);
         e->reset();
@@ -335,7 +343,7 @@ const char* kindName(WKind k) {
 
 void auditFace(const rack::PluginInfo& info, hemqa::Report& rep) {
     const std::string name = info.name;
-    auto e = info.create();
+    auto e = makeOffline(info);
     e->setDefaults();
     const int count = static_cast<int>(e->params().size());
     const int controls = controlCount(info, count);
