@@ -39,6 +39,7 @@ jobs:
           Push-Location $exe.DirectoryName
           & $exe.FullName --qa 2>&1 | Tee-Object (Join-Path $env:HEM_QA_DIR 'stage1-log.txt')
           Pop-Location
+          Get-ChildItem $env:HEM_QA_DIR -Filter 'qa_report_*.csv' | ForEach-Object { Write-Host "=== $($_.Name)"; Get-Content $_.FullName | ForEach-Object { Write-Host "CSV| $_" } }
           exit 0
 
       - name: Stage 2 - Steinberg VST3 validator (extensive)
