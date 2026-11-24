@@ -1,3 +1,10 @@
+# HEM-Elite-Rack 0.56.2
+
+- FINGERPRINT: exports (a DAW's offline bounce, the rack app's WAV export) now come out the same every time. The reverb response is made at the exact block where a setting changes, never late, however fast the computer is.
+- FOUNDRY and BOARDROOM: VINTAGE (its colour and its quiet hiss) now starts off. Turn it on for the old sound.
+- Ten plug-ins (BIG SHOT, BOARDROOM, FAST MONEY, FOUNDRY, HIGH STAKES, QUICK CASH, REEL MONEY, STRAIGHT EDGE, SWEET SIXTEEN, TOP DOG) and PAWN SHOP gave a slightly different render each time after a reset (dither / hiss noise and tape drift did not restart). Every render after a reset now matches sample for sample.
+- All 120 plug-ins passed an automated check of every control, meter and faceplate hit box, and Steinberg's VST3 validator (extensive).
+
 # HEM-Elite-Rack 0.56.1
 
 - Plug-in screens now follow the DAW: they shrink and grow when the DAW asks (display scaling or a dragged window) and keep the board's shape, so nothing is cut off. Knobs stay under the mouse at any size.

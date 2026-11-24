@@ -9,6 +9,7 @@
 #include "hem/rack/Garage.hpp"
 #include "hem/rack/Holdouts.hpp"
 #include "hem/rack/Notes.hpp"
+#include "hem/rack/OfflineRender.hpp"
 #include "hem/rack/Plugins.hpp"
 
 #include <algorithm>
@@ -1370,6 +1371,33 @@ void testFingerprint() {
     const double d = blockSizeDifference(*findPlugin("FINGERPRINT"), [](hc::fx::Effect& x) { x.set(Space, 3); x.set(Mix, 60); }, noise(0.5, 0.3f, 4));
     std::printf("  FINGERPRINT block size 512 vs 1: %.2e\n", d);
     CHECK(d < 1e-6);
+    // An export (offline render): the settings set before it and a change in the middle land at fixed blocks,
+    // so two exports are the same sample for sample, however fast the computer is.
+    {
+        auto exportOnce = [](bool slowHalf) {
+            auto x = findPlugin("FINGERPRINT")->create();
+            auto* o = dynamic_cast<hem::rack::OfflineRender*>(x.get());
+            CHECK(o != nullptr);
+            x->prepare(kFs, 512);
+            if (o) o->setOfflineRender(true);
+            x->set(Space, 6);   // set after prepare: the response must still be the one for SPACE 6
+            x->set(Mix, 60);
+            x->reset();
+            Stereo s = noise(1.0, 0.3f, 9);
+            const std::size_t half = s.size() / 2;
+            for (std::size_t p = 0; p < s.size(); p += 512) {
+                if (p == half - half % 512) x->set(Length, 40);   // turned during the export
+                if (slowHalf) std::this_thread::sleep_for(std::chrono::milliseconds(1));   // a slower computer
+                x->process(s.l.data() + p, s.r.data() + p, static_cast<std::uint32_t>(std::min<std::size_t>(512, s.size() - p)));
+            }
+            return s;
+        };
+        const Stereo a = exportOnce(false), b = exportOnce(true);
+        double worst = 0;
+        for (std::size_t i = 0; i < a.size(); ++i) worst = std::max({worst, static_cast<double>(std::fabs(a.l[i] - b.l[i])), static_cast<double>(std::fabs(a.r[i] - b.r[i]))});
+        std::printf("  FINGERPRINT two exports (fast / slow computer, LENGTH turned halfway): largest difference %.1e\n", worst);
+        CHECK(worst == 0.0);
+    }
 }
 
 // GRAND LARCENY: in tune, the force of the blow, the dampers and the pedal, the plate's keys, the voices, the

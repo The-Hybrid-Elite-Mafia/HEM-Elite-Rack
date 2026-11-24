@@ -20,6 +20,7 @@ struct AllocScope {
     [[nodiscard]] std::uint64_t count() const noexcept { return gAllocCount.load(); }
 };
 
+void runQaReport();   // hem_rack_tests --qa
 void testEliteEq();
 void testRestorer();
 void testBusGlue();

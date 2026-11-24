@@ -223,7 +223,7 @@ const ParamInfo kParams[kCount] = {
     {"eqin", "EQ", "", 0, 1, 1, Taper::Toggle, kInOut},
     {"phase", "Flip", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
-    {"vintage", "Vintage", "", 0, 1, 1, Taper::Toggle, kOnOff},
+    {"vintage", "Vintage", "", 0, 1, 0, Taper::Toggle, kOnOff},   // off by default: colour + hiss only when asked for
     {"clear", "Clear", "", 0, 1, 0, Taper::Toggle, kPushN},
 };
 constexpr float kShelfQ = 0.7071f, kMidQ = 1.4f;
@@ -273,7 +273,7 @@ const ParamInfo kParams[kCount] = {
     {"eqin", "EQ", "", 0, 1, 1, Taper::Toggle, kInOut},
     {"phase", "Flip", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
-    {"vintage", "Vintage", "", 0, 1, 1, Taper::Toggle, kOnOff},
+    {"vintage", "Vintage", "", 0, 1, 0, Taper::Toggle, kOnOff},   // off by default: colour + hiss only when asked for
     {"clear", "Clear", "", 0, 1, 0, Taper::Toggle, kPushN},
 };
 constexpr float kShelfQ = 0.7071f, kEdgeBellQ = 0.9f, kWideQ = 0.8f, kTightQ = 2.5f, kWideReach = 12.0f / 18.0f;

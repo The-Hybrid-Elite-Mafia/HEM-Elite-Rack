@@ -12,7 +12,11 @@
 // slots; the audio thread then crossfades from the old slot to the new one over four blocks (both run during
 // the fade, on the same input spectra) and hands the old one back. The audio thread never waits, never
 // allocates; the background thread never allocates after prepare().
+// Offline (a DAW export or the rack app's WAV export, see OfflineRender.hpp) there is no background thread: a
+// new response is made on the audio thread at the first block after the settings change, and reset() makes the
+// one for the current settings, so the same export always comes out sample-for-sample the same.
 #include "hem/rack/Holdouts.hpp"
+#include "hem/rack/OfflineRender.hpp"
 
 #include "SpaceKit.hpp"
 
@@ -120,7 +124,7 @@ struct Slot {
     float rt60 = 0.0f;
 };
 
-class Impl final : public hc::fx::Effect {
+class Impl final : public hc::fx::Effect, public OfflineRender {
 public:
     static constexpr int B = static_cast<int>(kBlock), N = 2 * B, kBins = B + 1;
 
@@ -171,9 +175,32 @@ public:
         publishMeter(Rt60, slot_[0].rt60);
         publishMeter(Ready, 1.0f);
         reset();
-        startWorker();
+        if (!offline_) startWorker();
+        prepared_ = true;
+    }
+    // Called by the host while it is not processing (VST3 setupProcessing, the app's export).
+    void setOfflineRender(bool on) override {
+        if (on == offline_) return;
+        stopWorker();
+        offline_ = on;
+        if (!on && prepared_) startWorker();
     }
     void reset() noexcept override {
+        if (offline_) {   // start from the response for the current settings, made now
+            const Key k = keyNow();
+            int act = active_.load(std::memory_order_relaxed);
+            if (state_.load(std::memory_order_relaxed) != kIdle) {   // the response waiting / fading in is the newest
+                act = 1 - act;
+                active_.store(act, std::memory_order_relaxed);
+            }
+            if (!(k == lastKey_)) {
+                build(slot_[act], k);
+                lastKey_ = k;
+            }
+            state_.store(kIdle, std::memory_order_relaxed);
+            publishMeter(Rt60, slot_[act].rt60);
+            publishMeter(Ready, 1.0f);
+        }
         for (int c = 0; c < 2; ++c) {
             std::fill(fdlRe_[c].begin(), fdlRe_[c].end(), 0.0f);
             std::fill(fdlIm_[c].begin(), fdlIm_[c].end(), 0.0f);
@@ -234,6 +261,16 @@ private:
 
     // ---- the audio thread: one block of convolution ----------------------------------------------------
     void block() noexcept {
+        // offline: the settings moved, make the new response now (same block in every export)
+        if (offline_ && fade_ == 0 && state_.load(std::memory_order_relaxed) == kIdle) {
+            const Key k = keyNow();
+            if (!(k == lastKey_)) {
+                build(slot_[1 - active_.load(std::memory_order_relaxed)], k);
+                lastKey_ = k;
+                state_.store(kReady, std::memory_order_relaxed);
+                publishMeter(Ready, 1.0f);
+            }
+        }
         // a new response waiting: start the fade
         if (fade_ == 0 && state_.load(std::memory_order_acquire) == kReady) {
             state_.store(kFading, std::memory_order_relaxed);
@@ -510,6 +547,7 @@ private:
     int maxParts_ = 1, head_ = 0, pos_ = 0, fade_ = 0;
     Slot slot_[2];
     std::atomic<int> active_{0}, state_{kIdle};
+    bool offline_ = false, prepared_ = false;   // offline_ only changes while the host is not processing
     Key lastKey_{};
     std::vector<float> fdlRe_[2], fdlIm_[2], accRe_[2], accIm_[2], accRe2_[2], accIm2_[2], in_[2], out_[2], outNew_[2];
     std::vector<cf> z_, zw_;

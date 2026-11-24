@@ -4,6 +4,7 @@
 
 #include <cstdio>
 #include <filesystem>
+#include <string_view>
 
 namespace hem::test {
 namespace {
@@ -19,6 +20,10 @@ std::filesystem::path exeDir() { return gExeDir; }
 int main(int argc, char** argv) {
     using namespace hem::test;
     setExePath(argc > 0 ? argv[0] : ".");
+    if (argc > 1 && std::string_view(argv[1]) == "--qa") {   // QA pass only: report, never fails
+        runQaReport();
+        return 0;
+    }
     testSpectrum();
     testEliteEq();
     testRestorer();

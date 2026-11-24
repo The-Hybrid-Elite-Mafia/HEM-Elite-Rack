@@ -13,6 +13,7 @@
 //  itself), for hosts that run both halves in one process but do not pass output parameters back (Audacity).
 //  Steinberg VST3 SDK: MIT licence (verified from the SDK's LICENSE.txt, v3.8.1). No ASIO.
 // =============================================================================
+#include "hem/rack/OfflineRender.hpp"
 #include "hem/rack/EliteEq.hpp"
 #include "hem/rack/Plugins.hpp"
 #include "hem/rack/Analyzer.hpp"
@@ -234,6 +235,8 @@ public:
         sampleRate_ = setup.sampleRate;
         maxBlock_ = static_cast<std::uint32_t>(std::clamp<int32>(setup.maxSamplesPerBlock, 32, static_cast<int32>(hc::fx::Effect::kMaxBlock)));
         fx_->prepare(sampleRate_, maxBlock_);
+        // a DAW export (faster than real time): FINGERPRINT makes its responses at fixed blocks, never late
+        if (auto* o = dynamic_cast<hem::rack::OfflineRender*>(fx_.get())) o->setOfflineRender(setup.processMode == Vst::kOffline);
         for (auto& d : bypassDelay_) d.prepare(fx_->latency());
         for (auto& b : dry_) b.assign(maxBlock_, 0.0f);
         fadeStep_ = static_cast<float>(1.0 / (0.010 * sampleRate_));

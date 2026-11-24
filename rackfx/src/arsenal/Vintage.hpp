@@ -19,7 +19,7 @@ public:
         down_ = 1.0f - coefMs(fs, 400.0);
         clear();
     }
-    void clear() noexcept { env_ = 0.0f; ph_ = 0.0; }
+    void clear() noexcept { env_ = 0.0f; ph_ = 0.0; rng_ = kSeed; }   // same hiss after every reset: renders repeat
     // mains: 0 off, 1 = 50 Hz, 2 = 60 Hz, 3 = hiss only; amount: 1 = the usual level. Adds to l, r.
     void tick(int mains, float amount, float& l, float& r) noexcept {
         const float lev = std::max(std::fabs(l), std::fabs(r));
@@ -44,7 +44,8 @@ private:
     }
     double fs_ = 48000.0, ph_ = 0.0;
     float env_ = 0.0f, up_ = 0.0f, down_ = 0.0f;
-    std::uint32_t rng_ = 0x2545F491u;
+    static constexpr std::uint32_t kSeed = 0x2545F491u;
+    std::uint32_t rng_ = kSeed;
 };
 
 // A VU meter: average power over ~300 ms; 0 VU = `calDb` under full scale (-18 dBFS RMS by default).

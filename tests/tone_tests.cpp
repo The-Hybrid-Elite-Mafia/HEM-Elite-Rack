@@ -1108,7 +1108,8 @@ void testConsoleEqs() {
         std::printf("  FOUNDRY FLIP: largest |a + flipped| %.1e\n", worst);
         CHECK(worst < 1e-5);
         // VINTAGE: a hot tone gets harmonics, off = none
-        auto v1 = make("FOUNDRY"), v0 = make("FOUNDRY", {{Vintage, 0}});
+        auto v1 = make("FOUNDRY", {{Vintage, 1}}), v0 = make("FOUNDRY");   // VINTAGE is off by default (no hiss unless asked for)
+        CHECK(v0->get(Vintage) == 0.0f);
         const double h1 = harmonicDb(*v1, 200, 2, 0.8f), h0 = harmonicDb(*v0, 200, 2, 0.8f);
         std::printf("  FOUNDRY 2nd harmonic of a hot 200 Hz tone: vintage %.1f dB, off %.1f dB\n", h1, h0);
         CHECK(h1 > -50.0 && h0 < -90.0);
@@ -1122,6 +1123,7 @@ void testConsoleEqs() {
     {
         using namespace boardroom;
         auto e = make("BOARDROOM");
+        CHECK(e->get(Vintage) == 0.0f);   // VINTAGE (colour + hiss) is off by default
         const double g = toneGain(*e, 1000, 0.01f), hi = toneGain(*e, 15000, 0.01f);
         CHECK(std::fabs(g) < 0.1 && std::fabs(hi) < 0.1);
         auto f = make("BOARDROOM", {{HighPass, 3}, {LowPass, 3}});
