@@ -28,6 +28,17 @@ jobs:
         continue-on-error: true
         run: cmake --build --preset rack-release --target hem_rack_tests HEMEliteRackVST3 --parallel
 
+      - name: Unit tests (hem_rack_tests, the normal suite)
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem build\rack -Recurse -Filter 'hem_rack_tests.exe' -File | Where-Object { $_.FullName -match '\\Release\\' } | Select-Object -First 1
+          Push-Location $exe.DirectoryName
+          & $exe.FullName 2>&1 | Select-Object -Last 15
+          Write-Host "UNIT TESTS EXIT: $LASTEXITCODE"
+          Pop-Location
+          exit 0
+
       - name: Stage 1 - headless QA test
         continue-on-error: true
         shell: pwsh

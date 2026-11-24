@@ -5,6 +5,7 @@
 #include "QaCommon.hpp"
 #include "hem/rack/EliteEq.hpp"
 #include "hem/rack/Plugins.hpp"
+#include "hem/rack/Tape.hpp"
 #include "hem/ui/Face.hpp"
 
 #include <memory>
@@ -29,6 +30,33 @@ Stereo run(hc::fx::Effect& e, const Stereo& in) {
 
 hemqa::Rect qr(const Rect& r) { return {r.x, r.y, r.w, r.h}; }
 
+constexpr int kRandomSettings = 8;   // random settings of all the other controls tried for a still-silent control
+
+// A working control that only acts in one exact situation the generic settings do not reach. Each entry was
+// checked in the code; `sets` are applied before playing, `moves` halfway through (a control turned while playing).
+struct Setting { const char* id; float value; };
+struct Condition { const char* plugin; const char* control; std::vector<Setting> sets, moves; const char* why; };
+const std::vector<Condition>& conditions() {
+    static const std::vector<Condition> c = {
+        {"SWITCHBLADE", "pdr", {{"compon", 1}, {"threshold", -6}, {"ratio", 10}, {"release", 2000}}, {},
+         "SMART REL only changes the release after a SHORT hit over the threshold, with a long RELEASE"},
+        {"SWERVE", "tie", {}, {{"rate", 5}},
+         "TIE keeps the sweep (depth x rate) when RATE is turned while playing"},
+    };
+    return c;
+}
+
+// Controls that only change the screen, never the sound or a meter. Found from the plate where the plate says so
+// (a needle's IN / GR / OUT selector, an EQ graph's scale or spectrum switch); the rest checked in the code.
+std::string displayOnly(const rack::PluginInfo& info, const FaceLayout& L, int i) {
+    for (const Widget& w : L.widgets)
+        if (w.kind == WKind::GrMeter && w.param2 == i) return "picks what the needle shows (FaceView::grMeter)";
+    if (info.curve && info.curve->scaleParam == i) return "the EQ graph's scale (CurveInfo::scaleParam)";
+    if (info.curve && info.curve->spectrumParam == i) return "the music behind the EQ graph on / off (CurveInfo::spectrumParam)";
+    if (std::string(info.name) == "ARCHIVE" && i == rack::tape::VuCal) return "which dBFS level reads 0 VU on the needles (FaceView::vuMeter)";
+    return {};
+}
+
 bool stepped(const hc::fx::ParamInfo& p) { return p.taper == hc::fx::Taper::Choice || p.taper == hc::fx::Taper::Toggle; }
 
 // Parameters a QA sweep may move: the plug-in's controls (its stored memory after firstStored is not a control).
@@ -47,8 +75,15 @@ std::vector<MeterRef> plateMeters(const rack::PluginInfo& info, const hc::fx::Ef
     std::vector<MeterRef> out;
     const auto ms = e.meters();
     for (int i = 0; i < static_cast<int>(ms.size()); ++i) out.push_back({ms[static_cast<std::size_t>(i)].name, i});
+    // GR is on the plate when the plate says so, or a needle shows it. A needle with a two-way IN / OUT selector
+    // (param2 with max 1) never shows GR (FaceView::grMeter), so it does not count.
     bool gr = info.plate && info.plate->reportsReduction;
-    for (const Widget& w : L.widgets) gr = gr || (w.kind == WKind::GrMeter && w.choice < 0);
+    const auto ps = e.params();
+    for (const Widget& w : L.widgets) {
+        if (w.kind != WKind::GrMeter || w.choice >= 0) continue;
+        const bool twoWay = w.param2 >= 0 && w.meter >= 0 && w.param2 < static_cast<int>(ps.size()) && ps[static_cast<std::size_t>(w.param2)].max < 1.5f;
+        gr = gr || !twoWay;
+    }
     if (gr) out.push_back({"GAIN REDUCTION", -1});
     return out;
 }
@@ -58,16 +93,34 @@ void auditDsp(const rack::PluginInfo& info, hemqa::Report& rep) {
     auto e = info.create();
     const std::span<const hc::fx::ParamInfo> ps = e->params();
     const int controls = controlCount(info, static_cast<int>(ps.size()));
-    const Stereo full = hemqa::testAudio(1.0), silence(static_cast<std::size_t>(0.5 * hemqa::kRate));
+    const Stereo full = hemqa::testAudio(1.0), voice = hemqa::voiceAudio(1.0), silence(static_cast<std::size_t>(0.5 * hemqa::kRate));
 
     e->prepare(hemqa::kRate, hemqa::kBlock);
     e->setDefaults();
     e->reset();
     if (!hemqa::finite(run(*e, full))) rep.add(name, "DSP", "NAN_OR_INF", "defaults", "non-finite output on 1 s of test audio at default settings");
 
-    auto setContext = [&](int skip, int mode) {   // 0 defaults, 1 min, 2 max, 3 middle (stored memory stays at default)
+    // Settings of the other controls (stored memory always stays at default): 0 defaults, 1 all at min,
+    // 2 all at max, 3 all at middle, 4 defaults played with a single voice (pitch tools),
+    // 5 defaults with ONE other control (pairK) at pairV.
+    int pairK = 0;
+    float pairV = 0;
+    auto setContext = [&](int skip, int mode) {
         e->setDefaults();
-        if (mode == 0) return;
+        if (mode == 0 || mode == 4) return;
+        if (mode == 5) { if (pairK != skip) e->set(pairK, pairV); return; }
+        if (mode == 6) return;
+        if (mode >= 7) {   // a random setting of every other control (seeded: the same every run)
+            std::uint32_t r = 0x9E3779B9u * static_cast<std::uint32_t>(mode);
+            for (int k = 0; k < controls; ++k) {
+                const auto& p = ps[static_cast<std::size_t>(k)];
+                r = r * 1664525u + 1013904223u;
+                if (k == skip || keepAtDefault(p)) continue;
+                const float u = static_cast<float>(r >> 8) / 16777216.0f;
+                e->set(k, stepped(p) ? std::floor(p.min + u * (p.max - p.min + 1.0f)) : hc::fx::toPlain(p, u));
+            }
+            return;
+        }
         for (int k = 0; k < controls; ++k) {
             const auto& p = ps[static_cast<std::size_t>(k)];
             if (k == skip || keepAtDefault(p)) continue;
@@ -78,12 +131,28 @@ void auditDsp(const rack::PluginInfo& info, hemqa::Report& rep) {
     auto stateHash = [&](int mode, int param, float value, bool& blewUp, bool& getOk) {
         if (fresh) { e = info.create(); e->prepare(hemqa::kRate, hemqa::kBlock); }
         setContext(param, mode);
-        if (param >= 0) {
+        Stereo o;
+        if (mode == 6 && param >= 0) {
+            // pressed while playing: the first half at its default, then the new value (a push button acts on
+            // what it has heard: TRIM, CLEAR, TAP...)
+            e->reset();
+            Stereo a(full.size() / 2), b(full.size() - full.size() / 2);
+            for (std::size_t k = 0; k < a.size(); ++k) { a.l[k] = full.l[k]; a.r[k] = full.r[k]; }
+            for (std::size_t k = 0; k < b.size(); ++k) { b.l[k] = full.l[a.size() + k]; b.r[k] = full.r[a.size() + k]; }
+            const Stereo oa = run(*e, a);
             e->set(param, value);
-            getOk = hemqa::closeTo(e->get(param), hc::fx::clampPlain(ps[static_cast<std::size_t>(param)], value));
+            const Stereo ob = run(*e, b);
+            o = Stereo(full.size());
+            for (std::size_t k = 0; k < oa.size(); ++k) { o.l[k] = oa.l[k]; o.r[k] = oa.r[k]; }
+            for (std::size_t k = 0; k < ob.size(); ++k) { o.l[oa.size() + k] = ob.l[k]; o.r[oa.size() + k] = ob.r[k]; }
+        } else {
+            if (param >= 0) {
+                e->set(param, value);
+                getOk = hemqa::closeTo(e->get(param), hc::fx::clampPlain(ps[static_cast<std::size_t>(param)], value));
+            }
+            e->reset();
+            o = run(*e, mode == 4 ? voice : full);
         }
-        e->reset();
-        const Stereo o = run(*e, full);
         blewUp = !hemqa::finite(o);
         hemqa::Hash h;
         h.add(o);
@@ -139,8 +208,58 @@ void auditDsp(const rack::PluginInfo& info, hemqa::Report& rep) {
         }
         if (blew) rep.add(name, "DSP", "NAN_OR_INF_SWEEP", p.id, "non-finite output at " + blewAt);
         if (mism) rep.add(name, "DSP", "GET_SET_MISMATCH", p.id, "get() != set() at " + mismAt);
+        auto liveIn = [&](int mode) {
+            std::set<std::uint64_t> hashes;
+            for (float v : values) { bool b = false, g = true; hashes.insert(stateHash(mode, i, v, b, g)); }
+            return hashes.size() > 1;
+        };
+        // Still silent: a control can depend on what is played (a pitch tool needs a voice) or on ONE other
+        // control (a band's frequency needs its gain off 0 dB). Try both before calling it dead.
+        if (!live) live = liveIn(4);
+        for (int k = 0; k < controls && !live; ++k) {
+            const auto& pk = ps[static_cast<std::size_t>(k)];
+            if (k == i || keepAtDefault(pk)) continue;
+            for (float o : hemqa::sweepValues(pk.min, pk.def, pk.max, stepped(pk))) {
+                if (o == pk.def) continue;
+                pairK = k; pairV = o;
+                if ((live = liveIn(5))) break;
+            }
+        }
+        // ...or it acts when pressed while the music plays, or it needs two or more other controls set
+        // together (an EQ / dynamics ORDER switch needs the EQ off flat AND the compressor working).
+        if (!live) live = liveIn(6);
+        for (int seed = 7; seed < 7 + kRandomSettings && !live; ++seed) live = liveIn(seed);
+        for (const Condition& c : conditions()) {
+            if (live || name != c.plugin || std::string(p.id) != c.control) continue;
+            auto find = [&](const char* id) { for (int k = 0; k < static_cast<int>(ps.size()); ++k) if (std::string(ps[static_cast<std::size_t>(k)].id) == id) return k; return -1; };
+            std::set<std::uint64_t> hashes;
+            for (float v : values) {
+                e = info.create();
+                e->prepare(hemqa::kRate, hemqa::kBlock);
+                e->setDefaults();
+                for (const Setting& st : c.sets) e->set(find(st.id), st.value);
+                e->set(i, v);
+                e->reset();
+                Stereo a(full.size() / 2), b(full.size() - full.size() / 2);
+                for (std::size_t k = 0; k < a.size(); ++k) { a.l[k] = full.l[k]; a.r[k] = full.r[k]; }
+                for (std::size_t k = 0; k < b.size(); ++k) { b.l[k] = full.l[a.size() + k]; b.r[k] = full.r[a.size() + k]; }
+                hemqa::Hash h;
+                h.add(run(*e, a));
+                for (const Setting& st : c.moves) e->set(find(st.id), st.value);
+                h.add(run(*e, b));
+                hashes.insert(h.h);
+            }
+            live = hashes.size() > 1;
+            rep.note(name, std::string(p.id) + (live ? ": live in its own situation: " : ": STILL silent in its own situation: ") + c.why);
+        }
+        if (!live) {
+            const std::string why = displayOnly(info, faceLayout(info), i);
+            if (!why.empty()) { rep.note(name, std::string(p.id) + ": screen only, by design: " + why); live = true; }
+        }
         if (!live) rep.add(name, "DSP", "DEAD_WIRE", p.id, "audio + meters bit-identical at all " + std::to_string(values.size()) +
-                           " values, with the other controls at default / min / max / middle");
+                           " values, with the other controls at default / min / max / middle, with a single voice, with each"
+                           " other control moved on its own, pressed while playing, and in " + std::to_string(kRandomSettings) +
+                           " random settings of all the other controls");
     }
 
     // meters
@@ -149,24 +268,49 @@ void auditDsp(const rack::PluginInfo& info, hemqa::Report& rep) {
     auto read = [&](const MeterRef& m) { return m.index < 0 ? e->reductionDb() : e->meter(m.index); };
     std::vector<int> moved(meters.size(), 0), bad(meters.size(), 0);
     std::vector<float> lastHot(meters.size(), 0.0f);
-    for (int mode = 0; mode <= 3; ++mode) {
+    auto meterPass = [&](int mode) {
+        e = info.create();
+        e->prepare(hemqa::kRate, hemqa::kBlock);
         setContext(-1, mode);
         e->reset();
         (void)run(*e, silence);
         std::vector<float> quiet;
         for (const auto& m : meters) quiet.push_back(read(m));
-        (void)run(*e, full);
-        for (std::size_t m = 0; m < meters.size(); ++m) {
-            const float hot = read(meters[m]);
-            if (!std::isfinite(hot) || !std::isfinite(quiet[m])) bad[m] = 1;
-            else if (quiet[m] != hot) moved[m] = 1;
-            lastHot[m] = hot;
+        // read the meters after every block, the way a faceplate reads them while the music plays
+        const Stereo& in = mode == 4 ? voice : full;
+        Stereo blk(hemqa::kBlock);
+        for (std::size_t pos = 0; pos < in.size(); pos += hemqa::kBlock) {
+            const std::size_t nb = std::min<std::size_t>(hemqa::kBlock, in.size() - pos);
+            std::copy_n(in.l.data() + pos, nb, blk.l.data());
+            std::copy_n(in.r.data() + pos, nb, blk.r.data());
+            e->process(blk.l.data(), blk.r.data(), static_cast<std::uint32_t>(nb));
+            for (std::size_t m = 0; m < meters.size(); ++m) {
+                const float hot = read(meters[m]);
+                if (!std::isfinite(hot) || !std::isfinite(quiet[m])) bad[m] = 1;
+                else if (quiet[m] != hot) moved[m] = 1;
+                lastHot[m] = hot;
+            }
+        }
+    };
+    auto allMoved = [&] { return std::all_of(moved.begin(), moved.end(), [](int x) { return x != 0; }); };
+    for (int mode = 0; mode <= 4; ++mode) meterPass(mode);
+    for (int seed = 7; seed < 7 + kRandomSettings && !allMoved(); ++seed) meterPass(seed);
+    // Same as the sweep: a meter can need one other control moved (a compressor's GR needs a lower threshold).
+    for (int k = 0; k < controls && !allMoved(); ++k) {
+        const auto& pk = ps[static_cast<std::size_t>(k)];
+        if (keepAtDefault(pk)) continue;
+        for (float o : hemqa::sweepValues(pk.min, pk.def, pk.max, stepped(pk))) {
+            if (o == pk.def) continue;
+            pairK = k; pairV = o;
+            meterPass(5);
+            if (allMoved()) break;
         }
     }
     for (std::size_t m = 0; m < meters.size(); ++m) {
         if (bad[m]) rep.add(name, "METER", "METER_NAN_OR_INF", meters[m].name, "non-finite meter value");
         if (!moved[m]) rep.add(name, "METER", "METER_STUCK", meters[m].name, "reads " + hemqa::fmt("%g", lastHot[m]) +
-                               " for both silence and hot signal, with the controls at default / min / max / middle");
+                               " for both silence and hot signal (read after every block), with the controls at default / min / max /"
+                               " middle, with a single voice, in random settings and with each other control moved on its own");
     }
 }
 

@@ -244,6 +244,7 @@ public:
         ringPh_ = phA_ = phB_ = 0.0;
         driftA_ = driftT_ = 0.0f;
         rng_ = 0x2468ACE1u;
+        tick_ = 0;   // the drift wanders the same way after every reset: renders repeat
         devMix_ = p(DeviceOn) >= 0.5f ? 1.0f : 0.0f;
         spaceOn_ = p(SpaceOn) >= 0.5f ? 1.0f : 0.0f;
         noiseOn_ = p(NoiseOn) >= 0.5f ? 1.0f : 0.0f;

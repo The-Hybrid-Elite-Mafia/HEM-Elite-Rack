@@ -67,6 +67,7 @@ public:
         for (auto& c : e_) for (float& v : c) v = 0.0f;
         prev_[0] = prev_[1] = 0.0f;
         quiet_[0] = quiet_[1] = 1 << 20;   // starts out silent
+        rng_ = kSeed;                       // same dither noise after every reset: renders repeat
     }
     // bits 0 = off; dither 0 TYPE 1, 1 TYPE 2, 2 NONE; shape 0 MODERATE, 1 NORMAL, 2 ULTRA, 3 NONE
     void set(int bits, int dither, int shape, float ceiling) noexcept {
@@ -118,7 +119,8 @@ private:
     float e_[2][4]{};
     float prev_[2]{};
     int quiet_[2]{};
-    std::uint32_t rng_ = 0x51A7E5u;
+    static constexpr std::uint32_t kSeed = 0x51A7E5u;
+    std::uint32_t rng_ = kSeed;
 };
 
 // ---- the peak between the samples: x[n-4] itself and three points between x[n-4] and x[n-3]

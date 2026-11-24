@@ -88,6 +88,7 @@ public:
         wowPh_ = flPh_ = 0.0;
         drift_ = driftT_ = 0.0f;
         rng_ = 0x1234567u;
+        tick_ = 0;   // the drift wanders the same way after every reset: renders repeat
         tapeMix_ = p(Monitor) < 0.5f ? 1.0f : 0.0f;
         in_.prepare(fs_, 20, inGain());
         out_.prepare(fs_, 20, outGain());
