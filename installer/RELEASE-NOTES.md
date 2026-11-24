@@ -1,3 +1,8 @@
+# HEM-Elite-Rack 0.56.1
+
+- Plug-in screens now follow the DAW: they shrink and grow when the DAW asks (display scaling or a dragged window) and keep the board's shape, so nothing is cut off. Knobs stay under the mouse at any size.
+- Nothing else changed: same controls, same sound.
+
 # HEM-Elite-Rack 0.56.0
 
 - New look for all 120 plug-ins, built from Steven's own backplate and parts sheet: the circuit board under

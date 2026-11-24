@@ -67,19 +67,10 @@ bool FaceWindow::setUp(const rack::PluginInfo& info, ParamTable params, PanelHos
     if (!renderer_.setParts(art->parts, error)) return false;
     w_ = w;
     h_ = h;
-    canvas_ = hc::ui::Canvas{};
-    canvas_.scale = std::min(static_cast<float>(w_) / rackframe::kW, static_cast<float>(h_) / rackframe::kH);   // design units = frame pixels
-    canvas_.offsetX = std::round((static_cast<float>(w_) - rackframe::kW * canvas_.scale) * 0.5f);
-    canvas_.offsetY = std::round((static_cast<float>(h_) - rackframe::kH * canvas_.scale) * 0.5f);
-    canvas_.pixelW = static_cast<float>(w_);
-    canvas_.pixelH = static_cast<float>(h_);
-    if (!font_.bake(art->fonts, canvas_.scale)) { if (error) *error = "could not bake the Poppins atlas"; return false; }
-    if (!renderer_.setFont(font_, error)) return false;
-    // The HEM frame with this plate's glass panel and recesses, at the window's own pixel density (capped at the
-    // 4096 px texture limit).
-    const float ppu = std::min({canvas_.scale, 4096.0f / rackframe::kW, 4096.0f / rackframe::kH});
-    if (!renderer_.setPanel(hc::ui::buildMips(hc::ui::premultiply(renderRackPlateFramed(*layout_, ppu, art->frame))), error))
-        return false;
+    art_ = art;
+    placeCanvas();
+    if (!bakeFont(error)) return false;
+    if (!buildPlate(error)) return false;
     if (!renderer_.setTargetSize(w_, h_, error)) return false;
     renderer_.beginStatic(canvas_);
     renderer_.panel({0, 0, rackframe::kW, rackframe::kH});
@@ -89,12 +80,58 @@ bool FaceWindow::setUp(const rack::PluginInfo& info, ParamTable params, PanelHos
     return true;
 }
 
+void FaceWindow::placeCanvas() {
+    canvas_ = hc::ui::Canvas{};
+    canvas_.scale = std::min(static_cast<float>(w_) / rackframe::kW, static_cast<float>(h_) / rackframe::kH);   // design units = frame pixels
+    canvas_.offsetX = std::round((static_cast<float>(w_) - rackframe::kW * canvas_.scale) * 0.5f);
+    canvas_.offsetY = std::round((static_cast<float>(h_) - rackframe::kH * canvas_.scale) * 0.5f);
+    canvas_.pixelW = static_cast<float>(w_);
+    canvas_.pixelH = static_cast<float>(h_);
+}
+
+bool FaceWindow::bakeFont(std::string* error) {
+    if (!font_.bake(art_->fonts, canvas_.scale)) { if (error) *error = "could not bake the Poppins atlas"; return false; }
+    fontScale_ = canvas_.scale;
+    return renderer_.setFont(font_, error);
+}
+
+// The HEM board with this plate's glass plates, at the window's own pixel density (capped at the 4096 px texture limit).
+bool FaceWindow::buildPlate(std::string* error) {
+    const float ppu = std::min({canvas_.scale, 4096.0f / rackframe::kW, 4096.0f / rackframe::kH});
+    if (!renderer_.setPanel(hc::ui::buildMips(hc::ui::premultiply(renderRackPlateFramed(*layout_, ppu, art_->frame))), error))
+        return false;
+    plateScale_ = canvas_.scale;
+    plateStale_ = false;
+    return true;
+}
+
+void FaceWindow::resize(int w, int h) {
+    w = std::max(64, w);
+    h = std::max(36, h);
+    if (!open_ || !child_ || (w == w_ && h == h_)) return;
+    window_.makeCurrent();
+    window_.resizeChild(w, h);
+    w_ = w;
+    h_ = h;
+    placeCanvas();
+    std::string err;
+    if (canvas_.scale > fontScale_ * 1.06f || canvas_.scale < fontScale_ * 0.8f) (void)bakeFont(&err);
+    (void)renderer_.setTargetSize(w_, h_, &err);
+    renderer_.beginStatic(canvas_);
+    renderer_.panel({0, 0, rackframe::kW, rackframe::kH});
+    renderer_.endStatic();
+    plateStale_ = std::fabs(canvas_.scale / std::max(1e-6f, plateScale_) - 1.0f) > 0.15f;
+    resizedAt_ = std::chrono::steady_clock::now();
+    window_.restoreContext();
+}
+
 bool FaceWindow::openChild(void* parentHwnd, const rack::PluginInfo& info, ParamTable params, PanelHost& host, FaceFeed& feed,
                            const std::filesystem::path& assetDir, float scale, std::string* error) {
     close();
     int w = 0, h = 0;
     sizeFor(scale, w, h);
     if (!window_.createChild(parentHwnd, w, h, error)) return false;
+    child_ = true;
     const bool ok = setUp(info, params, host, feed, assetDir, w, h, error);
     window_.restoreContext();
     if (!ok) { close(); return false; }
@@ -108,6 +145,7 @@ bool FaceWindow::openHidden(const rack::PluginInfo& info, ParamTable params, Pan
     int w = 0, h = 0;
     sizeFor(scale, w, h);
     if (!window_.create(L"HEM-Elite-Rack snapshot", 64, 64, false, error)) return false;
+    child_ = false;
     if (!setUp(info, params, host, feed, assetDir, w, h, error)) { close(); return false; }
     return true;
 }
@@ -150,6 +188,15 @@ void FaceWindow::draw() {
 void FaceWindow::frame() {
     if (!open_) return;
     window_.makeCurrent();
+    if (plateStale_ && std::chrono::steady_clock::now() - resizedAt_ > std::chrono::milliseconds(300)) {
+        std::string err;   // resizing has settled: redraw the faceplate sharp at the new size
+        if (buildPlate(&err)) {
+            renderer_.beginStatic(canvas_);
+            renderer_.panel({0, 0, rackframe::kW, rackframe::kH});
+            renderer_.endStatic();
+        }
+        plateStale_ = false;
+    }
     handleInput();
     draw();
     renderer_.endFrame(0);

@@ -11,6 +11,7 @@
 #include "hybrid/ui/GlWindow.hpp"
 #include "hybrid/ui/Renderer.hpp"
 
+#include <chrono>
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -46,6 +47,9 @@ public:
                     const std::filesystem::path& assetDir, float scale, std::string* error);
     void close() noexcept;
     [[nodiscard]] bool isOpen() const noexcept { return open_; }
+    // The host gave the editor a new pixel size (window dragged, or another display scale). Same layout, same
+    // controls; text is re-baked for the new size at once, the faceplate is redrawn sharp once resizing settles.
+    void resize(int width, int height);
 
     void frame();                          // input + draw + present (child windows: called by the timer)
     [[nodiscard]] hc::ui::Image snapshot(); // draw once into the capture buffer and read it back
@@ -62,6 +66,9 @@ private:
                const std::filesystem::path& assetDir, int w, int h, std::string* error);
     void handleInput();
     void draw();
+    void placeCanvas();
+    bool bakeFont(std::string* error);
+    bool buildPlate(std::string* error);
 
     hc::ui::GlWindow  window_;
     hc::ui::Renderer  renderer_;
@@ -74,7 +81,11 @@ private:
     FaceFeed*  feed_ = nullptr;
     hc::ui::Canvas canvas_;
     int  w_ = 0, h_ = 0;
-    bool open_ = false;
+    bool open_ = false, child_ = false;
+    const SharedFaceArt* art_ = nullptr;
+    float fontScale_ = 0.0f, plateScale_ = 0.0f;
+    bool  plateStale_ = false;
+    std::chrono::steady_clock::time_point resizedAt_{};
 };
 
 } // namespace hem::ui
