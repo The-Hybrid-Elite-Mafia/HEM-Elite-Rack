@@ -33,6 +33,7 @@
 #include "pluginterfaces/vst/ivstprocesscontext.h"
 #include "pluginterfaces/vst/vsttypes.h"
 #include "public.sdk/source/common/pluginview.h"
+#include "ScalableView.hpp"
 #include "public.sdk/source/main/pluginfactory.h"
 #include "public.sdk/source/vst/vstaudioeffect.h"
 #include "public.sdk/source/vst/vsteditcontroller.h"
@@ -573,31 +574,33 @@ private:
     std::shared_ptr<LiveDisplay> live_;
 };
 
-class FaceView final : public CPluginView {
+// The editor: an OpenGL child window inside the host's window. It follows the host's display scaling and
+// can be resized; the faceplate keeps its shape (see ScalableView.hpp).
+class FaceView final : public vst3view::ScalableView {
 public:
     FaceView(const rack::PluginInfo& info, hc::fx::Effect& fx, hc::ui::PanelHost& host, ui::FaceFeed& feed)
-        : info_(info), fx_(fx), host_(host), feed_(feed) {
-        scale_ = ui::FaceWindow::defaultScale();
-        int w = 0, h = 0;
-        ui::FaceWindow::sizeFor(scale_, w, h);
-        ViewRect r(0, 0, w, h);
-        setRect(r);
-    }
+        : ScalableView(base(true), base(false), ui::FaceWindow::defaultScale()), info_(info), fx_(fx), host_(host), feed_(feed) {}
     tresult PLUGIN_API isPlatformTypeSupported(FIDString type) SMTG_OVERRIDE { return std::strcmp(type, kPlatformTypeHWND) == 0 ? kResultTrue : kResultFalse; }
     void attachedToParent() SMTG_OVERRIDE {
         std::string err;
-        if (!window_.openChild(systemWindow, info_, fx_.params(), host_, feed_, bundleResources(), scale_, &err))
+        if (!window_.openChild(systemWindow, info_, fx_.params(), host_, feed_, bundleResources(), scale(), &err))
             ::OutputDebugStringA(("HEM-Elite-Rack: faceplate failed: " + err + "\n").c_str());
+        else
+            window_.resize(rect.getWidth(), rect.getHeight());   // exactly the size the host was given
     }
     void removedFromParent() SMTG_OVERRIDE { window_.close(); }
 
+protected:
+    void resized(int width, int height) override { window_.resize(width, height); }
+
 private:
+    static float base(bool width) { int w = 0, h = 0; ui::FaceWindow::sizeFor(1.0f, w, h); return static_cast<float>(width ? w : h); }
+
     const rack::PluginInfo& info_;
     hc::fx::Effect&         fx_;
     hc::ui::PanelHost&      host_;
     ui::FaceFeed&           feed_;
     ui::FaceWindow          window_;
-    float                   scale_ = 0.72f;
 };
 
 class Controller final : public Vst::EditController, public Vst::IMidiMapping {
