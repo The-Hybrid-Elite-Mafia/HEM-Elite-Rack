@@ -4,6 +4,7 @@
 - Amp and pedal plug-ins (TORCH, HOT WIRE, BOTTOM FEEDER) wait in standby until you touch any control.
 - Maximizers (BIG SHOT, LAST WORD, SWEET SIXTEEN, MULTI MAX, ULTRA MAX) start with dither off.
 - SAFE HOUSE has no setting that turns its room off, so it still colours on load (room size now starts at 0). THE MOLD is a measuring tool for outboard gear and stays as it was.
+- COLD CASE: with every control at max (fastest sweep) it could blow up into silence/noise (NaN). Fixed; it sounds the same at any normal setting.
 - Plug-in windows never open bigger than 90 % of the screen's width or 85 % of its height, even when a DAW asks for a bigger size.
 
 # HEM-Elite-Rack 0.56.2
