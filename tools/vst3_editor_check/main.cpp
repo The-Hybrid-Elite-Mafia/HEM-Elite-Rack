@@ -14,6 +14,7 @@
 #include "public.sdk/source/vst/hosting/module.h"
 #include "public.sdk/source/vst/hosting/plugprovider.h"
 
+#define NOMINMAX
 #include <windows.h>
 
 #include <algorithm>

@@ -54,7 +54,7 @@ if(WIN32)
         "${HEM_HOSTING}/common/memorystream.cpp" "${HEM_HOSTING}/vst/hosting/module.cpp"
         "${HEM_HOSTING}/vst/hosting/plugprovider.cpp" "${HEM_HOSTING}/vst/hosting/connectionproxy.cpp"
         "${HEM_HOSTING}/vst/hosting/module_win32.cpp")
-    set_target_properties(hem_vst3_editor_check PROPERTIES CXX_STANDARD 23 CXX_STANDARD_REQUIRED ON)
+    set_target_properties(hem_vst3_editor_check PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)   # the SDK hosting code is C++17 (u8string)
     target_include_directories(hem_vst3_editor_check SYSTEM PRIVATE "${vst3sdk_SOURCE_DIR}")
     target_link_libraries(hem_vst3_editor_check PRIVATE sdk_hosting user32)
     add_dependencies(hem_vst3_editor_check HEMEliteRackVST3)
