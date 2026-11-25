@@ -1,4 +1,5 @@
 // BIG SHOT — one-band maximizer (see Maximizers.hpp).
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Maximizers.hpp"
 
 #include "LimitKit.hpp"
@@ -10,10 +11,10 @@ using namespace maxim;
 
 const ParamInfo kParams[kCount] = {
     {"threshold", "Threshold", "dB", -30.0f, 0.0f, 0.0f},
-    {"ceiling", "Ceiling", "dB", -30.0f, 0.0f, -0.3f},
+    {"ceiling", "Ceiling", "dB", -30.0f, 0.0f, 0.0f},
     {"autorelease", "Auto Release", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"quantize", "Bit Depth", "", 0, 4, 0, Taper::Choice, kQuantN},
-    {"dither", "Dither", "", 0, 2, 0, Taper::Choice, kDitherN},
+    {"dither", "Dither", "", 0, 2, 2, Taper::Choice, kDitherN},
     {"shaping", "Noise Shape", "", 0, 3, 1, Taper::Choice, kShapeN},
 };
 const hc::fx::MeterInfo kMeters[] = {{"MOST OFF", "dB", -30.0f, 0.0f}, {"INPUT", "dBFS", -60.0f, 3.0f}};
@@ -30,6 +31,7 @@ public:
         one_.prepare(fs);
         idr_.prepare(fs);
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         one_.clear();
@@ -41,9 +43,15 @@ public:
         publishReduction(0.0f);
         publishMeter(0, 0.0f);
         publishMeter(1, -100.0f);
+        clean_.reset(isClean());
     }
 
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         const float cT = hc::fx::dbToGain(p(Ceiling));
         idr_.set(kQuantBits[std::clamp(static_cast<int>(std::lround(p(Quantize))), 0, 4)], static_cast<int>(std::lround(p(Dither))),
                  static_cast<int>(std::lround(p(Shaping))), cT);
@@ -69,6 +77,9 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return p(bigshot::Threshold) >= 0.0f && p(bigshot::Ceiling) >= 0.0f && p(bigshot::Quantize) == params()[bigshot::Quantize].def && p(bigshot::Dither) == params()[bigshot::Dither].def && p(bigshot::Shaping) == params()[bigshot::Shaping].def; }
+    CleanPass clean_;
     double fs_ = 48000.0;
     OneBand one_;
     Idr idr_;

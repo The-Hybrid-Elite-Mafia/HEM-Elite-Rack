@@ -31,7 +31,7 @@ const ParamInfo kParams[kCount] = {
     {"automakeup", "Auto Makeup", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"analog", "Hum", "", 0, 2, 0, Taper::Choice, kMainsN},
     {"meter", "Meter", "", 0, 2, 1, Taper::Choice, kMeterN},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
     {"trim", "Trim", "dB", -18.0f, 18.0f, 0.0f},
 };
 const hc::fx::MeterInfo kMeters[] = {{"INPUT", "VU", -20.0f, 3.0f}, {"OUTPUT", "VU", -20.0f, 3.0f}};

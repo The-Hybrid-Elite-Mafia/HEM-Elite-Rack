@@ -1,4 +1,5 @@
 // KNOCKOUT — transient designer (see Arsenal.hpp).
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Arsenal.hpp"
 
 #include "Common.hpp"
@@ -21,7 +22,7 @@ const ParamInfo kParams[kCount] = {
     {"sustaintime", "Sustain Length", "ms", 30.0f, 1000.0f, 200.0f, Taper::Log},
     {"sustainshape", "Sustain Curve", "", 0, 2, 0, Taper::Choice, kSusShapeN},
     {"guard", "Safety", "", 0, 2, 1, Taper::Choice, kGuardN},   // CLIP at load: a boosted hit never goes past -0.1 dBFS
-    {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
     {"output", "Output", "dB", -24.0f, 24.0f, 0.0f},
 };
 
@@ -46,6 +47,7 @@ public:
     void prepare(double fs, std::uint32_t) override {
         fs_ = fs;
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         wide_.clear();
@@ -54,9 +56,15 @@ public:
         mix_.prepare(fs_, 30, p(Mix) * 0.01f);
         out_.prepare(fs_, 30, hc::fx::dbToGain(p(Output)));
         publishReduction(0.0f);
+        clean_.reset(isClean());
     }
 
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         const float atk = p(Attack) * 0.01f, sus = p(Sustain) * 0.01f;
         const float aThr = 12.0f * (1.0f - p(AttackSens) * 0.01f), sThr = 4.0f * (1.0f - p(SustainSens) * 0.01f);   // 2 dB into a decay at 50 % (12 dB caught nothing on a full mix)
         const float aT = p(AttackTime), sT = p(SustainTime);
@@ -93,6 +101,9 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return (p(knockout::Mix) <= 0.0f || (p(knockout::Attack) == 0.0f && p(knockout::Sustain) == 0.0f)) && p(knockout::Output) == 0.0f; }
+    CleanPass clean_;
     // Gain change (dB) for one detector: + on hits / tails when ATTACK / SUSTAIN are +, - when -.
     static float shape(Shaper& s, float x, float atk, float sus, float aThr, float sThr, float fA, float fR, float sA, float sR,
                        float tA, float tShort, float tLong, float gAtt, float gRel, int sShape) noexcept {

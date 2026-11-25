@@ -68,7 +68,7 @@ const ParamInfo kParams[kCount] = {
     HEM_DEPTH("lfofreq", "LFO > Freq"), HEM_DEPTH("seqfreq", "Seq > Freq"), HEM_DEPTH("followfreq", "Follow > Freq"),
     HEM_DEPTH("lfores", "LFO > Res"), HEM_DEPTH("seqres", "Seq > Res"), HEM_DEPTH("followres", "Follow > Res"),
     HEM_DEPTH("lfotime", "LFO > Time"), HEM_DEPTH("seqtime", "Seq > Time"), HEM_DEPTH("followtime", "Follow > Time"),
-    {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
     {"input", "Input", "dB", -40.0f, 10.0f, 0.0f},
     {"output", "Output", "dB", -40.0f, 10.0f, 0.0f},
 };

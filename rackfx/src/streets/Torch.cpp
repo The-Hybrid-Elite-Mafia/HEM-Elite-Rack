@@ -4,6 +4,7 @@
 // gain, the tone stack BASS / MID / TREBLE and PRESENCE, MASTER), or nothing when AMP is off; then the two
 // cabinet paths A and B (each a cabinet and its mic, its VOLUME and PAN; B can be flipped), added together,
 // OUTPUT. ROUTING STEREO sends the left side through A and the right through B instead of both into both.
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Streets.hpp"
 
 #include "AmpKit.hpp"
@@ -21,7 +22,7 @@ const char* const kRouteN[] = {"DUAL", "STEREO"};
 const ParamInfo kParams[kCount] = {
     {"amp", "Amp", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"type", "Type", "", 0, kAmps - 1, Pure, Taper::Choice, kTypeN},
-    {"drive", "Drive", "", 0.0f, 10.0f, 5.0f},
+    {"drive", "Drive", "", 0.0f, 10.0f, 0.00f},
     {"bass", "Bass", "", 0.0f, 10.0f, 5.0f},
     {"mid", "Mid", "", 0.0f, 10.0f, 5.0f},
     {"treble", "Treble", "", 0.0f, 10.0f, 5.0f},
@@ -82,6 +83,7 @@ public:
         clean_.prepare(Preamp::latency());
         fade_ = static_cast<float>(1.0 / (0.02 * fs));
         reset();
+        cleanPass_.prepare(fs, latency());
     }
     void reset() noexcept override {
         pre_.clear();
@@ -101,12 +103,29 @@ public:
         volB_.prepare(fs_, 30, knobVol(p(VolB)) * (p(PhaseB) >= 0.5f ? -1.0f : 1.0f));
         panA_.prepare(fs_, 30, p(PanA) * 0.01f);
         panB_.prepare(fs_, 30, p(PanB) * 0.01f);
+        cleanPass_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        cleanPass_.push(L, R, n, latency());
+        processInner(L, R, n);
+        cleanPass_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         for (std::uint32_t off = 0; off < n; off += kChunk) chunk(L + off, R + off, std::min(kChunk, n - off));
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return allAtLoad(); }
+    // An amp simulator has no "zero": it stands by untouched while every control is where it loads, and comes on
+    // (amp, cabinet and all) the moment any control is moved.
+    bool allAtLoad() const noexcept {
+        const auto ps = params();
+        for (std::size_t i = 0; i < ps.size(); ++i)
+            if (p(static_cast<int>(i)) != ps[i].def) return false;
+        return true;
+    }
+    CleanPass cleanPass_;
     static constexpr std::uint32_t kChunk = 64;
 
     void chunk(float* L, float* R, std::uint32_t n) noexcept {

@@ -8,6 +8,7 @@
 // esses at any pitch are caught alike; WIDTH says how strict (0 = only pure esses, 100 = anything
 // bright); MODE blends from WIDE (0) to SPLIT (100); LOOKAHEAD catches the start of each ess (5 ms,
 // its latency is the same either way); MONITOR plays what is being taken out.
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Arsenal.hpp"
 
 #include "Common.hpp"
@@ -62,7 +63,7 @@ struct Classic {
 namespace si {
 using namespace silencer;
 const ParamInfo kParams[kCount] = {
-    {"threshold", "Threshold", "dB", -60.0f, 0.0f, -30.0f},
+    {"threshold", "Threshold", "dB", -60.0f, 0.0f, 0.0f},
     {"freq", "Frequency", "Hz", 2000.0f, 16000.0f, 5506.0f, Taper::Log},
     {"audio", "Audio", "", 0, 1, 0, Taper::Choice, kSplitN},
     {"sidechain", "Sidechain", "", 0, 1, 0, Taper::Choice, kFilterN},
@@ -74,7 +75,7 @@ public:
     Impl() { setDefaults(); }
     std::span<const ParamInfo> params() const noexcept override { return kParams; }
     std::span<const hc::fx::MeterInfo> meters() const noexcept override { return kMeters; }
-    void prepare(double fs, std::uint32_t) override { fs_ = fs; reset(); }
+    void prepare(double fs, std::uint32_t) override { fs_ = fs; reset(); clean_.prepare(fs, latency()); }
     void reset() noexcept override {
         cl_.clear();
         most_.clear();
@@ -83,8 +84,14 @@ public:
         publishMeter(1, 0.0f);
         publishMeter(2, -100.0f);
         publishReduction(0.0f);
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         cl_.design(fs_, p(Freq), p(Sidechain) >= 0.5f);
         const bool split = p(Audio) < 0.5f, mon = p(Monitor) >= 0.5f;
         const float att = coefMs(fs_, 0.5), rel = coefMs(fs_, 60.0);
@@ -104,6 +111,9 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return p(silencer::Threshold) >= 0.0f && std::lround(p(silencer::Monitor)) == 0; }
+    CleanPass clean_;
     double fs_ = 48000.0;
     Classic cl_;
     maxim::PeakHold most_, out_;
@@ -115,7 +125,7 @@ namespace tl {
 using namespace tightlips;
 const ParamInfo kParams[kCount] = {
     {"threshold", "Threshold", "dB", -80.0f, 0.0f, -40.0f},
-    {"range", "Range", "dB", -48.0f, 0.0f, -16.0f},
+    {"range", "Range", "dB", -48.0f, 0.0f, 0.0f},
     {"freq", "Frequency", "Hz", 2000.0f, 16000.0f, 5000.0f, Taper::Log},
     {"filter", "Sidechain", "", 0, 1, 0, Taper::Choice, kFilterN},
     {"mode", "Mode", "", 0, 1, 0, Taper::Choice, kSplitN},
@@ -125,12 +135,18 @@ class Impl final : public hc::fx::Effect {
 public:
     Impl() { setDefaults(); }
     std::span<const ParamInfo> params() const noexcept override { return kParams; }
-    void prepare(double fs, std::uint32_t) override { fs_ = fs; reset(); }
+    void prepare(double fs, std::uint32_t) override { fs_ = fs; reset(); clean_.prepare(fs, latency()); }
     void reset() noexcept override {
         cl_.clear();
         publishReduction(0.0f);
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         cl_.design(fs_, p(Freq), p(Filter) >= 0.5f);
         const bool split = p(Mode) < 0.5f, listen = p(Listen) >= 0.5f;
         const float att = coefMs(fs_, 0.5), rel = coefMs(fs_, 60.0);
@@ -146,6 +162,9 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return p(tightlips::Range) == 0.0f && p(tightlips::Listen) < 0.5f; }
+    CleanPass clean_;
     double fs_ = 48000.0;
     Classic cl_;
 };

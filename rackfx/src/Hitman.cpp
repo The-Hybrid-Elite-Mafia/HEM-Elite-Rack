@@ -60,7 +60,7 @@ const ParamInfo kParams[kCount] = {
     {"lookahead", "Lookahead", "ms", 0.0f, 2.0f, 0.0f},
     {"sclink", "SC Link", "%", 0.0f, 100.0f, 100.0f},
     {"saturation", "Saturation", "", 0, 4, 0, Taper::Choice, kSatN},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
     {"scsource", "SC Source", "", 0, 1, 0, Taper::Choice, kSrcN},
     {"sceq", "SC EQ", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"schpf", "SC High-Pass", "Hz", 20.0f, 1000.0f, 20.0f, Taper::Log},

@@ -14,7 +14,7 @@ namespace {
 using namespace hideout;
 
 const ParamInfo kParams[kCount] = {
-    {"amount", "Room", "%", 0.0f, 100.0f, 17.0f},
+    {"amount", "Room", "%", 0.0f, 100.0f, 0.0f},
     {"front", "Speaker Angle", "deg", 0.0f, 180.0f, 60.0f},
     {"rotate", "Head Turn", "deg", -180.0f, 180.0f, 0.0f},
     {"head", "Head Size", "cm", 35.0f, 75.0f, 55.0f},

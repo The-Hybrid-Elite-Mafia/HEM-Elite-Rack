@@ -1,4 +1,5 @@
 // SWITCHBLADE — the channel compander: compressor / expander, gate / expander, filter (see Arsenal.hpp).
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Arsenal.hpp"
 
 #include "Common.hpp"
@@ -82,6 +83,7 @@ public:
         act_.prepare(kLookahead);
         pas_.prepare(kLookahead);
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         act_.clear();
@@ -102,9 +104,15 @@ public:
         publishMeter(0, 0.0f);
         publishMeter(1, 0.0f);
         publishMeter(2, -100.0f);
+        clean_.reset(isClean());
     }
 
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         const int type = std::clamp(static_cast<int>(std::lround(p(FilterType))), 0, 3);
         designFilter(type);
         const bool compOn = p(CompOn) >= 0.5f, gateOn = p(GateOn) >= 0.5f, link = p(Link) >= 0.5f;
@@ -192,6 +200,9 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return (p(CompOn) < 0.5f || p(Threshold) >= 0.0f) && p(GateOn) < 0.5f && p(Cancel) < 0.5f && p(Makeup) == 0.0f && p(Output) == 0.0f && p(InputL) == 0.0f && p(InputR) == 0.0f && std::lround(p(Monitor)) == 0; }
+    CleanPass clean_;
     // MAKEUP, plus with LEVEL REF PEAK what keeps a full-scale peak where it was
     float makeupDb() const noexcept {
         float m = p(Makeup);

@@ -1,3 +1,11 @@
+# HEM-Elite-Rack 0.56.3
+
+- **Every rack plug-in now passes your audio untouched when you load it** (except SAFE HOUSE and THE MOLD, see below). Mix, wet, drive, depth, amount, boost and the other colour controls start at 0, and while they sit at 0 the output is your input, bit for bit (only delayed by the plug-in's own look-ahead, which the DAW already lines up). Turn any colour control up, or change a mode switch, and the plug-in fades in over 10 ms.
+- Amp and pedal plug-ins (TORCH, HOT WIRE, BOTTOM FEEDER) wait in standby until you touch any control.
+- Maximizers (BIG SHOT, LAST WORD, SWEET SIXTEEN, MULTI MAX, ULTRA MAX) start with dither off.
+- SAFE HOUSE has no setting that turns its room off, so it still colours on load (room size now starts at 0). THE MOLD is a measuring tool for outboard gear and stays as it was.
+- Plug-in windows never open bigger than 90 % of the screen's width or 85 % of its height, even when a DAW asks for a bigger size.
+
 # HEM-Elite-Rack 0.56.2
 
 - FINGERPRINT: exports (a DAW's offline bounce, the rack app's WAV export) now come out the same every time. The reverb response is made at the exact block where a setting changes, never late, however fast the computer is.

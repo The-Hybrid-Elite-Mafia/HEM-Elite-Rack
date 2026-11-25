@@ -36,9 +36,9 @@ const ParamInfo kParams[kCount] = {
     {"input", "Input", "dB", -60.0f, 0.0f, 0.0f},
     {"direct", "Direct", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"directgain", "Direct Gain", "dB", -24.0f, 6.0f, 0.0f},
-    {"early", "Early", "", 0, 1, 1, Taper::Toggle, kOnOff},
+    {"early", "Early", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"earlygain", "Early Gain", "dB", -24.0f, 6.0f, 0.0f},
-    {"reverb", "Reverb", "", 0, 1, 1, Taper::Toggle, kOnOff},
+    {"reverb", "Reverb", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"reverbgain", "Reverb Gain", "dB", -24.0f, 6.0f, 0.0f},
     {"reset", "Reset Peaks", "", 0, 1, 0, Taper::Toggle, kPushN},
 };

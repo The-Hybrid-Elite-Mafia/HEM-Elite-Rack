@@ -2,6 +2,7 @@
 //
 // The curve (the same one the faceplate draws) is turned into a symmetrical filter by eqkit::LinPhase;
 // after it come GAIN and TRIM (a plain gain), then the 24-bit dither when it is on.
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/ToneShop.hpp"
 
 #include "hem/rack/Spectrum.hpp"
@@ -143,6 +144,7 @@ public:
         before_.prepare(fs);
         after_.prepare(fs);
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         eng_.reset();
@@ -154,8 +156,14 @@ public:
         before_.reset();
         after_.reset();
         publishMeter(0, -100.0f);
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         if (p(kTrim) != push_) {   // TRIM: the loudest peak since the last push onto 0 dBFS (at most +12 dB)
             push_ = p(kTrim);
             if (most_ > 1e-6f) trimDb_ = std::clamp(trimDb_ - dbOf(most_), -60.0f, 12.0f);
@@ -177,6 +185,18 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return cleanNow(); }
+    CleanPass clean_;
+    bool cleanNow() const noexcept {   // every band off or a 0 dB shelf / bell, GAIN 0 dB, no trim, no dither
+        for (int b = 0; b < Cfg::kBands; ++b) {
+            if (p(b * kStride + On) < 0.5f) continue;
+            const Shape s = Cfg::shape(b, static_cast<int>(std::lround(p(b * kStride + Type))));
+            if (s == Shape::LowCut || s == Shape::HighCut || s == Shape::VLowCut || s == Shape::VHighCut) return false;
+            if (p(b * kStride + Gain) != 0.0f) return false;
+        }
+        return p(kGain) == 0.0f && p(kTrim) < 0.5f && p(kDither) < 0.5f;
+    }
     double fs_ = 48000.0;
     Engine eng_;
     std::array<float, Cfg::kCount> designed_{};

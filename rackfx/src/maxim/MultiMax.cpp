@@ -1,5 +1,6 @@
 // HIGH STAKES (linear phase) and FAST MONEY (low latency) — five-band maximizers, every setting
 // on the plate (see Maximizers.hpp).
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Maximizers.hpp"
 
 #include "FiveBand.hpp"
@@ -28,7 +29,7 @@ using namespace maxim;
     {"xover4", "Crossover 4", "Hz", 4000.0f, 16000.0f, 5113.0f, Taper::Log},                              \
     {"separation", "Band Freedom", "%", 0.0f, 100.0f, 100.0f},                                              \
     {"quantize", "Bit Depth", "", 0, 4, 0, Taper::Choice, kQuantN},                                        \
-    {"dither", "Dither", "", 0, 2, 0, Taper::Choice, kDitherN},                                           \
+    {"dither", "Dither", "", 0, 2, 2, Taper::Choice, kDitherN},                                           \
     {"shaping", "Noise Shape", "", 0, 3, 1, Taper::Choice, kShapeN}
 
 const ParamInfo kLinearParams[kCount] = {
@@ -58,6 +59,7 @@ public:
         fs_ = fs;
         eng_.prepare(fs, settings());
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         eng_.reset(settings());
@@ -65,8 +67,14 @@ public:
         for (int b = 0; b < kBands; ++b) publishMeter(b, 0.0f);
         publishMeter(5, -100.0f);
         publishMeter(6, -100.0f);
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         const float most = eng_.process(settings(), L, R, n);
         publishReduction(most);
         for (int b = 0; b < kBands; ++b) publishMeter(b, eng_.bandDb(b));
@@ -75,6 +83,17 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return cleanNow(); }
+    CleanPass clean_;
+    bool cleanNow() const noexcept {   // nothing over the threshold / ceiling at 0 dB, no band gain, no solo
+        using namespace multimax;
+        if (p(Threshold) < 0.0f || p(Ceiling) < 0.0f) return false;
+        for (int k : {Quantize, Dither, Shaping}) if (p(k) != params()[static_cast<std::size_t>(k)].def) return false;   // bit depth = a process
+        for (int b = 0; b < kBands; ++b)
+            if (p(Band0 + b * kPerBand + Gain) != 0.0f || p(Band0 + b * kPerBand + Solo) >= 0.5f) return false;
+        return true;
+    }
     FiveSettings settings() const noexcept {
         FiveSettings s;
         s.thresholdDb = p(Threshold);

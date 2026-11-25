@@ -1,4 +1,5 @@
 // GOLD CHAIN — one-knob tone: warmth, density and sheen that grow together (see ToneShop.hpp).
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/ToneShop.hpp"
 
 #include "ToneCommon.hpp"
@@ -29,6 +30,7 @@ public:
         hum_.prepare(fs);
         dcK_ = static_cast<float>(1.0 - std::exp(-2.0 * std::numbers::pi * 8.0 / fs));
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         for (auto& ch : eq_) for (auto& b : ch) b.clear();
@@ -42,13 +44,22 @@ public:
         out_.prepare(fs_, 30, outGain());
         design();
         publishReduction(0.0f);
+        clean_.reset(isClean());
     }
 
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         for (std::uint32_t off = 0; off < n; off += kChunk) chunk(L + off, R + off, std::min(kChunk, n - off));
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return p(goldchain::Input) == 0.0f && p(goldchain::Tone) <= 0.0f && p(goldchain::Output) == 0.0f && std::lround(p(goldchain::Analog)) == 0; }
+    CleanPass clean_;
     static constexpr std::uint32_t kChunk = 64;
     void chunk(float* L, float* R, std::uint32_t n) noexcept {
         design();

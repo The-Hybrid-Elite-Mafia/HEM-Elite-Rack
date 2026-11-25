@@ -2,6 +2,7 @@
 // build. Every plug-in loads at a safe level with no noise of its own, every plug-in is told apart from the others,
 // and each fixed control does what its label says.
 #include "Harness.hpp"
+#include "ColouredCreate.hpp"
 #include "Signals.hpp"
 
 #include "hem/rack/Arsenal.hpp"
@@ -68,6 +69,9 @@ std::unique_ptr<hc::fx::Effect> load(const char* name, std::initializer_list<std
     if (!info) { std::printf("  no plug-in %s\n", name); return nullptr; }
     auto e = info->create();
     e->setDefaults();
+    // a check that moves controls starts from the old coloured defaults (ColouredStart.hpp); with nothing
+    // moved it is the plug-in exactly as it loads (untouched)
+    if (sets.size() > 0) hem::test::recolour(*e, *info);
     for (const auto& [i, v] : sets) e->set(i, v);
     e->prepare(kFs, 512);
     e->reset();

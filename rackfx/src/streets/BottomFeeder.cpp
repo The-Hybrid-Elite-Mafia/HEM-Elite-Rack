@@ -5,6 +5,7 @@
 // preamp (GAIN), VOICE (a mid lift, narrow to wide), the EQ (BASS / MID / HI MID / HIGH), the cabinet (CAB
 // TONE mixes a darker and a brighter take; CAB OFF skips it) and ROOM. BLEND mixes the two sides, then
 // OUTPUT and the limiter. The DI side is delayed to match the amp side (both 23 samples late).
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Garage.hpp"
 
 #include "AmpKit.hpp"
@@ -28,10 +29,10 @@ const ParamInfo kParams[kCount] = {
     {"diflip", "DI Flip", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"drivetype", "Drive Type", "", 0, 3, 0, Taper::Choice, kDriveN},
     {"drivetone", "Drive Tone", "", 0.0f, 10.0f, 5.0f},
-    {"drivegain", "Drive Gain", "", 0.0f, 10.0f, 5.0f},
-    {"drivemix", "Drive Mix", "", 0.0f, 10.0f, 5.0f},
+    {"drivegain", "Drive Gain", "", 0.0f, 10.0f, 0.00f},
+    {"drivemix", "Drive Mix", "", 0.0f, 10.0f, 0.00f},
     {"voice", "Voice", "", 0, 2, 1, Taper::Choice, kVoiceN},
-    {"gain", "Gain", "", 0.0f, 10.0f, 5.0f},
+    {"gain", "Gain", "", 0.0f, 10.0f, 0.0f},
     {"bass", "Bass", "", 0.0f, 10.0f, 5.0f},
     {"mid", "Mid", "", 0.0f, 10.0f, 5.0f},
     {"himid", "Hi Mid", "", 0.0f, 10.0f, 5.0f},
@@ -78,6 +79,7 @@ public:
         lim_.prepare(fs);
         di_.prepare(Preamp::latency());
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         pre_.clear();
@@ -107,8 +109,14 @@ public:
         publishMeter(0, -100.0f);
         publishMeter(1, -100.0f);
         publishMeter(2, 0.0f);
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         if (p(Clear) != push_) {
             push_ = p(Clear);
             clips_ = 0.0f;
@@ -121,6 +129,17 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return allAtLoad(); }
+    // An amp simulator has no "zero": it stands by untouched while every control is where it loads, and comes on
+    // (amp, cabinet and all) the moment any control is moved.
+    bool allAtLoad() const noexcept {
+        const auto ps = params();
+        for (std::size_t i = 0; i < ps.size(); ++i)
+            if (p(static_cast<int>(i)) != ps[i].def) return false;
+        return true;
+    }
+    CleanPass clean_;
     static constexpr std::uint32_t kChunk = 64;
     float diLevel() const noexcept { return knobVol(p(DiLevel)) * (p(DiFlip) >= 0.5f ? -1.0f : 1.0f); }
     float driveMix() const noexcept { return p(DriveType) >= 0.5f ? p(DriveMix) * 0.1f : 0.0f; }

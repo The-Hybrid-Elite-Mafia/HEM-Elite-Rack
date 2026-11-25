@@ -43,7 +43,7 @@ const ParamInfo kParams[kCount] = {
     {"modrate", "Mod Rate", "Hz", 0.1f, 6000.0f, 0.1f, Taper::Log},
     {"analog", "Vintage", "", 0, 4, 2, Taper::Choice, kAnalogN},
     {"lofi", "Lo-Res", "", 0, 1, 0, Taper::Toggle, kOnOff},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
 };
 const hc::fx::MeterInfo kMeters[] = {{"OUTPUT", "dBFS", -48.0f, 0.0f}};

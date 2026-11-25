@@ -8,6 +8,7 @@
 // own RANGE, SENS and ON, the MASTER RANGE and SENS added to all; the low bands let go twice as slowly
 // as RELEASE, the top band twice as fast. TRIM (a push) turns the output down by the loudest peak
 // since the last push, so that peak lands on 0 dBFS.
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Arsenal.hpp"
 
 #include "Common.hpp"
@@ -123,6 +124,7 @@ public:
         fs_ = fs;
         for (auto& x : xo_) x.design(fs, kCrossHz, kBands);
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         for (auto& x : xo_) x.clear();
@@ -134,8 +136,14 @@ public:
         for (int b = 0; b < kBands; ++b) publishMeter(b, 0.0f);
         publishMeter(kBands, -100.0f);
         publishReduction(0.0f);
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         if (p(Trim) != push_) {
             push_ = p(Trim);
             if (pk_.hold > -99.0f) trimDb_ = std::clamp(trimDb_ - pk_.hold, -60.0f, 24.0f);
@@ -178,6 +186,15 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return cleanNow(); }
+    CleanPass clean_;
+    bool cleanNow() const noexcept {   // every band at 0 dB range (or off), master range 0, OUTPUT 0 dB, no trim
+        using namespace fourkings;
+        for (int b = 0; b < kBands; ++b)
+            if (p(band(b, On)) >= 0.5f && p(band(b, Range)) != 0.0f) return false;
+        return p(MRange) == 0.0f && p(Output) == 0.0f && p(Trim) < 0.5f;
+    }
     double fs_ = 48000.0;
     Crossover<kBands> xo_[2];
     Shaper sh_[kBands];

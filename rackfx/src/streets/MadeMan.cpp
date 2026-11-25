@@ -5,6 +5,7 @@
 // GLIDE; the correction (RATIO of the way from the sung pitch to the target) glides over SPEED; SHIFT is
 // added on top. When nothing is sung the correction lets go. The PSOLA voice applies it; FORMANT CORRECTED
 // keeps the formants where they were, OFF lets them move with the pitch.
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Streets.hpp"
 
 #include "PitchKit.hpp"
@@ -25,7 +26,7 @@ const ParamInfo kParams[kCount] = {
     {"scale", "Scale", "", 0, kScales - 1, 0, Taper::Choice, kScaleN},
     {"speed", "Speed", "ms", 0.0f, 400.0f, 20.0f},
     {"transition", "Note Glide", "ms", 0.0f, 400.0f, 60.0f},
-    {"ratio", "Ratio", "%", 0.0f, 100.0f, 100.0f},
+    {"ratio", "Ratio", "%", 0.0f, 100.0f, 0.0f},
     {"formant", "Formant", "", 0, 1, 0, Taper::Choice, kFormantN},
     {"shift", "Shift", "st", -12.0f, 12.0f, 0.0f},
     {"reference", "Reference A", "Hz", 400.0f, 480.0f, 440.0f},
@@ -78,6 +79,7 @@ public:
         in_.prepare(fs);
         syn_.prepare(fs, kLatency);
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         in_.clear();
@@ -86,9 +88,15 @@ public:
         pull_ = 0.0;
         publishMeter(0, -1.0f);
         publishMeter(1, 0.0f);
+        clean_.reset(isClean());
     }
 
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         in_.range(p(MinPitch), std::max(p(MaxPitch), p(MinPitch) + 1.0f), 0.8f);
         const std::uint16_t allowed = notes();
         const double refA = p(Reference), ratio = p(Ratio) * 0.01, shift = p(Shift);
@@ -120,6 +128,9 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return p(mademan::Ratio) <= 0.0f && p(mademan::Shift) == 0.0f; }
+    CleanPass clean_;
     // a glide of `ms` (0 = at once)
     double coef(float ms) const noexcept { return ms <= 0.0f ? 1.0 : 1.0 - std::exp(-1.0 / (0.001 * ms * fs_)); }
     std::uint16_t notes() const noexcept {

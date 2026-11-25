@@ -1,4 +1,5 @@
 // DE-ESSER, STEREO WIDTH, CLIPPER, EXCITER, TRANSIENT (see Tools.hpp).
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Tools.hpp"
 
 #include "hem/rack/Spectrum.hpp"
@@ -52,7 +53,7 @@ public:
     Impl() { setDefaults(); }
     std::span<const ParamInfo> params() const noexcept override { return kParams; }
     std::span<const hc::fx::MeterInfo> meters() const noexcept override { return kMeters; }
-    void prepare(double fs, std::uint32_t) override { fs_ = fs; reset(); }
+    void prepare(double fs, std::uint32_t) override { fs_ = fs; reset(); clean_.prepare(fs, latency()); }
     void reset() noexcept override {
         for (auto& b : hp_) b.clear();
         shuf_.clear();
@@ -73,8 +74,14 @@ public:
         publishMeter(1, -40.0f);
         publishMeter(2, -100.0f);
         publishMeter(3, -100.0f);
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         const int mono = std::clamp(static_cast<int>(p(MonoBass)), 0, 4);
         if (mono != mono_ && mono > 0) {   // 24 dB / oct on the sides: two Butterworth sections
             const C c = C::make(T::HighPass, fs_, kMonoHz[mono], 0.7071);
@@ -139,6 +146,9 @@ public:
         publishMeter(3, pk_[1].push(20.0f * std::log10(std::max(peak[1], 1e-9f)), n, fs_));
     }
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return p(width::Width) == 100.0f && std::lround(p(width::MonoBass)) == 0 && p(width::Balance) == 0.0f && p(width::Output) == 0.0f && p(width::Rotation) == 0.0f && p(width::Asymmetry) == 0.0f && p(width::Shuffle) <= 0.0f && p(width::BassTrim) == 0.0f && std::lround(p(width::InputMode)) == 0 && p(width::PolarityL) < 0.5f && p(width::PolarityR) < 0.5f && p(width::Swap) < 0.5f; }
+    CleanPass clean_;
     double fs_ = 48000;
     hc::fx::Biquad hp_[2], shuf_, trim_;
     float shuffle_ = -1.0f, shufHz_ = -1.0f;
@@ -168,8 +178,8 @@ using namespace exciter;
 const char* const kModeN[] = {"TUBE", "TAPE"};
 const ParamInfo kParams[kCount] = {
     {"freq", "Frequency", "Hz", 1000.0f, 10000.0f, 3000.0f, Taper::Log},
-    {"drive", "Drive", "%", 0.0f, 100.0f, 50.0f},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 25.0f},
+    {"drive", "Drive", "%", 0.0f, 100.0f, 0.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
     {"mode", "Mode", "", 0, 1, 0, Taper::Choice, kModeN},
 };
 class Impl final : public hc::fx::Effect, public SpectrumSource {

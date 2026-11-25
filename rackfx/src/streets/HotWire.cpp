@@ -4,6 +4,7 @@
 // stages; GAIN how hard), the tone stack (BASS / MIDDLE / TREBLE), VOLUME, the power amp's DEPTH and
 // PRESENCE, the CABINET pair (CAB TONE mixes the darker and the brighter one; CAB OFF skips it), ROOM,
 // OUTPUT, the limiter.
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Garage.hpp"
 
 #include "AmpKit.hpp"
@@ -27,12 +28,12 @@ const ParamInfo kParams[kCount] = {
     {"focus", "Focus", "", 0.0f, 10.0f, 0.0f},
     {"gate", "Gate", "dB", -60.0f, 0.0f, -60.0f},
     {"gatespeed", "Gate Speed", "", 0.0f, 10.0f, 5.0f},
-    {"gain", "Gain", "", 0.0f, 10.0f, 5.0f},
+    {"gain", "Gain", "", 0.0f, 10.0f, 0.0f},
     {"bass", "Bass", "", 0.0f, 10.0f, 5.0f},
     {"middle", "Middle", "", 0.0f, 10.0f, 5.0f},
     {"treble", "Treble", "", 0.0f, 10.0f, 5.0f},
     {"volume", "Volume", "", 0.0f, 10.0f, 5.0f},
-    {"depth", "Depth", "", 0.0f, 10.0f, 3.0f},
+    {"depth", "Depth", "", 0.0f, 10.0f, 0.00f},
     {"presence", "Presence", "", 0.0f, 10.0f, 3.0f},
     {"cabinet", "Cabinet", "", 0, 5, 4, Taper::Choice, kCabN},
     {"cabtone", "Cab Tone", "", 0.0f, 100.0f, 50.0f},
@@ -81,6 +82,7 @@ public:
         room_.prepare(fs);
         lim_.prepare(fs);
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         pre_.clear();
@@ -106,8 +108,14 @@ public:
         publishMeter(0, -100.0f);
         publishMeter(1, -100.0f);
         publishMeter(2, 0.0f);
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         if (p(Clear) != push_) {
             push_ = p(Clear);
             clips_ = 0.0f;
@@ -120,6 +128,17 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return allAtLoad(); }
+    // An amp simulator has no "zero": it stands by untouched while every control is where it loads, and comes on
+    // (amp, cabinet and all) the moment any control is moved.
+    bool allAtLoad() const noexcept {
+        const auto ps = params();
+        for (std::size_t i = 0; i < ps.size(); ++i)
+            if (p(static_cast<int>(i)) != ps[i].def) return false;
+        return true;
+    }
+    CleanPass clean_;
     static constexpr std::uint32_t kChunk = 64;
     // VOLUME 5 = the song's own loudness on every amp and channel: each one's level on a song (measured: +3.1 .. -4.4 dB) is
     // taken back out (kAmpTrimDb)

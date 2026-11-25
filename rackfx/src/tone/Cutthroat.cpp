@@ -34,9 +34,9 @@ void third(bool high, double fs, double hz, C& a, C& b) noexcept {
 namespace ct {
 using namespace cutthroat;
 #define HEM_SIDE(s, S)                                                                                  \
-    {s "hpon", S "High-Pass", "", 0, 1, 1, Taper::Toggle, kOnOff},                                      \
+    {s "hpon", S "High-Pass", "", 0, 1, 0, Taper::Toggle, kOnOff},                                      \
     {s "hpfreq", S "High-Pass Freq", "Hz", 16.0f, 21357.0f, 16.0f, Taper::Log},                        \
-    {s "lpon", S "Low-Pass", "", 0, 1, 1, Taper::Toggle, kOnOff},                                       \
+    {s "lpon", S "Low-Pass", "", 0, 1, 0, Taper::Toggle, kOnOff},                                       \
     {s "lpfreq", S "Low-Pass Freq", "Hz", 16.0f, 21357.0f, 16000.0f, Taper::Log}
 const ParamInfo kParams[kCount] = {
     HEM_SIDE("l", "L "), HEM_SIDE("r", "R "),

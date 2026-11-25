@@ -25,7 +25,7 @@ const char* const kFbFilterN[] = {"LO-PASS", "LO SHELF", "LO FADE"};
 const char* const kPushN[] = {"A", "B"};
 
 #define HEM_TAP(n, ms, g, rot)                                                                     \
-    {"tap" #n "on", "Tap " #n " On", "", 0, 1, 1, Taper::Toggle, kOnOff},                          \
+    {"tap" #n "on", "Tap " #n " On", "", 0, 1, 0, Taper::Toggle, kOnOff},                          \
     {"tap" #n "delay", "Tap " #n " Delay", "ms", 1.0f, 6000.0f, ms, Taper::Log},                  \
     {"tap" #n "gain", "Tap " #n " Gain", "dB", -24.0f, 0.0f, g},                                   \
     {"tap" #n "rotate", "Tap " #n " Place", "deg", -45.0f, 45.0f, rot},                           \

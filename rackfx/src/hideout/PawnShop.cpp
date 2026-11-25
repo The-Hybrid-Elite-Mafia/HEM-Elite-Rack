@@ -5,6 +5,7 @@
 // SPACE MIX); NOISE when POST; MECHANICS (a moving delay for WOW, a moving level for WOBBLE, sets A and B);
 // LOW CUT, HIGH CUT, MONO, OUTPUT. A module that is off passes the sound through untouched.
 // The latency is always kPawnLatency (the moving delay's centre), whether MECHANICS is on or not.
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Garage.hpp"
 
 #include "SpaceKit.hpp"
@@ -29,7 +30,7 @@ const ParamInfo kParams[kCount] = {
     {"squash", "Squash", "", -10.0f, 10.0f, 0.0f},
     {"ringer", "Ringer", "", 0.0f, 100.0f, 0.0f},
     {"styler", "Decade", "", 0, 3, 1, Taper::Choice, kDecadeN},
-    {"devicemix", "Device Mix", "%", 0.0f, 100.0f, 100.0f},
+    {"devicemix", "Device Mix", "%", 0.0f, 100.0f, 0.0f},
     {"spaceon", "Space", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"sync", "Sync", "", 0, 2, 2, Taper::Choice, kSyncN},
     {"time", "Time", "ms", 1.0f, 3500.0f, 250.0f, Taper::Log},
@@ -41,7 +42,7 @@ const ParamInfo kParams[kCount] = {
     {"reverblevel", "Reverb Level", "", 0.0f, 100.0f, 40.0f},
     {"reverblength", "Reverb Length", "", 0.0f, 100.0f, 40.0f},
     {"reverbtype", "Reverb", "", 0, 1, 0, Taper::Choice, kVerbN},
-    {"spacemix", "Space Mix", "%", 0.0f, 100.0f, 30.0f},
+    {"spacemix", "Space Mix", "%", 0.0f, 100.0f, 0.0f},
     {"noiseon", "Noise", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"noisetype", "Noise Type", "", 0, kNoises - 1, 0, Taper::Choice, kNoiseN},
     {"noisemode", "Noise Follows", "", 0, 1, 0, Taper::Choice, kModeN},
@@ -49,7 +50,7 @@ const ParamInfo kParams[kCount] = {
     {"noiseplace", "Place", "", 0, 1, 1, Taper::Choice, kPlaceN},
     {"noiselevel", "Noise Level", "dB", -60.0f, 0.0f, -30.0f},
     {"mechon", "Mechanics", "", 0, 1, 0, Taper::Toggle, kOnOff},
-    {"wowa", "Wow A", "", 0.0f, 100.0f, 30.0f},
+    {"wowa", "Wow A", "", 0.0f, 100.0f, 0.00f},
     {"wobblea", "Wobble A", "", 0.0f, 100.0f, 0.0f},
     {"speeda", "Speed A", "", 0.0f, 100.0f, 30.0f},
     {"wowb", "Wow B", "", 0.0f, 100.0f, 0.0f},
@@ -227,6 +228,7 @@ public:
         noise_.prepare(fs);
         fade_ = static_cast<float>(1.0 / (0.02 * fs));
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         for (auto& d : echo_) d.clear();
@@ -260,8 +262,14 @@ public:
         pkIn_ = pkOut_ = 0.0f;
         publishMeter(0, -100.0f);
         publishMeter(1, -100.0f);
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         design();
         const bool devOn = p(DeviceOn) >= 0.5f, spOn = p(SpaceOn) >= 0.5f, nzOn = p(NoiseOn) >= 0.5f, mcOn = p(MechOn) >= 0.5f;
         const Era& era = kEra[pick(p(Styler), 3)];
@@ -422,6 +430,9 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return (p(DeviceOn) < 0.5f || p(DeviceMix) <= 0.0f) && (p(SpaceOn) < 0.5f || p(SpaceMix) <= 0.0f) && p(NoiseOn) < 0.5f && p(MechOn) < 0.5f && p(Input) == 0.0f && p(Output) == 0.0f && p(LowCut) <= 30.0f && p(HighCut) >= 21000.0f && p(Mono) >= 10.0f; }
+    CleanPass clean_;
     static constexpr int kChirp = 10;
     static int pick(float v, int hi) noexcept { return std::clamp(static_cast<int>(std::lround(v)), 0, hi); }
     static float softLimit(float v) noexcept { return v / std::sqrt(1.0f + 0.25f * v * v); }

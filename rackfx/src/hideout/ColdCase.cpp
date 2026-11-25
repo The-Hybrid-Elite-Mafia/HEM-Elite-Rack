@@ -23,7 +23,7 @@ const char* const kPushN[] = {"A", "B"};   // any change = a push
 const ParamInfo kParams[kCount] = {
     {"notches", "Notch Pairs", "", 0, 5, 2, Taper::Choice, kPairsN},
     {"half", "Half Pair", "", 0, 1, 0, Taper::Toggle, kOnOff},
-    {"depth", "Depth", "", 0.0f, 100.0f, 80.0f},
+    {"depth", "Depth", "", 0.0f, 100.0f, 0.00f},
     {"notchflip", "Notch Flip", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"stereo", "Stereo", "", 0.0f, 100.0f, 0.0f},
     {"lowcuton", "Low Cut", "", 0, 1, 0, Taper::Toggle, kOnOff},
@@ -50,7 +50,7 @@ const ParamInfo kParams[kCount] = {
     {"highcut", "High Cut Freq", "Hz", 1000.0f, 20000.0f, 12000.0f, Taper::Log},
     {"predelay", "Pre-Delay", "ms", 0.0f, 100.0f, 0.0f},
     {"wetmode", "Wet Mode", "", 0, 2, 0, Taper::Choice, kWetModeN},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
     {"gain", "Gain", "dB", -18.0f, 18.0f, 0.0f},
     {"reset", "Reset Peaks", "", 0, 1, 0, Taper::Toggle, kPushN},
 };

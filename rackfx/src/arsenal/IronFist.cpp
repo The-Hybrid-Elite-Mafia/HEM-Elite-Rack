@@ -29,7 +29,7 @@ const ParamInfo kParams[kCount] = {
     {"limitattack", "Limit Attack", "us", 1.0f, 1000.0f, 100.0f, Taper::Log},
     {"limitrelease", "Limit Release", "", 0, 3, 3, Taper::Choice, kLimRelN},
     {"automakeup", "Auto Makeup", "", 0, 1, 0, Taper::Toggle, kOnOff},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
     {"trim", "Trim", "dB", -18.0f, 18.0f, 0.0f},
 };
 const hc::fx::MeterInfo kMeters[] = {{"INPUT", "VU", -20.0f, 3.0f}, {"OUTPUT", "VU", -20.0f, 3.0f}};

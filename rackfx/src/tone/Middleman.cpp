@@ -1,4 +1,5 @@
 // THE MIDDLEMAN — centre and sides faders; lows, highs and hits steered between them (see ToneShop.hpp).
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/ToneShop.hpp"
 
 #include "ToneCommon.hpp"
@@ -33,6 +34,7 @@ public:
         fs_ = fs;
         for (auto& x : xo_) x.design(fs, kSplit, 3);
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         for (auto& x : xo_) x.clear();
@@ -48,11 +50,17 @@ public:
         publishMeter(0, 0.0f);
         publishMeter(1, -100.0f);
         publishMeter(2, -100.0f);
+        clean_.reset(isClean());
     }
 
     // Each range's centre content follows the CENTER fader at 0 and the SIDES fader at 100 (LOW under
     // 200 Hz, HIGH over 4 kHz, PUNCH: the hits, while they rise); the sides always follow SIDES.
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         const float fAtt = coefMs(fs_, 0.5), fRel = coefMs(fs_, 40.0), sAtt = coefMs(fs_, 20.0);
         const float punch = p(Punch) * 0.01f;
         const float wC = fader(p(Center)), wS = fader(p(Sides)), wLo = p(Low) * 0.01f, wHi = p(High) * 0.01f, wOut = hc::fx::dbToGain(p(Master));
@@ -95,6 +103,9 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return p(middleman::Low) <= 0.0f && p(middleman::High) <= 0.0f && p(middleman::Punch) <= 0.0f && p(middleman::Master) == 0.0f && p(middleman::Center) == 0.0f && p(middleman::Sides) == 0.0f; }
+    CleanPass clean_;
     double fs_ = 48000.0;
     Crossover<3> xo_[2];
     float fast_ = 0, slow_ = 0;

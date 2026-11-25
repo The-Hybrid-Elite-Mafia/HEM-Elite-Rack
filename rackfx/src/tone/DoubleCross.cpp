@@ -4,6 +4,7 @@
 // each frequency is weighted by how far it leans (panAt: a real, zero-phase gain), and the frames are
 // added back. That gives D; then left = M + D + S and right = M - D - S, with M and S delayed to line up,
 // so left + right is exactly twice the delayed middle.
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/ToneShop.hpp"
 
 #include "hybrid/fx/Fft.hpp"
@@ -29,7 +30,7 @@ const ParamInfo kParams[kCount] = {
     {"polarityl", "Polarity L", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"polarityr", "Polarity R", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"swap", "Swap", "", 0, 1, 0, Taper::Toggle, kOnOff},
-    {"spread", "Spread", "", 0.0f, 1.2f, 1.0f},
+    {"spread", "Spread", "", 0.0f, 1.2f, 0.0f},
     {"freq", "Freq", "Hz", 32.0f, 16000.0f, 200.0f, Taper::Log},
     {"lfspread", "Bass Spread", "", 0.0f, 2.0f, 0.0f},
     {"sweeps", "Combs", "", 2.0f, 22.0f, 8.0f},
@@ -70,6 +71,7 @@ public:
         buf_.assign(kFrame, {});
         gain_.assign(kFrame / 2 + 1, 0.0f);
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         std::fill(in_.begin(), in_.end(), 0.0f);
@@ -86,8 +88,14 @@ public:
         rot_.prepare(fs_, 20, p(Rotation));
         publishMeter(0, -100.0f);
         publishMeter(1, -100.0f);
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         design();
         if (p(Reset) != push_) {   // RESET: the held peaks start again
             push_ = p(Reset);
@@ -136,6 +144,9 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return p(doublecross::Input) == 0.0f && p(doublecross::Width) == 1.0f && p(doublecross::Rotation) == 0.0f && p(doublecross::PolarityL) < 0.5f && p(doublecross::PolarityR) < 0.5f && p(doublecross::Swap) < 0.5f && p(doublecross::LfSpread) == 0.0f && p(doublecross::Spread) <= 0.0f && p(doublecross::Kind) == params()[doublecross::Kind].def; }
+    CleanPass clean_;
     int kind() const noexcept { return std::clamp(static_cast<int>(std::lround(p(Kind))), 0, 2); }
     int sweeps() const noexcept { return std::clamp(static_cast<int>(std::lround(p(Sweeps))), 2, kind() == SpreadMode ? 22 : 10); }
     // the per-frequency lean, when a setting that shapes it changed

@@ -64,7 +64,7 @@ const ParamInfo kParams[kCount] = {
     {"makeup", "Makeup", "dB", 0.0f, 24.0f, 0.0f},
     {"automakeup", "Auto Makeup", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"schpf", "Sidechain HPF", "", 0, 4, 0, Taper::Choice, kScN},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
     {"tail", "Tail", "", 0, 1, 0, Taper::Choice, kTailN},
     {"character", "Character", "", 0, 1, 0, Taper::Choice, kCharN},

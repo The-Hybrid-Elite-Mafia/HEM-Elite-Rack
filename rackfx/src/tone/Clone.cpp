@@ -9,6 +9,7 @@
 // cepstrum, folded -> exp), 4096 taps, and plays it by partitioned FFT convolution (256-sample blocks). A new
 // FIR is made by a background thread into the spare of two slots; the audio thread crossfades to it over two
 // blocks. The held curve is the plug-in's own 120 parameters, so it is saved with the session.
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Clone.hpp"
 
 #include "ToneCommon.hpp"
@@ -293,6 +294,7 @@ public:
         state_.store(kIdle, std::memory_order_relaxed);
         reset();
         startWorker();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         std::fill(fdlRe_.begin(), fdlRe_.end(), 0.0f);
@@ -305,9 +307,15 @@ public:
         clearWas_ = p(Clear) >= 0.5f;
         gain_.prepare(fs_, 20, hc::fx::dbToGain(p(Gain)));
         peak_ = 0.0f;
+        clean_.reset(isClean());
     }
 
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         modes();
         const float wGain = hc::fx::dbToGain(p(Gain));
         const float fall = std::exp(-1.0f / (3.0f * static_cast<float>(fs_)));   // the trim reading's memory: 3 s
@@ -333,6 +341,16 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return cleanNow(); }
+    CleanPass clean_;
+    bool cleanNow() const noexcept {   // a flat curve and GAIN 0 dB: nothing to play
+        using namespace forger;
+        if (p(Gain) != 0.0f || std::lround(p(Mode)) != Hold) return false;   // CAPTURE / ADD play the board's curve
+        for (int k = 0; k < clone::kPoints; ++k)
+            if (p(Curve0 + k) != 0.0f) return false;
+        return true;
+    }
     enum State : int { kIdle, kReady, kFading };
     int pick(int i) const noexcept { return std::clamp(static_cast<int>(std::lround(p(i))), 0, 2); }
 

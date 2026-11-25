@@ -1,9 +1,10 @@
 // hem_rack_snapshot — renders every HEM-Elite-Rack faceplate off-screen with the real faceplate
 // code (hem::ui::FaceWindow, OpenGL) after running the plug-in on a few seconds of test audio, so
 // the spectrum, noise curve and EQ curve are live. Saves one PNG per plug-in.
-//   hem_rack_snapshot [--out <folder>] [--scale 0.75 | --width <pixels>] [--groups]
+//   hem_rack_snapshot [--out <folder>] [--scale 0.75 | --width <pixels>] [--groups] [--defaults]
 //   --width: the picture's width in pixels (the plate is 1672 x 941 design units; 3840 = 4K).
 //   --groups: one folder per category (EQ, DYNAMICS, ...), as the art templates are kept.
+//   --defaults: change no setting (no promo settings): every faceplate exactly as the plug-in loads.
 // Exit 3 when a faceplate fails to open or comes out blank.
 #include "hem/rack/BusGlue.hpp"
 #include "hem/rack/Tape.hpp"
@@ -108,98 +109,102 @@ int main(int argc, char** argv) {
     std::filesystem::path out = "rack-snapshots";
     float scale = 0.75f;
     bool groups = false;
+    bool defaults = false;
     for (int i = 1; i < argc; ++i) {
         const std::string k = argv[i];
         if (k == "--out" && i + 1 < argc) out = argv[++i];
         else if (k == "--scale" && i + 1 < argc) scale = std::strtof(argv[++i], nullptr);
         else if (k == "--width" && i + 1 < argc) scale = std::strtof(argv[++i], nullptr) / hem::ui::rackframe::kW;   // the window is the HEM frame
         else if (k == "--groups") groups = true;
+        else if (k == "--defaults") defaults = true;
     }
     std::error_code ec;
     std::filesystem::create_directories(out, ec);
     int failures = 0;
     for (const auto& info : hem::rack::plugins()) {
         auto fx = info.create();
-        if (info.face == hem::rack::Face::EliteEq) {   // a typical mastering curve, one dynamic band
-            using namespace hem::rack::eq;
-            const struct { Type t; float f, g, q; Stereo st; } bands[] = {{Type::LowCut, 28, 0, 0.71f, Stereo::Stereo},
-                                                                        {Type::Bell, 220, -3.5f, 1.4f, Stereo::Stereo},
-                                                                        {Type::Bell, 3200, 2.5f, 0.9f, Stereo::Mid},
-                                                                        {Type::HighShelf, 11000, 3.0f, 0.71f, Stereo::Side}};
-            for (int b = 0; b < 4; ++b) {
-                fx->set(bandParam(b, On), 1);
-                fx->set(bandParam(b, TypeC), static_cast<float>(static_cast<int>(bands[b].t)));
-                fx->set(bandParam(b, Freq), bands[b].f);
-                fx->set(bandParam(b, Gain), bands[b].g);
-                fx->set(bandParam(b, Q), bands[b].q);
-                fx->set(bandParam(b, StereoC), static_cast<float>(static_cast<int>(bands[b].st)));
+        if (!defaults) {   // show-off settings for promo pictures; --defaults draws each plug-in exactly as it loads
+            if (info.face == hem::rack::Face::EliteEq) {   // a typical mastering curve, one dynamic band
+                using namespace hem::rack::eq;
+                const struct { Type t; float f, g, q; Stereo st; } bands[] = {{Type::LowCut, 28, 0, 0.71f, Stereo::Stereo},
+                                                                            {Type::Bell, 220, -3.5f, 1.4f, Stereo::Stereo},
+                                                                            {Type::Bell, 3200, 2.5f, 0.9f, Stereo::Mid},
+                                                                            {Type::HighShelf, 11000, 3.0f, 0.71f, Stereo::Side}};
+                for (int b = 0; b < 4; ++b) {
+                    fx->set(bandParam(b, On), 1);
+                    fx->set(bandParam(b, TypeC), static_cast<float>(static_cast<int>(bands[b].t)));
+                    fx->set(bandParam(b, Freq), bands[b].f);
+                    fx->set(bandParam(b, Gain), bands[b].g);
+                    fx->set(bandParam(b, Q), bands[b].q);
+                    fx->set(bandParam(b, StereoC), static_cast<float>(static_cast<int>(bands[b].st)));
+                }
+                fx->set(bandParam(1, Dyn), 1);
+                fx->set(bandParam(1, Threshold), -36);
+                fx->set(AutoGain, 1);
+            } else if (info.face == hem::rack::Face::BusGlue) {     // 4:1, 3 ms, AUTO, working a few dB
+                using namespace hem::rack::glue;
+                fx->set(Threshold, -18); fx->set(ScHpf, 2); fx->set(Makeup, 2);
+            } else if (info.face == hem::rack::Face::Tape) {
+                using namespace hem::rack::tape;
+                fx->set(Input, 6); fx->set(Bump, 60); fx->set(Wow, 15); fx->set(VuCal, 3);
+            } else if (info.face == hem::rack::Face::TubeEq) {
+                using namespace hem::rack::tubeeq;
+                fx->set(LowBoost, 6); fx->set(LowAtten, 4); fx->set(HighBoost, 5); fx->set(Bandwidth, 4); fx->set(HighAtten, 2); fx->set(Drive, 30);
+            } else if (info.face == hem::rack::Face::Limiter) {
+                fx->set(hem::rack::limiter::Input, 8);
+            } else if (info.face == hem::rack::Face::Width) {
+                fx->set(hem::rack::width::Width, 140); fx->set(hem::rack::width::MonoBass, 2);
+            } else if (info.face == hem::rack::Face::Exciter) {
+                fx->set(hem::rack::exciter::Drive, 60); fx->set(hem::rack::exciter::Mix, 35);
+            } else if (info.face == hem::rack::Face::VcaComp) {
+                fx->set(hem::rack::vca::Threshold, -32);
+            } else if (info.face == hem::rack::Face::TubeSat) {
+                fx->set(hem::rack::tubesat::Drive, 70);
+            } else if (info.face == hem::rack::Face::Sub) {
+                fx->set(hem::rack::sub::Amount, 60);
+            } else if (info.face == hem::rack::Face::VocalStrip) {
+                fx->set(hem::rack::vocal::Compress, 70); fx->set(hem::rack::vocal::Hpf, 2);
+            } else if (info.face == hem::rack::Face::Hitman) {
+                using namespace hem::rack::hitman;
+                fx->set(Input1, 14); fx->set(Ratio, 1); fx->set(ScEq, 1); fx->set(ScHpf, 90); fx->set(ScBellFreq, 3000); fx->set(ScBellGain, 6);
+                fx->set(Saturation, 2);
+            } else if (info.face == hem::rack::Face::Channel) {
+                using namespace hem::rack::insideman;
+                fx->set(GateOn, 1); fx->set(CompOn, 1); fx->set(CompThreshold, -24); fx->set(B1Gain, 3); fx->set(B3Gain, 2.5f);
+            } else if (info.face == hem::rack::Face::Voices) {
+                using namespace hem::rack::bodydouble;
+                fx->set(voice(1, ModDepth), 20); fx->set(voice(2, Octave), 1);
+            } else if (info.face == hem::rack::Face::Keys) {
+                using namespace hem::rack::informant;
+                for (int k : {12, 16, 19}) fx->set(Key0 + k, 1.0f);   // a C major chord in the third octave
+                fx->set(Spread, 0.6f); fx->set(eq(1, EqGain), 4.0f);
+            } else if (info.face == hem::rack::Face::Notches) {
+                using namespace hem::rack::coldcase;
+                fx->set(Decay, 60); fx->set(StereoSpread, 50); fx->set(Mix, 70);
+            } else if (info.face == hem::rack::Face::Pawn) {
+                using namespace hem::rack::pawnshop;
+                fx->set(SpaceOn, 1); fx->set(NoiseOn, 1); fx->set(NoiseType, Crackle); fx->set(Ringer, 20);
+            } else if (info.face == hem::rack::Face::Piano) {
+                using namespace hem::rack::grandlarceny;
+                for (int k : {12, 16, 19, 24}) fx->set(Key0 + k, 1.0f);   // a C major chord around C3
+                fx->set(Pedal, 1);
+            } else if (info.face == hem::rack::Face::Stomp) {
+                using namespace hem::rack::racket;
+                fx->set(Which, PdFlipEcho); fx->set(FeMix, 40);
+            } else if (info.face == hem::rack::Face::Audit) {
+                fx->set(hem::rack::auditor::Limiter, 1);
+            } else if (info.face == hem::rack::Face::Taps) {
+                using namespace hem::rack::sixshooter;
+                fx->set(tap(1, EqOn), 1); fx->set(tap(1, EqType), 5); fx->set(FbOn, 1); fx->set(ModOn, 1);
+            } else if (info.face == hem::rack::Face::Movers) {
+                using namespace hem::rack::thesetup;
+                fx->set(Freq, 1200); fx->set(Res, 45); fx->set(depth(Seq, ToFreq), 60);
+                for (int k = 0; k < kSteps; ++k) fx->set(Step1 + k, (k % 4 == 0) ? 80.0f : (k % 2 ? -30.0f : 20.0f));
+            } else if (info.face == hem::rack::Face::Spec && info.plate && info.plate->demo) {
+                info.plate->demo(*fx);
+            } else if (info.face == hem::rack::Face::Restorer) {
+                fx->set(hem::rack::restorer::Reduction, 6.0f);
             }
-            fx->set(bandParam(1, Dyn), 1);
-            fx->set(bandParam(1, Threshold), -36);
-            fx->set(AutoGain, 1);
-        } else if (info.face == hem::rack::Face::BusGlue) {     // 4:1, 3 ms, AUTO, working a few dB
-            using namespace hem::rack::glue;
-            fx->set(Threshold, -18); fx->set(ScHpf, 2); fx->set(Makeup, 2);
-        } else if (info.face == hem::rack::Face::Tape) {
-            using namespace hem::rack::tape;
-            fx->set(Input, 6); fx->set(Bump, 60); fx->set(Wow, 15); fx->set(VuCal, 3);
-        } else if (info.face == hem::rack::Face::TubeEq) {
-            using namespace hem::rack::tubeeq;
-            fx->set(LowBoost, 6); fx->set(LowAtten, 4); fx->set(HighBoost, 5); fx->set(Bandwidth, 4); fx->set(HighAtten, 2); fx->set(Drive, 30);
-        } else if (info.face == hem::rack::Face::Limiter) {
-            fx->set(hem::rack::limiter::Input, 8);
-        } else if (info.face == hem::rack::Face::Width) {
-            fx->set(hem::rack::width::Width, 140); fx->set(hem::rack::width::MonoBass, 2);
-        } else if (info.face == hem::rack::Face::Exciter) {
-            fx->set(hem::rack::exciter::Drive, 60); fx->set(hem::rack::exciter::Mix, 35);
-        } else if (info.face == hem::rack::Face::VcaComp) {
-            fx->set(hem::rack::vca::Threshold, -32);
-        } else if (info.face == hem::rack::Face::TubeSat) {
-            fx->set(hem::rack::tubesat::Drive, 70);
-        } else if (info.face == hem::rack::Face::Sub) {
-            fx->set(hem::rack::sub::Amount, 60);
-        } else if (info.face == hem::rack::Face::VocalStrip) {
-            fx->set(hem::rack::vocal::Compress, 70); fx->set(hem::rack::vocal::Hpf, 2);
-        } else if (info.face == hem::rack::Face::Hitman) {
-            using namespace hem::rack::hitman;
-            fx->set(Input1, 14); fx->set(Ratio, 1); fx->set(ScEq, 1); fx->set(ScHpf, 90); fx->set(ScBellFreq, 3000); fx->set(ScBellGain, 6);
-            fx->set(Saturation, 2);
-        } else if (info.face == hem::rack::Face::Channel) {
-            using namespace hem::rack::insideman;
-            fx->set(GateOn, 1); fx->set(CompOn, 1); fx->set(CompThreshold, -24); fx->set(B1Gain, 3); fx->set(B3Gain, 2.5f);
-        } else if (info.face == hem::rack::Face::Voices) {
-            using namespace hem::rack::bodydouble;
-            fx->set(voice(1, ModDepth), 20); fx->set(voice(2, Octave), 1);
-        } else if (info.face == hem::rack::Face::Keys) {
-            using namespace hem::rack::informant;
-            for (int k : {12, 16, 19}) fx->set(Key0 + k, 1.0f);   // a C major chord in the third octave
-            fx->set(Spread, 0.6f); fx->set(eq(1, EqGain), 4.0f);
-        } else if (info.face == hem::rack::Face::Notches) {
-            using namespace hem::rack::coldcase;
-            fx->set(Decay, 60); fx->set(StereoSpread, 50); fx->set(Mix, 70);
-        } else if (info.face == hem::rack::Face::Pawn) {
-            using namespace hem::rack::pawnshop;
-            fx->set(SpaceOn, 1); fx->set(NoiseOn, 1); fx->set(NoiseType, Crackle); fx->set(Ringer, 20);
-        } else if (info.face == hem::rack::Face::Piano) {
-            using namespace hem::rack::grandlarceny;
-            for (int k : {12, 16, 19, 24}) fx->set(Key0 + k, 1.0f);   // a C major chord around C3
-            fx->set(Pedal, 1);
-        } else if (info.face == hem::rack::Face::Stomp) {
-            using namespace hem::rack::racket;
-            fx->set(Which, PdFlipEcho); fx->set(FeMix, 40);
-        } else if (info.face == hem::rack::Face::Audit) {
-            fx->set(hem::rack::auditor::Limiter, 1);
-        } else if (info.face == hem::rack::Face::Taps) {
-            using namespace hem::rack::sixshooter;
-            fx->set(tap(1, EqOn), 1); fx->set(tap(1, EqType), 5); fx->set(FbOn, 1); fx->set(ModOn, 1);
-        } else if (info.face == hem::rack::Face::Movers) {
-            using namespace hem::rack::thesetup;
-            fx->set(Freq, 1200); fx->set(Res, 45); fx->set(depth(Seq, ToFreq), 60);
-            for (int k = 0; k < kSteps; ++k) fx->set(Step1 + k, (k % 4 == 0) ? 80.0f : (k % 2 ? -30.0f : 20.0f));
-        } else if (info.face == hem::rack::Face::Spec && info.plate && info.plate->demo) {
-            info.plate->demo(*fx);
-        } else if (info.face == hem::rack::Face::Restorer) {
-            fx->set(hem::rack::restorer::Reduction, 6.0f);
         }
         hem::ui::EffectFeed feedSrc(*fx);
         feedSrc.setSpectrumActive(true);
@@ -213,7 +218,7 @@ int main(int argc, char** argv) {
             ++failures;
             continue;
         }
-        if (info.face == hem::rack::Face::EliteEq) win.state().selectedBand = 1;
+        if (!defaults && info.face == hem::rack::Face::EliteEq) win.state().selectedBand = 1;
         // A plate with a scrolling history adds one column per drawn frame: draw 240 frames (the whole
         // history) with the song still playing between them, so the picture shows it as it looks live.
         {

@@ -42,7 +42,7 @@ const ParamInfo kParams[kCount] = {
     {"start", "Start", "s", 0.0f, 1.0f, 0.0f},
     {"length", "Length", "s", 0.0f, 6.0f, 6.0f},
     {"decay", "Decay", "x", 0.25f, 1.0f, 1.0f},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 15.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
     {"direct", "Direct", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"predelay", "Pre-Delay", "ms", 0.0f, 500.0f, 0.0f},
     {"drydelay", "Dry Delay", "ms", 0.0f, 30.0f, 0.0f},

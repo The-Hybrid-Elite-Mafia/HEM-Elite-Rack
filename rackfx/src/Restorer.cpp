@@ -1,3 +1,4 @@
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Restorer.hpp"
 
 #include "hybrid/fx/Dsp.hpp"
@@ -19,7 +20,7 @@ using hc::fx::Taper;
 
 const char* const kOnOff[] = {"OFF", "ON"};
 const ParamInfo kParams[kCount] = {
-    {"reduction", "Noise Reduction", "/10", 0.0f, 10.0f, 5.0f},
+    {"reduction", "Noise Reduction", "/10", 0.0f, 10.0f, 0.0f},
     {"focus",     "Focus",           "%", -100.0f, 100.0f, 0.0f},
     {"air",       "Air Preserve",    "/10", 0.0f, 10.0f, 5.0f},
     {"low",       "Range Low",       "Hz", 20.0f, 20000.0f, 20.0f, Taper::Log},
@@ -71,6 +72,7 @@ public:
         before_.prepare(fs);
         after_.prepare(fs);
         reset();
+        clean_.prepare(fs, latency());
     }
 
     void reset() noexcept override {
@@ -86,9 +88,15 @@ public:
         for (auto& v : noisePub_) v.store(kSpectrumFloorDb, std::memory_order_relaxed);
         before_.reset();
         after_.reset();
+        clean_.reset(isClean());
     }
 
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         before_.push(L, R, n);
         const float oT = hc::fx::dbToGain(p(Output));
         for (std::uint32_t i = 0; i < n; ++i) {
@@ -106,6 +114,9 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return p(Reduction) <= 0.0f && p(Output) == 0.0f && p(Listen) < 0.5f; }
+    CleanPass clean_;
     void rebuildWeights(float reduction, float focus, float air, float lowHz, float highHz) noexcept {
         const auto B = static_cast<std::size_t>(n_ / 2 + 1);
         const float r = reduction / 10.0f, a = air / 10.0f, f = focus / 100.0f;

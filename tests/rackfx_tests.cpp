@@ -2,6 +2,7 @@
 // measured, plus the rules every HEM effect follows (silence stays silence, no allocation on
 // the audio thread, same result for any block size, finite output, constant latency).
 #include "Harness.hpp"
+#include "ColouredCreate.hpp"
 #include "Signals.hpp"
 #include "Rules.hpp"
 
@@ -76,7 +77,7 @@ void testEliteEq() {
                           {Type::Tilt, 1000, 6, 1.0, 3}};
     double worst = 0;
     for (const Case& c : cases) {
-        auto e = info->create();
+        auto e = colouredCreate(info);
         e->prepare(kFs, 512);
         setBand(*e, 0, c.t, c.hz, c.gain, c.q, c.slope);
         Band b = bandOf(*e, 0);
@@ -101,7 +102,7 @@ void testEliteEq() {
 
     // Mid / side / left: a SIDE cut leaves a mono signal alone and turns the stereo part down.
     {
-        auto e = info->create();
+        auto e = colouredCreate(info);
         e->prepare(kFs, 512);
         setBand(*e, 0, Type::Bell, 1000, -12, 1.0, 3, eq::Stereo::Side);
         Stereo mono = sine(1000, 1.0, 0.25f), wide = sine(1000, 1.0, 0.25f, kFs, true);
@@ -111,7 +112,7 @@ void testEliteEq() {
         const double m = db(toneAmp(mono.l, 1000, 24000, 24000) / 0.25), w = db(toneAmp(wide.l, 1000, 24000, 24000) / 0.25);
         std::printf("  SIDE bell -12 dB: mono signal %.2f dB, anti-phase signal %.2f dB\n", m, w);
         CHECK(std::fabs(m) < 0.05 && std::fabs(w + 12.0) < 0.1);
-        auto l = info->create();
+        auto l = colouredCreate(info);
         l->prepare(kFs, 512);
         setBand(*l, 0, Type::Bell, 1000, 8, 1.0, 3, eq::Stereo::Left);
         Stereo s = sine(1000, 1.0, 0.25f);
@@ -123,7 +124,7 @@ void testEliteEq() {
 
     // A dynamic band leaves a quiet note alone and only cuts it when it gets loud.
     {
-        auto e = info->create();
+        auto e = colouredCreate(info);
         e->prepare(kFs, 512);
         setBand(*e, 0, Type::Bell, 3000, 0, 2.0);
         e->set(bandParam(0, Dyn), 1);
@@ -146,7 +147,7 @@ void testEliteEq() {
 
     // CHARACTER: clean is the input (delayed by the constant latency); console adds odd harmonics, tube even.
     {
-        auto e = info->create();
+        auto e = colouredCreate(info);
         e->prepare(kFs, 512);
         Stereo s = noise(0.5, 0.5f, 3), ref = s;
         run(*e, s);
@@ -156,7 +157,7 @@ void testEliteEq() {
         std::printf("  CLEAN, no bands: output = input delayed %u samples (max difference %.2e)\n", lat, d);
         CHECK(d < 1e-6 && lat == 23);
         auto harmonics = [&](Char c) {
-            auto x = info->create();
+            auto x = colouredCreate(info);
             x->prepare(kFs, 512);
             x->set(Character, static_cast<float>(static_cast<int>(c)));
             x->set(Drive, 100);
@@ -175,7 +176,7 @@ void testEliteEq() {
 
     // AUTO GAIN brings the loudness back to the input's after a big boost.
     {
-        auto e = info->create();
+        auto e = colouredCreate(info);
         e->prepare(kFs, 512);
         setBand(*e, 0, Type::HighShelf, 2000, 12, 0.7);
         e->set(AutoGain, 1);
@@ -225,7 +226,7 @@ void testRestorer() {
 
     // NOISE REDUCTION 0: untouched (only delayed).
     {
-        auto e = info->create();
+        auto e = colouredCreate(info);
         e->prepare(kFs, 512);
         e->set(Reduction, 0);
         Stereo s = noise(1.0, 0.3f, 2), ref = s;
@@ -239,7 +240,7 @@ void testRestorer() {
 
     // Hiss under a tone: the hiss goes down a lot, the tone stays.
     auto hissAndTone = [&](float reduction, float low, float high, bool listen, double& toneChange, double& hissLowChange, double& hissHighChange) {
-        auto e = info->create();
+        auto e = colouredCreate(info);
         e->prepare(kFs, 512);
         e->set(Reduction, reduction);
         e->set(LowHz, low);
@@ -270,7 +271,7 @@ void testRestorer() {
 
     // The learned noise curve sits where the noise really is on the display.
     {
-        auto e = info->create();
+        auto e = colouredCreate(info);
         e->prepare(kFs, 512);
         auto* sp = dynamic_cast<SpectrumSource*>(e.get());
         auto* np = dynamic_cast<NoiseProfileSource*>(e.get());
@@ -357,9 +358,9 @@ void testBusGlue() {
     CHECK(info != nullptr);
     if (!info) return;
     commonRules(*info);
-    auto e = info->create();
+    auto e = colouredCreate(info);
     e->prepare(kFs, 512);
-    auto set = [&](std::initializer_list<std::pair<int, float>> v) { e->setDefaults(); for (const auto& [i, x] : v) e->set(i, x); };
+    auto set = [&](std::initializer_list<std::pair<int, float>> v) { e->setDefaults(); recolour(*e); for (const auto& [i, x] : v) e->set(i, x); };
 
     {   // static curve: -6 dBFS peak, threshold -20, 4:1 -> 10.5 dB of reduction
         set({{Threshold, -20}, {Ratio, 1}, {Attack, 0}, {Release, 0}});
@@ -465,7 +466,7 @@ namespace {
 using namespace hem::rack;
 
 std::unique_ptr<hc::fx::Effect> fresh(const char* name, std::initializer_list<std::pair<int, float>> v) {
-    auto e = findPlugin(name)->create();
+    auto e = colouredCreate(findPlugin(name));
     for (const auto& [i, x] : v) e->set(i, x);
     e->prepare(kFs, 512);
     return e;
@@ -1386,7 +1387,7 @@ void testHitman() {
     if (!info) return;
     commonRules(*info);
     auto make = [](std::initializer_list<std::pair<int, float>> v) {
-        auto e = findPlugin("HITMAN")->create();
+        auto e = colouredCreate(findPlugin("HITMAN"));
         e->set(Input1, 0); e->set(Output1, 0); e->set(Input2, 0); e->set(Output2, 0);
         for (const auto& [i, x] : v) e->set(i, x);
         e->prepare(kFs, 512);

@@ -57,21 +57,21 @@ const ParamInfo kHall[kCount] = {
     {"decay", "Decay", "s", 0.5f, 12.0f, 2.5f, Taper::Log}, {"damping", "Damping", "%", 0.0f, 100.0f, 40.0f},
     {"early", "Early", "%", 0.0f, 100.0f, 40.0f},          {"mod", "Mod", "%", 0.0f, 100.0f, 30.0f},
     {"width", "Width", "%", 0.0f, 150.0f, 100.0f},          {"lowcut", "Low Cut", "Hz", 20.0f, 500.0f, 80.0f, Taper::Log},
-    {"highcut", "High Cut", "Hz", 1000.0f, 20000.0f, 9000.0f, Taper::Log}, {"mix", "Mix", "%", 0.0f, 100.0f, 25.0f},
+    {"highcut", "High Cut", "Hz", 1000.0f, 20000.0f, 9000.0f, Taper::Log}, {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
 };
 const ParamInfo kRoom[kCount] = {
     {"predelay", "Pre-Delay", "ms", 0.0f, 100.0f, 5.0f},   {"size", "Size", "%", 0.0f, 100.0f, 50.0f},
     {"decay", "Decay", "s", 0.2f, 4.0f, 0.8f, Taper::Log},  {"damping", "Damping", "%", 0.0f, 100.0f, 50.0f},
     {"early", "Early", "%", 0.0f, 100.0f, 70.0f},          {"mod", "Mod", "%", 0.0f, 100.0f, 15.0f},
     {"width", "Width", "%", 0.0f, 150.0f, 100.0f},          {"lowcut", "Low Cut", "Hz", 20.0f, 500.0f, 100.0f, Taper::Log},
-    {"highcut", "High Cut", "Hz", 1000.0f, 20000.0f, 8000.0f, Taper::Log}, {"mix", "Mix", "%", 0.0f, 100.0f, 20.0f},
+    {"highcut", "High Cut", "Hz", 1000.0f, 20000.0f, 8000.0f, Taper::Log}, {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
 };
 const ParamInfo kPlate[kCount] = {
     {"predelay", "Pre-Delay", "ms", 0.0f, 200.0f, 10.0f},  {"size", "Size", "%", 0.0f, 100.0f, 50.0f},
     {"decay", "Decay", "s", 0.4f, 8.0f, 1.8f, Taper::Log},  {"damping", "Damping", "%", 0.0f, 100.0f, 20.0f},
     {"diffusion", "Diffusion", "%", 0.0f, 100.0f, 80.0f},  {"mod", "Mod", "%", 0.0f, 100.0f, 25.0f},
     {"width", "Width", "%", 0.0f, 150.0f, 100.0f},          {"lowcut", "Low Cut", "Hz", 20.0f, 500.0f, 120.0f, Taper::Log},
-    {"highcut", "High Cut", "Hz", 1000.0f, 20000.0f, 12000.0f, Taper::Log}, {"mix", "Mix", "%", 0.0f, 100.0f, 25.0f},
+    {"highcut", "High Cut", "Hz", 1000.0f, 20000.0f, 12000.0f, Taper::Log}, {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
 };
 
 class Reverb final : public hc::fx::Effect {
@@ -207,7 +207,7 @@ const ParamInfo kParams[kCount] = {
     {"offset", "Stereo Offset", "ms", 0.0f, 30.0f, 0.0f},
     {"lowcut", "Low Cut", "Hz", 20.0f, 1000.0f, 60.0f, Taper::Log},
     {"highcut", "High Cut", "Hz", 1000.0f, 20000.0f, 12000.0f, Taper::Log},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 30.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
 };
 class Impl final : public hc::fx::Effect {
 public:

@@ -1,4 +1,5 @@
 // THE DON — old-school broadcast bus compressor, feedback detector (see Arsenal.hpp).
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Arsenal.hpp"
 
 #include "Vintage.hpp"
@@ -14,7 +15,7 @@ const char* const kRatioN[] = {"1:1", "2:1", "3:1", "5:1", "LIMIT"};
 const char* const kDecayN[] = {"1", "2", "4", "8", "16", "32"};
 const ParamInfo kParams[kCount] = {
     {"threshold", "Threshold", "", 0, 20, 20, Taper::Choice, kThresholdN},
-    {"ratio", "Ratio", "", 0, 4, 2, Taper::Choice, kRatioN},
+    {"ratio", "Ratio", "", 0, 4, 0, Taper::Choice, kRatioN},
     {"decay", "Decay", "", 0, 5, 2, Taper::Choice, kDecayN},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
     {"meter", "Meter", "", 0, 2, 1, Taper::Choice, kMeterN},
@@ -38,6 +39,7 @@ public:
         vuOut_.prepare(fs);
         dcK_ = static_cast<float>(1.0 - std::exp(-2.0 * std::numbers::pi * 8.0 / fs));
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         env_ = 0.0f;
@@ -51,9 +53,15 @@ public:
         publishReduction(0.0f);
         publishMeter(0, -20.0f);
         publishMeter(1, -20.0f);
+        clean_.reset(isClean());
     }
 
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         const int ri = std::clamp(static_cast<int>(std::lround(p(Ratio))), 0, 4);
         const int di = std::clamp(static_cast<int>(std::lround(p(Decay))), 0, 5);
         const float cal = p(VuCal);
@@ -105,6 +113,9 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return std::lround(p(Ratio)) == 0 && std::lround(p(Analog)) == 0 && p(Output) == 0.0f; }
+    CleanPass clean_;
     double fs_ = 48000.0;
     float env_ = 0, gr_ = 0, lastL_ = 0, lastR_ = 0, dcL_ = 0, dcR_ = 0, dcK_ = 0;
     Hum hum_;

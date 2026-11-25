@@ -3,6 +3,7 @@
 // fails the test run. Run it with: hem_rack_tests --qa
 #include "Harness.hpp"
 #include "QaCommon.hpp"
+#include "ColouredStart.hpp"
 #include "hem/rack/EliteEq.hpp"
 #include "hem/rack/OfflineRender.hpp"
 #include "hem/rack/Holdouts.hpp"
@@ -118,6 +119,13 @@ void auditDsp(const rack::PluginInfo& info, hemqa::Report& rep) {
         e->setDefaults();
         if (mode == 0 || mode == 4) return;
         if (mode == 5) { if (pairK != skip) e->set(pairK, pairV); return; }
+        if (mode < 0) {   // -1: the old coloured defaults (the plug-in loads untouched now); -2: those + ONE other control
+            for (const auto& [cid, cv] : colourstart::forName(info.name))
+                for (int k = 0; k < static_cast<int>(ps.size()); ++k)
+                    if (k != skip && std::string(ps[static_cast<std::size_t>(k)].id) == cid) e->set(k, cv);
+            if (mode == -2 && pairK != skip) e->set(pairK, pairV);
+            return;
+        }
         if (mode == 6) return;
         if (mode >= 7) {   // a random setting of every other control (seeded: the same every run)
             std::uint32_t r = 0x9E3779B9u * static_cast<std::uint32_t>(mode);
@@ -225,13 +233,14 @@ void auditDsp(const rack::PluginInfo& info, hemqa::Report& rep) {
         // Still silent: a control can depend on what is played (a pitch tool needs a voice) or on ONE other
         // control (a band's frequency needs its gain off 0 dB). Try both before calling it dead.
         if (!live) live = liveIn(4);
+        if (!live) live = liveIn(-1);   // zero colour on load: many controls act once the colour is up
         for (int k = 0; k < controls && !live; ++k) {
             const auto& pk = ps[static_cast<std::size_t>(k)];
             if (k == i || keepAtDefault(pk)) continue;
             for (float o : hemqa::sweepValues(pk.min, pk.def, pk.max, stepped(pk))) {
                 if (o == pk.def) continue;
                 pairK = k; pairV = o;
-                if ((live = liveIn(5))) break;
+                if ((live = liveIn(5) || liveIn(-2))) break;
             }
         }
         // ...or it acts when pressed while the music plays, or it needs two or more other controls set
@@ -246,6 +255,7 @@ void auditDsp(const rack::PluginInfo& info, hemqa::Report& rep) {
                 e = makeOffline(info);
                 e->prepare(hemqa::kRate, hemqa::kBlock);
                 e->setDefaults();
+                for (const auto& [cid, cv] : colourstart::forName(info.name)) e->set(find(cid), cv);   // the coloured start
                 for (const Setting& st : c.sets) e->set(find(st.id), st.value);
                 e->set(i, v);
                 e->reset();
@@ -305,6 +315,7 @@ void auditDsp(const rack::PluginInfo& info, hemqa::Report& rep) {
     };
     auto allMoved = [&] { return std::all_of(moved.begin(), moved.end(), [](int x) { return x != 0; }); };
     for (int mode = 0; mode <= 4; ++mode) meterPass(mode);
+    meterPass(-1);   // the old coloured defaults (zero colour on load)
     for (int seed = 7; seed < 7 + kRandomSettings && !allMoved(); ++seed) meterPass(seed);
     // Same as the sweep: a meter can need one other control moved (a compressor's GR needs a lower threshold).
     for (int k = 0; k < controls && !allMoved(); ++k) {
@@ -314,6 +325,7 @@ void auditDsp(const rack::PluginInfo& info, hemqa::Report& rep) {
             if (o == pk.def) continue;
             pairK = k; pairV = o;
             meterPass(5);
+            if (!allMoved()) meterPass(-2);
             if (allMoved()) break;
         }
     }

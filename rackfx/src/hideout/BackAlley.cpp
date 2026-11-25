@@ -1,4 +1,5 @@
 // BACK ALLEY — lo-fi space: a worn echo and a spring or plate reverb, through the master filters (see Hideout.hpp).
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Hideout.hpp"
 
 #include "SpaceKit.hpp"
@@ -30,7 +31,7 @@ const ParamInfo kParams[kCount] = {
     {"highpass", "Hi-Pass", "Hz", 30.0f, 1500.0f, 30.0f, Taper::Log},
     {"lowpass", "Lo-Pass", "Hz", 1500.0f, 21000.0f, 21000.0f, Taper::Log},
     {"mono", "Mono", "", 0.0f, 10.0f, 10.0f},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 50.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
 };
 constexpr int kChirp = 8;   // all-passes that make the spring's "boing"
 constexpr double kLineS = 3.6;
@@ -56,6 +57,7 @@ public:
         fdn_.prepare(fs, 1.2);
         for (auto& e : echo_) e.prepare(static_cast<std::uint32_t>(kLineS * fs) + 8);
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         fdn_.clear();
@@ -72,8 +74,14 @@ public:
         revG_.prepare(fs_, 20, p(ReverbOn) >= 0.5f ? levelOrOff(p(ReverbLevel)) : 0.0f);
         mix_.prepare(fs_, 30, p(Mix) * 0.01f);
         width_.prepare(fs_, 30, p(Mono) * 0.1f);
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         design();
         const bool spring = p(Type) < 0.5f, ping = p(PingPong) >= 0.5f;
         const float fb = std::min(p(Feedback) * 0.01f, 1.0f);
@@ -120,6 +128,9 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return p(backalley::Mix) <= 0.0f; }
+    CleanPass clean_;
     float echoSamples() const noexcept {
         const int s = pick(p(Sync), 2);
         double ms = p(Time);

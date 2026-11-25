@@ -1,6 +1,7 @@
 // The hideout (space, modulation, voice, monitoring): what each plug-in must actually do to the
 // sound, measured, plus the rules every HEM effect follows (Rules.hpp).
 #include "Harness.hpp"
+#include "ColouredCreate.hpp"
 #include "Rules.hpp"
 #include "Signals.hpp"
 
@@ -27,7 +28,7 @@ using namespace hem::rack;
 constexpr double kFs = 48000.0;
 
 std::unique_ptr<hc::fx::Effect> make(const char* name, std::initializer_list<std::pair<int, float>> v = {}) {
-    auto e = findPlugin(name)->create();
+    auto e = colouredCreate(findPlugin(name));
     for (const auto& [i, x] : v) e->set(i, x);
     e->prepare(kFs, 512);
     return e;
@@ -481,7 +482,7 @@ void testSwerve() {
 void testColdCase() {
     using namespace coldcase;
     auto still = [](std::initializer_list<std::pair<int, float>> more) {   // no sweep, no loop, all wet, at 1 kHz
-        auto e = findPlugin("COLD CASE")->create();
+        auto e = colouredCreate(findPlugin("COLD CASE"));
         for (const auto& [i, v] : std::initializer_list<std::pair<int, float>>{{Run, 0}, {LowHz, 1000}, {HighHz, 1000}, {LoopOn, 0}, {Mix, 100}, {Depth, 100}, {Notches, 0}})
             e->set(i, v);
         for (const auto& [i, v] : more) e->set(i, v);
@@ -652,7 +653,7 @@ double energyDb(const std::vector<float>& x, std::size_t from, std::size_t len) 
 void testBigHouse() {
     using namespace bighouse;
     auto tailAt = [](std::initializer_list<std::pair<int, float>> v, double fromS, double lenS) {
-        auto e = findPlugin("BIG HOUSE")->create();
+        auto e = colouredCreate(findPlugin("BIG HOUSE"));
         for (const auto& [i, x] : std::initializer_list<std::pair<int, float>>{{Mix, 100}, {EarlyLevel, -40}}) e->set(i, x);
         for (const auto& [i, x] : v) e->set(i, x);
         e->prepare(kFs, 512);
@@ -668,7 +669,7 @@ void testBigHouse() {
         CHECK(c > b + 20.0);
     }
     {   // HIGH RATIO 0.2: the highs die much sooner than the lows
-        auto e = findPlugin("BIG HOUSE")->create();
+        auto e = colouredCreate(findPlugin("BIG HOUSE"));
         e->set(Mix, 100); e->set(EarlyLevel, -40); e->set(Time, 3.0f); e->set(HighRatio, 0.2f); e->set(HighDampHz, 3000);
         e->prepare(kFs, 512);
         Stereo s = noise(0.2, 0.3f);
@@ -720,7 +721,7 @@ void testBigHouse() {
     }
     {   // EQ LOW -24 = a cut: the tail loses its lows
         auto lows = [](float gain) {
-            auto e = findPlugin("BIG HOUSE")->create();
+            auto e = colouredCreate(findPlugin("BIG HOUSE"));
             e->set(Mix, 100); e->set(EarlyLevel, -40); e->set(EqLowHz, 400); e->set(EqLowGain, gain);
             e->prepare(kFs, 512);
             Stereo t = noise(1.0, 0.3f);
@@ -736,7 +737,7 @@ void testBigHouse() {
 void testPawnShop() {
     using namespace pawnshop;
     auto mk = [](std::initializer_list<std::pair<int, float>> v) {
-        auto e = findPlugin("PAWN SHOP")->create();
+        auto e = colouredCreate(findPlugin("PAWN SHOP"));
         e->set(DeviceOn, 0);
         for (const auto& [i, x] : v) e->set(i, x);
         e->prepare(kFs, 512);
@@ -852,7 +853,7 @@ void testPawnShop() {
 void testCoil() {
     using namespace coil;
     auto mk = [](std::initializer_list<std::pair<int, float>> v) {
-        auto e = findPlugin("COIL")->create();
+        auto e = colouredCreate(findPlugin("COIL"));
         for (const auto& [i, x] : v) e->set(i, x);
         e->prepare(kFs, 512);
         return e;
@@ -951,7 +952,7 @@ void testCoil() {
 void testSpeakeasy() {
     using namespace speakeasy;
     auto mk = [](std::initializer_list<std::pair<int, float>> v) {
-        auto e = findPlugin("SPEAKEASY")->create();
+        auto e = colouredCreate(findPlugin("SPEAKEASY"));
         for (const auto& [i, x] : v) e->set(i, x);
         e->prepare(kFs, 512);
         return e;
@@ -1128,7 +1129,7 @@ void testInformant() {
 void testStrapped() {
     using namespace strapped;
     const auto off = [](std::initializer_list<std::pair<int, float>> v) {   // every colour OFF, mode BYPASS, plus `v`
-        auto e = findPlugin("STRAPPED")->create();
+        auto e = colouredCreate(findPlugin("STRAPPED"));
         e->set(Mode, 3);
         for (int f = 0; f < kFaders; ++f) e->set(Color0 + f, 0);
         for (const auto& [i, x] : v) e->set(i, x);
@@ -1261,7 +1262,7 @@ void testFingerprint() {
     using namespace fingerprint;
     // all wet unless a test says otherwise (it loads at MIX 15 %, the dry song at full level)
     auto fp = [](std::initializer_list<std::pair<int, float>> v) {
-        auto e = findPlugin("FINGERPRINT")->create();
+        auto e = colouredCreate(findPlugin("FINGERPRINT"));
         e->set(Mix, 100);
         for (const auto& [i, x] : v) e->set(i, x);
         e->prepare(kFs, 512);
@@ -1375,7 +1376,7 @@ void testFingerprint() {
     // so two exports are the same sample for sample, however fast the computer is.
     {
         auto exportOnce = [](bool slowHalf) {
-            auto x = findPlugin("FINGERPRINT")->create();
+            auto x = colouredCreate(findPlugin("FINGERPRINT"));
             auto* o = dynamic_cast<hem::rack::OfflineRender*>(x.get());
             CHECK(o != nullptr);
             x->prepare(kFs, 512);
