@@ -4,6 +4,7 @@
 // = it starts on louder parts) the sound is lifted 1 dB for every 2 dB it sits under, by at most LOW
 // LEVEL. HIGH LEVEL 0..-48 dB: the threshold the loud parts are held down from (3:1), with automatic
 // make-up so a full-scale peak stays at full scale. OUTPUT 0..-48 dB.
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Arsenal.hpp"
 
 #include "Common.hpp"
@@ -26,7 +27,7 @@ public:
     Impl() { setDefaults(); }
     std::span<const ParamInfo> params() const noexcept override { return kParams; }
     std::span<const hc::fx::MeterInfo> meters() const noexcept override { return kMeters; }
-    void prepare(double fs, std::uint32_t) override { fs_ = fs; reset(); }
+    void prepare(double fs, std::uint32_t) override { fs_ = fs; reset(); clean_.prepare(fs, latency()); }
     void reset() noexcept override {
         env_ = 0.0f;
         boost_ = cut_ = 0.0f;
@@ -37,8 +38,14 @@ public:
         publishMeter(1, 0.0f);
         publishMeter(2, -100.0f);
         publishReduction(0.0f);
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         const float low = p(LowLevel), high = p(HighLevel);
         const float lowThr = low - 60.0f;
         const float envAtt = coefMs(fs_, 1.0), envRel = coefMs(fs_, 120.0);
@@ -68,6 +75,9 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return p(backbone::LowLevel) == 0.0f && p(backbone::HighLevel) == 0.0f && p(backbone::Output) == 0.0f; }
+    CleanPass clean_;
     float makeupDb() const noexcept { return -downDb(0.0f, p(HighLevel), 3.0f, 6.0f); }
     static float ceilingSoft(float y) noexcept {
         constexpr float c = 0.9886f, k = 0.9f * c;   // -0.1 dBFS; untouched under 90 % of it

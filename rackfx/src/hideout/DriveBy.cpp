@@ -5,6 +5,7 @@
 // ago (c = 343 m/s): reading a delay line at that changing delay bends the pitch by itself (PITCH scales
 // the delay, so 0 % = no bend). GAIN follows (CLOSE / r) ^ (GAIN / 100), PAN the angle, AIR closes a
 // low-pass with distance, and the REVERB rises as it moves away.
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Hideout.hpp"
 
 #include "SpaceKit.hpp"
@@ -29,15 +30,15 @@ const ParamInfo kParams[kCount] = {
     {"trigger", "Trigger", "", 0, 1, 0, Taper::Choice, kTriggerN},
     {"fire", "Fire", "", 0, 1, 0, Taper::Toggle, kPushN},
     {"gain", "Gain", "%", 0.0f, 200.0f, 50.0f},
-    {"gainon", "Gain On", "", 0, 1, 1, Taper::Toggle, kOnOff},
+    {"gainon", "Gain On", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"pan", "Pan", "%", 0.0f, 200.0f, 100.0f},
-    {"panon", "Pan On", "", 0, 1, 1, Taper::Toggle, kOnOff},
+    {"panon", "Pan On", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"pitch", "Pitch", "%", 0.0f, 200.0f, 100.0f},
-    {"pitchon", "Pitch On", "", 0, 1, 1, Taper::Toggle, kOnOff},
+    {"pitchon", "Pitch On", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"air", "Air Loss", "%", 0.0f, 200.0f, 100.0f},
-    {"airon", "Air Loss On", "", 0, 1, 1, Taper::Toggle, kOnOff},
+    {"airon", "Air Loss On", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"reverb", "Reverb", "dB", -60.0f, 0.0f, -18.0f},
-    {"reverbon", "Reverb On", "", 0, 1, 1, Taper::Toggle, kOnOff},
+    {"reverbon", "Reverb On", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"reverbtime", "Reverb Length", "s", 0.2f, 10.0f, 2.0f, Taper::Log},
     {"brightness", "Reverb Tone", "", 0.0f, 1.0f, 0.5f},
 };
@@ -65,6 +66,7 @@ public:
         line_.prepare(static_cast<std::uint32_t>(2.0 * rMax / kC * fs) + 16);
         fdn_.prepare(fs, 1.0);
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         line_.clear();
@@ -78,8 +80,14 @@ public:
         revKey_ = {-1.0f, -1.0f};
         design();
         delay_ = -1.0f;
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         design();
         const double T = p(TrackTime), c = std::clamp(p(CenterTime) * 0.01, 0.05, 0.95);
         const bool reverse = p(Direction) >= 0.5f, oneShot = p(Mode) >= 0.5f, manual = p(Trigger) >= 0.5f;
@@ -134,6 +142,9 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return p(driveby::GainOn) < 0.5f && p(driveby::PanOn) < 0.5f && p(driveby::PitchOn) < 0.5f && p(driveby::AirOn) < 0.5f && p(driveby::ReverbOn) < 0.5f; }
+    CleanPass clean_;
     void design() noexcept {
         const std::array<float, 2> k{p(ReverbTime), p(Brightness)};
         if (k == revKey_) return;

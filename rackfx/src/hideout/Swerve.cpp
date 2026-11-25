@@ -19,7 +19,7 @@ const char* const kFilterN[] = {"OFF", "LOW-PASS", "HIGH-PASS"};
 const char* const kPushN[] = {"A", "B"};   // any change = a push
 const ParamInfo kParams[kCount] = {
     {"delay", "Delay", "ms", 0.0f, 20.0f, 2.2f},
-    {"depth", "Depth", "%", 0.0f, 100.0f, 100.0f},
+    {"depth", "Depth", "%", 0.0f, 100.0f, 0.0f},
     {"rate", "Rate", "", 0.0f, 20.0f, 0.2f},
     {"sync", "Sync", "", 0, 1, 0, Taper::Choice, kSyncN},
     {"wave", "Wave", "", 0, 1, 0, Taper::Choice, kWaveN},
@@ -28,7 +28,7 @@ const ParamInfo kParams[kCount] = {
     {"stereo", "Stereo", "deg", 0.0f, 180.0f, 0.0f},
     {"feedback", "Feedback", "%", 0.0f, 100.0f, 30.0f},
     {"loopflip", "Loop Flip", "", 0, 1, 0, Taper::Toggle, kOnOff},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 50.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
     {"wetflip", "Wet Flip", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"filter", "Filter", "", 0, 2, 0, Taper::Choice, kFilterN},
     {"filterfreq", "Filter Freq", "Hz", 20.0f, 20000.0f, 1000.0f, Taper::Log},

@@ -1,5 +1,6 @@
 // TOP DOG (linear phase) and QUICK CASH (low latency) — the five-band maximizer run from a PROFILE
 // (see Maximizers.hpp). The nine profiles are ours.
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Maximizers.hpp"
 
 #include "FiveBand.hpp"
@@ -50,7 +51,7 @@ template <bool kLinear> const ParamInfo Table<kLinear>::kParams[kCount] = {
     {"release", "Release", "x", 0.1f, 10.0f, 1.0f, Taper::Log},
     {"profile", "Profile", "", 0, kProfiles - 1, 0, Taper::Choice, kProfileN},
     {"quantize", "Bit Depth", "", 0, 4, 0, Taper::Choice, kQuantN},
-    {"dither", "Dither", "", 0, 2, 0, Taper::Choice, kDitherN},
+    {"dither", "Dither", "", 0, 2, 2, Taper::Choice, kDitherN},
     {"shaping", "Noise Shape", "", 0, 3, 1, Taper::Choice, kShapeN},
 };
 const hc::fx::MeterInfo kMeters[] = {{"BAND 1", "dB", -30.0f, 0.0f}, {"BAND 2", "dB", -30.0f, 0.0f}, {"BAND 3", "dB", -30.0f, 0.0f},
@@ -68,6 +69,7 @@ public:
     void prepare(double fs, std::uint32_t) override {
         eng_.prepare(fs, settings());
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         eng_.reset(settings());
@@ -75,8 +77,14 @@ public:
         for (int b = 0; b < 5; ++b) publishMeter(b, 0.0f);
         publishMeter(5, -100.0f);
         publishMeter(6, -100.0f);
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         publishReduction(eng_.process(settings(), L, R, n));
         for (int b = 0; b < 5; ++b) publishMeter(b, eng_.bandDb(b));
         publishMeter(5, eng_.inPeakDb());
@@ -84,6 +92,9 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return p(ultramax::Threshold) >= 0.0f && p(ultramax::Ceiling) >= 0.0f && p(ultramax::Quantize) == params()[ultramax::Quantize].def && p(ultramax::Dither) == params()[ultramax::Dither].def && p(ultramax::Shaping) == params()[ultramax::Shaping].def && p(ultramax::Profile) == params()[ultramax::Profile].def; }
+    CleanPass clean_;
     FiveSettings settings() const noexcept {
         const ProfileDef& pr = kProfile[std::clamp(static_cast<int>(std::lround(p(Profile))), 0, kProfiles - 1)];
         FiveSettings s;

@@ -5,6 +5,7 @@
 // expansion, 1 dB per dB, at most 30 dB), the LOW LEVEL (under its threshold the sound is lifted 1 dB
 // for every 2 under, by at most GAIN), the HIGH LEVEL (over its threshold held down 4:1 with automatic
 // make-up, then nothing ever goes past its GAIN: the most that comes out). Each section has ON.
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Arsenal.hpp"
 
 #include "Common.hpp"
@@ -52,7 +53,7 @@ public:
         if (i == HighThreshold || i == HighGain) return p(HighOn) >= 0.5f;
         return true;
     }
-    void prepare(double fs, std::uint32_t) override { fs_ = fs; reset(); }
+    void prepare(double fs, std::uint32_t) override { fs_ = fs; reset(); clean_.prepare(fs, latency()); }
     void reset() noexcept override {
         rms_ = 0.0;
         lev_ = gate_ = lift_ = hold_ = 0.0f;
@@ -63,8 +64,14 @@ public:
         for (int m = 0; m < 3; ++m) publishMeter(m, m == 0 ? -100.0f : 0.0f);
         publishMeter(3, -100.0f);
         publishReduction(0.0f);
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         const bool gateOn = p(GateOn) >= 0.5f, lowOn = p(LowOn) >= 0.5f, levOn = p(LevelerOn) >= 0.5f, highOn = p(HighOn) >= 0.5f;
         const float rmsK = 1.0f - coefMs(fs_, 50.0);
         const float levAtt = coefMs(fs_, 1500.0), levRel = coefMs(fs_, p(LevelerMode) < 0.5f ? 2500.0 : 6000.0);
@@ -115,6 +122,9 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return p(fullhouse::GateOn) < 0.5f && p(fullhouse::LevelerOn) < 0.5f && (p(fullhouse::LowOn) < 0.5f || p(fullhouse::LowGain) == 0.0f) && (p(fullhouse::HighOn) < 0.5f || p(fullhouse::HighGain) == 0.0f); }
+    CleanPass clean_;
     float makeupDb() const noexcept { return p(HighOn) >= 0.5f ? -downDb(0.0f, p(HighThreshold), 4.0f, 6.0f) + p(HighGain) : 0.0f; }
     float ceiling() const noexcept { return hc::fx::dbToGain(p(HighGain)); }
 

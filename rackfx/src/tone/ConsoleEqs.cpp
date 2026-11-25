@@ -5,6 +5,7 @@
 // second-order one with Q 1), the bands (eqkit::IirBands: every move glides, switching a band crossfades),
 // OUTPUT, then the hiss / hum. The plan() functions turn the plain settings into cuts and bands; the
 // curve MIDTOWN's plate draws comes from the same plan.
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Comeback.hpp"
 
 #include "EqKit.hpp"
@@ -109,6 +110,7 @@ public:
         cut_[1].lowPass = true;
         fade_ = static_cast<float>(1.0 / (0.02 * fs));
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         colour_.clear((s_.vintage < 0 || p(s_.vintage) >= 0.5f) && s_.colour > 0.0f);
@@ -120,8 +122,14 @@ public:
         out_.prepare(fs_, 20, outGain());
         clearPeaks();
         if (s_.clear >= 0) push_ = p(s_.clear);
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean(), s_.phase >= 0 && p(s_.phase) >= 0.5f ? -1.0f : 1.0f);
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         if (s_.clear >= 0 && p(s_.clear) != push_) {
             push_ = p(s_.clear);
             clearPeaks();
@@ -168,7 +176,29 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return cleanNow(); }
+    CleanPass clean_;
     float outGain() const noexcept { return hc::fx::dbToGain(p(s_.output)); }
+    // Flat EQ (or EQ out), OUTPUT at 0 dB, colour (VINTAGE) and hum off: nothing to do (FLIP alone: a clean flip).
+    // MIDTOWN has no VINTAGE switch: its tube colour rests with everything else at zero.
+    bool cleanNow() const noexcept {
+        if (s_.output >= 0 && p(s_.output) != 0.0f) return false;
+        if (s_.vintage >= 0 && p(s_.vintage) >= 0.5f) return false;
+        if (s_.hum >= 0 && pick(p(s_.hum), 2) != 0) return false;
+        if (p(s_.eqIn) < 0.5f) return true;
+        float v[hc::fx::Effect::kMaxParams];
+        for (std::size_t k = 0; k < s_.params.size(); ++k) v[k] = p(static_cast<int>(k));
+        const Plan pl = s_.plan(v);
+        if (pl.lowCutHz > 0.0f || pl.highCutHz > 0.0f) return false;
+        for (const auto& b : pl.band) {
+            if (b.shape == Shape::Off) continue;
+            const bool gainShape = b.shape == Shape::Bell || b.shape == Shape::PropBell || b.shape == Shape::LowShelf ||
+                                   b.shape == Shape::HighShelf || b.shape == Shape::VLowShelf || b.shape == Shape::VHighShelf;
+            if (!gainShape || b.gainDb != 0.0f) return false;
+        }
+        return true;
+    }
     void clearPeaks() noexcept {
         peak_ = 0.0f;
         clips_ = 0.0f;

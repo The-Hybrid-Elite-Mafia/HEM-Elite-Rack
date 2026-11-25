@@ -51,10 +51,10 @@ struct DcBlock {
 namespace ts {
 using namespace tubesat;
 const ParamInfo kParams[kCount] = {
-    {"drive", "Drive", "%", 0.0f, 100.0f, 40.0f},
+    {"drive", "Drive", "%", 0.0f, 100.0f, 0.0f},
     {"bias", "Bias", "%", 0.0f, 100.0f, 50.0f},
     {"tone", "Tone", "%", -100.0f, 100.0f, 0.0f},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
 };
 class Impl final : public hc::fx::Effect, public SpectrumSource {

@@ -19,14 +19,14 @@ const char* const kTankN[] = {"DUO SHORT", "DUO LONG", "DUO GRIT", "TRIO CLASSIC
 const char* const kLengthN[] = {"SHORT", "MEDIUM", "LONG"};
 const char* const kWidthN[] = {"STEREO", "MONO"};
 const ParamInfo kParams[kCount] = {
-    {"drive", "Drive", "", 0.0f, 100.0f, 30.0f},
+    {"drive", "Drive", "", 0.0f, 100.0f, 0.00f},
     {"predelay", "Pre-Delay", "ms", 0.0f, 600.0f, 0.0f},
     {"headroom", "Headroom", "", 0.0f, 100.0f, 30.0f},
     {"tank", "Tank", "", 0, 6, 3, Taper::Choice, kTankN},
     {"length", "Length", "", 0, 2, 1, Taper::Choice, kLengthN},
     {"treble", "Treble", "dB", -18.0f, 18.0f, 0.0f},
     {"bass", "Bass", "dB", -18.0f, 18.0f, 0.0f},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 30.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
     {"width", "Width", "", 0, 1, 0, Taper::Toggle, kWidthN},
 };

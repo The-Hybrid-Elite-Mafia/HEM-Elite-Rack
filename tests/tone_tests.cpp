@@ -1,6 +1,7 @@
 // The tone shop (EQ, channel strips, tone, stereo): what each plug-in must actually do to the
 // sound, measured, plus the rules every HEM effect follows (Rules.hpp).
 #include "Harness.hpp"
+#include "ColouredCreate.hpp"
 #include "Rules.hpp"
 #include "Signals.hpp"
 
@@ -27,7 +28,7 @@ using namespace hem::rack;
 constexpr double kFs = 48000.0;
 
 std::unique_ptr<hc::fx::Effect> make(const char* name, std::initializer_list<std::pair<int, float>> v = {}) {
-    auto e = findPlugin(name)->create();
+    auto e = colouredCreate(findPlugin(name));
     for (const auto& [i, x] : v) e->set(i, x);
     e->prepare(kFs, 512);
     return e;
@@ -1218,14 +1219,17 @@ void testHeavyHitter() {
 
 void testReelMoney() {
     using namespace reelmoney;
+    // REEL MONEY loads untouched (standing by); the smallest WOBBLE wakes the tape without any audible wow,
+    // so these checks still measure the tape itself "at rest"
+    constexpr float kAwake = 0.001f;
     {   // at rest (no wobble): flat in the middle, the latency exact in both monitor modes
-        auto e = make("REEL MONEY", {{Wobble, 0}});
+        auto e = make("REEL MONEY", {{Wobble, kAwake}});
         CHECK(e->latency() == kReelLatency);
         const double mid = toneGain(*e, 1000, 0.01f), top = toneGain(*e, 15000, 0.01f), bump = toneGain(*e, 50, 0.01f, false, 2.0);
         std::printf("  REEL MONEY at rest (15 IPS, hot bias): 1 kHz %+.2f, 15 kHz %+.2f, 50 Hz %+.2f dB\n", mid, top, bump);
         CHECK(std::fabs(mid) < 0.3 && top < 0.0 && top > -4.0 && bump > 0.5);
         for (float mon : {0.0f, 1.0f}) {
-            auto x = make("REEL MONEY", {{Wobble, 0}, {Monitor, mon}});
+            auto x = make("REEL MONEY", {{Wobble, kAwake}, {Monitor, mon}});
             Stereo s = impulse(4800);
             run(*x, s);
             std::size_t at = 0;
@@ -1236,17 +1240,17 @@ void testReelMoney() {
         }
     }
     {   // SPEED 7.5 loses more top than 15; HOT bias softer than NORMAL
-        auto s75 = make("REEL MONEY", {{Wobble, 0}, {Speed, 0}}), s15 = make("REEL MONEY", {{Wobble, 0}, {Speed, 1}});
-        auto nb = make("REEL MONEY", {{Wobble, 0}, {Bias, 0}});
+        auto s75 = make("REEL MONEY", {{Wobble, kAwake}, {Speed, 0}}), s15 = make("REEL MONEY", {{Wobble, kAwake}, {Speed, 1}});
+        auto nb = make("REEL MONEY", {{Wobble, kAwake}, {Bias, 0}});
         const double a = toneGain(*s75, 15000, 0.01f), b = toneGain(*s15, 15000, 0.01f), c = toneGain(*nb, 12000, 0.01f), d = toneGain(*s15, 12000, 0.01f);
         std::printf("  REEL MONEY 15 kHz: 7.5 IPS %+.1f, 15 IPS %+.1f dB; 12 kHz: normal bias %+.1f, hot %+.1f dB\n", a, b, c, d);
         CHECK(a < b - 3.0 && c > d + 0.8);
     }
     {   // TAPE LEVEL: more = more saturation, the quiet level the same; INTO TAPE with LINK keeps the level
-        auto t0 = make("REEL MONEY", {{Wobble, 0}}), t1 = make("REEL MONEY", {{Wobble, 0}, {TapeLevel, 1020}});
+        auto t0 = make("REEL MONEY", {{Wobble, kAwake}}), t1 = make("REEL MONEY", {{Wobble, kAwake}, {TapeLevel, 1020}});
         const double q0 = toneGain(*t0, 1000, 0.003f), q1 = toneGain(*t1, 1000, 0.003f);
         const double h0 = harmonicDb(*t0, 200, 3, 0.25f), h1 = harmonicDb(*t1, 200, 3, 0.25f);
-        auto li = make("REEL MONEY", {{Wobble, 0}, {IntoTape, 12}});
+        auto li = make("REEL MONEY", {{Wobble, kAwake}, {IntoTape, 12}});
         const double ql = toneGain(*li, 1000, 0.003f);
         std::printf("  REEL MONEY tape level 1020: quiet %+.2f (185: %+.2f) dB, 3rd harmonic %.1f -> %.1f dB; into tape +12 linked %+.2f dB\n", q1, q0, h0,
                     h1, ql);
@@ -1263,7 +1267,7 @@ void testReelMoney() {
     }
     {   // the echo: SLAP = one repeat at ECHO TIME, REPEATS = more; MONITOR INPUT = no echo
         auto echoAt = [&](float style, float mon, double ms) {
-            auto e = make("REEL MONEY", {{Wobble, 0}, {EchoLevel, 100}, {EchoTime, 100}, {EchoStyle, style}, {EchoTone, 16000}, {Monitor, mon}});
+            auto e = make("REEL MONEY", {{Wobble, kAwake}, {EchoLevel, 100}, {EchoTime, 100}, {EchoStyle, style}, {EchoTone, 16000}, {Monitor, mon}});
             Stereo s = impulse(48000);
             run(*e, s);
             const std::size_t at = 100 + kReelLatency + static_cast<std::size_t>(ms * 48.0);
@@ -1292,7 +1296,7 @@ void testReelMoney() {
         CHECK(w100 > 10.0 * std::max(w0, 1e-4));
     }
     {   // VU: a -18 dBFS RMS tone reads 0 VU with VU ZERO at -18
-        auto e = make("REEL MONEY", {{Wobble, 0}, {Meter, 0}});
+        auto e = make("REEL MONEY", {{Wobble, kAwake}, {Meter, 0}});
         Stereo s = sine(1000, 1.0, 0.1778f);
         run(*e, s);
         std::printf("  REEL MONEY VU in on a -18 dBFS RMS tone: %+.2f VU\n", e->meter(0));

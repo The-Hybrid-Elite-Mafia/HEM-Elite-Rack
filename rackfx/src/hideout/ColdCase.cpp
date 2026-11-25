@@ -23,7 +23,7 @@ const char* const kPushN[] = {"A", "B"};   // any change = a push
 const ParamInfo kParams[kCount] = {
     {"notches", "Notch Pairs", "", 0, 5, 2, Taper::Choice, kPairsN},
     {"half", "Half Pair", "", 0, 1, 0, Taper::Toggle, kOnOff},
-    {"depth", "Depth", "", 0.0f, 100.0f, 80.0f},
+    {"depth", "Depth", "", 0.0f, 100.0f, 0.00f},
     {"notchflip", "Notch Flip", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"stereo", "Stereo", "", 0.0f, 100.0f, 0.0f},
     {"lowcuton", "Low Cut", "", 0, 1, 0, Taper::Toggle, kOnOff},
@@ -50,12 +50,32 @@ const ParamInfo kParams[kCount] = {
     {"highcut", "High Cut Freq", "Hz", 1000.0f, 20000.0f, 12000.0f, Taper::Log},
     {"predelay", "Pre-Delay", "ms", 0.0f, 100.0f, 0.0f},
     {"wetmode", "Wet Mode", "", 0, 2, 0, Taper::Choice, kWetModeN},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
     {"gain", "Gain", "dB", -18.0f, 18.0f, 0.0f},
     {"reset", "Reset Peaks", "", 0, 1, 0, Taper::Toggle, kPushN},
 };
 const hc::fx::MeterInfo kMeters[] = {{"PEAK L", "dBFS", -60.0f, 6.0f}, {"PEAK R", "dBFS", -60.0f, 6.0f}};
 constexpr int kMaxNotches = 13, kEvery = 8;
+// One notch as a trapezoidal state-variable filter: the same response as the bilinear (RBJ) notch at a
+// fixed setting, but it stays stable while LOW/HIGH are swept fast (RATE x MULTIPLIER up to ~1.3 kHz),
+// where the biquad's state blew up to inf/NaN with every control at max (found by the QA sweep).
+struct SweptNotch {
+    double ic1 = 0, ic2 = 0, k = 1.0, a1 = 1, a2 = 0, a3 = 0;
+    void clear() noexcept { ic1 = ic2 = 0; }
+    void set(double fs, double f, double q) noexcept {
+        const double g = std::tan(std::numbers::pi * f / fs);
+        k = 1.0 / q;
+        a1 = 1.0 / (1.0 + g * (g + k));
+        a2 = g * a1;
+        a3 = g * a2;
+    }
+    [[nodiscard]] float tick(float xf) noexcept {
+        const double x = xf, v3 = x - ic2, v1 = a1 * ic1 + a2 * v3, v2 = ic2 + a2 * ic1 + a3 * v3;
+        ic1 = 2.0 * v1 - ic1;
+        ic2 = 2.0 * v2 - ic2;
+        return static_cast<float>(x - k * v1);
+    }
+};
 constexpr double kMult[] = {0.25, 0.5, 1, 2, 4, 8, 16};
 constexpr double kMaxLoopMs = 205.0, kMaxPreMs = 101.0;
 
@@ -189,7 +209,7 @@ private:
         for (int c = 0; c < 2; ++c)
             for (int k = 0; k < notches_; ++k) {
                 const double f = std::clamp(base * std::pow(spacing, k) * (c == 1 ? spread : 1.0), 20.0, top);
-                notch_[c][k].c = C::make(T::Notch, fs_, f, 1.5);
+                notch_[c][k].set(fs_, f, 1.5);
             }
     }
     void design() noexcept {
@@ -210,7 +230,8 @@ private:
     std::uint32_t count_ = 0;
     int notches_ = 6;
     hc::fx::DelayLine loop_[2], pre_[2];
-    hc::fx::Biquad notch_[2][kMaxNotches], lowCut_[2], highCut_[2], loopFilter_[2];
+    SweptNotch notch_[2][kMaxNotches];
+    hc::fx::Biquad lowCut_[2], highCut_[2], loopFilter_[2];
     float tame_[2]{}, ret_[2]{}, pk_[2]{}, push_ = 0.0f;
     std::array<float, 7> key_{};
     hc::fx::Smoothed depth_, mix_, gain_, loopG_, delay_, preD_;

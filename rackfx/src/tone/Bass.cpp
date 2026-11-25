@@ -7,6 +7,7 @@
 // FREQUENCY, normalises it to a steady size and feeds it through Chebyshev polynomials: for a pure
 // tone T_k gives exactly the k-th harmonic, so the harmonic series and how fast it falls are exact; the
 // level is then put back (with the upward squeeze of RATIO) and the result high-passed.
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/ToneShop.hpp"
 
 #include "ToneCommon.hpp"
@@ -57,7 +58,7 @@ namespace lr {
 using namespace lowrider;
 const ParamInfo kParams[kCount] = {
     {"range", "Range", "Hz", 20.0f, 120.0f, 80.0f},
-    {"lowair", "New Octave", "dB", -60.0f, 12.0f, -6.0f},
+    {"lowair", "New Octave", "dB", -60.0f, 12.0f, -60.0f},
     {"lo", "Lows", "dB", -60.0f, 12.0f, -60.0f},
     {"direct", "Direct", "dB", -60.0f, 0.0f, 0.0f},
     {"output", "Output", "dB", -60.0f, 0.0f, 0.0f},
@@ -155,7 +156,7 @@ const ParamInfo kParams[kCount] = {
     {"drive", "Drive", "%", 0.0f, 100.0f, 0.0f},
     {"dynamics", "Follow", "%", 0.0f, 100.0f, 50.0f},
     {"monosub", "Sub In Middle", "", 0, 1, 1, Taper::Choice, kMonoN},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 50.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
     {"output", "Output", "dB", -18.0f, 0.0f, 0.0f},
 };
 const hc::fx::MeterInfo kMeters[] = {{"SUB", "dBFS", -60.0f, 0.0f}, {"OUTPUT", "dBFS", -60.0f, 3.0f}};
@@ -349,8 +350,8 @@ const ParamInfo kParams[kCount] = {
     {"frequency", "Frequency", "Hz", 32.0f, 256.0f, 90.0f, Taper::Log},
     {"input", "Input", "dB", -60.0f, 0.0f, 0.0f},
     {"original", "Real Bass", "dB", -60.0f, 12.0f, 0.0f},
-    {"harmonics", "Overtones", "dB", -60.0f, 12.0f, 0.0f},
-    {"highpass", "High-Pass", "", 0, 2, 1, Taper::Choice, kHpN},
+    {"harmonics", "Overtones", "dB", -60.0f, 12.0f, -60.0f},
+    {"highpass", "High-Pass", "", 0, 2, 0, Taper::Choice, kHpN},
     {"decay", "Decay", "dB", -24.0f, -9.0f, -15.0f},
     {"ratio", "Ratio", ":1", 1.0f, 4.0f, 1.0f},
     {"response", "Speed", "ms", 1.0f, 200.0f, 20.0f, Taper::Log},
@@ -368,6 +369,7 @@ public:
         fs_ = fs;
         h_.prepare(fs);
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         h_.clear();
@@ -378,8 +380,14 @@ public:
         held_ = 0.0f;
         push_ = p(Reset);
         publishMeter(0, -100.0f);
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         h_.set(settings());
         if (p(Reset) != push_) {
             push_ = p(Reset);
@@ -402,6 +410,9 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return p(deeppockets::Harmonics) <= -60.0f && p(deeppockets::Original) == 0.0f && p(deeppockets::Input) == 0.0f && std::lround(p(deeppockets::Listen)) == 0; }
+    CleanPass clean_;
     HarmSettings settings() const noexcept {
         return {p(Frequency), p(Decay), p(Ratio), p(Response), std::clamp(static_cast<int>(std::lround(p(HighPass))), 0, 2)};
     }
@@ -418,7 +429,7 @@ using namespace lowprofile;
 const ParamInfo kParams[kCount] = {
     {"frequency", "Frequency", "Hz", 32.0f, 256.0f, 90.0f, Taper::Log},
     {"originalin", "Real Bass", "", 0, 1, 1, Taper::Toggle, kOnOff},
-    {"intensity", "Amount", "dB", -24.0f, 12.0f, 0.0f},
+    {"intensity", "Amount", "dB", -24.0f, 12.0f, -24.0f},
     {"gain", "Gain", "dB", -60.0f, 0.0f, 0.0f},
 };
 const hc::fx::MeterInfo kMeters[] = {{"OUTPUT", "dBFS", -60.0f, 3.0f}};
@@ -432,6 +443,7 @@ public:
         fs_ = fs;
         h_.prepare(fs);
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         h_.clear();
@@ -440,8 +452,14 @@ public:
         harm_.prepare(fs_, 20, hc::fx::dbToGain(p(Intensity)));
         out_.prepare(fs_, 20, levelOrOff(p(Gain), -60.0f));
         publishMeter(0, -100.0f);
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         h_.set(settings());
         const float wO = p(OriginalIn) >= 0.5f ? 1.0f : 0.0f, wH = hc::fx::dbToGain(p(Intensity)), wOut = levelOrOff(p(Gain), -60.0f);
         float* io[2] = {L, R};
@@ -459,6 +477,9 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return p(lowprofile::Intensity) <= -24.0f && p(lowprofile::Gain) == 0.0f && p(lowprofile::OriginalIn) >= 0.5f; }
+    CleanPass clean_;
     HarmSettings settings() const noexcept { return {p(Frequency), -15.0f, 1.0f, 20.0f, 1}; }
     double fs_ = 48000.0;
     HarmEngine h_;

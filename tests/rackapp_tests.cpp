@@ -1,6 +1,7 @@
 // The rack app's audio side without a sound card: the chain, POWER (on / bypassed), A / B with matched
 // loudness, the transport, the WAV-export render and the saved chain text.
 #include "Harness.hpp"
+#include "ColouredCreate.hpp"
 #include "Signals.hpp"
 
 #include "Chain.hpp"
@@ -225,7 +226,7 @@ void testBypassEveryPlugin() {
         std::uint32_t top = 0;
         const char* topName = "";
         for (const auto& info : rack::plugins()) {
-            auto e = info.create();
+            auto e = colouredCreate(&info);
             e->prepare(fs, kChunk);
             const std::uint32_t lat = e->latency();
             if (lat > top) { top = lat; topName = info.name; }

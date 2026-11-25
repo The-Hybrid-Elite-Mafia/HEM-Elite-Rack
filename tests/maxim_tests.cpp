@@ -1,6 +1,7 @@
 // The maximizers (BIG SHOT, LAST WORD, HIGH STAKES, TOP DOG, SWEET SIXTEEN, FAST MONEY, QUICK CASH):
 // what each must actually do, measured, plus the rules every HEM effect follows (Rules.hpp).
 #include "Harness.hpp"
+#include "ColouredCreate.hpp"
 #include "Rules.hpp"
 #include "Signals.hpp"
 
@@ -20,7 +21,7 @@ using namespace hem::rack;
 constexpr double kFs = 48000.0;
 
 std::unique_ptr<hc::fx::Effect> make(const char* name, std::initializer_list<std::pair<int, float>> v = {}) {
-    auto e = findPlugin(name)->create();
+    auto e = colouredCreate(findPlugin(name));
     for (const auto& [i, x] : v) e->set(i, x);
     e->prepare(kFs, 512);
     return e;

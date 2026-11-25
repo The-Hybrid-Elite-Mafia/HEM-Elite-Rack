@@ -2,6 +2,7 @@
 //
 // Order: SENSITIVITY, the MODE's voicing EQ, RE-AMP (oversampled amp curve, crossfaded so the latency never
 // changes), COMPRESS, BASS and TREBLE, then the PITCH spread, DELAY and REVERB added in, BALANCE, OUTPUT.
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Hideout.hpp"
 
 #include "SpaceKit.hpp"
@@ -70,6 +71,7 @@ public:
         for (auto& d : spreadLate_) d.prepare(static_cast<std::uint32_t>(0.03 * fs) + 8);
         room_.prepare(fs, 1.0);
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         amp_.clear();
@@ -92,8 +94,14 @@ public:
         publishMeter(0, -100.0f);
         publishMeter(1, -100.0f);
         publishReduction(0.0f);
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         design();
         const int mode = pick(p(Mode), 3);
         const bool reamp = p(ReAmp) >= 0.5f && mode < 3;
@@ -179,6 +187,15 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return cleanNow(); }
+    CleanPass clean_;
+    bool cleanNow() const noexcept {   // every fader at 0, no re-amp, sensitivity / balance / output at 0 dB
+        using namespace strapped;
+        for (int k = 0; k < kFaders; ++k)
+            if (p(Fader0 + k) != 0.0f) return false;
+        return p(Mode) == params()[Mode].def && p(ReAmp) < 0.5f && p(Sensitivity) == 0.0f && p(Balance) == 0.0f && p(Output) == 0.0f;
+    }
     float faderWet(int f) const noexcept {
         if (f < ReverbF) return 0.0f;
         return pick(p(Color0 + f), 3) > 0 ? wetOf(p(Fader0 + f)) : 0.0f;

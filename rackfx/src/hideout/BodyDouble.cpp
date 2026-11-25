@@ -3,6 +3,7 @@
 // Each voice: its own delay line (the input, plus its own feedback through the HI-PASS), then a pitch
 // shifter (window by RANGE) at DETUNE + MOD (+ an octave down with OCTAVE), then the voices' shelves,
 // GAIN and PAN. The direct path waits half the shifter's window when ALIGN DIRECT is on.
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Hideout.hpp"
 
 #include "SpaceKit.hpp"
@@ -16,7 +17,7 @@ const char* const kRangeN[] = {"20 HZ", "80 HZ"};
 const char* const kRoutingN[] = {"SUM", "SPLIT"};
 const char* const kPushN[] = {"A", "B"};
 #define HEM_VOICE(n, g, pan, ms, cents)                                                              \
-    {"v" #n "on", "Voice " #n, "", 0, 1, 1, Taper::Toggle, kOnOff},                                 \
+    {"v" #n "on", "Voice " #n, "", 0, 1, 0, Taper::Toggle, kOnOff},                                 \
     {"v" #n "gain", "Voice " #n " Gain", "dB", -48.0f, 0.0f, g},                                    \
     {"v" #n "pan", "Voice " #n " Pan", "deg", -45.0f, 45.0f, pan},                                  \
     {"v" #n "delay", "Voice " #n " Delay", "ms", 0.0f, 100.0f, ms},                                 \
@@ -76,6 +77,7 @@ public:
         direct_[0].prepare(static_cast<std::uint32_t>(0.03 * fs) + 8);
         direct_[1].prepare(static_cast<std::uint32_t>(0.03 * fs) + 8);
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         for (auto& d : late_) d.clear();
@@ -92,8 +94,14 @@ public:
         out_.prepare(fs_, 20, hc::fx::dbToGain(p(Output)));
         publishMeter(0, -100.0f);
         publishMeter(1, -100.0f);
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         design();
         if (p(Reset) != resetPush_) { resetPush_ = p(Reset); held_[0] = held_[1] = 0.0f; }
         if (p(ModReset) != modPush_) {   // MOD RESET: the wobbles start together again
@@ -156,6 +164,16 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return cleanNow(); }
+    CleanPass clean_;
+    bool cleanNow() const noexcept {   // every voice off, the dry voice straight through, shelves flat
+        using namespace bodydouble;
+        for (int v = 0; v < kVoices; ++v)
+            if (p(v * kStride + On) >= 0.5f) return false;
+        return p(DirectOn) >= 0.5f && p(DirectGain) == 0.0f && p(DirectPan) == 0.0f && (p(LowOn) < 0.5f || p(LowGain) == 0.0f) &&
+               (p(HighOn) < 0.5f || p(HighGain) == 0.0f) && p(Output) == 0.0f;
+    }
     void design() noexcept {
         const std::array<float, 5> now{p(LowGain), p(LowFreq), p(HighGain), p(HighFreq), p(FbHighPass)};
         if (now == key_) return;

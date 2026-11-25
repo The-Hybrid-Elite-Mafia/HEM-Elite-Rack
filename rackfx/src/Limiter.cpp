@@ -20,7 +20,7 @@ using OS = hc::fx::Oversampler4;
 const char* const kOnOff[] = {"OFF", "ON"};
 const ParamInfo kParams[kCount] = {
     {"input", "Input", "dB", 0.0f, 24.0f, 0.0f},
-    {"ceiling", "Ceiling", "dB", -6.0f, 0.0f, -1.0f},
+    {"ceiling", "Ceiling", "dB", -6.0f, 0.0f, 0.0f},
     {"release", "Release", "ms", 10.0f, 1000.0f, 120.0f, Taper::Log},
     {"autorelease", "Auto Release", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"truepeak", "True Peak", "", 0, 1, 1, Taper::Toggle, kOnOff},

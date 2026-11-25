@@ -3,6 +3,7 @@
 // In order: INPUT and PHASE, the preamp stage (4x oversampled; how hard it is driven comes from SOURCE
 // and PREAMP, the level is made up, so it only adds colour), the EQ (eqkit::IirBands: switching a band
 // or the whole EQ crossfades), OUTPUT and TRIM, then the analog hum and hiss (ANALOG, NOISE).
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/ToneShop.hpp"
 
 #include "EqKit.hpp"
@@ -72,6 +73,7 @@ public:
         vuOut_.prepare(fs);
         dcK_ = static_cast<float>(1.0 - std::exp(-2.0 * std::numbers::pi * 5.0 / fs));
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         pre_.clear();
@@ -88,8 +90,14 @@ public:
         most_ = 0.0f;
         publishMeter(0, -20.0f);
         publishMeter(1, -20.0f);
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         if (p(Trim) != push_) {
             push_ = p(Trim);
             if (most_ > 1e-6f) trimDb_ = std::clamp(trimDb_ - dbOf(most_), -12.0f, 12.0f);
@@ -135,6 +143,9 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return p(chairman::Input) == 0.0f && chairman::kHighDb[std::clamp(static_cast<int>(std::lround(p(chairman::High))), 0, 7)] == 0.0f && p(chairman::MidGain) == 0.0f && p(chairman::LowGain) == 0.0f && std::lround(p(chairman::LowCut)) == 0 && std::lround(p(chairman::Analog)) == 0 && p(chairman::Phase) < 0.5f && p(chairman::Output) == 0.0f && p(chairman::Trim) < 0.5f && p(chairman::Source) == params()[chairman::Source].def && p(chairman::Preamp) == params()[chairman::Preamp].def && p(chairman::MidMode) == params()[chairman::MidMode].def && p(chairman::Noise) == params()[chairman::Noise].def; }
+    CleanPass clean_;
     float inGain() const noexcept { return hc::fx::dbToGain(p(Input)) * (p(Phase) >= 0.5f ? -1.0f : 1.0f); }
     // the EQ's four sections from the switches
     void load() noexcept {

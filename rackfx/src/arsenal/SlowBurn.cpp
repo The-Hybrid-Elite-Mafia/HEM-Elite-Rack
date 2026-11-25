@@ -1,4 +1,5 @@
 // SLOW BURN and LONE WOLF — variable-mu tube limiters (see Arsenal.hpp).
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Arsenal.hpp"
 
 #include "Vintage.hpp"
@@ -31,7 +32,7 @@ const ParamInfo kStereoParams[slowburn::kCount] = {
     {"time", "Timing", "", 0, 5, 0, Taper::Choice, kTimeN},
     {"link", "Link", "", 0, 2, 1, Taper::Choice, kLinkN},
     {"mains", "Hum", "", 0, 2, 0, Taper::Choice, kMainsN},
-    {"compress", "Compress", "", 0, 1, 1, Taper::Toggle, kOnOff},
+    {"compress", "Compress", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
 };
 const ParamInfo kMonoParams[lonewolf::kCount] = {
@@ -39,7 +40,7 @@ const ParamInfo kMonoParams[lonewolf::kCount] = {
     {"threshold", "Threshold", "/10", 0.0f, 10.0f, 0.0f},
     {"time", "Timing", "", 0, 5, 0, Taper::Choice, kTimeN},
     {"mains", "Hum", "", 0, 2, 0, Taper::Choice, kMainsN},
-    {"compress", "Compress", "", 0, 1, 1, Taper::Toggle, kOnOff},
+    {"compress", "Compress", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
 };
 
@@ -68,6 +69,7 @@ public:
         for (auto& v : tubed_) v.assign(mb, 0.0f);
         hum_.prepare(fs);
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         for (auto& o : os_) o.clear();
@@ -80,9 +82,15 @@ public:
         out_.prepare(fs_, 30, hc::fx::dbToGain(p(kOutput)));
         on_.prepare(fs_, 20, p(kCompress) >= 0.5f ? 1.0f : 0.0f);
         publishReduction(0.0f);
+        clean_.reset(isClean());
     }
 
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         const int tc = std::clamp(static_cast<int>(std::lround(p(kTime))), 0, 5);
         const int link = kStereo ? std::clamp(static_cast<int>(std::lround(p(kLink))), 0, 2) : 1;
         const float thr = -4.0f * p(kThreshold);   // the dial: 0 = nothing .. 10 = from -40 dBFS
@@ -138,6 +146,9 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return p(kCompress) < 0.5f && std::lround(p(kMains)) == 0 && p(kOutput) == 0.0f && p(kInput) == params()[kInput].def && p(kTime) == params()[kTime].def; }
+    CleanPass clean_;
     float inGain() const noexcept { return hc::fx::dbToGain(p(kInput) + 14.0f); }   // -14 on the dial = unity
 
     double fs_ = 48000.0;

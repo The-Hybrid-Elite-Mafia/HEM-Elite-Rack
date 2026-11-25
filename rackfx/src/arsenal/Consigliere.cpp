@@ -14,7 +14,7 @@ const char* const kModeN[] = {"COMPRESS", "LIMIT"};
     {"mode", "Mode", "", 0, 1, 0, Taper::Choice, kModeN},                                      \
     {"hifreq", "Bright Detect", "", 0.0f, 100.0f, 50.0f},                                            \
     {"analog", "Hum", "", 0, 2, 0, Taper::Choice, kMainsN},                                 \
-    {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},                                                 \
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},                                                   \
     {"trim", "Trim", "dB", -18.0f, 18.0f, 0.0f},                                               \
     {"meter", "Meter", "", 0, 2, 1, Taper::Choice, kMeterN}
 const ParamInfo kParams2A[kCount] = {

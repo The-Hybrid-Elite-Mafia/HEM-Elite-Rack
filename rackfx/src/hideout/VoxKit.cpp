@@ -1,4 +1,5 @@
 // MOUTHPIECE, SLINGER and STREET TEAM — the voice and guitar dynamics and the channel (see Hideout.hpp).
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Hideout.hpp"
 #include "hem/rack/Plugins.hpp"
 
@@ -45,6 +46,7 @@ public:
         fs_ = fs;
         lim_.prepare(fs);
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         env_ = gr_ = gate_ = 0.0f;
@@ -54,8 +56,14 @@ public:
         pkIn_ = pkOut_ = 0.0f;
         for (int m = 0; m < 3; ++m) publishMeter(m, m == 0 ? 0.0f : -100.0f);
         publishReduction(0.0f);
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         if (p(Reset) != push_) {
             push_ = p(Reset);
             most_ = 0.0f;
@@ -96,6 +104,9 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return p(mouthpiece::Gate) <= -80.0f && p(mouthpiece::Press) == 0.0f && p(mouthpiece::Ceiling) == 0.0f; }
+    CleanPass clean_;
     double fs_ = 48000.0;
     float env_ = 0.0f, gr_ = 0.0f, gate_ = 0.0f, push_ = 0.0f, most_ = 0.0f, pkIn_ = 0.0f, pkOut_ = 0.0f;
     Limiter lim_;

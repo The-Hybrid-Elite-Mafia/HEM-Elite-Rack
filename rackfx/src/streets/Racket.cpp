@@ -46,26 +46,26 @@ const char* const kScaleN[] = {"LIN", "LOG"};
 #define HEM_NOTE(id, def) {id, "Sync Note", "", 0, kNotes - 1, def, Taper::Choice, kNoteN}
 #define HEM_WAVE(id) {id, "Wave", "", 0, 4, 0, Taper::Choice, kWaveN}
 const ParamInfo kParams[kCount] = {
-    {"pedal", "Pedal", "", 0, kPedals - 1, 0, Taper::Choice, kPedalN},
+    {"pedal", "Pedal", "", 0, kPedals - 1, 25, Taper::Choice, kPedalN},
     {"input", "Input", "", 0, 2, 0, Taper::Choice, kInputN},
     {"ingain", "Input Gain", "dB", -18.0f, 18.0f, 0.0f},
     // OVERDRIVE
-    HEM_PCT("oddrive", "Overdrive Drive", 50.0f), HEM_PCT("odlevel", "Overdrive Level", 50.0f), HEM_PCT("odtone", "Overdrive Tone", 50.0f),
+    HEM_PCT("oddrive", "Overdrive Drive", 0.0f), HEM_PCT("odlevel", "Overdrive Level", 50.0f), HEM_PCT("odtone", "Overdrive Tone", 50.0f),
     // HARD CLIP
-    HEM_PCT("dsdrive", "Hard Clip Drive", 50.0f), HEM_PCT("dslevel", "Hard Clip Level", 50.0f), HEM_PCT("dsbody", "Hard Clip Body", 50.0f),
+    HEM_PCT("dsdrive", "Hard Clip Drive", 0.0f), HEM_PCT("dslevel", "Hard Clip Level", 50.0f), HEM_PCT("dsbody", "Hard Clip Body", 50.0f),
     {"dstone", "Hard Clip Tone", "Hz", 700.0f, 10000.0f, 3900.0f, Taper::Log},
     // FUZZ
     HEM_PCT("fzsustain", "Fuzz Sustain", 50.0f), HEM_PCT("fzlevel", "Fuzz Level", 50.0f), HEM_PCT("fztone", "Fuzz Tone", 50.0f),
     // RASP
-    HEM_PCT("rpdrive", "Rasp Drive", 50.0f), HEM_PCT("rptone", "Rasp Tone", 34.0f), HEM_PCT("rplevel", "Rasp Level", 50.0f),
+    HEM_PCT("rpdrive", "Rasp Drive", 0.0f), HEM_PCT("rptone", "Rasp Tone", 34.0f), HEM_PCT("rplevel", "Rasp Level", 50.0f),
     // HEAVY
-    HEM_PCT("hvdrive", "Heavy Drive", 50.0f), HEM_PCT("hvlevel", "Heavy Level", 50.0f),
+    HEM_PCT("hvdrive", "Heavy Drive", 0.0f), HEM_PCT("hvlevel", "Heavy Level", 50.0f),
     {"hvlow", "Heavy Low", "dB", -12.0f, 18.0f, 2.4f},
     {"hvhigh", "Heavy High", "dB", -30.0f, 0.0f, -12.0f},
     {"hvmidfreq", "Heavy Mid Freq", "Hz", 250.0f, 1500.0f, 400.0f, Taper::Log},
     {"hvmidgain", "Heavy Mid Gain", "dB", -36.0f, 12.0f, -6.0f},
     // FLANGE
-    HEM_PCT("fldepth", "Flange Depth", 50.0f), HEM_SYNC("flsync"), HEM_NOTE("flnote", 7),
+    HEM_PCT("fldepth", "Flange Depth", 0.0f), HEM_SYNC("flsync"), HEM_NOTE("flnote", 7),
     {"flrate", "Flange Rate", "Hz", 0.0f, 20.0f, 0.2f},
     {"fldelay", "Flange Delay", "ms", 1.5f, 10.0f, 3.0f},
     HEM_PCT("flfeedback", "Flange Feedback", 50.0f), HEM_PCT("flstereo", "Flange Stereo", 50.0f),
@@ -94,39 +94,39 @@ const ParamInfo kParams[kCount] = {
     {"chdepth", "Chorus Depth", "%", 1.0f, 100.0f, 10.0f},
     {"chrate", "Chorus Rate", "Hz", 0.1f, 10.0f, 0.77f},
     // THICKEN
-    HEM_PCT("thmix", "Thicken Mix", 50.0f),
+    HEM_PCT("thmix", "Thicken Mix", 0.0f),
     {"thdetune", "Thicken Detune", "cents", 1.0f, 25.0f, 8.0f},
     {"thdelay", "Thicken Delay", "ms", 12.0f, 100.0f, 12.0f},
     HEM_PCT("thfeedback", "Thicken Feedback", 0.0f), HEM_PCT("thstereo", "Thicken Stereo", 50.0f),
     // PITCH RIDE
-    HEM_PCT("prmix", "Pitch Ride Mix", 50.0f),
+    HEM_PCT("prmix", "Pitch Ride Mix", 0.0f),
     {"prlow", "Pitch Ride Low", "st", -12.0f, 12.0f, -12.0f},
     {"prhigh", "Pitch Ride High", "st", -12.0f, 12.0f, 12.0f},
     HEM_PCT("prpos", "Pitch Ride Position", 50.0f),
     // BASS RIDE
-    HEM_PCT("brmix", "Bass Ride Mix", 50.0f),
+    HEM_PCT("brmix", "Bass Ride Mix", 0.0f),
     {"brlow", "Bass Ride Low", "st", -12.0f, 12.0f, -12.0f},
     {"brhigh", "Bass Ride High", "st", -12.0f, 12.0f, 12.0f},
     HEM_PCT("brpos", "Bass Ride Position", 50.0f),
     // ECHO
-    HEM_PCT("ecmix", "Echo Mix", 50.0f), HEM_SYNC("ecsync"), HEM_NOTE("ecnote", 12),
+    HEM_PCT("ecmix", "Echo Mix", 0.0f), HEM_SYNC("ecsync"), HEM_NOTE("ecnote", 12),
     {"ectime", "Echo Time", "s", 0.01f, 2.0f, 0.5f, Taper::Log},
     {"ecfeedback", "Echo Feedback", "", 0.0f, 10.0f, 5.0f},
     {"echighcut", "Echo High Cut", "kHz", 0.1f, 7.0f, 7.0f, Taper::Log},
     {"ecstereo", "Echo Stereo", "", 0.0f, 10.0f, 10.0f},
     // FLIP ECHO
-    HEM_PCT("femix", "Flip Echo Mix", 50.0f), HEM_SYNC("fesync"), HEM_NOTE("fenote", 12),
+    HEM_PCT("femix", "Flip Echo Mix", 0.0f), HEM_SYNC("fesync"), HEM_NOTE("fenote", 12),
     {"fetime", "Flip Echo Time", "s", 0.01f, 1.0f, 0.5f, Taper::Log},
     {"fepitch", "Flip Echo Pitch", "cents", -1200.0f, 1200.0f, 0.0f},
     HEM_PCT("fefeedback", "Flip Echo Feedback", 50.0f), HEM_PCT("festereo", "Flip Echo Stereo", 100.0f),
     {"fereverse", "Reverse", "", 0, 1, 1, Taper::Toggle, kOnOff},
     // ROOM
-    HEM_PCT("rmmix", "Room Mix", 50.0f),
+    HEM_PCT("rmmix", "Room Mix", 0.0f),
     {"rmpre", "Room Pre-Delay", "ms", 11.0f, 160.0f, 80.0f},
     {"rmtime", "Room Time", "s", 0.2f, 10.0f, 1.4f, Taper::Log},
     {"rmtone", "Room Tone", "", 0.1f, 2.0f, 0.6f},
     // SPRING
-    HEM_PCT("spmix", "Spring Mix", 50.0f),
+    HEM_PCT("spmix", "Spring Mix", 0.0f),
     {"sptime", "Spring Time", "s", 0.2f, 10.0f, 3.6f, Taper::Log},
     {"sppre", "Spring Pre-Delay", "ms", 20.0f, 170.0f, 20.0f},
     // SQUEEZE

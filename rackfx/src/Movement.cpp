@@ -33,11 +33,11 @@ using namespace chorus;
 const char* const kVoicesN[] = {"1", "2", "3"};
 const ParamInfo kParams[kCount] = {
     {"rate", "Rate", "Hz", 0.05f, 5.0f, 0.6f, Taper::Log},
-    {"depth", "Depth", "%", 0.0f, 100.0f, 40.0f},
+    {"depth", "Depth", "%", 0.0f, 100.0f, 0.0f},
     {"delay", "Delay", "ms", 5.0f, 30.0f, 12.0f},
     {"voices", "Voices", "", 0, 2, 1, Taper::Choice, kVoicesN},
     {"width", "Width", "%", 0.0f, 100.0f, 100.0f},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 50.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
 };
 class Impl final : public hc::fx::Effect {
 public:
@@ -92,10 +92,10 @@ namespace fl {
 using namespace flanger;
 const ParamInfo kParams[kCount] = {
     {"rate", "Rate", "Hz", 0.02f, 5.0f, 0.25f, Taper::Log},
-    {"depth", "Depth", "%", 0.0f, 100.0f, 60.0f},
+    {"depth", "Depth", "%", 0.0f, 100.0f, 0.0f},
     {"manual", "Manual", "ms", 0.1f, 10.0f, 1.5f, Taper::Log},
     {"feedback", "Feedback", "%", -95.0f, 95.0f, 50.0f},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 50.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
 };
 class Impl final : public hc::fx::Effect {
 public:
@@ -147,11 +147,11 @@ using namespace phaser;
 const char* const kStagesN[] = {"4", "6", "8", "12"};
 const ParamInfo kParams[kCount] = {
     {"rate", "Rate", "Hz", 0.02f, 5.0f, 0.4f, Taper::Log},
-    {"depth", "Depth", "%", 0.0f, 100.0f, 70.0f},
+    {"depth", "Depth", "%", 0.0f, 100.0f, 0.0f},
     {"center", "Center", "Hz", 200.0f, 4000.0f, 900.0f, Taper::Log},
     {"stages", "Stages", "", 0, 3, 1, Taper::Choice, kStagesN},
     {"feedback", "Feedback", "%", -90.0f, 90.0f, 30.0f},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 50.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
 };
 class Impl final : public hc::fx::Effect {
 public:
@@ -204,7 +204,7 @@ using namespace tremolo;
 const char* const kShapeN[] = {"SINE", "TRIANGLE", "SQUARE"};
 const ParamInfo kParams[kCount] = {
     {"rate", "Rate", "Hz", 0.1f, 20.0f, 4.0f, Taper::Log},
-    {"depth", "Depth", "%", 0.0f, 100.0f, 50.0f},
+    {"depth", "Depth", "%", 0.0f, 100.0f, 0.0f},
     {"shape", "Shape", "", 0, 2, 0, Taper::Choice, kShapeN},
     {"pan", "Auto Pan", "", 0, 1, 0, Taper::Toggle, kOnOff},
 };
@@ -253,10 +253,10 @@ using namespace rotary;
 const char* const kSpeedN[] = {"SLOW", "FAST"};
 const ParamInfo kParams[kCount] = {
     {"speed", "Speed", "", 0, 1, 0, Taper::Choice, kSpeedN},
-    {"drive", "Drive", "%", 0.0f, 100.0f, 20.0f},
+    {"drive", "Drive", "%", 0.0f, 100.0f, 0.0f},
     {"balance", "Balance", "%", -100.0f, 100.0f, 0.0f},
     {"spread", "Spread", "%", 0.0f, 100.0f, 80.0f},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
 };
 // Rotor speeds (Hz) and how long each takes to change speed (s): the light horn is quick, the drum slow.
 constexpr double kHornSlow = 0.8, kHornFast = 6.7, kHornInertia = 0.6;
@@ -334,7 +334,7 @@ const ParamInfo kParams[kCount] = {
     {"envelope", "Envelope", "%", -100.0f, 100.0f, 50.0f},
     {"rate", "LFO Rate", "Hz", 0.05f, 10.0f, 0.5f, Taper::Log},
     {"depth", "LFO Depth", "oct", 0.0f, 4.0f, 0.0f},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
 };
 // Topology-preserving state-variable filter (stays stable while the cutoff moves every sample).
 struct Svf {

@@ -6,6 +6,7 @@
 //          flutter), the echo taken off the tape (ECHO ...), HISS;
 //   INPUT  the tube stage only, delayed to match.
 // MONITOR crossfades between them, then OFF TAPE. The latency is the same in both: kReelLatency.
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Garage.hpp"
 
 #include "EqKit.hpp"
@@ -32,7 +33,7 @@ const ParamInfo kParams[kCount] = {
     {"offtape", "Off Tape", "dB", -18.0f, 18.0f, 0.0f},
     {"link", "Link", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"tapelevel", "Tape Level", "nWb/m", 150.0f, 1020.0f, 185.0f, Taper::Log},
-    {"wobble", "Wobble", "", 0.0f, 100.0f, 50.0f},
+    {"wobble", "Wobble", "", 0.0f, 100.0f, 0.0f},
     {"hiss", "Hiss", "dB", -41.0f, 0.0f, -41.0f},
     {"echotime", "Echo Time", "ms", 1.0f, 500.0f, 133.0f, Taper::Log},
     {"echostyle", "Echo Style", "", 0, 1, 1, Taper::Choice, kStyleN},
@@ -71,6 +72,7 @@ public:
         vuOut_.prepare(fs);
         fade_ = static_cast<float>(1.0 / (0.03 * fs));
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         tube_.clear(true);
@@ -99,8 +101,14 @@ public:
         hiss_.prepare(fs_, 30, hissLevel());
         publishMeter(0, -20.0f);
         publishMeter(1, -20.0f);
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         load();
         const float wIn = inGain();
         for (std::uint32_t i = 0; i < n; ++i) {
@@ -127,6 +135,9 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return p(reelmoney::Wobble) <= 0.0f && p(reelmoney::Hiss) <= -41.0f && p(reelmoney::EchoLevel) <= 0.0f && p(reelmoney::IntoTape) == 0.0f && p(reelmoney::OffTape) == 0.0f && p(reelmoney::Speed) == params()[reelmoney::Speed].def && p(reelmoney::Monitor) == params()[reelmoney::Monitor].def && p(reelmoney::Bias) == params()[reelmoney::Bias].def && p(reelmoney::TapeLevel) == params()[reelmoney::TapeLevel].def && p(reelmoney::EchoStyle) == params()[reelmoney::EchoStyle].def; }
+    CleanPass clean_;
     static constexpr std::uint32_t kChunk = 64;
 
     float inGain() const noexcept { return hc::fx::dbToGain(p(IntoTape)); }

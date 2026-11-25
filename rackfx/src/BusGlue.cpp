@@ -31,7 +31,7 @@ const ParamInfo kParams[kCount] = {
     {"attack", "Attack", "", 0, 5, 3, Taper::Choice, kAttackN},
     {"release", "Release", "", 0, 4, 4, Taper::Choice, kReleaseN},
     {"makeup", "Makeup", "dB", 0.0f, 20.0f, 0.0f},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
     {"schpf", "Sidechain HPF", "", 0, 3, 0, Taper::Choice, kScN},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
 };

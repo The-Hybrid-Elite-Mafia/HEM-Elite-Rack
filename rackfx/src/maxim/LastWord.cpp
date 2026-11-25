@@ -21,7 +21,7 @@ const ParamInfo kParams[kCount] = {
     {"autorelease", "Auto Release", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"domain", "Peak Mode", "", 0, 2, 0, Taper::Choice, kDomainN},
     {"quantize", "Bit Depth", "", 0, 5, 0, Taper::Choice, kQuantN6},
-    {"dither", "Dither", "", 0, 2, 0, Taper::Choice, kDitherN},
+    {"dither", "Dither", "", 0, 2, 2, Taper::Choice, kDitherN},
     {"shaping", "Noise Shape", "", 0, 3, 3, Taper::Choice, kShapeN},
 };
 const hc::fx::MeterInfo kMeters[] = {{"IN LEFT", "dBFS", -60.0f, 3.0f}, {"IN RIGHT", "dBFS", -60.0f, 3.0f}};

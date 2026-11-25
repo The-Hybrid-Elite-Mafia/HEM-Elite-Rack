@@ -1,4 +1,5 @@
 // WHEELMAN (vocal) and CHAUFFEUR (bass) — automatic level riders (see Arsenal.hpp).
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Arsenal.hpp"
 
 #include "Common.hpp"
@@ -32,8 +33,8 @@ const ParamInfo kParams[kCount] = {
     {"target", "Target", "dB", -42.0f, 0.0f, -21.0f},
     {"sensitivity", "Voice Pickup", "dB", -12.0f, 12.0f, 0.0f},
     {"attack", "Attack", "", 0, 1, 0, Taper::Choice, kSpeedN},
-    {"rangemin", "Lowest Ride", "dB", -12.0f, 11.0f, -6.0f},
-    {"rangemax", "Highest Ride", "dB", -11.0f, 12.0f, 6.0f},
+    {"rangemin", "Lowest Ride", "dB", -12.0f, 11.0f, 0.0f},
+    {"rangemax", "Highest Ride", "dB", -11.0f, 12.0f, 0.0f},
     {"idle", "Rest Point", "dB", -12.0f, 12.0f, 0.0f},
     {"live", "Stage", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"spill", "Bleed Floor", "dB", -48.0f, -12.0f, -30.0f},
@@ -51,6 +52,7 @@ public:
         det_[0].c = det_[2].c = a;
         det_[1].c = det_[3].c = b;
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         for (auto& f : det_) f.clear();
@@ -60,8 +62,14 @@ public:
         publishMeter(0, 0.0f);
         publishMeter(1, -100.0f);
         publishReduction(0.0f);
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         const float rmsK = 1.0f - coefMs(fs_, 30.0);
         const float k = coefMs(fs_, p(Attack) < 0.5f ? 60.0 : 300.0), idleK = coefMs(fs_, 1000.0);
         const float lo = std::min(p(RangeMin), p(RangeMax)), hi = std::max(p(RangeMin), p(RangeMax));
@@ -83,6 +91,9 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return p(wheelman::RangeMin) == 0.0f && p(wheelman::RangeMax) == 0.0f && p(wheelman::Idle) == 0.0f && p(wheelman::Output) == 0.0f; }
+    CleanPass clean_;
     double fs_ = 48000.0;
     hc::fx::Biquad det_[4];
     double ms_ = 0;
@@ -103,8 +114,8 @@ const ParamInfo kParams[kCount] = {
     {"response", "Speed", "", 0, 1, 1, Taper::Choice, kSpeedN},
     {"ignorespill", "Ignore Bleed", "dB", -50.0f, -3.0f, -40.0f},
     {"ignoreartifacts", "Ignore Clicks", "%", 0.0f, 100.0f, 50.0f},
-    {"rangemin", "Lowest Ride", "dB", -12.0f, 11.0f, -6.0f},
-    {"rangemax", "Highest Ride", "dB", -11.0f, 12.0f, 6.0f},
+    {"rangemin", "Lowest Ride", "dB", -12.0f, 11.0f, 0.0f},
+    {"rangemax", "Highest Ride", "dB", -11.0f, 12.0f, 0.0f},
     {"idle", "Rest Point", "dB", -12.0f, 12.0f, 0.0f},
     {"output", "Output", "dB", -12.0f, 12.0f, 0.0f},
 };
@@ -119,6 +130,7 @@ public:
         det_[0].c = det_[2].c = a;
         det_[1].c = det_[3].c = b;
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         for (auto& f : det_) f.clear();
@@ -129,8 +141,14 @@ public:
         publishMeter(0, 0.0f);
         publishMeter(1, -100.0f);
         publishReduction(0.0f);
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         const float rmsK = 1.0f - coefMs(fs_, 15.0);
         const float k = coefMs(fs_, p(Response) < 0.5f ? 40.0 : 200.0), idleK = coefMs(fs_, 1000.0);
         const float lo = std::min(p(RangeMin), p(RangeMax)), hi = std::max(p(RangeMin), p(RangeMax));
@@ -156,6 +174,9 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return p(chauffeur::RangeMin) == 0.0f && p(chauffeur::RangeMax) == 0.0f && p(chauffeur::Idle) == 0.0f && p(chauffeur::Output) == 0.0f; }
+    CleanPass clean_;
     double fs_ = 48000.0;
     hc::fx::Biquad det_[4];
     double ms_ = 0, full_ = 0;

@@ -1,5 +1,6 @@
 // TERRITORY (4 bands, minimum-phase split) and STRAIGHT EDGE (5 bands, linear phase) — multiband
 // dynamics (see Arsenal.hpp; the engine is MultiDyn.hpp).
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Arsenal.hpp"
 
 #include "MultiDyn.hpp"
@@ -95,6 +96,7 @@ public:
     void prepare(double fs, std::uint32_t) override {
         eng_.prepare(fs, settings());
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         eng_.reset(settings());
@@ -102,8 +104,14 @@ public:
         if constexpr (kLinear) pushSeen_ = p(straightedge::Trim);
         publishReduction(0.0f);
         for (int b = 0; b <= kB; ++b) publishMeter(b, b < kB ? 0.0f : -100.0f);
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         if constexpr (kLinear) {
             if (p(straightedge::Trim) != pushSeen_) {   // TRIM pushed: bring the loudest peak since the last push to 0 dBFS
                 pushSeen_ = p(straightedge::Trim);
@@ -122,6 +130,24 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return cleanNow(); }
+    CleanPass clean_;
+    // every band at its top threshold (or bypassed), no band gain, no solo, master offset / gain / range at
+    // zero, OUTPUT 0 dB (STRAIGHT EDGE: no adaptive makeup, no trim): nothing to do.
+    bool cleanNow() const noexcept {
+        for (int b = 0; b < kB; ++b) {
+            if (p(b * kPer + kSolo) >= 0.5f || p(b * kPer + kGain) != 0.0f) return false;
+            if (p(b * kPer + kByp) < 0.5f && p(b * kPer + kThr) < 0.0f) return false;
+        }
+        if (p(kM) < 0.0f || p(kM + 1) != 0.0f || p(kM + 2) != 0.0f) return false;
+        if constexpr (kLinear) {
+            if (p(straightedge::Output) != 0.0f || p(straightedge::Trim) >= 0.5f || p(straightedge::Makeup) >= 0.5f) return false;
+        } else {
+            if (p(territory::Output) != 0.0f) return false;
+        }
+        return true;
+    }
     DynSet<kB> settings() const noexcept {
         DynSet<kB> s;
         for (int b = 0; b < kB; ++b) {

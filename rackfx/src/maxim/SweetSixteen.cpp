@@ -7,6 +7,7 @@
 // by PRIORITY (the six bands' curve, read at each of the sixteen), then caught at the ceiling.
 // The RELEASE CHARACTER sets how long each of the sixteen bands takes to let go and how
 // program-dependent that is; RELEASE scales them all.
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Maximizers.hpp"
 
 #include "LimitKit.hpp"
@@ -56,7 +57,7 @@ const ParamInfo kParams[kCount] = {
     {"character", "Release Feel", "", 0, kCharacters - 1, 0, Taper::Choice, kCharN},
     {"separation", "Band Freedom", "", 0, 2, 1, Taper::Choice, kSepN},
     {"quantize", "Bit Depth", "", 0, 4, 0, Taper::Choice, kQuantN},
-    {"dither", "Dither", "", 0, 2, 0, Taper::Choice, kDitherN},
+    {"dither", "Dither", "", 0, 2, 2, Taper::Choice, kDitherN},
     {"shaping", "Noise Shape", "", 0, 3, 1, Taper::Choice, kShapeN},
     HEM_BAND(1, 100.0f, 1), HEM_BAND(2, 200.0f, 0), HEM_BAND(3, 400.0f, 0), HEM_BAND(4, 800.0f, 0), HEM_BAND(5, 1600.0f, 0), HEM_BAND(6, 3200.0f, 2),
 };
@@ -93,6 +94,7 @@ public:
         catch_.prepare(fs);
         idr_.prepare(fs);
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         sep_ = sepNow();
@@ -108,9 +110,15 @@ public:
         ceil_.prepare(fs_, 30, gainOfDb(ceilingDb()));
         publishReduction(0.0f);
         for (int j = 0; j < kEqBands; ++j) publishMeter(j, 0.0f);
+        clean_.reset(isClean());
     }
 
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         const int sep = sepNow();
         if (sep != sep_ && !split_.fading()) {
             split_.fadeToSet(sep);
@@ -161,6 +169,16 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return cleanNow(); }
+    CleanPass clean_;
+    bool cleanNow() const noexcept {   // nothing over threshold / ceiling at 0 dB, no band lifted or cut
+        if (p(Threshold) < 0.0f || p(Ceiling) < 0.0f) return false;
+        for (int k : {Quantize, Dither, Shaping}) if (p(k) != params()[static_cast<std::size_t>(k)].def) return false;   // bit depth = a process
+        for (int b = 0; b < kEqBands; ++b)
+            if (p(band(b, In)) >= 0.5f && p(band(b, Gain)) != 0.0f) return false;
+        return true;
+    }
     int sepNow() const noexcept { return std::clamp(static_cast<int>(std::lround(p(Separation))), 0, 2); }
     float ceilingDb() const noexcept { return p(Ceiling) + (p(Link) >= 0.5f ? p(Threshold) : 0.0f); }
     // the EQ filters and the priority curve, when a band setting changed

@@ -46,3 +46,16 @@ add_custom_command(TARGET HEMEliteRackVST3 POST_BUILD
     VERBATIM)
 
 message(STATUS "[HEM-Elite-Rack] VST3 bundle enabled (SDK ${vst3sdk_SOURCE_DIR})")
+
+# Editor check (Windows): opens every plug-in's faceplate inside a real host window, checks it draws, closes and fits 1080p.
+if(WIN32)
+    set(HEM_HOSTING "${vst3sdk_SOURCE_DIR}/public.sdk/source")
+    add_executable(hem_vst3_editor_check "${PROJECT_SOURCE_DIR}/tools/vst3_editor_check/main.cpp"
+        "${HEM_HOSTING}/common/memorystream.cpp" "${HEM_HOSTING}/vst/hosting/module.cpp"
+        "${HEM_HOSTING}/vst/hosting/plugprovider.cpp" "${HEM_HOSTING}/vst/hosting/connectionproxy.cpp"
+        "${HEM_HOSTING}/vst/hosting/module_win32.cpp")
+    set_target_properties(hem_vst3_editor_check PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)   # the SDK hosting code is C++17 (u8string)
+    target_include_directories(hem_vst3_editor_check SYSTEM PRIVATE "${vst3sdk_SOURCE_DIR}")
+    target_link_libraries(hem_vst3_editor_check PRIVATE sdk_hosting user32)
+    add_dependencies(hem_vst3_editor_check HEMEliteRackVST3)
+endif()

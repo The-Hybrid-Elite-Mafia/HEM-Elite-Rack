@@ -1,4 +1,5 @@
 // HIGH ROLLER — five-band parallel enhancer: a processed copy per band mixed with the untouched sound (see ToneShop.hpp).
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/ToneShop.hpp"
 
 #include "ToneCommon.hpp"
@@ -22,7 +23,7 @@ const ParamInfo kParams[kCount] = {
     {"input", "Input", "dB", -18.0f, 18.0f, 0.0f},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
     {"direct", "Dry", "dB", -45.0f, 0.0f, 0.0f},
-    {"punch", "Snap", "", 0.0f, 5.0f, 3.0f},
+    {"punch", "Snap", "", 0.0f, 5.0f, 0.0f},
 };
 #undef HEM_BAND
 const hc::fx::MeterInfo kMeters[] = {{"LOW", "dB", 0.0f, 48.0f}, {"LOW MID", "dB", 0.0f, 48.0f}, {"MID", "dB", 0.0f, 48.0f},
@@ -38,6 +39,7 @@ public:
     void prepare(double fs, std::uint32_t) override {
         fs_ = fs;
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         cross_.fill(-1.0f);
@@ -53,8 +55,14 @@ public:
         in_.prepare(fs_, 30, hc::fx::dbToGain(p(Input)));
         dir_.prepare(fs_, 30, directGain());
         out_.prepare(fs_, 30, hc::fx::dbToGain(p(Output)));
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         design();
         const float att = coefMs(fs_, 0.3 * std::pow(4.0, static_cast<double>(p(Punch)))), envRel = coefMs(fs_, 5.0);
         float rel[kBands], wProc[kBands], wWidth[kBands], wHeard[kBands], lift[kBands]{};
@@ -93,6 +101,15 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return cleanNow(); }
+    CleanPass clean_;
+    bool cleanNow() const noexcept {   // no band lifted or widened or soloed, all levels at 0 dB, no snap
+        using namespace highroller;
+        for (int b = 0; b < kBands; ++b)
+            if (p(band(b, Gain)) != 0.0f || p(band(b, Width)) != 1.0f || p(band(b, Solo)) >= 0.5f) return false;
+        return p(Input) == 0.0f && p(Output) == 0.0f && p(Direct) == 0.0f && p(Punch) <= 0.0f;
+    }
     // GAIN 0..48 dB puts the processed copy at -24..+24 dB: at 0 it is far under the music
     float procGain(int b) const noexcept { return p(band(b, Bypass)) >= 0.5f ? 0.0f : hc::fx::dbToGain(p(band(b, Gain)) - 24.0f); }
     float directGain() const noexcept { return p(Direct) <= -44.9f ? 0.0f : hc::fx::dbToGain(p(Direct)); }

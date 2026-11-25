@@ -19,17 +19,17 @@ const ParamInfo kParams[kCount] = {
     {"rate", "Rate", "Hz", 0.01f, 60.0f, 0.2f, Taper::Log},
     {"factor", "Multiplier", "", 0, 9, 2, Taper::Choice, kFactorN},
     {"wave", "Wave", "", 0, 4, 4, Taper::Choice, kWaveN},
-    {"amdepth", "Level Depth", "%", 0.0f, 100.0f, 50.0f},
+    {"amdepth", "Level Depth", "%", 0.0f, 100.0f, 0.0f},
     {"amon", "Level", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"amphase", "Level Phase", "", 0, 3, 0, Taper::Choice, kPhaseN},
-    {"fmdepth", "Pitch Depth", "%", 0.0f, 100.0f, 50.0f},
+    {"fmdepth", "Pitch Depth", "%", 0.0f, 100.0f, 0.0f},
     {"fmon", "Pitch", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"fmphase", "Pitch Phase", "", 0, 3, 0, Taper::Choice, kPhaseN},
     {"rotcenter", "Swing Center", "deg", -180.0f, 180.0f, 0.0f},
     {"roton", "Swing", "", 0, 1, 1, Taper::Toggle, kOnOff},
     {"rotrange", "Swing Range", "deg", 1.0f, 360.0f, 90.0f},
     {"gain", "Gain", "dB", -12.0f, 12.0f, 0.0f},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
 };
 constexpr double kVibCents = 50.0;                         // FM 100 % = +-50 cents
 constexpr double kMaxSwingMs = 10.0;                       // the most the FM's delay may swing

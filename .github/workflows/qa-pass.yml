@@ -26,7 +26,7 @@ jobs:
 
       - name: Build tests + VST3 bundles (Steinberg's validator also runs after each bundle links)
         continue-on-error: true
-        run: cmake --build --preset rack-release --target hem_rack_tests HEMEliteRackVST3 --parallel
+        run: cmake --build --preset rack-release --target hem_rack_tests HEMEliteRackVST3 hem_vst3_editor_check --parallel
 
       - name: Unit tests (hem_rack_tests, the normal suite)
         continue-on-error: true
@@ -58,6 +58,23 @@ jobs:
         shell: pwsh
         run: |
           & .\tools\ci\qa-validate.ps1 -BuildDir build\rack -Bundles 'HEM-Elite-Rack.vst3' -OutDir qa-out
+
+      - name: Stage 3 - every faceplate opened inside a host window (BIG HOUSE alone first)
+        continue-on-error: true
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GALLIUM_DRIVER: llvmpipe
+        run: |
+          $exe = Get-ChildItem build\rack -Recurse -Filter 'hem_vst3_editor_check.exe' -File | Where-Object { $_.FullName -match '\\Release\\' } | Select-Object -First 1
+          $bundle = (Get-ChildItem build\rack -Recurse -Directory -Filter 'HEM-Elite-Rack.vst3' | Where-Object { $_.FullName -match '\\Release\\' } | Select-Object -First 1).FullName
+          if (-not $exe -or -not $bundle) { 'editor check or bundle not built' | Tee-Object qa-out\editor-log.txt; exit 0 }
+          & pwsh -NoProfile -File tools\ci\fetch-mesa.ps1 -TargetDirs $exe.DirectoryName
+          & $exe.FullName $bundle --only 'BIG HOUSE' 2>&1 | Tee-Object qa-out\editor-bighouse.txt
+          "BIG HOUSE exit code $LASTEXITCODE" | Tee-Object qa-out\editor-bighouse.txt -Append
+          & $exe.FullName $bundle 2>&1 | Tee-Object qa-out\editor-log.txt
+          "ALL exit code $LASTEXITCODE" | Tee-Object qa-out\editor-log.txt -Append
+          exit 0
 
       - name: Upload QA reports
         if: always()

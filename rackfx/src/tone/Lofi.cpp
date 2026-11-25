@@ -2,6 +2,7 @@
 // Comeback.hpp. These three are our own designs (not built after one original); they came back from
 // retirement as they were in 0.13.0, with the cassette's drive moved onto the stage that only oversamples
 // the harmonics (the top octave is no longer dulled by the oversampler).
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Comeback.hpp"
 
 #include "ToneCommon.hpp"
@@ -43,10 +44,10 @@ namespace cs {
 using namespace mixtape;
 const char* const kTypeN[] = {"TYPE I", "TYPE II", "TYPE IV"};
 const ParamInfo kParams[kCount] = {
-    {"drive", "Drive", "%", 0.0f, 100.0f, 35.0f},
+    {"drive", "Drive", "%", 0.0f, 100.0f, 0.0f},
     {"type", "Tape Type", "", 0, 2, 1, Taper::Choice, kTypeN},
-    {"wow", "Wow", "%", 0.0f, 100.0f, 20.0f},
-    {"flutter", "Flutter", "%", 0.0f, 100.0f, 20.0f},
+    {"wow", "Wow", "%", 0.0f, 100.0f, 0.0f},
+    {"flutter", "Flutter", "%", 0.0f, 100.0f, 0.0f},
     {"hiss", "Hiss", "%", 0.0f, 100.0f, 0.0f},
     {"age", "Age", "%", 0.0f, 100.0f, 0.0f},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
@@ -63,6 +64,7 @@ public:
         tr_.prepare(kBase);
         dc_.set(fs);
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         st_.clear(true);
@@ -78,8 +80,14 @@ public:
         fl_.prepare(fs_, 50, p(Flutter) * 0.01f);
         hiss_.prepare(fs_, 50, p(Hiss) * 0.01f);
         out_.prepare(fs_, 30, hc::fx::dbToGain(p(Output)));
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         work(L, R, n);
     }
     void work(float* L, float* R, std::uint32_t n) noexcept {
@@ -120,6 +128,9 @@ public:
         }
     }
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return p(Drive) <= 0.0f && p(Wow) <= 0.0f && p(Flutter) <= 0.0f && p(Hiss) <= 0.0f && p(Age) <= 0.0f && p(Output) == 0.0f && p(Type) == params()[Type].def; }
+    CleanPass clean_;
     void designFilters(int type) noexcept {
         const float key = static_cast<float>(type) * 1000.0f + p(Age);
         if (key == filterKey_) return;
@@ -147,9 +158,9 @@ using namespace cratedigger;
 const ParamInfo kParams[kCount] = {
     {"crackle", "Crackle", "%", 0.0f, 100.0f, 0.0f},
     {"noise", "Noise", "%", 0.0f, 100.0f, 0.0f},
-    {"wear", "Wear", "%", 0.0f, 100.0f, 30.0f},
-    {"warp", "Warp", "%", 0.0f, 100.0f, 20.0f},
-    {"monolows", "Mono Lows", "", 0, 1, 1, Taper::Toggle, kOnOff},
+    {"wear", "Wear", "%", 0.0f, 100.0f, 0.0f},
+    {"warp", "Warp", "%", 0.0f, 100.0f, 0.0f},
+    {"monolows", "Mono Lows", "", 0, 1, 0, Taper::Toggle, kOnOff},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
 };
 constexpr std::uint32_t kBase = 96;
@@ -165,6 +176,7 @@ public:
         for (auto& b : mono_) b.c = lp;
         for (auto& b : rumble_) b.c = rum;
         reset();
+        clean_.prepare(fs, latency());
     }
     void reset() noexcept override {
         tr_.clear();
@@ -180,8 +192,14 @@ public:
         monoMix_ = p(MonoLows) >= 0.5f ? 1.0f : 0.0f;
         warp_.prepare(fs_, 50, p(Warp) * 0.01f);
         out_.prepare(fs_, 30, hc::fx::dbToGain(p(Output)));
+        clean_.reset(isClean());
     }
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         work(L, R, n);
     }
     void work(float* L, float* R, std::uint32_t n) noexcept {
@@ -246,6 +264,9 @@ public:
         }
     }
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return p(Crackle) <= 0.0f && p(Noise) <= 0.0f && p(Wear) <= 0.0f && p(Warp) <= 0.0f && p(MonoLows) < 0.5f && p(Output) == 0.0f; }
+    CleanPass clean_;
     void designWear() noexcept {
         const float wear = p(Wear);
         if (wear == wearKey_) return;
@@ -273,7 +294,7 @@ using namespace shredder;
 const ParamInfo kParams[kCount] = {
     {"bits", "Bits", "", 1.0f, 24.0f, 8.0f},
     {"downsample", "Downsample", "x", 1.0f, 50.0f, 4.0f, Taper::Log},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
     {"output", "Output", "dB", -18.0f, 18.0f, 0.0f},
 };
 class Impl final : public hc::fx::Effect {

@@ -4,6 +4,7 @@
 // (the same numbers as the live one), B (ORIGINAL) = the stem mix without the chain, no allocation on the audio
 // path with 13 stems, and the time 13 stems take per block.
 #include "Harness.hpp"
+#include "ColouredCreate.hpp"
 
 #include "Chain.hpp"
 #include "RackEngine.hpp"

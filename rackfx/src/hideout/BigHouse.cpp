@@ -26,7 +26,7 @@ const ParamInfo kParams[kCount] = {
     {"decay", "Decay", "", 0.04f, 3.5f, 3.5f, Taper::Log},
     {"early", "Early", "dB", -40.0f, 0.0f, -6.0f},
     {"reverb", "Reverb", "dB", -40.0f, 0.0f, 0.0f},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 50.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
     {"lowdamp", "Low Damp", "Hz", 16.0f, 1600.0f, 200.0f, Taper::Log},
     {"lowratio", "Low Ratio", "x", 0.1f, 2.0f, 1.0f},
     {"highdamp", "High Damp", "Hz", 1000.0f, 21000.0f, 6000.0f, Taper::Log},

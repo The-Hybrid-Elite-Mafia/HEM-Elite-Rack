@@ -1,3 +1,4 @@
+#include "hem/rack/CleanPass.hpp"
 #include "hem/rack/Tape.hpp"
 
 #include "hybrid/fx/Dsp.hpp"
@@ -21,7 +22,7 @@ const char* const kCalN[] = {"-18 dBFS", "-14 dBFS", "-10 dBFS", "-6 dBFS"};
 const ParamInfo kParams[kCount] = {
     {"input", "Input", "dB", -12.0f, 18.0f, 0.0f},
     {"speed", "Speed", "", 0, 1, 0, Taper::Choice, kSpeedN},
-    {"bump", "Head Bump", "%", 0.0f, 100.0f, 50.0f},
+    {"bump", "Head Bump", "%", 0.0f, 100.0f, 0.0f},
     {"wow", "Wow & Flutter", "%", 0.0f, 100.0f, 0.0f},
     {"hiss", "Hiss", "%", 0.0f, 100.0f, 0.0f},
     {"autotrim", "Auto Trim", "", 0, 1, 1, Taper::Toggle, kOnOff},
@@ -49,6 +50,7 @@ public:
         for (auto& v : up_) v.assign(static_cast<std::size_t>(mb) * OS::kFactor, 0.0f);
         for (auto& d : transport_) d.prepare(kTransportDelay + kMaxWow + 2);
         reset();
+        clean_.prepare(fs, latency());
     }
 
     void reset() noexcept override {
@@ -69,9 +71,15 @@ public:
         design();
         publishMeter(0, -100.0f);
         publishMeter(1, -100.0f);
+        clean_.reset(isClean());
     }
 
     void process(float* L, float* R, std::uint32_t n) noexcept override {
+        clean_.push(L, R, n, latency());
+        processInner(L, R, n);
+        clean_.apply(L, R, n, isClean());
+    }
+    void processInner(float* L, float* R, std::uint32_t n) noexcept {
         if (static_cast<int>(p(Speed)) != speed_ || std::fabs(p(Bump) - bump_) > 1e-4f) {
             bump_ += (p(Bump) - bump_) * std::min(1.0f, static_cast<float>(n) / static_cast<float>(fs_ * 0.03));
             if (std::fabs(p(Bump) - bump_) < 0.01f) bump_ = p(Bump);
@@ -144,6 +152,9 @@ public:
     }
 
 private:
+    // colour controls all at zero: the sound passes untouched (see CleanPass)
+    bool isClean() const noexcept { return p(Input) == 0.0f && p(Bump) <= 0.0f && p(Wow) <= 0.0f && p(Hiss) <= 0.0f && p(Output) == 0.0f && p(Speed) == params()[Speed].def && p(VuCal) == params()[VuCal].def; }
+    CleanPass clean_;
     static constexpr std::uint32_t kMaxWow = 40;   // ±20 samples of drift at 100 % (about 0.4 ms)
     enum F : int { PreEmph, DeEmph, BumpUp, BumpDip, Top, kF };
 

@@ -26,7 +26,7 @@ const ParamInfo kParams[kCount] = {
     {"behavior", "Let-Go", "", 0, 1, 0, Taper::Choice, kBehaviorN},
     {"character", "Color", "", 0, 1, 0, Taper::Choice, kCharacterN},
     {"output", "Output", "dB", -30.0f, 30.0f, 0.0f},
-    {"mix", "Mix", "%", 0.0f, 100.0f, 100.0f},
+    {"mix", "Mix", "%", 0.0f, 100.0f, 0.0f},
     {"trim", "Trim", "dB", -18.0f, 18.0f, 0.0f},
 };
 const hc::fx::MeterInfo kMeters[] = {{"INPUT", "dBFS", -60.0f, 3.0f}, {"OUTPUT", "dBFS", -60.0f, 3.0f}, {"LIMITER", "dB", -20.0f, 0.0f}};
