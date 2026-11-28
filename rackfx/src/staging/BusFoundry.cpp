@@ -70,7 +70,7 @@ public:
         fs_ = fs; in_.prepare(fs, 20.0, 0.0f); mk_.prepare(fs, 20.0, 1.0f); an_.prepare(fs, 20.0, 0.0f); thr_.prepare(fs, 20.0, p(kThreshold));
         reset();
     }
-    void reset() noexcept override { for (auto& f : wf_) f.clear(); for (auto& f : lf_) f.clear(); env_.fill(0); gr_.fill(0); fbOut_.fill(0); vu_.fill(0); dc_.fill(0); clip_ = false; wKey_ = lKey_ = -1; }
+    void reset() noexcept override { for (auto& f : wf_) f.clear(); for (auto& f : lf_) f.clear(); env_.fill(0); gr_.fill(0); fbOut_.fill(0); vu_.fill(0); dc_.fill(0); clip_ = false; wKey_ = -1.0f; lKey_ = -1; }
 
     void process(float* L, float* R, std::uint32_t n) noexcept override {
         if (p(kClipReset) > 0.5f) clip_ = false;
