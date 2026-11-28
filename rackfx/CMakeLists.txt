@@ -5,6 +5,54 @@
 # =============================================================================
 add_library(hem_rackfx STATIC
     src/Spectrum.cpp
+    src/staging/StagingList.cpp
+    src/staging/DynamicEq8.cpp
+    src/staging/Vpra.cpp
+    src/staging/SubArchitect.cpp
+    src/staging/VoiceCircuit.cpp
+    src/staging/NoteForge.cpp
+    src/staging/ThroatShift.cpp
+    src/staging/VoiceVeil.cpp
+    src/staging/LevelPilot.cpp
+    src/staging/Sipa.cpp
+    src/staging/LeadSuite.cpp
+    src/staging/ChoirForge.cpp
+    src/staging/VoicePress.cpp
+    src/staging/ResonanceGuard.cpp
+    src/staging/BandMotion.cpp
+    src/staging/GraphicForge.cpp
+    src/staging/SilkContour.cpp
+    src/staging/GlowLevel.cpp
+    src/staging/StrikeClamp.cpp
+    src/staging/BusFoundry.cpp
+    src/staging/BandCouncil.cpp
+    src/staging/ImpactGuide.cpp
+    src/staging/ChamberPlate.cpp
+    src/staging/EchoForge.cpp
+    src/staging/MotionField.cpp
+    src/staging/DepthMatrix.cpp
+    src/staging/ConsoleCore.cpp
+    src/staging/ChannelMatrix.cpp
+    src/staging/EmberStrip.cpp
+    src/staging/MixBond.cpp
+    src/staging/ReelAura.cpp
+    src/staging/PeakCitadel.cpp
+    src/staging/ImpactCrown.cpp
+    src/staging/MasterCouncil.cpp
+    src/staging/HitContour.cpp
+    src/staging/DrumKey.cpp
+    src/staging/AirEmber.cpp
+    src/staging/BassBeacon.cpp
+    src/staging/RoomEraser.cpp
+    src/staging/MonitorSphere.cpp
+    src/staging/DeEsser.cpp
+    src/staging/MasterLimiter.cpp
+    src/staging/OpticalComp.cpp
+    src/staging/ParametricEq.cpp
+    src/staging/HemReverb.cpp
+    src/staging/StereoDelay.cpp
+    src/staging/TubePreamp.cpp
+    src/staging/VcaComp.cpp
     src/EliteEq.cpp
     src/Restorer.cpp
     src/BusGlue.cpp

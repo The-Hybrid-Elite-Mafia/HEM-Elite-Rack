@@ -10,6 +10,7 @@ add_executable(hem_rack_tests
     release_tests.cpp
     rackapp_tests.cpp
     stems_tests.cpp
+    newline_tests.cpp
     qa_report.cpp)
 target_include_directories(hem_rack_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(hem_rack_tests PRIVATE hem::rackfx hem::rackui hem_rackapp_core hc::media)

@@ -15,6 +15,7 @@ void setExePath(const char* argv0) {
     gExeDir = std::filesystem::absolute(argv0, ec).parent_path();
 }
 std::filesystem::path exeDir() { return gExeDir; }
+void testNewline();   // tests/newline_tests.cpp: the staging list (the 47 new engines)
 } // namespace hem::test
 
 int main(int argc, char** argv) {
@@ -53,6 +54,7 @@ int main(int argc, char** argv) {
     testLiveRack();
     testStems();
     testRelease();
+    testNewline();
     std::printf("\nhem_rack_tests: %d checks, %d failed\n", gChecks, gFails);
     return gFails ? 1 : 0;
 }
