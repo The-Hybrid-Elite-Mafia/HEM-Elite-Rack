@@ -130,6 +130,8 @@ public:
         det_.setRange(kRangeLo[static_cast<std::size_t>(p(kRange))], kRangeLo[static_cast<std::size_t>(p(kRange))] * 4.0f);
         const float amA = hc::fx::onePoleCoef(fs_, p(kAmAttack)), amR = hc::fx::onePoleCoef(fs_, p(kAmRelease));
         const double beatsPerSample = static_cast<double>(tempo()) / 60.0 / fs_;
+        // MIX 0 (and faded out) = the delayed dry: the detector keeps its window filled but skips its analysis
+        det_.setHop(p(kMix) <= 0.0f && mixG_.cur < 1e-5f ? (1u << 30) : 256);
         for (std::uint32_t i = 0; i < n; ++i) {
             const std::int64_t now = t_++;
             inL_[static_cast<std::size_t>(now) & (kRing - 1)] = L[i];

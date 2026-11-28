@@ -143,6 +143,11 @@ public:
         for (int v = 0; v < kVoices; ++v) { anySolo |= p(v * kVPer + vOn) > 0.5f && p(v * kVPer + vSolo) > 0.5f; on += p(v * kVPer + vOn) > 0.5f ? 1 : 0; }
         const float fadeC = hc::fx::onePoleCoef(fs_, 20.0);
         const bool correcting = static_cast<int>(p(kCorrection)) > 0;
+        // no correction, no voice on and everything faded out = the delayed dry: the detector keeps its window
+        // filled but skips its analysis
+        bool quiet = !correcting && on == 0 && srcWet_ < 1e-6f;
+        for (const auto& vc : voice_) quiet = quiet && vc.lvl < 1e-6f;
+        det_.setHop(quiet ? (1u << 30) : 256);
         const float e1a = hc::fx::onePoleCoef(fs_, p(kEnvA)), e1r = hc::fx::onePoleCoef(fs_, p(kEnvR));
         const float e2a = hc::fx::onePoleCoef(fs_, 50.0), e2r = hc::fx::onePoleCoef(fs_, 600.0);
         for (std::uint32_t i = 0; i < n; ++i) {

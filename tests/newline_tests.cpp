@@ -1185,6 +1185,22 @@ void testJobs() {
         std::snprintf(buf, sizeof buf, "split: 7 kHz %+.1f, 500 Hz %+.2f dB; wide: %+.1f / %+.1f dB; range 0: %+.2f / %+.2f dB", sp7, sp5, wd7, wd5, z7, z5);
         report("DE-ESSER: split-band, wideband, range 0", sp7 < -8.0 && std::fabs(sp5) < 0.5 && wd7 < -8.0 && wd5 < -6.0 && std::fabs(z7) < 0.01 && std::fabs(z5) < 0.01, buf);
     }
+    {   // IDLE AT DEAD-FLAT: NOTEFORGE sits idle (correction 0, detector analysis paused) for 1.5 s on a 452 Hz voice,
+        // then correction goes to 100 % mid-stream: the detector picks up at once and the output lands on A4 (440 Hz)
+        auto e = made("NOTEFORGE");
+        e->set(idxOf(*e, "speed"), 0.1f); e->set(idxOf(*e, "transition"), 0.1f); e->set(idxOf(*e, "vibrato"), 0.0f); e->set(idxOf(*e, "correction"), 0.0f);
+        Stereo s = voiceTone(452.0, 3.5, fs);
+        const std::size_t sw = static_cast<std::size_t>(1.5 * fs) / 512 * 512;
+        for (std::size_t k = 0; k < s.size(); k += 512) {
+            if (k == sw) e->set(idxOf(*e, "correction"), 100.0f);
+            e->process(s.l.data() + k, s.r.data() + k, static_cast<std::uint32_t>(std::min<std::size_t>(512, s.size() - k)));
+        }
+        const std::size_t len = static_cast<std::size_t>(0.8 * fs);
+        const double got = measuredPitch(s.l, 440.0, s.size() - len, len, fs);
+        const double cents = 1200.0 * std::log2(got / 440.0);
+        std::snprintf(buf, sizeof buf, "after idle: %.2f Hz (%+.1f cents from A4)", got, cents);
+        report("IDLE: NOTEFORGE resumes in tune after sitting idle", std::fabs(cents) < 5.0, buf);
+    }
 }
 } // namespace
 

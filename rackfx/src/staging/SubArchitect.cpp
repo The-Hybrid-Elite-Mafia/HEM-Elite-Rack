@@ -115,14 +115,16 @@ public:
 
     void process(float* L, float* R, std::uint32_t n) noexcept override {
         inM_.feed(L, n);
-        det_.setHop(std::array<std::uint32_t, 4>{1024, 512, 256, 128}[static_cast<std::size_t>(p(kQuality))]);
         const float mix = p(kMix) * 0.01f;
+        // MIX 0 = dead flat: the detector keeps its window filled but skips its analysis (idle CPU); a mix move
+        // analyses the current window at once, so the sub still starts in tune
+        det_.setHop(mix > 0.0f ? std::array<std::uint32_t, 4>{1024, 512, 256, 128}[static_cast<std::size_t>(p(kQuality))] : (1u << 30));
         if (mix > 0.0f) {
             std::copy(L, L + n, wetL_.data()); std::copy(R, R + n, wetR_.data());
             wetChain(wetL_.data(), wetR_.data(), n);
             for (std::uint32_t i = 0; i < n; ++i) { L[i] += mix * (wetL_[i] - L[i]); R[i] += mix * (wetR_[i] - R[i]); }
         } else {
-            // the detector keeps listening so the readout is live and a mix move starts in tune
+            // the detector keeps its window filled (analysis paused while MIX is 0)
             for (std::uint32_t i = 0; i < n; ++i) det_.push(lowOnly(0.5f * (L[i] + R[i])));
             updateF0();
         }

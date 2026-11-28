@@ -125,6 +125,10 @@ public:
         const bool correcting = p(kActive) > 0.5f && p(kCorrection) > 0.0f;
         const bool psola = p(kFormant) > 0.5f;
         const float refG = p(kRefTone) > 0.5f ? kit::dbToGain(p(kRefLevel)) * 0.25f : 0.0f;
+        // idle when nothing is being done (output = the dry signal, still delayed by the fixed latency): the detector
+        // keeps its window filled but skips its analysis; the moment work starts it analyses the current window at once
+        const bool idle = !correcting && refG == 0.0f && wet_ < 1e-4f;
+        det_.setHop(idle ? kIdleHop : 128);
 
         for (std::uint32_t i = 0; i < n; ++i) {
             const std::int64_t now = t_++;
@@ -170,6 +174,7 @@ public:
     }
 
 private:
+    static constexpr std::uint32_t kIdleHop = 1u << 30;   // never reached while idle: no analysis
     [[nodiscard]] float noteHz(float midi) const noexcept { return p(kReference) * std::exp2((midi - 69.0f) / 12.0f); }
     [[nodiscard]] float hzToNote(float hz) const noexcept { return 69.0f + 12.0f * std::log2(hz / p(kReference)); }
 

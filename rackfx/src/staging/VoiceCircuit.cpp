@@ -235,6 +235,10 @@ public:
         const float vg = kit::dbToGain(p(kVsGain));
         const float gateThr = kit::dbToGain(p(kVsGate));
         const float gateC = hc::fx::onePoleCoef(fs_, 20.0);
+        // SYNTH and PROCESSED both off = only the voice path is heard: skip the detector's analysis, the synth and
+        // the vocoders (their buffers are silent); turning either level up starts them in this block
+        const bool idle = p(kSynthLvl) <= -59.5f && p(kProcLvl) <= -59.5f;
+        det_.setHop(idle ? (1u << 30) : 256);
         for (std::uint32_t i = 0; i < n; ++i) {
             float m = 0.5f * (vsL[i] + vsR[i]) * vg;
             gateEnv_ = std::fabs(m) + gateC * (gateEnv_ - std::fabs(m));
@@ -250,6 +254,7 @@ public:
         for (int e = 0; e < 2; ++e) {
             auto& syn = e == 0 ? synA_ : synB_;
             auto& car = e == 0 ? carA_ : carB_;
+            if (idle) { std::fill(syn.begin(), syn.begin() + n, 0.0f); std::fill(car.begin(), car.begin() + n, 0.0f); continue; }
             synth(e, syn.data(), n);
             for (std::uint32_t i = 0; i < n; ++i) {
                 float c = external ? 0.5f * (scL_[i] + scR_[i]) : syn[i];
@@ -263,8 +268,8 @@ public:
         std::fill(procL_.begin(), procL_.begin() + n, 0.0f); std::fill(procR_.begin(), procR_.begin() + n, 0.0f);
         const bool series = p(kRoute) > 0.5f;
         const bool aOn = p(kEngA + eOn) > 0.5f, bOn = p(kEngB + eOn) > 0.5f;
-        if (aOn) vocode(0, carA_.data(), n, series && bOn ? 0.0f : p(kAMix) * 0.01f);
-        if (bOn) {
+        if (aOn && !idle) vocode(0, carA_.data(), n, series && bOn ? 0.0f : p(kAMix) * 0.01f);
+        if (bOn && !idle) {
             if (series && aOn) std::copy(vocodedA_.begin(), vocodedA_.begin() + n, carB_.begin());
             vocode(1, carB_.data(), n, p(kBMix) * 0.01f);
         }
